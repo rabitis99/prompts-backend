@@ -30,7 +30,7 @@ public class GoogleGeminiService {
 
         return webClient.post()
                 .uri(uriBuilder -> uriBuilder
-                        .path("/models/{model}:generateText")
+                        .path("/models/{model}:generateContent")
                         .build(properties.getModel()))
                 .header("x-goog-api-key", properties.getApiKey())
                 .bodyValue(request)
