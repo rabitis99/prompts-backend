@@ -1,6 +1,5 @@
 package org.example.sharedprompts.global.response;
 
-
 import lombok.Getter;
 
 import java.util.List;
@@ -8,10 +7,10 @@ import java.util.List;
 @Getter
 public class PageResponse<T> {
     // Getter
-    private List<T> content;
-    private int page;
-    private int size;
-    private long totalElements;
+    private final List<T> content;
+    private final int page;
+    private final int size;
+    private final long totalElements;
 
     public PageResponse(List<T> content, int page, int size, long totalElements) {
         this.content = content;
