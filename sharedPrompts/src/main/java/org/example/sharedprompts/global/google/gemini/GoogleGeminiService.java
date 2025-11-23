@@ -7,7 +7,6 @@ import org.example.sharedprompts.global.google.gemini.response.ChatResponse;
 import org.example.sharedprompts.global.google.gemini.response.Candidate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -30,7 +29,7 @@ public class GoogleGeminiService {
 
         return webClient.post()
                 .uri("/models/{model}:generateMessage", properties.getModel())
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + properties.getApiKey())
+                .header("x-goog-api-key", properties.getApiKey())
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(ChatResponse.class)

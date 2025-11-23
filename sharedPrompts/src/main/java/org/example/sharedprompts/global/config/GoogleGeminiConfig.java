@@ -1,5 +1,7 @@
 package org.example.sharedprompts.global.config;
 
+import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.global.google.gemini.GoogleGeminiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -11,14 +13,17 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @Configuration
+@RequiredArgsConstructor
 public class GoogleGeminiConfig {
 
     private static final Logger log = LoggerFactory.getLogger(GoogleGeminiConfig.class);
 
+    private final GoogleGeminiProperties properties;
+
     @Bean
     public WebClient googleGeminiWebClient(WebClient.Builder webClientBuilder) {
         return webClientBuilder
-                .baseUrl("https://generativelanguage.googleapis.com/v1beta2")
+                .baseUrl(properties.getBaseUrl())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .filter(logRequest())
                 .filter(logResponse())
@@ -29,7 +34,11 @@ public class GoogleGeminiConfig {
     private ExchangeFilterFunction logRequest() {
         return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
             log.info("[GoogleGemini] Request: {} {}", clientRequest.method(), clientRequest.url());
-            clientRequest.headers().forEach((k,v) -> log.info("{}={}", k,v));
+            clientRequest.headers().forEach((k,v) -> {
+                if (!k.equalsIgnoreCase("Authorization") && !k.equalsIgnoreCase("X-API-Key")) {
+                    log.info("{}={}", k, v);
+                }
+            });
             return Mono.just(clientRequest);
         });
     }
