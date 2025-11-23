@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
@@ -28,15 +29,24 @@ public class GoogleGeminiService {
         ChatRequest request = new ChatRequest(new Message(prompt));
 
         return webClient.post()
-                .uri("/models/{model}:generateMessage", properties.getModel())
+                .uri(uriBuilder -> uriBuilder
+                        .path("/models/{model}:generateText")
+                        .build(properties.getModel()))
                 .header("x-goog-api-key", properties.getApiKey())
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(ChatResponse.class)
                 .map(this::extractFirstCandidate)
-                .timeout(Duration.ofSeconds(5)) // 응답 대기 5초
-                .retryWhen(Retry.backoff(3, Duration.ofSeconds(1)) // 최대 3회 재시도
+                .timeout(Duration.ofSeconds(5))
+                .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
                         .filter(e -> {
+                            // 5xx 서버 오류 및 네트워크 오류만 재시도
+                            if (e instanceof WebClientResponseException wcre) {
+                                if (wcre.getStatusCode().is4xxClientError()) {
+                                    log.error("Client error, not retrying: {}", e.getMessage());
+                                    return false;
+                                }
+                            }
                             log.warn("Retry due to: {}", e.getMessage());
                             return true;
                         }))
