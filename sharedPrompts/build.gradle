@@ -1,6 +1,6 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '4.0.0'
+	id 'org.springframework.boot' version '3.5.8'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -14,14 +14,18 @@ java {
 	}
 }
 
-configurations {
-	compileOnly {
-		extendsFrom annotationProcessor
-	}
+ext {
+	springAiVersion = "1.1.0" // 최신 Spring AI BOM
 }
 
 repositories {
 	mavenCentral()
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
 }
 
 dependencies {
@@ -30,17 +34,26 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
+	implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
 
-	// DB
+	// Spring AI (OpenAI + Google Gemini)
+	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+	implementation 'org.springframework.ai:spring-ai-starter-model-google-genai'
+	implementation 'com.google.genai:google-genai:1.8.0'
+
+	// Database
 	runtimeOnly 'com.mysql:mysql-connector-j'
 
 	// Redis
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-	testImplementation 'org.springframework.boot:spring-boot-starter-data-redis-test'
 
 	// QueryDSL
-	implementation 'com.querydsl:querydsl-jpa:5.0.0'
-	annotationProcessor 'com.querydsl:querydsl-apt:5.0.0:jpa'
+	implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
+	annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jakarta"
+	annotationProcessor "jakarta.annotation:jakarta.annotation-api"
+	annotationProcessor "jakarta.persistence:jakarta.persistence-api"
 
 	// OAuth2 / JWT
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
@@ -52,23 +65,31 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 
-	// 테스트
+	// Utilities
+	implementation 'org.modelmapper:modelmapper:3.1.1'
+
+	// Testing
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
-	// Optional: Model Mapper / Utils
-	implementation 'org.modelmapper:modelmapper:3.1.1'
 }
 
-tasks.named('test') {
-	useJUnitPlatform()
-}
-
-// QueryDSL 추가 설정 (optional)
+// QueryDSL 소스 설정
 sourceSets {
 	main {
 		java {
 			srcDirs = ['src/main/java', 'build/generated']
 		}
 	}
+}
+
+// Spring AI BOM 관리
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.ai:spring-ai-bom:$springAiVersion"
+	}
+}
+
+// Java 컴파일 옵션
+tasks.withType(JavaCompile).configureEach {
+	options.encoding = 'UTF-8'
 }
