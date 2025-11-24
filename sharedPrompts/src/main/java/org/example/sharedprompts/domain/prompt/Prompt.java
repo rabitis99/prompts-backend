@@ -51,7 +51,7 @@ public class Prompt extends BaseEntity {
 
     @Column(nullable = false)
     @Builder.Default
-    private Integer viewCount = 0;
+    private int viewCount = 0;
 
     public void updateTitle(String title) {
         this.title = title;
@@ -65,7 +65,7 @@ public class Prompt extends BaseEntity {
         this.status = status;
     }
 
-    public void updateViewCount(Integer viewCount) {
+    public void updateViewCount(int viewCount) {
         this.viewCount = viewCount;
     }
 }
