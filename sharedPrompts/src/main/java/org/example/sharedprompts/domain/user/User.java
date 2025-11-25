@@ -64,6 +64,14 @@ public class User extends BaseEntity {
         this.password = encodedPassword;
     }
 
+    public void agreeToTerms(UserTerms terms) {
+        this.terms = terms;
+    }
+
+    public void updateAge(Integer age) {
+        this.age = age;
+    }
+
     public void agreeMarketing() {
         if (this.terms == null) {
             this.terms = UserTerms.ofDefault().agreeMarketing();
