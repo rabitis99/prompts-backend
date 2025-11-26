@@ -3,8 +3,10 @@ package org.example.sharedprompts.controller.auth;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.auth.sevice.AuthService;
+import org.example.sharedprompts.dto.auth.request.LoginRequestDto;
 import org.example.sharedprompts.dto.auth.request.SignUpRequestDto;
 import org.example.sharedprompts.dto.auth.response.AuthResponseDto;
+import org.example.sharedprompts.dto.auth.response.TokenResponseDto;
 import org.example.sharedprompts.global.response.CustomResponse;
 import org.example.sharedprompts.global.response.CustomResponseHelper;
 import org.springframework.http.ResponseEntity;
@@ -26,4 +28,12 @@ public class AuthController {
     ) {
         return CustomResponseHelper.created(authService.signUp(dto));
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<CustomResponse<TokenResponseDto>> login(
+            @Valid @RequestBody LoginRequestDto dto
+    ){
+        return CustomResponseHelper.created(authService.login(dto));
+    }
+
 }
