@@ -1,4 +1,4 @@
-package org.example.sharedprompts.global.jwt.OAuth2UserInfo;
+package org.example.sharedprompts.global.jwt.oauth2userinfo;
 
 import java.util.Map;
 

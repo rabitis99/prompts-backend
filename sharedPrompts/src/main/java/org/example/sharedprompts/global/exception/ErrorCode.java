@@ -28,8 +28,7 @@ public enum ErrorCode {
     // ==========================
     // 🔹 USER
     // ==========================
-
-    USER_NOT_FOUND("US00701",HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
+    USER_NOT_FOUND("US00701", HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
 
     // ==========================
     // 🔹 Auth
@@ -39,11 +38,12 @@ public enum ErrorCode {
     // ==========================
     // 🔹 OAuth2
     // ==========================
-    OAUTH2_INVALID_CODE("AU00402", HttpStatus.BAD_REQUEST, "유효하지 않은 인증 코드입니다."),
-    OAUTH2_STATE_MISMATCH("AU00403", HttpStatus.BAD_REQUEST, "state 값이 일치하지 않습니다."),
-    OAUTH2_TOKEN_EXPIRED("AU00404", HttpStatus.BAD_REQUEST, "임시 토큰이 만료되었습니다."),
-    OAUTH2_TOKEN_INVALID("AU00404", HttpStatus.BAD_REQUEST, "유효하지 않은 토큰입니다."),
+    OAUTH2_INVALID_CODE("AU00401", HttpStatus.BAD_REQUEST, "유효하지 않은 인증 코드입니다."),
+    OAUTH2_STATE_MISMATCH("AU00402", HttpStatus.BAD_REQUEST, "state 값이 일치하지 않습니다."),
+    OAUTH2_TOKEN_EXPIRED("AU00501", HttpStatus.UNAUTHORIZED, "임시 토큰이 만료되었습니다."),
+    OAUTH2_TOKEN_INVALID("AU00502", HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
     ;
+
     private final String code;
     private final HttpStatus httpStatus;
     private final String message;

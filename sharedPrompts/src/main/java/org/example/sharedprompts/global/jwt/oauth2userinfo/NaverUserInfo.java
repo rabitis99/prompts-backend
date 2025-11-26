@@ -1,4 +1,4 @@
-package org.example.sharedprompts.global.jwt.OAuth2UserInfo;
+package org.example.sharedprompts.global.jwt.oauth2userinfo;
 
 import java.util.Map;
 
@@ -29,8 +29,7 @@ public class NaverUserInfo extends OAuth2UserInfo {
     @Override
     public String getEmail() {
         Map<String, Object> response = getMap(attributes, "response");
-        Object email = response != null ? response.get("email") : null;
-        return email != null ? (String) email : "";
+        return response != null ? (String) response.get("email") : null;
     }
 
     // 안전하게 Map을 가져오는 헬퍼

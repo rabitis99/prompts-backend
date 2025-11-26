@@ -54,8 +54,10 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         String tempKey = RandomGenerator.randomKey();
         String state = RandomGenerator.randomState();
 
-        // Redis에 임시 key + state 저장 (예: 3분 유효)
-        tokenRedisService.saveTempToken(tempKey, accessToken, refreshToken, state, Duration.ofMinutes(3));
+        String provider = principal.getProvider().name();
+        String providerId = principal.getAttributes().get("id").toString();
+
+        tokenRedisService.saveTempToken(tempKey, accessToken, refreshToken, state, provider, providerId, Duration.ofMinutes(3));
 
         // 프론트로 리다이렉트 시 key + state 전달
         String redirectUrl = frontRedirectUrl + "?key=" + URLEncoder.encode(tempKey, StandardCharsets.UTF_8)

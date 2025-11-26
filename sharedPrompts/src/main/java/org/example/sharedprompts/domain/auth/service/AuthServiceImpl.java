@@ -16,6 +16,7 @@ import org.example.sharedprompts.global.redis.TokenRedisService;
 import org.example.sharedprompts.global.util.RandomGenerator;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
@@ -29,6 +30,7 @@ public class AuthServiceImpl implements AuthService {
     private final TokenRedisService tokenRedisService;
 
     @Override
+    @Transactional
     public AuthResponseDto signUp(SignUpRequestDto dto) {
         if (userRepository.existsByProviderAndEmail(Provider.LOCAL, dto.getEmail())) {
             throw new ApiException(ErrorCode.CONFLICT_EMAIL);
@@ -42,11 +44,12 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public TokenResponseDto login(LoginRequestDto dto) {
         User user = userRepository.findByProviderAndEmail(Provider.LOCAL, dto.getEmail())
                 .orElseThrow(() -> new ApiException(ErrorCode.FORBIDDEN));
 
-        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+        if (user.getPassword() == null || !passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
             throw new ApiException(ErrorCode.FORBIDDEN);
         }
 
@@ -59,49 +62,39 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public TokenResponseDto callback(String code, String state) {
+    @Transactional(readOnly = true)
+    public TokenResponseDto callback(String tempKey, String state) {
 
-        // 1. 임시 Redis에서 토큰 정보 가져오기
-        Map<String, String> tokens = tokenRedisService.getAndDeleteTempToken(code);
+        Map<String, String> tokens = tokenRedisService.getAndDeleteTempToken(tempKey);
+
         if (tokens == null) {
             throw new ApiException(ErrorCode.OAUTH2_INVALID_CODE);
         }
 
-        // 2. state 검증
         String expectedState = tokens.get(Constant.STATE_KEY);
         if (expectedState == null || !expectedState.equals(state)) {
             throw new ApiException(ErrorCode.OAUTH2_STATE_MISMATCH);
         }
 
-        // 3. access, refresh 토큰 존재 확인
         String accessToken = tokens.get(Constant.ACCESS_TOKEN_KEY);
         String refreshToken = tokens.get(Constant.REFRESH_TOKEN_KEY);
-        if (accessToken == null || refreshToken == null) {
-            throw new ApiException(ErrorCode.OAUTH2_TOKEN_EXPIRED);
-        }
+        String providerStr = tokens.get(Constant.PROVIDER_KEY);
+        String providerId = tokens.get(Constant.PROVIDER_ID_KEY);
 
-        // 4. userId를 안전하게 확보 (DB 조회)
-        String providerStr = tokens.get("provider"); // OAuth2 발급 시 provider 저장 필요
-        String providerId = tokens.get("providerId"); // OAuth2 발급 시 providerId 저장 필요
-        if (providerStr == null || providerId == null) {
+        if (accessToken == null || refreshToken == null || providerStr == null || providerId == null) {
             throw new ApiException(ErrorCode.OAUTH2_TOKEN_INVALID);
         }
 
-        Provider provider;
-        try {
-            provider = Provider.valueOf(providerStr);
-        } catch (IllegalArgumentException e) {
-            throw new ApiException(ErrorCode.OAUTH2_TOKEN_INVALID, "유효하지 않은 provider 값");
-        }
+        // userId 조회
+        User user = userRepository.findByProviderAndProviderId(
+                Provider.valueOf(providerStr),
+                providerId
+        ).orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
-        User user = userRepository.findByProviderAndProviderId(provider, providerId)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
-        // 5. Redis에 실제 Access/Refresh Token 저장
         tokenRedisService.saveAccessToken(accessToken, user.getId());
         tokenRedisService.saveRefreshToken(refreshToken, user.getId());
 
-        // 6. 클라이언트에 토큰 반환
         return new TokenResponseDto(accessToken, refreshToken);
     }
 

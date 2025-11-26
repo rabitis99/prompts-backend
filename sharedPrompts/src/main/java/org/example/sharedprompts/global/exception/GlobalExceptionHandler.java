@@ -45,6 +45,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({ExpiredJwtException.class, SignatureException.class, MalformedJwtException.class})
     public ResponseEntity<?> handleJwtException(JwtException e) {
+        log.warn("JWT 인증 실패: {}", e.getMessage());
         return CustomResponseHelper.fail(new ApiException(ErrorCode.UNAUTHORIZED));
     }
     // 커스텀 예외

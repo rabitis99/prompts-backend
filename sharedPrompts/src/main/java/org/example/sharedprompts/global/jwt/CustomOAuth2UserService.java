@@ -5,7 +5,7 @@ import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.enums.Provider;
 import org.example.sharedprompts.domain.user.enums.Role;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
-import org.example.sharedprompts.global.jwt.OAuth2UserInfo.*;
+import org.example.sharedprompts.global.jwt.oauth2userinfo.*;
 import org.example.sharedprompts.global.util.RandomGenerator;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
