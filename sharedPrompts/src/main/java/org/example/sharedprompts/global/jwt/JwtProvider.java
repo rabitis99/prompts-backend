@@ -58,7 +58,12 @@ public class JwtProvider {
 
     public Long getUserIdFromClaims(Claims claims) {
         String sub = claims.getSubject();
-        return sub != null ? Long.valueOf(sub) : null;
+        if (sub == null) return null;
+        try {
+            return Long.valueOf(sub);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("유효하지 않은 userId 형식: " + sub, e);
+        }
     }
 
     public String getEmailFromClaims(Claims claims) {

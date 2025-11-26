@@ -37,9 +37,14 @@ public class PrincipalDetails implements UserDetails, OAuth2User {
     }
 
     public static PrincipalDetails fromJwtClaims(Long id, String email, String nickname, String role, String provider) {
-        return new PrincipalDetails(id, email, nickname, Role.valueOf(role), null, Provider.valueOf(provider));
+        try {
+            Role roleEnum = Role.valueOf(role);
+            Provider providerEnum = Provider.valueOf(provider);
+            return new PrincipalDetails(id, email, nickname, roleEnum, null, providerEnum);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("유효하지 않은 role 또는 provider 값: " + role + ", " + provider, e);
+        }
     }
-
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(role.name()));

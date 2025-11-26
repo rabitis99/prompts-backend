@@ -1,9 +1,9 @@
 package org.example.sharedprompts.global.jwt.handler;
 
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
@@ -16,20 +16,21 @@ import java.nio.charset.StandardCharsets;
 @Component
 public class OAuth2FailureHandler implements AuthenticationFailureHandler {
 
-    // 프론트 SPA 주소
-    private static final String FRONT_REDIRECT_URL = "http://localhost:5173/oauth/failure";
+    @Value("${oauth2.failure-redirect-url}")
+    private String frontRedirectUrl;
 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request,
                                         HttpServletResponse response,
-                                        AuthenticationException exception) throws IOException, ServletException {
+                                        AuthenticationException exception) throws IOException {
 
-        // 실패 이유 로깅
-        log.error("OAuth2 로그인 실패: {}", exception.getMessage());
+        log.error("OAuth2 로그인 실패 - URI: {}, IP: {}, 이유: {}",
+                request.getRequestURI(),
+                request.getRemoteAddr(),
+                exception.getMessage());
 
-        // 프론트로 실패 메시지 전달
-        String errorMessage = URLEncoder.encode(exception.getMessage(), StandardCharsets.UTF_8);
-        String redirectUrl = FRONT_REDIRECT_URL + "?error=" + errorMessage;
+        String errorMessage = URLEncoder.encode("인증에 실패했습니다. 다시 시도해주세요.", StandardCharsets.UTF_8);
+        String redirectUrl = frontRedirectUrl + "?error=" + errorMessage;
 
         response.sendRedirect(redirectUrl);
     }

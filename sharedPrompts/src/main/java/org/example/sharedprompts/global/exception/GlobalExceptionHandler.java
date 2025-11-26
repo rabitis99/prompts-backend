@@ -1,6 +1,10 @@
 package org.example.sharedprompts.global.exception;
 
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.response.CustomResponseHelper;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +43,10 @@ public class GlobalExceptionHandler {
         return CustomResponseHelper.fail(new ApiException(ErrorCode.INVALID_INPUT_VALUE, fieldName));
     }
 
+    @ExceptionHandler({ExpiredJwtException.class, SignatureException.class, MalformedJwtException.class})
+    public ResponseEntity<?> handleJwtException(JwtException e) {
+        return CustomResponseHelper.fail(new ApiException(ErrorCode.UNAUTHORIZED));
+    }
     // 커스텀 예외
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<?> handleCustomException(ApiException e) {

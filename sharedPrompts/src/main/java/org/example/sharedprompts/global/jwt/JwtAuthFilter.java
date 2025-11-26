@@ -29,26 +29,29 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
 
-            // Redis에서 AccessToken 확인
             if (tokenRedisService.isAccessTokenValid(token)) {
-                Claims claims = jwtProvider.getClaims(token);
+                try {
+                    Claims claims = jwtProvider.getClaims(token);
 
-                Long userId = jwtProvider.getUserIdFromClaims(claims);
-                String email = jwtProvider.getEmailFromClaims(claims);
-                String role = jwtProvider.getRoleFromClaims(claims);
-                String nickname = jwtProvider.getNicknameFromClaims(claims); // optional
-                String provider = jwtProvider.getProviderFromClaims(claims);
-                // PrincipalDetails 생성
-                PrincipalDetails principal = PrincipalDetails.fromJwtClaims(userId, email, nickname, role, provider);
+                    Long userId = jwtProvider.getUserIdFromClaims(claims);
+                    String email = jwtProvider.getEmailFromClaims(claims);
+                    String role = jwtProvider.getRoleFromClaims(claims);
+                    String nickname = jwtProvider.getNicknameFromClaims(claims);
+                    String provider = jwtProvider.getProviderFromClaims(claims);
 
-                UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(
-                                principal, null, principal.getAuthorities()
-                        );
-                SecurityContextHolder.getContext().setAuthentication(auth);
+                    if (userId != null && email != null && role != null) {
+                        PrincipalDetails principal = PrincipalDetails.fromJwtClaims(userId, email, nickname, role, provider);
+                        UsernamePasswordAuthenticationToken auth =
+                                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                    } else {
+                        tokenRedisService.deleteAccessToken(token);
+                    }
+                } catch (Exception e) {
+                    tokenRedisService.deleteAccessToken(token);
+                }
             }
         }
-
         filterChain.doFilter(request, response);
     }
 }

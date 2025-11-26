@@ -26,17 +26,24 @@ public enum ErrorCode {
     INTERNAL_SERVER_ERROR("CM01001", HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다."),
 
     // ==========================
+    // 🔹 USER
+    // ==========================
+
+    USER_NOT_FOUND("US00701",HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
+
+    // ==========================
     // 🔹 Auth
     // ==========================
-    CONFLICT_EMAIL("AU00601", HttpStatus.FORBIDDEN, "중복된 이메일 입니다."),
+    CONFLICT_EMAIL("AU00901", HttpStatus.CONFLICT, "중복된 이메일 입니다."),
 
     // ==========================
     // 🔹 OAuth2
     // ==========================
-    OAUTH2_INVALID_CODE("AU00602", HttpStatus.FORBIDDEN, "유효하지 않은 인증 코드입니다."),
-    OAUTH2_STATE_MISMATCH("AU00603", HttpStatus.FORBIDDEN, "state 값이 일치하지 않습니다."),
-    OAUTH2_TOKEN_EXPIRED("AU00604", HttpStatus.FORBIDDEN, "임시 토큰이 만료되었습니다.");
-
+    OAUTH2_INVALID_CODE("AU00402", HttpStatus.BAD_REQUEST, "유효하지 않은 인증 코드입니다."),
+    OAUTH2_STATE_MISMATCH("AU00403", HttpStatus.BAD_REQUEST, "state 값이 일치하지 않습니다."),
+    OAUTH2_TOKEN_EXPIRED("AU00404", HttpStatus.BAD_REQUEST, "임시 토큰이 만료되었습니다."),
+    OAUTH2_TOKEN_INVALID("AU00404", HttpStatus.BAD_REQUEST, "유효하지 않은 토큰입니다."),
+    ;
     private final String code;
     private final HttpStatus httpStatus;
     private final String message;

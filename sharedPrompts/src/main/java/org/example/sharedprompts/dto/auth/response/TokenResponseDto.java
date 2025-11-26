@@ -6,8 +6,8 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class TokenResponseDto {
-    String accessToken;
-    String refreshToken;
+    private String accessToken;
+    private String refreshToken;
 
     public TokenResponseDto(String accessToken, String refreshToken) {
         this.accessToken = accessToken;

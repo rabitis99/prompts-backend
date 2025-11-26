@@ -36,7 +36,7 @@ public class AuthController {
     @GetMapping("/callback")
     public ResponseEntity<CustomResponse<TokenResponseDto>> callback(
             @RequestParam("code") String code,
-            @RequestParam(value = "state", required = false) String state
+            @RequestParam(value = "state") String state
     ){
         return CustomResponseHelper.ok(authService.callback(code, state));
     }

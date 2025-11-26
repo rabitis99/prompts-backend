@@ -6,8 +6,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.sharedprompts.domain.user.User;
-import org.example.sharedprompts.domain.user.UserTerms;
 import org.example.sharedprompts.domain.user.enums.Provider;
+import org.example.sharedprompts.dto.user.response.UserTermsResponseDto;
 
 @Getter
 @Builder
@@ -23,7 +23,7 @@ public class AuthResponseDto {
     private Integer age;
     private String job;
     private String thumbnail;
-    private UserTerms userTerms;
+    private UserTermsResponseDto userTerms;
 
     public static AuthResponseDto from(User user) {
         return AuthResponseDto.builder()
@@ -34,7 +34,7 @@ public class AuthResponseDto {
                 .age(user.getAge())
                 .job(user.getJob())
                 .thumbnail(user.getThumbnail())
-                .userTerms(user.getTerms())
+                .userTerms(UserTermsResponseDto.from(user.getTerms()))
                 .build();
     }
 }

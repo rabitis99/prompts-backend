@@ -7,11 +7,14 @@ import org.example.sharedprompts.global.jwt.JwtUtil;
 import org.example.sharedprompts.global.jwt.PrincipalDetails;
 import org.example.sharedprompts.global.redis.TokenRedisService;
 import org.example.sharedprompts.global.util.RandomGenerator;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 @Component
@@ -21,8 +24,8 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final JwtUtil jwtUtil;
     private final TokenRedisService tokenRedisService;
 
-    // 프론트 SPA 주소
-    private static final String FRONT_REDIRECT_URL = "http://localhost:5173/oauth/success";
+    @Value("${oauth2.redirect.front-url}")
+    private String frontRedirectUrl;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
@@ -55,7 +58,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         tokenRedisService.saveTempToken(tempKey, accessToken, refreshToken, state, Duration.ofMinutes(3));
 
         // 프론트로 리다이렉트 시 key + state 전달
-        String redirectUrl = FRONT_REDIRECT_URL + "?key=" + tempKey + "&state=" + state;
+        String redirectUrl = frontRedirectUrl + "?key=" + URLEncoder.encode(tempKey, StandardCharsets.UTF_8)
+                + "&state=" + URLEncoder.encode(state, StandardCharsets.UTF_8);
+
         response.sendRedirect(redirectUrl);
     }
 }

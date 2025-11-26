@@ -7,11 +7,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
-    boolean existsByEmail(String email);
 
-    Optional<User> findByEmail(String email);
+    Optional<User> findByProviderAndEmail(Provider provider, String email);
 
     Optional<User> findByProviderAndProviderId(Provider provider, String providerId);
 
     boolean existsByProviderAndProviderId(Provider provider, String providerId);
+
+    boolean existsByProviderAndEmail( Provider provider, String email);
 }
