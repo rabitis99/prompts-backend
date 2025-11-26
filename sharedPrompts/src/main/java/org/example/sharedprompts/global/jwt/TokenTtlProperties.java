@@ -1,4 +1,4 @@
-package org.example.sharedprompts.global.config;
+package org.example.sharedprompts.global.jwt;
 
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
@@ -6,12 +6,12 @@ import org.springframework.stereotype.Component;
 
 @Getter
 @Component
-public class TokenTtlConfig {
+public class TokenTtlProperties {
 
     private final long accessTokenValidity;
     private final long refreshTokenValidity;
 
-    public TokenTtlConfig(
+    public TokenTtlProperties(
             @Value("${jwt.access.expiration}") long accessTokenValidity,
             @Value("${jwt.refresh.expiration}") long refreshTokenValidity
     ) {

@@ -1,8 +1,8 @@
-package org.example.sharedprompts.global.config;
+package org.example.sharedprompts.global.jwt;
 
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.global.jwt.JwtAuthFilter;
-import org.example.sharedprompts.global.jwt.JwtProvider;
+import org.example.sharedprompts.global.jwt.handler.OAuth2FailureHandler;
+import org.example.sharedprompts.global.jwt.handler.OAuth2SuccessHandler;
 import org.example.sharedprompts.global.redis.TokenRedisService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +22,8 @@ public class SecurityConfig {
 
     private final JwtProvider jwtProvider;
     private final TokenRedisService tokenRedisService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final OAuth2FailureHandler oAuth2FailureHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -44,6 +46,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/signup", "/auth/login", "/auth/refresh").permitAll()
                         .anyRequest().authenticated()
+                )
+
+                // OAuth2 로그인 설정
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(oAuth2SuccessHandler)
+                        .failureHandler(oAuth2FailureHandler)
                 )
 
                 // JWT Filter 적용

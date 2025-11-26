@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 public class PrincipalDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
-
+    // 폼로그인을 위해서 남겨두자고
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(username).

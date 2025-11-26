@@ -2,7 +2,7 @@ package org.example.sharedprompts.controller.auth;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.domain.auth.sevice.AuthService;
+import org.example.sharedprompts.domain.auth.service.AuthService;
 import org.example.sharedprompts.dto.auth.request.LoginRequestDto;
 import org.example.sharedprompts.dto.auth.request.SignUpRequestDto;
 import org.example.sharedprompts.dto.auth.response.AuthResponseDto;
@@ -10,10 +10,7 @@ import org.example.sharedprompts.dto.auth.response.TokenResponseDto;
 import org.example.sharedprompts.global.response.CustomResponse;
 import org.example.sharedprompts.global.response.CustomResponseHelper;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
@@ -33,7 +30,14 @@ public class AuthController {
     public ResponseEntity<CustomResponse<TokenResponseDto>> login(
             @Valid @RequestBody LoginRequestDto dto
     ){
-        return CustomResponseHelper.created(authService.login(dto));
+        return CustomResponseHelper.ok(authService.login(dto));
     }
 
+    @GetMapping("/callback")
+    public ResponseEntity<CustomResponse<TokenResponseDto>> callback(
+            @RequestParam("code") String code,
+            @RequestParam(value = "state", required = false) String state
+    ){
+        return CustomResponseHelper.ok(authService.callback(code, state));
+    }
 }

@@ -13,7 +13,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
 
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -38,9 +37,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 String email = jwtProvider.getEmailFromClaims(claims);
                 String role = jwtProvider.getRoleFromClaims(claims);
                 String nickname = jwtProvider.getNicknameFromClaims(claims); // optional
-
+                String provider = jwtProvider.getProviderFromClaims(claims);
                 // PrincipalDetails 생성
-                PrincipalDetails principal = PrincipalDetails.fromJwtClaims(userId, email, nickname, role);
+                PrincipalDetails principal = PrincipalDetails.fromJwtClaims(userId, email, nickname, role, provider);
 
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(

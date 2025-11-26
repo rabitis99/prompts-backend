@@ -17,14 +17,16 @@ public class JwtProvider {
                 user.getId(),
                 user.getEmail(),
                 user.getRole(),
-                user.getNickname()
+                user.getNickname(),
+                user.getProvider()       // provider 추가
         );
 
         String refreshToken = jwtUtil.generateRefreshToken(
                 user.getId(),
                 user.getEmail(),
                 user.getRole(),
-                user.getNickname()
+                user.getNickname(),
+                user.getProvider()       // provider 추가
         );
 
         return new TokenResponseDto(accessToken, refreshToken);
@@ -35,7 +37,8 @@ public class JwtProvider {
                 user.getId(),
                 user.getEmail(),
                 user.getRole(),
-                user.getNickname()
+                user.getNickname(),
+                user.getProvider()       // provider 추가
         );
     }
 
@@ -44,7 +47,8 @@ public class JwtProvider {
                 user.getId(),
                 user.getEmail(),
                 user.getRole(),
-                user.getNickname()
+                user.getNickname(),
+                user.getProvider()       // provider 추가
         );
     }
 
@@ -54,7 +58,7 @@ public class JwtProvider {
 
     public Long getUserIdFromClaims(Claims claims) {
         String sub = claims.getSubject();
-        return sub == null ? null : Long.valueOf(sub);
+        return sub != null ? Long.valueOf(sub) : null;
     }
 
     public String getEmailFromClaims(Claims claims) {
@@ -67,5 +71,9 @@ public class JwtProvider {
 
     public String getNicknameFromClaims(Claims claims) {
         return claims.get("nickname", String.class);
+    }
+
+    public String getProviderFromClaims(Claims claims) {
+        return claims.get("provider", String.class);
     }
 }

@@ -1,6 +1,7 @@
 package org.example.sharedprompts.global.jwt;
 
 import lombok.Getter;
+import org.example.sharedprompts.domain.user.enums.Provider;
 import org.example.sharedprompts.domain.user.enums.Role;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -16,33 +17,27 @@ public class PrincipalDetails implements UserDetails, OAuth2User {
 
     private final Long id;
     private final String email;
-    private final String nickname;   // optional, null 허용
+    private final String nickname;
     private final Role role;
+    private final Map<String, Object> attributes;
+    private final Provider provider;
 
-    private Map<String, Object> attributes; // OAuth2 용
-
-    // 일반 로그인
     public PrincipalDetails(Long id, String email, String nickname, Role role) {
-        this.id = id;
-        this.email = email;
-        this.nickname = nickname;
-        this.role = role;
+        this(id, email, nickname, role, null, null);
     }
 
-    // OAuth2 로그인용
-    public PrincipalDetails(Long id, String email, String nickname, Role role, Map<String, Object> attributes) {
+    public PrincipalDetails(Long id, String email, String nickname, Role role,
+                            Map<String, Object> attributes, Provider provider) {
         this.id = id;
         this.email = email;
         this.nickname = nickname;
         this.role = role;
         this.attributes = attributes;
+        this.provider = provider;
     }
 
-    // JWT Claims 에서 직접 생성
-    public static PrincipalDetails fromJwtClaims(Long id, String email, String nickname, String role) {
-        return new PrincipalDetails(
-                id, email, nickname, Role.valueOf(role)
-        );
+    public static PrincipalDetails fromJwtClaims(Long id, String email, String nickname, String role, String provider) {
+        return new PrincipalDetails(id, email, nickname, Role.valueOf(role), null, Provider.valueOf(provider));
     }
 
     @Override
@@ -50,17 +45,17 @@ public class PrincipalDetails implements UserDetails, OAuth2User {
         return List.of(new SimpleGrantedAuthority(role.name()));
     }
 
-    // password는 보관하지 않음
     @Override
     public String getPassword() { return null; }
 
     @Override
-    public String getUsername() {
-        return email;
-    }
+    public String getUsername() { return email; }
 
-    @Override public Map<String, Object> getAttributes() { return attributes; }
-    @Override public String getName() { return nickname != null ? nickname : email; }
+    @Override
+    public Map<String, Object> getAttributes() { return attributes; }
+
+    @Override
+    public String getName() { return nickname != null ? nickname : email; }
 
     @Override public boolean isAccountNonExpired() { return true; }
     @Override public boolean isAccountNonLocked() { return true; }
