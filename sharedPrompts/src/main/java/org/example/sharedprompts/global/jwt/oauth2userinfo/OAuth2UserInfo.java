@@ -23,4 +23,14 @@ public abstract class OAuth2UserInfo {
     public abstract String getImageUrl();
 
     public abstract String getEmail();
+
+    @SuppressWarnings("unchecked")
+    protected Map<String, Object> getMap(Map<String, Object> map, String key) {
+        if (map == null) return null;
+        Object value = map.get(key);
+        if (value instanceof Map) {
+            return (Map<String, Object>) value;
+        }
+        return null;
+    }
 }

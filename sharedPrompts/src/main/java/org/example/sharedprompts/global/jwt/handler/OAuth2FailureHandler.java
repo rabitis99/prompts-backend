@@ -13,7 +13,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.Base64;
 
 @Slf4j
@@ -23,7 +22,8 @@ public class OAuth2FailureHandler implements AuthenticationFailureHandler {
     @Value("${oauth2.failure-redirect-url}")
     private String frontRedirectUrl;
 
-    private static final byte[] SALT = generateSalt();
+    @Value("${oauth2.salt}")
+    private String salt;  // This can be injected from configuration.
 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request,
@@ -35,7 +35,7 @@ public class OAuth2FailureHandler implements AuthenticationFailureHandler {
         log.error("OAuth2 로그인 실패 - URI: {}, IP_HASH: {}, 이유: {}",
                 request.getRequestURI(),
                 hashedIp,
-                exception.getMessage());
+                exception.getClass().getSimpleName());
 
         String errorMessage = URLEncoder.encode("인증에 실패했습니다. 다시 시도해주세요.", StandardCharsets.UTF_8);
         String redirectUrl = frontRedirectUrl + "?error=" + errorMessage;
@@ -43,22 +43,15 @@ public class OAuth2FailureHandler implements AuthenticationFailureHandler {
         response.sendRedirect(redirectUrl);
     }
 
-    private static String hashIp(String ip) {
+    private String hashIp(String ip) {
         if (ip == null) return "unknown";
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            digest.update(SALT);
+            digest.update(salt.getBytes(StandardCharsets.UTF_8));
             byte[] hash = digest.digest(ip.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(hash);
         } catch (NoSuchAlgorithmException e) {
-            // 해시 실패 시 fallback
             return "invalid";
         }
-    }
-
-    private static byte[] generateSalt() {
-        byte[] salt = new byte[16];
-        new SecureRandom().nextBytes(salt);
-        return salt;
     }
 }

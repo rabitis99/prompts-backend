@@ -32,17 +32,6 @@ public class KakaoUserInfo extends OAuth2UserInfo {
     public String getEmail() {
         Map<String, Object> account = getMap(attributes, "kakao_account");
         Object email = account != null ? account.get("email") : null;
-        return email != null ? (String) email : "";
-    }
-
-    // 안전하게 Map을 가져오는 헬퍼
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> getMap(Map<String, Object> map, String key) {
-        if (map == null) return null;
-        Object value = map.get(key);
-        if (value instanceof Map) {
-            return (Map<String, Object>) value;
-        }
-        return null;
+        return email != null ? String.valueOf(email) : null;
     }
 }

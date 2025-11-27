@@ -11,35 +11,28 @@ public class NaverUserInfo extends OAuth2UserInfo {
     @Override
     public String getId() {
         Map<String, Object> response = getMap(attributes, "response");
-        return response != null ? (String) response.get("id") : null;
+        Object id = response != null ? response.get("id") : null;
+        return id != null ? String.valueOf(id) : null;
     }
 
     @Override
     public String getNickname() {
         Map<String, Object> response = getMap(attributes, "response");
-        return response != null ? (String) response.get("nickname") : null;
+        Object nickname = response != null ? response.get("nickname") : null;
+        return nickname != null ? String.valueOf(nickname) : null;
     }
 
     @Override
     public String getImageUrl() {
         Map<String, Object> response = getMap(attributes, "response");
-        return response != null ? (String) response.get("profile_image") : null;
+        Object imageUrl = response != null ? response.get("profile_image") : null;
+        return imageUrl != null ? String.valueOf(imageUrl) : null;
     }
 
     @Override
     public String getEmail() {
         Map<String, Object> response = getMap(attributes, "response");
-        return response != null ? (String) response.get("email") : null;
-    }
-
-    // 안전하게 Map을 가져오는 헬퍼
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> getMap(Map<String, Object> map, String key) {
-        if (map == null) return null;
-        Object value = map.get(key);
-        if (value instanceof Map) {
-            return (Map<String, Object>) value;
-        }
-        return null;
+        Object email = response != null ? response.get("email") : null;
+        return email != null ? String.valueOf(email) : null;
     }
 }
