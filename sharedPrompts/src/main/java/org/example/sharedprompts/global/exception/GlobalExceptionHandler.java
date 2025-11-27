@@ -1,6 +1,6 @@
 package org.example.sharedprompts.global.exception;
 
-
+import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.response.CustomResponseHelper;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +39,11 @@ public class GlobalExceptionHandler {
         return CustomResponseHelper.fail(new ApiException(ErrorCode.INVALID_INPUT_VALUE, fieldName));
     }
 
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<?> handleJwtException(JwtException e) {
+        log.warn("JWT 인증 실패: {}", e.getMessage());
+        return CustomResponseHelper.fail(new ApiException(ErrorCode.UNAUTHORIZED));
+    }
     // 커스텀 예외
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<?> handleCustomException(ApiException e) {
