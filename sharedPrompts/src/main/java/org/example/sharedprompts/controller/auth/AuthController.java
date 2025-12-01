@@ -47,12 +47,10 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<CustomResponse<TokenResponseDto>> refresh(
-            @CurrentUser AuthUser authUser,
             @Valid @RequestBody RefreshRequestDto dto
     ){
-        return CustomResponseHelper.ok(authService.refresh(authUser.getId(), dto));
+        return CustomResponseHelper.ok(authService.refresh(dto));
     }
-
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(

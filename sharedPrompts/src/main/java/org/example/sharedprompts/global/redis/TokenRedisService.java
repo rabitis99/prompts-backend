@@ -23,27 +23,48 @@ public class TokenRedisService {
     private static final String REFRESH_SET_PREFIX = "USER_REFRESH:";
 
     // =========================
-    // Access Token 관리
+    // 🔹 Access Token 관리
     // =========================
+
+    /** Access Token 저장 (userId 포함) */
     public void saveAccessToken(String token, Long userId) {
         redisTemplate.opsForValue().set(
                 ACCESS_PREFIX + token,
-                userId.toString(),
+                String.valueOf(userId),
                 Duration.ofMillis(ttlConfig.getAccessTokenValidity())
         );
     }
 
+    /** Access Token 유효성 확인 */
     public boolean isAccessTokenValid(String token) {
         return Boolean.TRUE.equals(redisTemplate.hasKey(ACCESS_PREFIX + token));
     }
 
+    /** Access Token 삭제 (검증 없이) */
     public void deleteAccessToken(String token) {
         redisTemplate.delete(ACCESS_PREFIX + token);
     }
 
+    /** Access Token 삭제 (userId 검증 포함) */
+    public boolean isRefreshTokenValid(Long userId, String accessToken) {
+        String key = ACCESS_PREFIX + accessToken;
+        String storedUserIdStr = redisTemplate.opsForValue().get(key);
+
+        if (storedUserIdStr == null) return false;
+
+        Long storedUserId = Long.valueOf(storedUserIdStr);
+        if (!storedUserId.equals(userId)) {
+            return false;
+        }
+
+        redisTemplate.delete(key);
+        return true;
+    }
+
     // =========================
-    // Refresh Token 관리 (개별 키 + 사용자별 Set)
+    // 🔹 Refresh Token 관리 (개별 키 + 사용자별 Set)
     // =========================
+
     public void saveRefreshToken(String token, Long userId) {
         String key = REFRESH_PREFIX + token;
         redisTemplate.opsForValue().set(
@@ -63,6 +84,13 @@ public class TokenRedisService {
         return storedUserId != null && storedUserId.equals(userId.toString());
     }
 
+    public Long getRefreshToken(String token) {
+        String key = REFRESH_PREFIX + token;
+        String storedUserId = redisTemplate.opsForValue().get(key);
+        return storedUserId != null ? Long.valueOf(storedUserId) : null;
+    }
+
+
     public void deleteRefreshToken(String token, Long userId) {
         redisTemplate.delete(REFRESH_PREFIX + token);
 
@@ -77,7 +105,7 @@ public class TokenRedisService {
     }
 
     // =========================
-    // OAuth2 임시 토큰 관리 (access, refresh, state)
+    // 🔹 OAuth2 임시 토큰 관리 (access, refresh, state)
     // =========================
     public void saveTempToken(String key, String accessToken, String refreshToken, String state,
                               String provider, String providerId, Duration ttl) {
@@ -116,4 +144,5 @@ public class TokenRedisService {
         redisTemplate.delete(key);
         return result;
     }
+
 }

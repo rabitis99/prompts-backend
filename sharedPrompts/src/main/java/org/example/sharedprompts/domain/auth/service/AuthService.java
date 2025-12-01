@@ -11,6 +11,6 @@ public interface AuthService {
     AuthResponseDto signUp(SignUpRequestDto dto);
     TokenResponseDto login(LoginRequestDto dto);
     TokenResponseDto callback(String code, String state);
-    TokenResponseDto refresh(Long userId, RefreshRequestDto dto);
+    TokenResponseDto refresh(RefreshRequestDto dto);
     void logout(Long userId, LogoutRequestDto dto);
 }

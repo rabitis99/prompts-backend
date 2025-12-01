@@ -101,10 +101,13 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public TokenResponseDto refresh(Long userId, RefreshRequestDto dto) {
+    @Transactional
+    public TokenResponseDto refresh(RefreshRequestDto dto) {
+
+        Long userId = tokenRedisService.getRefreshToken(dto.getRefreshToken());
 
         if (!tokenRedisService.isRefreshTokenValid(dto.getRefreshToken(), userId)) {
-            throw new ApiException(ErrorCode.OAUTH2_INVALID_CODE);
+            throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
         User user = userRepository.findById(userId)
@@ -120,8 +123,12 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public void logout(Long userId, LogoutRequestDto dto) {
 
+        if (tokenRedisService.isRefreshTokenValid(dto.getAccessToken(),userId) && tokenRedisService.isRefreshTokenValid(dto.getRefreshToken(),userId)) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED_TOKEN_ACCESS);
+        }
         tokenRedisService.deleteAccessToken(dto.getAccessToken());
         tokenRedisService.deleteRefreshToken(dto.getRefreshToken(),userId);
 

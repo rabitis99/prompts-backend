@@ -52,7 +52,7 @@ public class PrincipalDetails extends AuthUser implements UserDetails, OAuth2Use
     // OAuth2User 구현
     @Override
     public Map<String, Object> getAttributes() {
-        return attributes;
+        return attributes != null ? attributes : Map.of();
     }
 
     @Override
