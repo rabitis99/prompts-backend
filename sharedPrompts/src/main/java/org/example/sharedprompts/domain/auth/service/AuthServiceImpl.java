@@ -5,6 +5,8 @@ import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.enums.Provider;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.dto.auth.request.LoginRequestDto;
+import org.example.sharedprompts.dto.auth.request.LogoutRequestDto;
+import org.example.sharedprompts.dto.auth.request.RefreshRequestDto;
 import org.example.sharedprompts.dto.auth.request.SignUpRequestDto;
 import org.example.sharedprompts.dto.auth.response.AuthResponseDto;
 import org.example.sharedprompts.dto.auth.response.TokenResponseDto;
@@ -96,6 +98,33 @@ public class AuthServiceImpl implements AuthService {
         tokenRedisService.saveRefreshToken(refreshToken, user.getId());
 
         return new TokenResponseDto(accessToken, refreshToken);
+    }
+
+    @Override
+    public TokenResponseDto refresh(Long userId, RefreshRequestDto dto) {
+
+        if (!tokenRedisService.isRefreshTokenValid(dto.getRefreshToken(), userId)) {
+            throw new ApiException(ErrorCode.OAUTH2_INVALID_CODE);
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+
+        String newAccessToken = jwtProvider.generateAccessToken(user);
+        String newRefreshToken = jwtProvider.generateRefreshToken(user);
+
+        tokenRedisService.saveRefreshToken(newRefreshToken, userId);
+        tokenRedisService.saveAccessToken(newAccessToken, userId);
+
+        return new TokenResponseDto(newAccessToken, newRefreshToken);
+    }
+
+    @Override
+    public void logout(Long userId, LogoutRequestDto dto) {
+
+        tokenRedisService.deleteAccessToken(dto.getAccessToken());
+        tokenRedisService.deleteRefreshToken(dto.getRefreshToken(),userId);
+
     }
 
 }

@@ -37,7 +37,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                         User.builder()
                                 .email(userInfo.getEmail())
                                 .nickname(userInfo.getNickname() != null ? userInfo.getNickname() : RandomGenerator.randomNickname())
-                                .role(Role.USER)
+                                .role(Role.ROLE_USER)
                                 .provider(provider)
                                 .providerId(userInfo.getId())
                                 .build()
@@ -47,8 +47,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 user.getEmail(),
                 user.getNickname(),
                 user.getRole(),
-                attributes,
-                provider
+                provider,
+                attributes
         );
     }
 
