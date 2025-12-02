@@ -15,6 +15,10 @@ public class UserTermsResponseDto {
     private final boolean marketing;
 
     public static UserTermsResponseDto from(UserTerms userTerms) {
+        if (userTerms == null) {
+            return null;
+        }
+
         return UserTermsResponseDto.builder()
                 .required(userTerms.isRequired())
                 .privacy(userTerms.isPrivacy())

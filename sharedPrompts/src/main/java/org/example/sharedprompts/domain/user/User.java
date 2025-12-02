@@ -72,15 +72,8 @@ public class User extends BaseEntity {
         this.age = age;
     }
 
-    public void agreeMarketing() {
-        if (this.terms == null) {
-            this.terms = UserTerms.ofDefault().agreeMarketing();
-        } else {
-            this.terms = this.terms.agreeMarketing();
-        }
+    public void updateJob(String job) {
+        this.job = job;
     }
 
-    public boolean hasAgreedRequiredTerms() {
-        return terms != null && terms.isAllRequiredAgreed();
-    }
 }
