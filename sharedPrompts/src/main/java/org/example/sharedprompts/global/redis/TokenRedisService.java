@@ -26,7 +26,6 @@ public class TokenRedisService {
     // 🔹 Access Token 관리
     // =========================
 
-    /** Access Token 저장 (userId 포함) */
     public void saveAccessToken(String token, Long userId) {
         redisTemplate.opsForValue().set(
                 ACCESS_PREFIX + token,
@@ -35,30 +34,22 @@ public class TokenRedisService {
         );
     }
 
-    /** Access Token 유효성 확인 */
     public boolean isAccessTokenValid(String token) {
         return Boolean.TRUE.equals(redisTemplate.hasKey(ACCESS_PREFIX + token));
     }
 
-    /** Access Token 삭제 (검증 없이) */
     public void deleteAccessToken(String token) {
         redisTemplate.delete(ACCESS_PREFIX + token);
     }
 
-    /** Access Token 삭제 (userId 검증 포함) */
-    public boolean isRefreshTokenValid(Long userId, String accessToken) {
+    public boolean isAccessTokenValidWithUserId(String accessToken, Long userId) {
         String key = ACCESS_PREFIX + accessToken;
         String storedUserIdStr = redisTemplate.opsForValue().get(key);
 
         if (storedUserIdStr == null) return false;
 
         Long storedUserId = Long.valueOf(storedUserIdStr);
-        if (!storedUserId.equals(userId)) {
-            return false;
-        }
-
-        redisTemplate.delete(key);
-        return true;
+        return storedUserId.equals(userId);
     }
 
     // =========================

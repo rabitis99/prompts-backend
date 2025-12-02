@@ -43,12 +43,17 @@ public class JwtProvider {
     }
 
     public String generateRefreshToken(User user) {
+        // TODO: RefreshToken 생성 시 사용자 요청 IP도 포함하도록 확장 필요
+        //  - 향후 보안 강화를 위해 RefreshToken 페이로드에 clientIp 포함 예정
+        //  - jwtUtil.generateRefreshToken(...) 시그니처 변경 필요
+        //  - 프록시/로드밸런서 환경 고려하여 실제 클라이언트 IP 추출 로직도 함께 설계할 것
         return jwtUtil.generateRefreshToken(
                 user.getId(),
                 user.getEmail(),
                 user.getRole(),
                 user.getNickname(),
-                user.getProvider()       // provider 추가
+                user.getProvider()   // provider 포함
+                // + clientIp (예정)
         );
     }
 

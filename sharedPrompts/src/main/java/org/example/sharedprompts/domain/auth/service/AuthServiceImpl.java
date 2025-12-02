@@ -106,6 +106,10 @@ public class AuthServiceImpl implements AuthService {
 
         Long userId = tokenRedisService.getRefreshToken(dto.getRefreshToken());
 
+        if (userId == null) {
+            throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
+
         if (!tokenRedisService.isRefreshTokenValid(dto.getRefreshToken(), userId)) {
             throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
@@ -116,8 +120,11 @@ public class AuthServiceImpl implements AuthService {
         String newAccessToken = jwtProvider.generateAccessToken(user);
         String newRefreshToken = jwtProvider.generateRefreshToken(user);
 
-        tokenRedisService.saveRefreshToken(newRefreshToken, userId);
+        tokenRedisService.deleteRefreshToken(dto.getRefreshToken(), userId);
+
         tokenRedisService.saveAccessToken(newAccessToken, userId);
+        tokenRedisService.saveRefreshToken(newRefreshToken, userId);
+
 
         return new TokenResponseDto(newAccessToken, newRefreshToken);
     }
@@ -126,9 +133,13 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void logout(Long userId, LogoutRequestDto dto) {
 
-        if (tokenRedisService.isRefreshTokenValid(dto.getAccessToken(),userId) && tokenRedisService.isRefreshTokenValid(dto.getRefreshToken(),userId)) {
+        if (tokenRedisService.isRefreshTokenValid(dto.getAccessToken(),userId)) {
             throw new ApiException(ErrorCode.UNAUTHORIZED_TOKEN_ACCESS);
         }
+        if (tokenRedisService.isAccessTokenValidWithUserId(dto.getAccessToken(), userId)){
+            throw new ApiException(ErrorCode.UNAUTHORIZED_TOKEN_ACCESS);
+        }
+
         tokenRedisService.deleteAccessToken(dto.getAccessToken());
         tokenRedisService.deleteRefreshToken(dto.getRefreshToken(),userId);
 
