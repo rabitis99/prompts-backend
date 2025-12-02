@@ -36,9 +36,9 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
-        User updatedUser = requestDto.applyTo(user);
+        requestDto.applyTo(user);
 
-        return UserResponseDto.from(updatedUser);
+        return UserResponseDto.from(user);
     }
 
     @Override
@@ -54,6 +54,10 @@ public class UserServiceImpl implements UserService {
             throw new ApiException(ErrorCode.INVALID_PASSWORD);
         }
 
+        if (requestDto.getCurrentPassword().equals(requestDto.getNewPassword())) {
+            throw new ApiException(ErrorCode.SAME_AS_CURRENT_PASSWORD);
+        }
+
         String encodedPassword = passwordEncoder.encode(requestDto.getNewPassword());
         user.changePassword(encodedPassword);
 
@@ -65,8 +69,10 @@ public class UserServiceImpl implements UserService {
         User targetUser = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
-        User requester = userRepository.findById(requesterId)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+        User requester = targetUserId.equals(requesterId)
+                ? targetUser
+                : userRepository.findById(requesterId)
+                    .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
         // 관리자 또는 본인만 삭제 가능
         boolean isAdmin = requester.getRole() == Role.ROLE_ADMIN;

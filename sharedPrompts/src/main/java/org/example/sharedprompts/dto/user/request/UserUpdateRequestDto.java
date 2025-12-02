@@ -29,7 +29,7 @@ public class UserUpdateRequestDto {
     private String thumbnail;
     private UserTermsRequestDto userTerms;
 
-    public User applyTo (User user) {
+    public void applyTo (User user) {
         if (nickname != null) user.changeNickname(nickname);
         if (age != null) user.updateAge(age);
         if (job != null) user.updateJob(job);
@@ -37,6 +37,5 @@ public class UserUpdateRequestDto {
         if (userTerms != null) {
             user.agreeToTerms(userTerms.toEntity());
         }
-        return user;
     }
 }

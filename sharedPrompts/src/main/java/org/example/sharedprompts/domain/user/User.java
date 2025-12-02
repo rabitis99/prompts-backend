@@ -72,6 +72,8 @@ public class User extends BaseEntity {
         this.age = age;
     }
 
-    public void updateJob(String job) { this.job = job; }
+    public void updateJob(String job) {
+        this.job = job;
+    }
 
 }
