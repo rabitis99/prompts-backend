@@ -49,7 +49,7 @@ public class TokenRedisService {
         if (storedUserIdStr == null) return false;
 
         try {
-            Long savedUserId = Long.parseLong(storedUserIdStr);
+            Long savedUserId = Long.valueOf(storedUserIdStr);
             return userId.equals(savedUserId);
         } catch (NumberFormatException e) {
             redisTemplate.delete(key);
@@ -65,7 +65,7 @@ public class TokenRedisService {
         String key = REFRESH_PREFIX + token;
         redisTemplate.opsForValue().set(
                 key,
-                userId.toString(),
+                String.valueOf(userId),
                 Duration.ofMillis(ttlConfig.getRefreshTokenValidity())
         );
 
