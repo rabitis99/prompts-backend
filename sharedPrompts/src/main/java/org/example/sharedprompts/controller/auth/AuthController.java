@@ -2,8 +2,12 @@ package org.example.sharedprompts.controller.auth;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.domain.auth.AuthUser;
+import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.auth.service.AuthService;
 import org.example.sharedprompts.dto.auth.request.LoginRequestDto;
+import org.example.sharedprompts.dto.auth.request.LogoutRequestDto;
+import org.example.sharedprompts.dto.auth.request.RefreshRequestDto;
 import org.example.sharedprompts.dto.auth.request.SignUpRequestDto;
 import org.example.sharedprompts.dto.auth.response.AuthResponseDto;
 import org.example.sharedprompts.dto.auth.response.TokenResponseDto;
@@ -39,5 +43,21 @@ public class AuthController {
             @RequestParam(value = "state") String state
     ){
         return CustomResponseHelper.ok(authService.callback(code, state));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<CustomResponse<TokenResponseDto>> refresh(
+            @Valid @RequestBody RefreshRequestDto dto
+    ){
+        return CustomResponseHelper.ok(authService.refresh(dto));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @CurrentUser AuthUser authUser,
+            @Valid @RequestBody LogoutRequestDto dto
+    ){
+        authService.logout(authUser.getId(),dto);
+        return CustomResponseHelper.noContent();
     }
 }

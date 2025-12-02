@@ -33,7 +33,7 @@ public class SignUpRequestDto {
                 .nickname(nickname)
                 .terms(UserTerms.ofDefault())
                 .provider(Provider.LOCAL)
-                .role(Role.USER)
+                .role(Role.ROLE_USER)
                 .build();
     }
 }

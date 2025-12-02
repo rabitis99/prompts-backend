@@ -23,12 +23,13 @@ public class TokenRedisService {
     private static final String REFRESH_SET_PREFIX = "USER_REFRESH:";
 
     // =========================
-    // Access Token 관리
+    // 🔹 Access Token 관리
     // =========================
+
     public void saveAccessToken(String token, Long userId) {
         redisTemplate.opsForValue().set(
                 ACCESS_PREFIX + token,
-                userId.toString(),
+                String.valueOf(userId),
                 Duration.ofMillis(ttlConfig.getAccessTokenValidity())
         );
     }
@@ -41,14 +42,30 @@ public class TokenRedisService {
         redisTemplate.delete(ACCESS_PREFIX + token);
     }
 
+    public boolean isAccessTokenValidWithUserId(String accessToken, Long userId) {
+        String key = ACCESS_PREFIX + accessToken;
+        String storedUserIdStr = redisTemplate.opsForValue().get(key);
+
+        if (storedUserIdStr == null) return false;
+
+        try {
+            Long savedUserId = Long.valueOf(storedUserIdStr);
+            return userId.equals(savedUserId);
+        } catch (NumberFormatException e) {
+            redisTemplate.delete(key);
+            return false;
+        }
+    }
+
     // =========================
-    // Refresh Token 관리 (개별 키 + 사용자별 Set)
+    // 🔹 Refresh Token 관리 (개별 키 + 사용자별 Set)
     // =========================
+
     public void saveRefreshToken(String token, Long userId) {
         String key = REFRESH_PREFIX + token;
         redisTemplate.opsForValue().set(
                 key,
-                userId.toString(),
+                String.valueOf(userId),
                 Duration.ofMillis(ttlConfig.getRefreshTokenValidity())
         );
 
@@ -62,6 +79,19 @@ public class TokenRedisService {
         String storedUserId = redisTemplate.opsForValue().get(key);
         return storedUserId != null && storedUserId.equals(userId.toString());
     }
+
+    public Long getRefreshToken(String token) {
+        String key = REFRESH_PREFIX + token;
+        String storedUserId = redisTemplate.opsForValue().get(key);
+        if (storedUserId == null) return null;
+        try{
+            return Long.valueOf(storedUserId);
+        } catch (NumberFormatException e) {
+            redisTemplate.delete(key);
+            return null;
+        }
+    }
+
 
     public void deleteRefreshToken(String token, Long userId) {
         redisTemplate.delete(REFRESH_PREFIX + token);
@@ -77,7 +107,7 @@ public class TokenRedisService {
     }
 
     // =========================
-    // OAuth2 임시 토큰 관리 (access, refresh, state)
+    // 🔹 OAuth2 임시 토큰 관리 (access, refresh, state)
     // =========================
     public void saveTempToken(String key, String accessToken, String refreshToken, String state,
                               String provider, String providerId, Duration ttl) {
@@ -116,4 +146,5 @@ public class TokenRedisService {
         redisTemplate.delete(key);
         return result;
     }
+
 }
