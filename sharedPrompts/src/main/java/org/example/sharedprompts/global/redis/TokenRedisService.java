@@ -48,8 +48,13 @@ public class TokenRedisService {
 
         if (storedUserIdStr == null) return false;
 
-        Long storedUserId = Long.valueOf(storedUserIdStr);
-        return storedUserId.equals(userId);
+        try {
+            Long savedUserId = Long.parseLong(storedUserIdStr);
+            return userId.equals(savedUserId);
+        } catch (NumberFormatException e) {
+            redisTemplate.delete(key);
+            return false;
+        }
     }
 
     // =========================
@@ -78,7 +83,13 @@ public class TokenRedisService {
     public Long getRefreshToken(String token) {
         String key = REFRESH_PREFIX + token;
         String storedUserId = redisTemplate.opsForValue().get(key);
-        return storedUserId != null ? Long.valueOf(storedUserId) : null;
+        if (storedUserId == null) return null;
+        try{
+            return Long.valueOf(storedUserId);
+        } catch (NumberFormatException e) {
+            redisTemplate.delete(key);
+            return null;
+        }
     }
 
 

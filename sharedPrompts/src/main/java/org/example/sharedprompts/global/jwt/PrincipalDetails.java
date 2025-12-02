@@ -31,7 +31,8 @@ public class PrincipalDetails extends AuthUser implements UserDetails, OAuth2Use
             Provider providerEnum = Provider.valueOf(provider);
             return new PrincipalDetails(id, email, nickname, roleEnum, providerEnum, null);
         } catch (IllegalArgumentException e) {
-            throw new ApiException(ErrorCode.BAD_REQUEST ,"유효하지 않은 role 또는 provider 값: ");
+            throw new ApiException(ErrorCode.BAD_REQUEST,
+                    String.format("유효하지 않은 role 또는 provider 값: role=%s, provider=%s", role, provider));
         }
     }
 

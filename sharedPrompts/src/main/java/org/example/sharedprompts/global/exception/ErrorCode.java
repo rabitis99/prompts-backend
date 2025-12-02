@@ -36,7 +36,7 @@ public enum ErrorCode {
     CONFLICT_EMAIL("AU00901", HttpStatus.CONFLICT, "중복된 이메일 입니다."),
     UNAUTHORIZED_TOKEN_ACCESS("AU00503", HttpStatus.UNAUTHORIZED, "해당 토큰은 요청한 사용자의 것이 아닙니다."),
     INVALID_ACCESS_TOKEN("AU00403", HttpStatus.BAD_REQUEST, "유효하지 않은 액세스 토큰입니다."),
-    INVALID_REFRESH_TOKEN("AU00404", HttpStatus.BAD_REQUEST, "유효하지 않은 액세스 토큰입니다."),
+    INVALID_REFRESH_TOKEN("AU00404", HttpStatus.BAD_REQUEST, "유효하지 않은 리프레시 토큰입니다."),
     // ==========================
     // 🔹 OAuth2
     // ==========================
