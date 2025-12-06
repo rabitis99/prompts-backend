@@ -45,13 +45,18 @@ public class Prompt extends BaseEntity {
         this.title = title;
     }
 
-    public void updateContent(String content) {
-        this.content = content;
+    public void updateDescription(String description) {
+        this.description = description;
     }
 
-    public void updateStatus(boolean isPublic) {
+    public void updateIsPublic(boolean isPublic) {
         this.isPublic = isPublic;
     }
+
+    public void updateCategory(PromptCategory promptCategory) {
+        this.promptCategory = promptCategory;
+    }
+
 
     public void updateViewCount(int viewCount) {
         this.viewCount = viewCount;

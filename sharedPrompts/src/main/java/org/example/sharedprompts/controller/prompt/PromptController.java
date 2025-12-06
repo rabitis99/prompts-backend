@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.prompt.service.PromptService;
 import org.example.sharedprompts.dto.prompt.request.PromptRequestDto;
 import org.example.sharedprompts.dto.prompt.request.PromptSearchCondition;
+import org.example.sharedprompts.dto.prompt.request.PromptUpdateDto;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
 import org.example.sharedprompts.global.response.CustomResponse;
 import org.example.sharedprompts.global.response.CustomResponseHelper;
@@ -44,10 +45,10 @@ public class PromptController {
     @PatchMapping("/{id}")
     public ResponseEntity<CustomResponse<PromptResponseDto>> updatePrompt(
             @PathVariable Long id,
-            @RequestBody PromptRequestDto request,
+            @RequestBody PromptUpdateDto promptUpdateDto,
             @CurrentUser AuthUser authUser
     ) {
-        return CustomResponseHelper.ok(promptService.updatePrompt(id, request, authUser.getId()));
+        return CustomResponseHelper.ok(promptService.updatePrompt(id, promptUpdateDto, authUser.getId()));
     }
 
     @DeleteMapping("/{id}")

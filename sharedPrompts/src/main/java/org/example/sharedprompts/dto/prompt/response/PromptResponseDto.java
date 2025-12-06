@@ -4,9 +4,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.sharedprompts.domain.Tag.Tag;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
 import org.example.sharedprompts.dto.user.response.UserResponseDto;
+
+import java.util.List;
 
 @Getter
 @Builder
@@ -17,15 +20,18 @@ public class PromptResponseDto {
     private Long id;
     private String title;
     private String description;
-    private String content; // AI가 생성한 최종 내용
+    private String content;
     private boolean isPublic;
     private PromptCategory promptCategory;
+    private List<String> tags;
     private UserResponseDto userResponseDto;
 
-    /**
-     * Prompt 엔티티를 DTO로 변환
-     */
-    public static PromptResponseDto from(Prompt prompt) {
+
+    public static PromptResponseDto from(Prompt prompt, List<Tag> tags) {
+        List<String> tagNames = tags.stream()
+                .map(Tag::getName)
+                .toList();
+
         return PromptResponseDto.builder()
                 .id(prompt.getId())
                 .title(prompt.getTitle())
@@ -33,6 +39,7 @@ public class PromptResponseDto {
                 .content(prompt.getContent())
                 .isPublic(prompt.isPublic())
                 .promptCategory(prompt.getPromptCategory())
+                .tags(tagNames)
                 .userResponseDto(UserResponseDto.from(prompt.getAuthor()))
                 .build();
     }

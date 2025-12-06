@@ -32,6 +32,7 @@ public enum ErrorCode {
     INVALID_PASSWORD("US00401", HttpStatus.BAD_REQUEST, "비밀번호가 일치하지 않습니다."),
     NOT_LOCAL_USER("US00601", HttpStatus.FORBIDDEN, "자체 회원가입만 가능한 서비스입니다."),
     SAME_AS_CURRENT_PASSWORD("US00402", HttpStatus.BAD_REQUEST, "현재 비밀번호와 동일합니다."),
+
     // ==========================
     // 🔹 Auth
     // ==========================
@@ -39,6 +40,7 @@ public enum ErrorCode {
     UNAUTHORIZED_TOKEN_ACCESS("AU00503", HttpStatus.UNAUTHORIZED, "해당 토큰은 요청한 사용자의 것이 아닙니다."),
     INVALID_ACCESS_TOKEN("AU00504", HttpStatus.UNAUTHORIZED, "유효하지 않은 액세스 토큰입니다."),
     INVALID_REFRESH_TOKEN("AU00505", HttpStatus.UNAUTHORIZED, "유효하지 않은 리프레시 토큰입니다."),
+
     // ==========================
     // 🔹 OAuth2
     // ==========================
@@ -46,14 +48,20 @@ public enum ErrorCode {
     OAUTH2_STATE_MISMATCH("AU00402", HttpStatus.BAD_REQUEST, "state 값이 일치하지 않습니다."),
     OAUTH2_TOKEN_EXPIRED("AU00501", HttpStatus.UNAUTHORIZED, "임시 토큰이 만료되었습니다."),
     OAUTH2_TOKEN_INVALID("AU00502", HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
-    ;
 
+    // ==========================
+    // 🔹 PROMPT
+    // ==========================
+    PROMPT_NOT_FOUND("PR00701", HttpStatus.NOT_FOUND, "프롬프트를 찾을 수 없습니다."),
+    PROMPT_FORBIDDEN("PR00601", HttpStatus.FORBIDDEN, "해당 프롬프트에 대한 접근 권한이 없습니다."),
+    ;
     private final String code;
     private final HttpStatus httpStatus;
     private final String message;
 
     private static final Map<String, ErrorCode> BY_CODE =
-            Arrays.stream(values()).collect(Collectors.toUnmodifiableMap(ErrorCode::getCode, Function.identity()));
+            Arrays.stream(values())
+                    .collect(Collectors.toUnmodifiableMap(ErrorCode::getCode, Function.identity()));
 
     public static ErrorCode fromCode(String code) {
         return BY_CODE.get(code);

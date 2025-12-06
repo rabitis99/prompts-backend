@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt;
+package org.example.sharedprompts.domain.Tag;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -18,4 +18,9 @@ public class Tag extends BaseEntity {
 
     @Column(nullable = false, length = 50, unique = true)
     private String name;
+
+    public Tag(String name) {
+        this.name = name;
+    }
+
 }

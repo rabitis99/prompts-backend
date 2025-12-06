@@ -14,10 +14,10 @@ public enum SortType {
             return new OrderSpecifier[]{prompt.createdAt.desc()};
         }
     },
-    POPULAR("인기순", "인기순으로 정렬"){
+    POPULAR("인기순", "인기순으로 정렬") {
         @Override
         public OrderSpecifier<?>[] toOrderSpecifiers(QPrompt prompt) {
-            return new OrderSpecifier[]{prompt.likeCount.desc(), prompt.createdAt.desc()};
+            return new OrderSpecifier[]{prompt.viewCount.desc(), prompt.createdAt.desc()};
         }
     };
 
