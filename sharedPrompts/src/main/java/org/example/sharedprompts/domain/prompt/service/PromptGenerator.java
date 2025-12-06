@@ -1,9 +1,11 @@
 package org.example.sharedprompts.domain.prompt.service;
 
+import org.example.sharedprompts.domain.prompt.enums.*;
 import org.example.sharedprompts.dto.prompt.request.InputRequestDto;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class PromptGenerator {
@@ -39,31 +41,31 @@ public class PromptGenerator {
         }
     }
 
-    private void appendExperience(StringBuilder sb, Object experience) {
+    private void appendExperience(StringBuilder sb, ExperienceLevel experience) {
         if (experience != null) {
             sb.append("이 사용자는 ").append(experience).append(" 수준의 경력을 가지고 있으며, ");
         }
     }
 
-    private void appendLanguage(StringBuilder sb, Object language) {
+    private void appendLanguage(StringBuilder sb, LanguageType language) {
         if (language != null) {
             sb.append("주로 사용하는 언어는 ").append(language).append("입니다. ");
         }
     }
 
-    private void appendTone(StringBuilder sb, Object tone) {
+    private void appendTone(StringBuilder sb, ToneType tone) {
         if (tone != null) {
             sb.append("응답 시 ").append(tone).append(" 톤으로 자연스럽게 작성해주세요. ");
         }
     }
 
-    private void appendStyle(StringBuilder sb, Object style) {
+    private void appendStyle(StringBuilder sb, StyleType style) {
         if (style != null) {
             sb.append("문장의 스타일은 ").append(style).append(" 스타일을 선호합니다. ");
         }
     }
 
-    private void appendCategory(StringBuilder sb, Object category) {
+    private void appendCategory(StringBuilder sb, PromptCategory category) {
         if (category != null) {
             sb.append("프롬프트의 카테고리는 ").append(category).append("입니다. ");
         }
@@ -71,7 +73,13 @@ public class PromptGenerator {
 
     private void appendTags(StringBuilder sb, List<String> tags) {
         if (tags != null && !tags.isEmpty()) {
-            sb.append("관련된 태그로는 ").append(String.join(", ", tags)).append("이 있습니다. ");
+            String joinedTags = tags.stream()
+                    .filter(tag -> tag != null && !tag.isBlank())
+                    .collect(Collectors.joining(", "));
+            if (!joinedTags.isEmpty()) {
+                sb.append("관련된 태그로는 ").append(joinedTags).append("이 있습니다. ");
+            }
         }
     }
 }
+

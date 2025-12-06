@@ -13,7 +13,7 @@ public class PromptSearchCondition {
 
     private int page = 0;
     private int size = 20;
-    private SortType sort = SortType.LATEST; // latest | popular
+    private SortType sort = SortType.LATEST;
     private PromptCategory promptCategory;
 
     public static PromptSearchCondition of(int page, int size, SortType sort, PromptCategory category) {

@@ -2,9 +2,13 @@ package org.example.sharedprompts.domain.prompt;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.sharedprompts.domain.Tag.PromptTag;
 import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.global.entity.BaseEntity;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -31,6 +35,7 @@ public class Prompt extends BaseEntity {
     private boolean isPublic = false;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private PromptCategory promptCategory;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -40,6 +45,9 @@ public class Prompt extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private int viewCount = 0;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PromptTag> promptTag = new ArrayList<>();
 
     public void updateTitle(String title) {
         this.title = title;

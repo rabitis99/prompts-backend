@@ -1,6 +1,7 @@
 package org.example.sharedprompts.domain.prompt.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.Tag.Tag;
 import org.example.sharedprompts.domain.Tag.service.PromptTagService;
 import org.example.sharedprompts.domain.prompt.Prompt;
@@ -19,11 +20,14 @@ import org.example.sharedprompts.global.response.PageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.List;
 
 @Service
 @Transactional
+@Slf4j
 @RequiredArgsConstructor
 public class PromptServiceImpl implements PromptService {
 
@@ -41,13 +45,22 @@ public class PromptServiceImpl implements PromptService {
         InputRequestDto dto = request.toInputRequestDto();
         String promptText = promptGenerator.generatePrompt(dto);
 
-        String aiGeneratedContent = googleGeminiService.chat(promptText).block();
-        if (aiGeneratedContent == null) aiGeneratedContent = "";
+        String aiGeneratedContent = googleGeminiService.chat(promptText)
+                .timeout(Duration.ofSeconds(30))
+                .onErrorResume(e->{
+                    log.error("AI 콘텐츠 생성 실패", e);
+                    return Mono.error(new ApiException(ErrorCode.AI_GENERATION_FAILED));
+                })
+                .block();
 
         Prompt promptEntity = request.toEntity(user, aiGeneratedContent);
         promptRepository.save(promptEntity);
 
-        List<Tag> tags = promptTagService.addTags(promptEntity, request.getTags());
+        List<Tag> tags=List.of();
+
+        if (request.getTags() != null) {
+            tags = promptTagService.addTags(promptEntity, request.getTags());
+        }
 
         return PromptResponseDto.from(promptEntity, tags);
     }
@@ -96,6 +109,7 @@ public class PromptServiceImpl implements PromptService {
             throw new ApiException(ErrorCode.PROMPT_FORBIDDEN);
         }
 
+        promptTagService.updateTags(prompt, List.of());
         promptRepository.delete(prompt);
     }
 

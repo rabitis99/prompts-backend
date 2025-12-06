@@ -1,5 +1,6 @@
 package org.example.sharedprompts.controller.prompt;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
@@ -23,7 +24,7 @@ public class PromptController {
 
     @PostMapping
     public ResponseEntity<CustomResponse<PromptResponseDto>> createPrompt(
-            @RequestBody PromptRequestDto request,
+            @Valid @RequestBody PromptRequestDto request,
             @CurrentUser AuthUser authUser
     ) {
         return CustomResponseHelper.created(promptService.createPrompt(request, authUser.getId()));
@@ -45,7 +46,7 @@ public class PromptController {
     @PatchMapping("/{id}")
     public ResponseEntity<CustomResponse<PromptResponseDto>> updatePrompt(
             @PathVariable Long id,
-            @RequestBody PromptUpdateDto promptUpdateDto,
+            @Valid @RequestBody PromptUpdateDto promptUpdateDto,
             @CurrentUser AuthUser authUser
     ) {
         return CustomResponseHelper.ok(promptService.updatePrompt(id, promptUpdateDto, authUser.getId()));

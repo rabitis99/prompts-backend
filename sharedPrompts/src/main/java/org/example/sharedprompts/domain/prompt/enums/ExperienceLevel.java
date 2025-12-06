@@ -6,9 +6,9 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum ExperienceLevel {
-    JUNIOR("초급"),        // 초급
-    MID("중급"),           // 중급
-    SENIOR("전문가");      // 전문가
+    JUNIOR("초급"),
+    MID("중급"),
+    SENIOR("전문가");
 
     private final String description;
 }

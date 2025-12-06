@@ -1,6 +1,7 @@
 package org.example.sharedprompts.dto.prompt.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -29,7 +30,7 @@ public class PromptRequestDto {
 
     private Boolean isPublic;
 
-    @NotBlank(message = "카테고리는 비어 있을 수 없습니다.")
+    @NotNull(message = "카테고리는 비어 있을 수 없습니다.")
     private PromptCategory promptCategory;
 
     private List<String> tags;
