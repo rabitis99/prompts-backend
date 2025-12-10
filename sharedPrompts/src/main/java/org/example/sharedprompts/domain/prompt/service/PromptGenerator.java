@@ -5,7 +5,6 @@ import org.example.sharedprompts.dto.prompt.request.InputRequestDto;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class PromptGenerator {
@@ -72,13 +71,19 @@ public class PromptGenerator {
     }
 
     private void appendTags(StringBuilder sb, List<String> tags) {
-        if (tags != null && !tags.isEmpty()) {
-            String joinedTags = tags.stream()
-                    .filter(tag -> tag != null && !tag.isBlank())
-                    .collect(Collectors.joining(", "));
-            if (!joinedTags.isEmpty()) {
-                sb.append("관련된 태그로는 ").append(joinedTags).append("이 있습니다. ");
-            }
+        if (tags == null || tags.isEmpty()) return;
+
+        // 1. 전처리: 공백 제거, 영어 대문자, null/빈 제거, 중복 제거
+        List<String> processedTags = tags.stream()
+                .filter(tag -> tag != null && !tag.isBlank())
+                .map(String::trim)
+                .map(tag -> tag.matches("^[a-zA-Z]+$") ? tag.toUpperCase() : tag)
+                .distinct()
+                .toList();
+
+        if (!processedTags.isEmpty()) {
+            String joinedTags = String.join(", ", processedTags);
+            sb.append("관련된 태그로는 ").append(joinedTags).append("이 있습니다. ");
         }
     }
 }

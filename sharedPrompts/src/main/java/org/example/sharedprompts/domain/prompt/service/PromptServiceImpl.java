@@ -40,15 +40,12 @@ public class PromptServiceImpl implements PromptService {
     @Override
     public PromptResponseDto createPrompt(PromptRequestDto request, Long userId) {
 
-        // 1. 유저 조회 (트랜잭션 필요 없음)
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
-        // 2. 프롬프트 텍스트 생성
         InputRequestDto dto = request.toInputRequestDto();
         String promptText = promptGenerator.generatePrompt(dto);
 
-        // 3. 외부 API 호출 (트랜잭션 밖)
         String aiGeneratedContent = googleGeminiService.chat(promptText)
                 .timeout(Duration.ofSeconds(30))
                 .switchIfEmpty(Mono.error(new ApiException(ErrorCode.AI_GENERATION_FAILED)))
@@ -58,21 +55,18 @@ public class PromptServiceImpl implements PromptService {
                 })
                 .block();
 
-        // 4. 저장 구간만 트랜잭션으로 분리
-        Prompt promptEntity = savePrompt(request, user, aiGeneratedContent);
-
-        // 5. 태그 처리
-        List<Tag> tags = (request.getTags() != null)
-                ? promptTagService.addTags(promptEntity, request.getTags())
-                : List.of();
-
-        return PromptResponseDto.from(promptEntity, tags);
+        return savePrompt(request, user, aiGeneratedContent);
     }
 
     @Transactional
-    protected Prompt savePrompt(PromptRequestDto request, User user, String aiGeneratedContent) {
-        Prompt prompt = request.toEntity(user, aiGeneratedContent);
-        return promptRepository.save(prompt);
+    protected PromptResponseDto savePrompt(PromptRequestDto request, User user, String aiGeneratedContent) {
+        Prompt promptEntity = request.toEntity(user, aiGeneratedContent);
+        promptEntity = promptRepository.save(promptEntity);
+
+        List<Tag> tags = (request.getTags() != null)
+                ? promptTagService.addTags(promptEntity, request.getTags())
+                : List.of();
+        return PromptResponseDto.from(promptEntity, tags);
     }
 
     // ============ 조회 ===============

@@ -1,9 +1,6 @@
 package org.example.sharedprompts.domain.tag;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 import lombok.Getter;
 import org.example.sharedprompts.domain.prompt.Prompt;
 
@@ -14,10 +11,10 @@ public class PromptTag {
     @GeneratedValue
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private Prompt prompt;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private Tag tag;
 
     public PromptTag(Prompt prompt, Tag tag) {

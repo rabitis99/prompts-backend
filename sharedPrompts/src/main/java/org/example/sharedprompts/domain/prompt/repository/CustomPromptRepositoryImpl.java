@@ -28,8 +28,10 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
 
     @Override
     public Page<Prompt> searchMyPrompts(Long userId, PromptSearchCondition condition) {
-        BooleanExpression where = prompt.author.id.eq(userId)
-                .and(applyCategory(condition.getPromptCategory()));
+        BooleanExpression categoryExpr = applyCategory(condition.getPromptCategory());
+        BooleanExpression where = (categoryExpr != null)
+                ? prompt.author.id.eq(userId).and(categoryExpr)
+                : prompt.author.id.eq(userId);
 
         return searchInternal(where, condition);
     }

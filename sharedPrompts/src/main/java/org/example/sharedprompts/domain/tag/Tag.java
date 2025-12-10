@@ -15,11 +15,17 @@ public class Tag extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 50, unique = true)
     private String name;
+
+    private Long count;
+
     @Builder(toBuilder = true)
     public Tag(String name) {
         this.name = name;
     }
 
+    public void setCount(long count) {
+        this.count = count;
+    }
 }

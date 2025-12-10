@@ -51,6 +51,7 @@ public class PromptRequestDto {
     // AI 생성 content 적용 후 엔티티 변환
     // ------------------------------
     public Prompt toEntity(User user, String aiGeneratedContent) {
+
         return Prompt.builder()
                 .title(this.title)
                 .description(this.description)
