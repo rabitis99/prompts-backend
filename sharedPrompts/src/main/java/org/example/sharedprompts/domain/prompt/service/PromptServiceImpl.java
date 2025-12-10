@@ -2,8 +2,9 @@ package org.example.sharedprompts.domain.prompt.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.Tag.Tag;
-import org.example.sharedprompts.domain.Tag.service.PromptTagService;
+import org.example.sharedprompts.domain.tag.PromptTag;
+import org.example.sharedprompts.domain.tag.Tag;
+import org.example.sharedprompts.domain.tag.service.PromptTagService;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
 import org.example.sharedprompts.domain.user.User;
@@ -26,7 +27,6 @@ import java.time.Duration;
 import java.util.List;
 
 @Service
-@Transactional
 @Slf4j
 @RequiredArgsConstructor
 public class PromptServiceImpl implements PromptService {
@@ -39,23 +39,29 @@ public class PromptServiceImpl implements PromptService {
 
     @Override
     public PromptResponseDto createPrompt(PromptRequestDto request, Long userId) {
+
+        // 1. 유저 조회 (트랜잭션 필요 없음)
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
+        // 2. 프롬프트 텍스트 생성
         InputRequestDto dto = request.toInputRequestDto();
         String promptText = promptGenerator.generatePrompt(dto);
 
+        // 3. 외부 API 호출 (트랜잭션 밖)
         String aiGeneratedContent = googleGeminiService.chat(promptText)
                 .timeout(Duration.ofSeconds(30))
-                .onErrorResume(e->{
+                .switchIfEmpty(Mono.error(new ApiException(ErrorCode.AI_GENERATION_FAILED)))
+                .onErrorResume(e -> {
                     log.error("AI 콘텐츠 생성 실패", e);
                     return Mono.error(new ApiException(ErrorCode.AI_GENERATION_FAILED));
                 })
                 .block();
 
-        Prompt promptEntity = request.toEntity(user, aiGeneratedContent);
-        promptRepository.save(promptEntity);
+        // 4. 저장 구간만 트랜잭션으로 분리
+        Prompt promptEntity = savePrompt(request, user, aiGeneratedContent);
 
+        // 5. 태그 처리
         List<Tag> tags = (request.getTags() != null)
                 ? promptTagService.addTags(promptEntity, request.getTags())
                 : List.of();
@@ -63,11 +69,25 @@ public class PromptServiceImpl implements PromptService {
         return PromptResponseDto.from(promptEntity, tags);
     }
 
+    @Transactional
+    protected Prompt savePrompt(PromptRequestDto request, User user, String aiGeneratedContent) {
+        Prompt prompt = request.toEntity(user, aiGeneratedContent);
+        return promptRepository.save(prompt);
+    }
+
+    // ============ 조회 ===============
     @Override
     @Transactional(readOnly = true)
     public PageResponse<PromptResponseDto> getPrompts(PromptSearchCondition condition) {
         Page<Prompt> page = promptRepository.searchPrompts(condition);
-        return PageResponse.of(page.map(p -> PromptResponseDto.from(p, promptTagService.getTags(p))));
+        return PageResponse.of(page.map(
+                p -> PromptResponseDto.from(
+                        p,
+                        p.getPromptTags().stream()
+                                .map(PromptTag::getTag)
+                                .toList()
+                )
+        ));
     }
 
     @Override
@@ -79,7 +99,9 @@ public class PromptServiceImpl implements PromptService {
         return PromptResponseDto.from(prompt, tags);
     }
 
+    // ============ 수정 ===============
     @Override
+    @Transactional
     public PromptResponseDto updatePrompt(Long promptId, PromptUpdateDto promptUpdateDto, Long userId) {
         Prompt prompt = promptRepository.findById(promptId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
@@ -98,7 +120,9 @@ public class PromptServiceImpl implements PromptService {
         return PromptResponseDto.from(prompt, tags);
     }
 
+    // ============ 삭제 ===============
     @Override
+    @Transactional
     public void deletePrompt(Long promptId, Long userId) {
         Prompt prompt = promptRepository.findById(promptId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
@@ -111,9 +135,20 @@ public class PromptServiceImpl implements PromptService {
         promptRepository.delete(prompt);
     }
 
+    // ============ 내 프롬프트 조회 ===============
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<PromptResponseDto> getMyPrompts(Long userId, PromptSearchCondition condition) {
+
         Page<Prompt> page = promptRepository.searchMyPrompts(userId, condition);
-        return PageResponse.of(page.map(p -> PromptResponseDto.from(p, promptTagService.getTags(p))));
+
+        return PageResponse.of(page.map(
+                p -> PromptResponseDto.from(
+                        p,
+                        p.getPromptTags().stream()
+                                .map(PromptTag::getTag)
+                                .toList()
+                )
+        ));
     }
 }

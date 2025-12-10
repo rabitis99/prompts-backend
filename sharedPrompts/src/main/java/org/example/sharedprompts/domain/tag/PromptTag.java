@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.Tag;
+package org.example.sharedprompts.domain.tag;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

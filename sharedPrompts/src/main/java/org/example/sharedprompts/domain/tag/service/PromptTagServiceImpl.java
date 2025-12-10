@@ -1,11 +1,11 @@
-package org.example.sharedprompts.domain.Tag.service;
+package org.example.sharedprompts.domain.tag.service;
 
 import lombok.RequiredArgsConstructor;
 
-import org.example.sharedprompts.domain.Tag.PromptTag;
-import org.example.sharedprompts.domain.Tag.Tag;
-import org.example.sharedprompts.domain.Tag.repository.PromptTagRepository;
-import org.example.sharedprompts.domain.Tag.repository.TagRepository;
+import org.example.sharedprompts.domain.tag.PromptTag;
+import org.example.sharedprompts.domain.tag.Tag;
+import org.example.sharedprompts.domain.tag.repository.PromptTagRepository;
+import org.example.sharedprompts.domain.tag.repository.TagRepository;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +42,7 @@ public class PromptTagServiceImpl implements PromptTagService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Tag> getTags(Prompt prompt) {
         return promptTagRepository.findPromptTagByPrompt(prompt)
                 .stream()

@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.prompt;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.example.sharedprompts.domain.Tag.PromptTag;
+import org.example.sharedprompts.domain.tag.PromptTag;
 import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.global.entity.BaseEntity;
@@ -48,6 +48,7 @@ public class Prompt extends BaseEntity {
     private int viewCount = 0;
 
     @OneToMany(mappedBy = "prompt", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<PromptTag> promptTags = new ArrayList<>();
 
     public void updateTitle(String title) {
@@ -65,7 +66,6 @@ public class Prompt extends BaseEntity {
     public void updateCategory(PromptCategory promptCategory) {
         this.promptCategory = promptCategory;
     }
-
 
     public void updateViewCount(int viewCount) {
         this.viewCount = viewCount;

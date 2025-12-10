@@ -12,8 +12,8 @@ import org.springframework.data.domain.PageRequest;
 
 import java.util.List;
 
-import static org.example.sharedprompts.domain.Tag.QPromptTag.promptTag;
-import static org.example.sharedprompts.domain.Tag.QTag.tag;
+import static org.example.sharedprompts.domain.tag.QPromptTag.promptTag;
+import static org.example.sharedprompts.domain.tag.QTag.tag;
 import static org.example.sharedprompts.domain.prompt.QPrompt.prompt;
 
 @RequiredArgsConstructor
@@ -50,20 +50,6 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
                 .limit(pageable.getPageSize())
                 .fetch();
 
-        if (ids.isEmpty()) {
-            return new PageImpl<>(List.of(), pageable, 0);
-        }
-
-        // 2) fetchJoin 조회 (Prompt + PromptTag + Tag)
-        List<Prompt> content = queryFactory
-                .selectFrom(prompt)
-                .leftJoin(prompt.promptTags, promptTag).fetchJoin()
-                .leftJoin(promptTag.tag, tag).fetchJoin()
-                .where(prompt.id.in(ids))
-                .orderBy(condition.getSort().toOrderSpecifiers(prompt))
-                .fetch();
-
-        // 3) total count 조회
         Long totalCount = queryFactory
                 .select(prompt.count())
                 .from(prompt)
@@ -71,6 +57,18 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
                 .fetchOne();
 
         long total = totalCount != null ? totalCount : 0L;
+
+        if (ids.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, total);
+        }
+
+        List<Prompt> content = queryFactory
+                .selectFrom(prompt)
+                .leftJoin(prompt.promptTags, promptTag).fetchJoin()
+                .leftJoin(promptTag.tag, tag).fetchJoin()
+                .where(prompt.id.in(ids))
+                .orderBy(condition.getSort().toOrderSpecifiers(prompt))
+                .fetch();
 
         return new PageImpl<>(content, pageable, total);
     }
