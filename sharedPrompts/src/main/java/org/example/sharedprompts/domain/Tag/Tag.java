@@ -6,9 +6,9 @@ import org.example.sharedprompts.global.entity.BaseEntity;
 
 @Entity
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Table(name = "tags", uniqueConstraints = {@UniqueConstraint(columnNames = "name")})
 public class Tag extends BaseEntity {
 

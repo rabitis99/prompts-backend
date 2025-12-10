@@ -56,11 +56,9 @@ public class PromptServiceImpl implements PromptService {
         Prompt promptEntity = request.toEntity(user, aiGeneratedContent);
         promptRepository.save(promptEntity);
 
-        List<Tag> tags=List.of();
-
-        if (request.getTags() != null) {
-            tags = promptTagService.addTags(promptEntity, request.getTags());
-        }
+        List<Tag> tags = (request.getTags() != null)
+                ? promptTagService.addTags(promptEntity, request.getTags())
+                : List.of();
 
         return PromptResponseDto.from(promptEntity, tags);
     }

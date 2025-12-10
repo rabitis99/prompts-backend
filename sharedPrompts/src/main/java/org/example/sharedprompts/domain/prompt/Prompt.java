@@ -32,6 +32,7 @@ public class Prompt extends BaseEntity {
     private String content;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean isPublic = false;
 
     @Enumerated(EnumType.STRING)
@@ -46,8 +47,8 @@ public class Prompt extends BaseEntity {
     @Builder.Default
     private int viewCount = 0;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PromptTag> promptTag = new ArrayList<>();
+    @OneToMany(mappedBy = "prompt", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PromptTag> promptTags = new ArrayList<>();
 
     public void updateTitle(String title) {
         this.title = title;

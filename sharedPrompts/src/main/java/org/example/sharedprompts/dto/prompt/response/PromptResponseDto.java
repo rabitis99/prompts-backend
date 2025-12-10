@@ -9,7 +9,6 @@ import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
 import org.example.sharedprompts.dto.user.response.UserResponseDto;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -46,7 +45,7 @@ public class PromptResponseDto {
                 .isPublic(prompt.isPublic())
                 .promptCategory(prompt.getPromptCategory())
                 .tags(tagNames)
-                .userResponseDto(UserResponseDto.from(prompt.getAuthor()))
+                .userResponseDto(prompt.getAuthor() != null ? UserResponseDto.from(prompt.getAuthor()) : null)
                 .build();
     }
 }

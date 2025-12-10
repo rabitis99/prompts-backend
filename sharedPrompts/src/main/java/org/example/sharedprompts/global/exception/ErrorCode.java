@@ -54,7 +54,7 @@ public enum ErrorCode {
     // ==========================
     PROMPT_NOT_FOUND("PR00401", HttpStatus.NOT_FOUND, "프롬프트를 찾을 수 없습니다."),
     PROMPT_FORBIDDEN("PR00601", HttpStatus.FORBIDDEN, "해당 프롬프트에 대한 접근 권한이 없습니다."),
-    AI_GENERATION_FAILED("PR00701" , HttpStatus.BAD_REQUEST, "프롬프트 생상에 실패하였습니다."),
+    AI_GENERATION_FAILED("PR00701", HttpStatus.BAD_REQUEST, "프롬프트 생성에 실패하였습니다."),
 
     ;
     private final String code;
