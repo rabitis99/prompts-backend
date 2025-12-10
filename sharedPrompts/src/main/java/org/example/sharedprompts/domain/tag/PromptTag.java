@@ -8,7 +8,7 @@ import org.example.sharedprompts.domain.prompt.Prompt;
 @Getter
 public class PromptTag {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)

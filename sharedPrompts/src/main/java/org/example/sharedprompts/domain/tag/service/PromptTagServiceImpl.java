@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.tag.Tag;
 import org.example.sharedprompts.domain.tag.repository.PromptTagRepository;
 import org.example.sharedprompts.domain.tag.repository.TagRepository;
 import org.example.sharedprompts.domain.prompt.Prompt;
+import org.example.sharedprompts.global.util.TagNormalizer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,12 +26,7 @@ public class PromptTagServiceImpl implements PromptTagService {
     public List<Tag> addTags(Prompt prompt, List<String> tagNames) {
         if (tagNames == null || tagNames.isEmpty()) return List.of();
         // 1. 공백 제거 + 영어 대문자 + 중복 제거
-        List<String> processedNames = tagNames.stream()
-                .map(String::trim) // 공백 제거
-                .filter(name -> !name.isEmpty()) // 빈 문자열 제거
-                .map(name -> name.matches("^[a-zA-Z]+$") ? name.toUpperCase() : name)
-                .distinct()
-                .toList();
+        List<String> processedNames = TagNormalizer.normalizeTags(tagNames);
 
         List<Tag> tags = processedNames.stream()
                 .map(name -> {
@@ -38,7 +34,7 @@ public class PromptTagServiceImpl implements PromptTagService {
                     Tag tag = tagRepository.findByName(name)
                             .orElseGet(() -> tagRepository.save(new Tag(name)));
                     // count 증가
-                    tag.setCount(tag.getCount() == null ? 1L : tag.getCount() + 1);
+                    tag.increaseCount();
                     tagRepository.save(tag); // count 업데이트
                     return tag;
                 })

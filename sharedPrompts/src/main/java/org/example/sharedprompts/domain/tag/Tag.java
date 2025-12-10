@@ -25,7 +25,6 @@ public class Tag extends BaseEntity {
         this.name = name;
     }
 
-    public void setCount(long count) {
-        this.count = count;
-    }
+    public void increaseCount() { this.count = (this.count == null ? 1L : this.count + 1); }
+    public void decreaseCount() { this.count = (this.count == null || this.count <= 0 ? 0L : this.count - 1); }
 }

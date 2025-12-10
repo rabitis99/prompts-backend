@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.prompt.service;
 
 import org.example.sharedprompts.domain.prompt.enums.*;
 import org.example.sharedprompts.dto.prompt.request.InputRequestDto;
+import org.example.sharedprompts.global.util.TagNormalizer;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -71,15 +72,8 @@ public class PromptGenerator {
     }
 
     private void appendTags(StringBuilder sb, List<String> tags) {
-        if (tags == null || tags.isEmpty()) return;
-
         // 1. 전처리: 공백 제거, 영어 대문자, null/빈 제거, 중복 제거
-        List<String> processedTags = tags.stream()
-                .filter(tag -> tag != null && !tag.isBlank())
-                .map(String::trim)
-                .map(tag -> tag.matches("^[a-zA-Z]+$") ? tag.toUpperCase() : tag)
-                .distinct()
-                .toList();
+        List<String> processedTags = TagNormalizer.normalizeTags(tags);
 
         if (!processedTags.isEmpty()) {
             String joinedTags = String.join(", ", processedTags);

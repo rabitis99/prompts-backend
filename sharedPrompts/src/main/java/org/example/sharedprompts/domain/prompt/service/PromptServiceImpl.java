@@ -28,6 +28,7 @@ import java.util.List;
 
 @Service
 @Slf4j
+@Transactional
 @RequiredArgsConstructor
 public class PromptServiceImpl implements PromptService {
 
@@ -58,7 +59,6 @@ public class PromptServiceImpl implements PromptService {
         return savePrompt(request, user, aiGeneratedContent);
     }
 
-    @Transactional
     protected PromptResponseDto savePrompt(PromptRequestDto request, User user, String aiGeneratedContent) {
         Prompt promptEntity = request.toEntity(user, aiGeneratedContent);
         promptEntity = promptRepository.save(promptEntity);
@@ -95,7 +95,6 @@ public class PromptServiceImpl implements PromptService {
 
     // ============ 수정 ===============
     @Override
-    @Transactional
     public PromptResponseDto updatePrompt(Long promptId, PromptUpdateDto promptUpdateDto, Long userId) {
         Prompt prompt = promptRepository.findById(promptId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
@@ -116,7 +115,6 @@ public class PromptServiceImpl implements PromptService {
 
     // ============ 삭제 ===============
     @Override
-    @Transactional
     public void deletePrompt(Long promptId, Long userId) {
         Prompt prompt = promptRepository.findById(promptId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
