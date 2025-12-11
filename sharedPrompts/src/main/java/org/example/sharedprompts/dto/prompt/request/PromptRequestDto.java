@@ -1,7 +1,9 @@
 package org.example.sharedprompts.dto.prompt.request;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -33,7 +35,8 @@ public class PromptRequestDto {
     @NotNull(message = "카테고리는 비어 있을 수 없습니다.")
     private PromptCategory promptCategory;
 
-    private List<String> tags;
+    @Valid
+    private List<@Size(min = 1, max = 50, message = "태그는 1~50자여야 합니다.") String> tags;
 
     // ------------------------------
     // AI 입력용 필드
