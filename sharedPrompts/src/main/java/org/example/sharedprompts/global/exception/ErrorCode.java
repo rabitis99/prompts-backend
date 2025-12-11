@@ -62,6 +62,17 @@ public enum ErrorCode {
     COMMENT_NOT_FOUND("CM00702", HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),
     COMMENT_NOT_BELONG_TO_PROMPT("CM00703", HttpStatus.FORBIDDEN, "댓글이 해당 프롬프트에 속하지 않습니다."),
     COMMENT_FORBIDDEN("CM00602", HttpStatus.FORBIDDEN, "댓글 수정/삭제 권한이 없습니다."),
+
+    // ==========================
+    // 🔹 LIKE
+    // ==========================
+    PROMPT_ALREADY_LIKED("LK00401", HttpStatus.BAD_REQUEST, "이미 게시글을 좋아요 했습니다."),
+    PROMPT_LIKE_NOT_FOUND("LK00701", HttpStatus.NOT_FOUND, "게시글 좋아요 기록이 없습니다."),
+
+    COMMENT_ALREADY_LIKED("LK00402", HttpStatus.BAD_REQUEST, "이미 댓글을 좋아요 했습니다."),
+    COMMENT_LIKE_NOT_FOUND("LK00702", HttpStatus.NOT_FOUND, "댓글 좋아요 기록이 없습니다."),
+
+
     ;
     private final String code;
     private final HttpStatus httpStatus;
