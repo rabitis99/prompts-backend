@@ -66,7 +66,11 @@ public class PromptTagServiceImpl implements PromptTagService {
 
     @Override
     public void updateTags(Prompt prompt, List<String> tagNames) {
+        promptTagRepository.findPromptTagByPrompt(prompt)
+                .forEach(pt -> tagRepository.decrementCount(pt.getTag().getName()));
+
         promptTagRepository.deletePromptTagByPrompt(prompt);
+
         addTags(prompt, tagNames);
     }
 

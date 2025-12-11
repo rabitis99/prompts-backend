@@ -11,7 +11,11 @@ import java.util.Optional;
 public interface TagRepository extends JpaRepository<Tag, Long> {
     Optional<Tag> findByName(String name);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("update Tag t set t.count = t.count + 1 where t.name = :name")
     void incrementCount(@Param("name") String name);
+
+    @Modifying(clearAutomatically = true)
+    @Query("update Tag t set t.count = t.count - 1 where t.name = :name")
+    void decrementCount(@Param("name") String name);
 }
