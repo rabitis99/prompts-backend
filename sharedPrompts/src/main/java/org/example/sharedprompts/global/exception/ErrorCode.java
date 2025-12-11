@@ -56,6 +56,12 @@ public enum ErrorCode {
     PROMPT_FORBIDDEN("PR00601", HttpStatus.FORBIDDEN, "해당 프롬프트에 대한 접근 권한이 없습니다."),
     AI_GENERATION_FAILED("PR00401", HttpStatus.BAD_REQUEST, "프롬프트 생성에 실패하였습니다."),
 
+    // ==========================
+    // 🔹 COMMENT
+    // ==========================
+    COMMENT_NOT_FOUND("CM00702", HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),
+    COMMENT_NOT_BELONG_TO_PROMPT("CM00703", HttpStatus.FORBIDDEN, "댓글이 해당 프롬프트에 속하지 않습니다."),
+    COMMENT_FORBIDDEN("CM00602", HttpStatus.FORBIDDEN, "댓글 수정/삭제 권한이 없습니다."),
     ;
     private final String code;
     private final HttpStatus httpStatus;

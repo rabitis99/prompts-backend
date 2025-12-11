@@ -6,6 +6,9 @@ import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.global.entity.BaseEntity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Getter
 @Builder
@@ -27,5 +30,18 @@ public class Comment extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "prompt_id", nullable = false)
     private Prompt prompt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Comment parent;
+
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt ASC")
+    @Builder.Default
+    private List<Comment> children = new ArrayList<>();
+
+    public void updateContent(String content) {
+        this.content = content;
+    }
 
 }
