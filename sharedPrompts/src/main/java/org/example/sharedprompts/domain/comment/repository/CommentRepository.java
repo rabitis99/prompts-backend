@@ -10,10 +10,12 @@ import java.util.List;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Query("""
-        SELECT c FROM Comment c
-        LEFT JOIN FETCH c.children
+        SELECT DISTINCT c FROM Comment c
+        LEFT JOIN FETCH c.user
+        LEFT JOIN FETCH c.children ch
+        LEFT JOIN FETCH ch.user
         WHERE c.prompt = :prompt AND c.parent IS NULL
         ORDER BY c.createdAt ASC
-""")
+    """)
     List<Comment> findAllByPrompt(@Param("prompt") Prompt prompt);
 }

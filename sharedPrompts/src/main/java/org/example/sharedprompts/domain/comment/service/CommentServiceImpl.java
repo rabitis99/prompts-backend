@@ -9,6 +9,7 @@ import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.domain.user.enums.Role;
 import org.example.sharedprompts.dto.comment.request.CommentRequestDto;
+import org.example.sharedprompts.dto.comment.request.CommentUpdateDto;
 import org.example.sharedprompts.dto.comment.response.CommentResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
@@ -61,14 +62,14 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public CommentResponseDto updateComment(Long userId, Long promptId, Long commentId, CommentRequestDto requestDto) {
+    public CommentResponseDto updateComment(Long userId, Long promptId, Long commentId, CommentUpdateDto commentUpdateDto) {
         User user = getUser(userId);
         Prompt prompt = getPrompt(promptId);
         Comment comment = getComment(commentId);
 
         checkCommentPermission(user, prompt, comment);
 
-        comment.updateContent(requestDto.getContent());
+        commentUpdateDto.apply(comment);
 
         return CommentResponseDto.from(comment);
     }

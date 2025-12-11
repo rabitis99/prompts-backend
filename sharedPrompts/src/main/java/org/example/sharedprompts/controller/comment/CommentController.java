@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.comment.service.CommentService;
 import org.example.sharedprompts.dto.comment.request.CommentRequestDto;
+import org.example.sharedprompts.dto.comment.request.CommentUpdateDto;
 import org.example.sharedprompts.dto.comment.response.CommentResponseDto;
 import org.example.sharedprompts.global.response.CustomResponse;
 import org.example.sharedprompts.global.response.CustomResponseHelper;
@@ -46,7 +47,7 @@ public class CommentController {
     public ResponseEntity<CustomResponse<CommentResponseDto>> updateComment(
             @PathVariable Long promptId,
             @PathVariable Long commentId,
-            @Valid @RequestBody CommentRequestDto request,
+            @Valid @RequestBody CommentUpdateDto request,
             @CurrentUser AuthUser authUser
     ) {
         return CustomResponseHelper.ok(
