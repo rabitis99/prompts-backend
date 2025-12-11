@@ -72,6 +72,10 @@ public enum ErrorCode {
     COMMENT_ALREADY_LIKED("LK00402", HttpStatus.BAD_REQUEST, "이미 댓글을 좋아요 했습니다."),
     COMMENT_LIKE_NOT_FOUND("LK00702", HttpStatus.NOT_FOUND, "댓글 좋아요 기록이 없습니다."),
 
+    // ==========================
+    // 🔹 TAG
+    // ==========================
+    TAG_ALREADY_EXISTS("TG00901", HttpStatus.CONFLICT, "이미 존재하는 태그입니다."),
 
     ;
     private final String code;

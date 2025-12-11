@@ -23,8 +23,6 @@ public class Tag extends BaseEntity {
     @Builder(toBuilder = true)
     public Tag(String name) {
         this.name = name;
+        this.count = 0L;
     }
-
-    public void increaseCount() { this.count = (this.count == null ? 1L : this.count + 1); }
-    public void decreaseCount() { this.count = (this.count == null || this.count <= 0 ? 0L : this.count - 1); }
 }

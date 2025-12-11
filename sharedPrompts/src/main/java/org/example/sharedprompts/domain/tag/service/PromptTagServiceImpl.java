@@ -7,12 +7,15 @@ import org.example.sharedprompts.domain.tag.Tag;
 import org.example.sharedprompts.domain.tag.repository.PromptTagRepository;
 import org.example.sharedprompts.domain.tag.repository.TagRepository;
 import org.example.sharedprompts.domain.prompt.Prompt;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.util.TagNormalizer;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,27 +28,40 @@ public class PromptTagServiceImpl implements PromptTagService {
     @Override
     public List<Tag> addTags(Prompt prompt, List<String> tagNames) {
         if (tagNames == null || tagNames.isEmpty()) return List.of();
-        // 1. 공백 제거 + 영어 대문자 + 중복 제거
+
         List<String> processedNames = TagNormalizer.normalizeTags(tagNames);
 
-        List<Tag> tags = processedNames.stream()
-                .map(name -> {
-                    // 기존 태그가 있으면 재사용, 없으면 새로 생성
-                    Tag tag = tagRepository.findByName(name)
-                            .orElseGet(() -> tagRepository.save(new Tag(name)));
-                    // count 증가
-                    tag.increaseCount();
-                    tagRepository.save(tag); // count 업데이트
-                    return tag;
-                })
-                .toList();
-        for (Tag tag : tags) {
-            if (!promptTagRepository.existsByPromptAndTag(prompt, tag)) {
-                promptTagRepository.save(new PromptTag(prompt, tag));
-            }
+        List<Tag> tags = new ArrayList<>();
+
+        for (String name : processedNames) {
+            Tag tag = getOrCreateTag(name);
+            increaseTagCount(name);
+            attachPromptTag(prompt, tag);
+            tags.add(tag);
         }
 
         return tags;
+    }
+
+    private Tag getOrCreateTag(String name) {
+        return tagRepository.findByName(name).orElseGet(() -> {
+            try {
+                return tagRepository.save(new Tag(name));
+            } catch (DataIntegrityViolationException e) {
+                return tagRepository.findByName(name)
+                        .orElseThrow(() -> new ApiException(ErrorCode.TAG_ALREADY_EXISTS));
+            }
+        });
+    }
+
+    private void increaseTagCount(String name) {
+        tagRepository.incrementCount(name);
+    }
+
+    private void attachPromptTag(Prompt prompt, Tag tag) {
+        if (!promptTagRepository.existsByPromptAndTag(prompt, tag)) {
+            promptTagRepository.save(new PromptTag(prompt, tag));
+        }
     }
 
     @Override
@@ -60,6 +76,7 @@ public class PromptTagServiceImpl implements PromptTagService {
         return promptTagRepository.findPromptTagByPrompt(prompt)
                 .stream()
                 .map(PromptTag::getTag)
-                .collect(Collectors.toList());
+                .toList();
     }
 }
+
