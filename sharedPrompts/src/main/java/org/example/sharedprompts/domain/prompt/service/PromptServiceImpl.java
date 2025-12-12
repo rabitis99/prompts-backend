@@ -89,6 +89,9 @@ public class PromptServiceImpl implements PromptService {
     public PromptResponseDto getPromptDetail(Long promptId) {
         Prompt prompt = promptRepository.findById(promptId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
+
+        promptRepository.incrementUsageCount(promptId);
+
         List<Tag> tags = promptTagService.getTags(prompt);
         return PromptResponseDto.from(prompt, tags);
     }

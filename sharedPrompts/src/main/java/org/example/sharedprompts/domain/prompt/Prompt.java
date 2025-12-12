@@ -45,7 +45,7 @@ public class Prompt extends BaseEntity {
 
     @Column(nullable = false)
     @Builder.Default
-    private int viewCount = 0;
+    private long viewCount = 0L;
 
     @Column(nullable = false)
     @Builder.Default

@@ -11,6 +11,7 @@ import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.util.TagNormalizer;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,7 +67,7 @@ public class PromptTagServiceImpl implements PromptTagService {
             return true;
         } catch (DataIntegrityViolationException e) {
             // 유니크 제약조건 위반인 경우만 무시
-            if (e.getCause() != null && e.getCause().getMessage().contains("prompt_tags_unique")) {
+            if (e.getCause() != null && e.getCause() instanceof ConstraintViolationException) {
                 return false;
             }
             // 다른 무결성 위반은 로깅하고 재던지기
