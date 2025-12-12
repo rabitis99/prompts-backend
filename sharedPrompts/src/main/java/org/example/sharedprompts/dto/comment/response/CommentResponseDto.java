@@ -24,7 +24,7 @@ public class CommentResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    private Long count;
+    private Long replyCount;
     private Long parentId;
     private List<CommentResponseDto> replies;
 
@@ -35,7 +35,7 @@ public class CommentResponseDto {
                 .user(UserResponseDto.from(comment.getUser()))
                 .createdAt(comment.getCreatedAt())
                 .updatedAt(comment.getUpdatedAt())
-                .count(comment.getCount())
+                .replyCount(comment.getReplyCount())
                 .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
                 .replies(
                         comment.getChildren().stream()

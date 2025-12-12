@@ -30,13 +30,17 @@ public class PromptTagServiceImpl implements PromptTagService {
         if (tagNames == null || tagNames.isEmpty()) return List.of();
 
         List<String> processedNames = TagNormalizer.normalizeTags(tagNames);
-
         List<Tag> tags = new ArrayList<>();
 
         for (String name : processedNames) {
             Tag tag = getOrCreateTag(name);
-            increaseTagCount(name);
-            attachPromptTag(prompt, tag);
+
+            boolean attached = attachPromptTag(prompt, tag);
+
+            if (attached) {
+                increaseTagCount(tag.getName());
+            }
+
             tags.add(tag);
         }
 
@@ -54,28 +58,34 @@ public class PromptTagServiceImpl implements PromptTagService {
         });
     }
 
+    private boolean attachPromptTag(Prompt prompt, Tag tag) {
+        try {
+            promptTagRepository.save(new PromptTag(prompt, tag));
+            return true;
+        } catch (DataIntegrityViolationException e) {
+            return false;
+        }
+    }
+
     private void increaseTagCount(String name) {
         tagRepository.incrementCount(name);
     }
 
-    private void attachPromptTag(Prompt prompt, Tag tag) {
-        if (promptTagRepository.existsByPromptAndTag(prompt, tag)){
-            return;
-        }
-        try {
-            promptTagRepository.save(new PromptTag(prompt, tag));
-        } catch (DataIntegrityViolationException e) {
-            // 다른 트랜잭션에서 이미 생성됨 - 무시
-        }
+    private void decreaseTagCount(String name) {
+        tagRepository.decrementCount(name);
     }
 
     @Override
     public void updateTags(Prompt prompt, List<String> tagNames) {
-        promptTagRepository.findPromptTagByPrompt(prompt)
-                .forEach(pt -> tagRepository.decrementCount(pt.getTag().getName()));
 
+        // ① 기존 태그들 count 감소
+        List<PromptTag> existing = promptTagRepository.findPromptTagByPrompt(prompt);
+        existing.forEach(pt -> decreaseTagCount(pt.getTag().getName()));
+
+        // ② 기존 PromptTag 제거
         promptTagRepository.deletePromptTagByPrompt(prompt);
 
+        // ③ 새 태그 적용
         addTags(prompt, tagNames);
     }
 
@@ -88,4 +98,3 @@ public class PromptTagServiceImpl implements PromptTagService {
                 .toList();
     }
 }
-

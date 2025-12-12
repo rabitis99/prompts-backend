@@ -37,6 +37,10 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
 	implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
+	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+
+	// ShedLock core + Spring integration
+	implementation 'net.javacrumbs.shedlock:shedlock-spring:5.2.0'
 
 	// Spring AI (OpenAI + Google Gemini)
 	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
@@ -48,6 +52,9 @@ dependencies {
 
 	// Redis
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+	// Redis 기반 LockProvider
+	implementation 'net.javacrumbs.shedlock:shedlock-provider-redis-spring:5.2.0'
 
 	// QueryDSL
 	implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'

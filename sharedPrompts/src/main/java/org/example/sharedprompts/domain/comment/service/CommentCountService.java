@@ -12,4 +12,5 @@ public interface CommentCountService {
     void decrementReplyCount(Long parentId);
 
     Map<Long, Long> getReplyCounts(List<Long> parentIds);
+    Map<Long, Long> getCommentCounts(List<Long> promptIds);
 }
