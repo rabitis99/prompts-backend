@@ -11,6 +11,7 @@ import org.example.sharedprompts.domain.prompt.Prompt;
 @Getter
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "prompt_tags", uniqueConstraints = @UniqueConstraint(columnNames = {"prompt_id", "tag_id"}))
 public class PromptTag {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -49,7 +49,7 @@ public class Prompt extends BaseEntity {
 
     @Column(nullable = false)
     @Builder.Default
-    private Long commentCount = 0L;
+    private long commentCount = 0L;
 
     @OneToMany(mappedBy = "prompt", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

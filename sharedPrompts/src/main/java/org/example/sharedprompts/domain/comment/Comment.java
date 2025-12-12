@@ -42,7 +42,7 @@ public class Comment extends BaseEntity {
 
     @Column(nullable = false)
     @Builder.Default
-    private Long replyCount = 0L;
+    private long replyCount = 0L;
 
     public void updateContent(String content) {
         this.content = content;

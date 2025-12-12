@@ -5,10 +5,8 @@ import org.example.sharedprompts.domain.prompt.Prompt;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -23,11 +21,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     """)
     List<Comment> findAllByPrompt(@Param("prompt") Prompt prompt);
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Transactional
-    @Query("UPDATE Comment c SET c.replyCount = :count WHERE c.id = :id")
-    void updateCount(@Param("id") Long id, @Param("count") Long count);
-
-    @Query("SELECT c.id FROM Comment c")
+    @Query("SELECT c.id FROM Comment c ORDER BY c.id")
     Page<Long> findAllIds(Pageable pageable);
 }

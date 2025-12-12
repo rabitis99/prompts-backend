@@ -20,7 +20,7 @@ public class CommentResponseDto {
 
     private Long id;
     private String content;
-    private UserResponseDto  user;
+    private UserResponseDto userResponseDto;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -32,7 +32,7 @@ public class CommentResponseDto {
         return CommentResponseDto.builder()
                 .id(comment.getId())
                 .content(comment.getContent())
-                .user(UserResponseDto.from(comment.getUser()))
+                .userResponseDto(UserResponseDto.from(comment.getUser()))
                 .createdAt(comment.getCreatedAt())
                 .updatedAt(comment.getUpdatedAt())
                 .replyCount(comment.getReplyCount())

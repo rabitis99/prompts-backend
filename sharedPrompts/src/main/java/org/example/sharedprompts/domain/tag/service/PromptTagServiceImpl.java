@@ -30,7 +30,7 @@ public class PromptTagServiceImpl implements PromptTagService {
         if (tagNames == null || tagNames.isEmpty()) return List.of();
 
         List<String> processedNames = TagNormalizer.normalizeTags(tagNames);
-        List<Tag> tags = new ArrayList<>();
+        List<Tag> tags = new ArrayList<>(processedNames.size());
 
         for (String name : processedNames) {
             Tag tag = getOrCreateTag(name);
@@ -50,7 +50,7 @@ public class PromptTagServiceImpl implements PromptTagService {
     private Tag getOrCreateTag(String name) {
         return tagRepository.findByName(name).orElseGet(() -> {
             try {
-                return tagRepository.save(new Tag(name));
+                return tagRepository.saveAndFlush(new Tag(name));
             } catch (DataIntegrityViolationException e) {
                 return tagRepository.findByName(name)
                         .orElseThrow(() -> new ApiException(ErrorCode.TAG_CREATION_FAILED));
@@ -60,9 +60,11 @@ public class PromptTagServiceImpl implements PromptTagService {
 
     private boolean attachPromptTag(Prompt prompt, Tag tag) {
         try {
-            promptTagRepository.save(new PromptTag(prompt, tag));
+            promptTagRepository.saveAndFlush(new PromptTag(prompt, tag));
             return true;
         } catch (DataIntegrityViolationException e) {
+            // 제약조건명이나 원인 메시지로 중복 여부 판단하도록 개선 필요
+            // 예상 외 무결성 위반은 로깅하고 재던지기 검토
             return false;
         }
     }
