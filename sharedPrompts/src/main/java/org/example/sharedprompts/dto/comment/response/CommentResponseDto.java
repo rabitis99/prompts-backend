@@ -28,6 +28,8 @@ public class CommentResponseDto {
     private Long parentId;
     private List<CommentResponseDto> replies;
 
+    private Long likeCount;
+
     public static CommentResponseDto from(Comment comment) {
         return CommentResponseDto.builder()
                 .id(comment.getId())
@@ -42,6 +44,7 @@ public class CommentResponseDto {
                                 .map(CommentResponseDto::from)
                                 .toList()
                 )
+                .likeCount(comment.getLikeCount())
                 .build();
     }
 }

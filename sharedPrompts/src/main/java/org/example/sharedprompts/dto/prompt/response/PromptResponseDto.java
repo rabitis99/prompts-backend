@@ -25,8 +25,9 @@ public class PromptResponseDto {
     private PromptCategory promptCategory;
     private List<String> tags;
     private UserResponseDto userResponseDto;
-    private long viewCount;
-    private long commentCount;
+    private Long viewCount;
+    private Long commentCount;
+    private Long likeCount;
 
 
     public static PromptResponseDto from(Prompt prompt, List<Tag> tags) {
@@ -46,6 +47,7 @@ public class PromptResponseDto {
                 .userResponseDto(prompt.getAuthor() != null ? UserResponseDto.from(prompt.getAuthor()) : null)
                 .viewCount(prompt.getViewCount())
                 .commentCount(prompt.getCommentCount())
+                .likeCount(prompt.getLikeCount())
                 .build();
     }
 }

@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.like.CommentLike;
 import org.example.sharedprompts.domain.like.CommentLikeId;
 import org.example.sharedprompts.domain.like.PromptLike;
 import org.example.sharedprompts.domain.like.PromptLikeId;
+import org.example.sharedprompts.domain.like.event.LikeEvent;
 import org.example.sharedprompts.domain.like.repository.CommentLikeRepository;
 import org.example.sharedprompts.domain.like.repository.PromptLikeRepository;
 import org.example.sharedprompts.domain.prompt.Prompt;
@@ -15,8 +16,10 @@ import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -27,6 +30,8 @@ public class LikeServiceImpl implements LikeService {
     private final UserRepository userRepository;
     private final PromptRepository promptRepository;
     private final CommentRepository commentRepository;
+
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public void likePrompt(Long userId, Long promptId) {
@@ -50,6 +55,8 @@ public class LikeServiceImpl implements LikeService {
                 .build();
 
         likeRepository.save(promptLike);
+
+        eventPublisher.publishEvent(new LikeEvent.PromptLiked(promptId));
     }
 
     @Override
@@ -62,6 +69,8 @@ public class LikeServiceImpl implements LikeService {
         }
 
         likeRepository.deleteById(id);
+
+        eventPublisher.publishEvent(new LikeEvent.PromptUnliked(promptId));
     }
 
     @Override
@@ -87,6 +96,8 @@ public class LikeServiceImpl implements LikeService {
                 .build();
 
         commentLikeRepository.save(commentLike);
+
+        eventPublisher.publishEvent(new LikeEvent.CommentLiked(commentId));
     }
 
     @Override
@@ -99,5 +110,7 @@ public class LikeServiceImpl implements LikeService {
         }
 
         commentLikeRepository.deleteById(id);
+
+        eventPublisher.publishEvent(new LikeEvent.CommentUnliked(commentId));
     }
 }
