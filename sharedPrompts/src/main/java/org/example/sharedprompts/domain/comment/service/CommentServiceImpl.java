@@ -95,8 +95,6 @@ public class CommentServiceImpl implements CommentService {
 
         commentRepository.delete(comment);
 
-        commentRepository.flush();
-
         eventPublisher.publishEvent(new CommentEvent.Deleted(
                 promptId,
                 parentId

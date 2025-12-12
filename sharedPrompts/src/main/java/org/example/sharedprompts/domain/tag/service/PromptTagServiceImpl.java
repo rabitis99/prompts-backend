@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.tag.service;
 
 import lombok.RequiredArgsConstructor;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.tag.PromptTag;
 import org.example.sharedprompts.domain.tag.Tag;
 import org.example.sharedprompts.domain.tag.repository.PromptTagRepository;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional
 public class PromptTagServiceImpl implements PromptTagService {
@@ -63,9 +65,13 @@ public class PromptTagServiceImpl implements PromptTagService {
             promptTagRepository.saveAndFlush(new PromptTag(prompt, tag));
             return true;
         } catch (DataIntegrityViolationException e) {
-            // 제약조건명이나 원인 메시지로 중복 여부 판단하도록 개선 필요
-            // 예상 외 무결성 위반은 로깅하고 재던지기 검토
-            return false;
+            // 유니크 제약조건 위반인 경우만 무시
+            if (e.getCause() != null && e.getCause().getMessage().contains("prompt_tags_unique")) {
+                return false;
+            }
+            // 다른 무결성 위반은 로깅하고 재던지기
+            log.error("Unexpected integrity violation when attaching prompt-tag", e);
+            throw e;
         }
     }
 
@@ -80,14 +86,14 @@ public class PromptTagServiceImpl implements PromptTagService {
     @Override
     public void updateTags(Prompt prompt, List<String> tagNames) {
 
-        // ① 기존 태그들 count 감소
+        // 1 기존 태그들 count 감소
         List<PromptTag> existing = promptTagRepository.findPromptTagByPrompt(prompt);
         existing.forEach(pt -> decreaseTagCount(pt.getTag().getName()));
 
-        // ② 기존 PromptTag 제거
+        // 2 기존 PromptTag 제거
         promptTagRepository.deletePromptTagByPrompt(prompt);
 
-        // ③ 새 태그 적용
+        // 3 새 태그 적용
         addTags(prompt, tagNames);
     }
 
