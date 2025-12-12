@@ -20,10 +20,11 @@ public class CommentResponseDto {
 
     private Long id;
     private String content;
-    private UserResponseDto userResponseDto;
+    private UserResponseDto  user;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    private Long count;
     private Long parentId;
     private List<CommentResponseDto> replies;
 
@@ -31,9 +32,10 @@ public class CommentResponseDto {
         return CommentResponseDto.builder()
                 .id(comment.getId())
                 .content(comment.getContent())
-                .userResponseDto(UserResponseDto.from(comment.getUser()))
+                .user(UserResponseDto.from(comment.getUser()))
                 .createdAt(comment.getCreatedAt())
                 .updatedAt(comment.getUpdatedAt())
+                .count(comment.getCount())
                 .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
                 .replies(
                         comment.getChildren().stream()

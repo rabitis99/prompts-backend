@@ -26,6 +26,7 @@ public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepository;
     private final PromptRepository promptRepository;
     private final UserRepository userRepository;
+    private final CommentCountService commentCountService;
 
     @Override
     public CommentResponseDto createComment(Long userId, Long promptId, CommentRequestDto requestDto) {
@@ -45,6 +46,12 @@ public class CommentServiceImpl implements CommentService {
 
         Comment comment = requestDto.toEntity(user, prompt, parent);
         commentRepository.save(comment);
+
+        if (parent == null) {
+            commentCountService.incrementCommentCount(promptId);
+        } else {
+            commentCountService.incrementReplyCount(parent.getId());
+        }
 
         return CommentResponseDto.from(comment);
     }
@@ -81,6 +88,12 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = getComment(commentId);
 
         checkCommentPermission(user, prompt, comment);
+
+        if (comment.getParent() == null) {
+            commentCountService.decrementCommentCount(promptId);
+        } else {
+            commentCountService.decrementReplyCount(comment.getParent().getId());
+        }
 
         commentRepository.delete(comment);
     }

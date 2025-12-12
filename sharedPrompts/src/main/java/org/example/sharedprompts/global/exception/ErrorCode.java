@@ -75,7 +75,7 @@ public enum ErrorCode {
     // ==========================
     // 🔹 TAG
     // ==========================
-    TAG_ALREADY_EXISTS("TG00901", HttpStatus.CONFLICT, "이미 존재하는 태그입니다."),
+    TAG_CREATION_FAILED("TG01001", HttpStatus.INTERNAL_SERVER_ERROR, "태그 생성 중 내부 오류가 발생했습니다."),
 
     ;
     private final String code;

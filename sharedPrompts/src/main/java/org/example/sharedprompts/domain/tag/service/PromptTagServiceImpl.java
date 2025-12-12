@@ -49,7 +49,7 @@ public class PromptTagServiceImpl implements PromptTagService {
                 return tagRepository.save(new Tag(name));
             } catch (DataIntegrityViolationException e) {
                 return tagRepository.findByName(name)
-                        .orElseThrow(() -> new ApiException(ErrorCode.TAG_ALREADY_EXISTS));
+                        .orElseThrow(() -> new ApiException(ErrorCode.TAG_CREATION_FAILED));
             }
         });
     }
@@ -59,8 +59,13 @@ public class PromptTagServiceImpl implements PromptTagService {
     }
 
     private void attachPromptTag(Prompt prompt, Tag tag) {
-        if (!promptTagRepository.existsByPromptAndTag(prompt, tag)) {
+        if (promptTagRepository.existsByPromptAndTag(prompt, tag)){
+            return;
+        }
+        try {
             promptTagRepository.save(new PromptTag(prompt, tag));
+        } catch (DataIntegrityViolationException e) {
+            // 다른 트랜잭션에서 이미 생성됨 - 무시
         }
     }
 
