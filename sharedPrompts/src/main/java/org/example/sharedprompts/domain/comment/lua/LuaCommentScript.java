@@ -4,7 +4,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class LuaScript {
+public class LuaCommentScript {
 
     public static final String SAFE_DECREMENT = """
         local val = redis.call('GET', KEYS[1])
