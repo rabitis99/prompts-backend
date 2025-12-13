@@ -27,6 +27,7 @@ public class CommentLikeCountSyncScheduler {
     private static final int BATCH_SIZE = 1000;
     private static final long SCHEDULE_DELAY_MS = 10 * 60 * 1000L; // 10분
 
+    @Transactional
     @Scheduled(fixedDelay = SCHEDULE_DELAY_MS)
     @SchedulerLock(name = "CommentLikeCountSyncScheduler", lockAtMostFor = "15m", lockAtLeastFor = "1m")
     public void syncCommentLikeCounts() {

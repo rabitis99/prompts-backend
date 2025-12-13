@@ -31,6 +31,7 @@ public class CommentCountSyncScheduler {
      * fixedDelay로 재진입 방지 (이전 실행 완료 후 delay 시작)
      * ShedLock으로 멀티 인스턴스 중 1개만 실행 보장
      */
+    @Transactional
     @Scheduled(fixedDelay = SCHEDULE_DELAY_MS)
     @SchedulerLock(name = "CommentCountSyncScheduler", lockAtMostFor = "15m", lockAtLeastFor = "1m")
     public void syncCommentCounts() {

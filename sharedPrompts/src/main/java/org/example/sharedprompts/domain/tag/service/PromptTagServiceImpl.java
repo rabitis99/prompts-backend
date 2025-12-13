@@ -1,7 +1,6 @@
 package org.example.sharedprompts.domain.tag.service;
 
 import lombok.RequiredArgsConstructor;
-
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.tag.PromptTag;
 import org.example.sharedprompts.domain.tag.Tag;
@@ -15,6 +14,7 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.core.NestedExceptionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,8 +55,18 @@ public class PromptTagServiceImpl implements PromptTagService {
             try {
                 return tagRepository.saveAndFlush(new Tag(name));
             } catch (DataIntegrityViolationException e) {
-                return tagRepository.findByName(name)
-                        .orElseThrow(() -> new ApiException(ErrorCode.TAG_CREATION_FAILED));
+                // Tag.name UNIQUE 위반일 때만 재조회 fallback 처리
+                Throwable mostSpecific = NestedExceptionUtils.getMostSpecificCause(e);
+                if (mostSpecific instanceof ConstraintViolationException cve) {
+                    String constraint = cve.getConstraintName();
+                    if ("tag_name_unique".equalsIgnoreCase(constraint)) { // 실제 DB 제약 조건명으로 교체
+                        return tagRepository.findByName(name)
+                                .orElseThrow(() -> new ApiException(ErrorCode.TAG_CREATION_FAILED));
+                    }
+                }
+                // 다른 무결성 위반은 로깅 후 재던지기
+                log.error("Unexpected integrity violation when creating tag: {}", name, e);
+                throw e;
             }
         });
     }
@@ -66,9 +76,13 @@ public class PromptTagServiceImpl implements PromptTagService {
             promptTagRepository.saveAndFlush(new PromptTag(prompt, tag));
             return true;
         } catch (DataIntegrityViolationException e) {
-            // 유니크 제약조건 위반인 경우만 무시
-            if (e.getCause() != null && e.getCause() instanceof ConstraintViolationException) {
-                return false;
+            // 유니크 제약조건(uk_prompt_tag) 위반인 경우만 무시
+            Throwable mostSpecific = NestedExceptionUtils.getMostSpecificCause(e);
+            if (mostSpecific instanceof ConstraintViolationException cve) {
+                String constraintName = cve.getConstraintName();
+                if ("uk_prompt_tag".equalsIgnoreCase(constraintName)) {
+                    return false;
+                }
             }
             // 다른 무결성 위반은 로깅하고 재던지기
             log.error("Unexpected integrity violation when attaching prompt-tag", e);
@@ -86,7 +100,6 @@ public class PromptTagServiceImpl implements PromptTagService {
 
     @Override
     public void updateTags(Prompt prompt, List<String> tagNames) {
-
         // 1 기존 태그들 count 감소
         List<PromptTag> existing = promptTagRepository.findPromptTagByPrompt(prompt);
         existing.forEach(pt -> decreaseTagCount(pt.getTag().getName()));

@@ -46,7 +46,7 @@ public class Prompt extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private long viewCount = 0L;
-
+    // 루트 댓글만 카운트
     @Column(nullable = false)
     @Builder.Default
     private long commentCount = 0L;

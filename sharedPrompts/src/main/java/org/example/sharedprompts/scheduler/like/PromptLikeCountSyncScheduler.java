@@ -28,6 +28,7 @@ public class PromptLikeCountSyncScheduler {
     private static final int BATCH_SIZE = 1000;
     private static final long SCHEDULE_DELAY_MS = 10 * 60 * 1000L; // 10분
 
+    @Transactional
     @Scheduled(fixedDelay = SCHEDULE_DELAY_MS)
     @SchedulerLock(name = "PromptLikeCountSyncScheduler", lockAtMostFor = "15m", lockAtLeastFor = "1m")
     public void syncPromptLikeCounts() {
@@ -55,7 +56,7 @@ public class PromptLikeCountSyncScheduler {
     protected void processBatch(List<Long> ids) {
         if (ids.isEmpty()) return;
 
-        Map<Long, Long> counts = likeCountService.getPromptLikeCount(ids);
+        Map<Long, Long> counts = likeCountService.getPromptLikeCounts(ids);
 
         List<Object[]> batchArgs = ids.stream()
                 .map(id -> new Object[]{counts.getOrDefault(id, 0L), id})

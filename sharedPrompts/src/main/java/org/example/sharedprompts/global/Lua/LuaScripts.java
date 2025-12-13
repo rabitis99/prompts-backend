@@ -1,10 +1,10 @@
-package org.example.sharedprompts.domain.comment.lua;
+package org.example.sharedprompts.global.Lua;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class LuaCommentScript {
+public class LuaScripts {
 
     public static final String SAFE_DECREMENT = """
         local val = redis.call('GET', KEYS[1])

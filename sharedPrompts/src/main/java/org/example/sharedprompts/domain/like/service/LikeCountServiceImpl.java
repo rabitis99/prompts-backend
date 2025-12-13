@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.like.service;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.domain.like.lua.LuaLikeScript;
+import org.example.sharedprompts.global.Lua.LuaScripts;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ public class LikeCountServiceImpl implements LikeCountService {
     @PostConstruct
     public void init() {
         safeDecrScript = new DefaultRedisScript<>();
-        safeDecrScript.setScriptText(LuaLikeScript.SAFE_DECREMENT);
+        safeDecrScript.setScriptText(LuaScripts.SAFE_DECREMENT);
         safeDecrScript.setResultType(Long.class);
     }
 
@@ -65,11 +65,13 @@ public class LikeCountServiceImpl implements LikeCountService {
     }
 
     @Override
-    public Map<Long, Long> getPromptLikeCount(List<Long> promptIds) {
+    public Map<Long, Long> getPromptLikeCounts(List<Long> promptIds) {
         return getCounts(promptIds, this::promptLikeKey);
     }
 
     private Map<Long, Long> getCounts(List<Long> ids, Function<Long, String> keyMapper) {
+        if (ids == null || ids.isEmpty()) return Map.of();
+
         List<String> keys = ids.stream().map(keyMapper).toList();
         List<String> valuesRaw = redisTemplate.opsForValue().multiGet(keys);
 
@@ -78,7 +80,7 @@ public class LikeCountServiceImpl implements LikeCountService {
                 ? keys.stream().map(k -> "0").toList()
                 : valuesRaw;
 
-        Map<Long, Long> result = new HashMap<>();
+        Map<Long, Long> result = new HashMap<>(ids.size());
         for (int i = 0; i < ids.size(); i++) {
             result.put(ids.get(i), safeParse(values.get(i)));
         }

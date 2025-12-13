@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.comment.service;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.domain.comment.lua.LuaCommentScript;
+import org.example.sharedprompts.global.Lua.LuaScripts;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -22,7 +22,7 @@ public class CommentCountServiceImpl implements CommentCountService {
     @PostConstruct
     public void init() {
         safeDecrScript = new DefaultRedisScript<>();
-        safeDecrScript.setScriptText(LuaCommentScript.SAFE_DECREMENT);
+        safeDecrScript.setScriptText(LuaScripts.SAFE_DECREMENT);
         safeDecrScript.setResultType(Long.class);
     }
 
@@ -75,6 +75,7 @@ public class CommentCountServiceImpl implements CommentCountService {
 
     // 안전한 multiGet + 파싱 + 키 일관성
     private Map<Long, Long> getCounts(List<Long> ids, Function<Long, String> keyMapper) {
+        if (ids == null || ids.isEmpty()) return Map.of();
         List<String> keys = ids.stream().map(keyMapper).toList();
         List<String> valuesRaw = redisTemplate.opsForValue().multiGet(keys);
 
@@ -83,7 +84,7 @@ public class CommentCountServiceImpl implements CommentCountService {
                 ? keys.stream().map(k -> "0").toList()
                 : valuesRaw;
 
-        Map<Long, Long> result = new HashMap<>();
+        Map<Long, Long> result = new HashMap<>(ids.size());
         for (int i = 0; i < ids.size(); i++) {
             result.put(ids.get(i), safeParse(values.get(i)));
         }

@@ -13,7 +13,7 @@ public interface PromptRepository extends JpaRepository<Prompt, Long>,CustomProm
     @Query("SELECT p.id FROM Prompt p ORDER BY p.id")
     Page<Long> findAllIds(Pageable pageable);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Transactional
     @Query(
             value = "UPDATE prompts SET view_count = view_count + 1 WHERE id = :id",

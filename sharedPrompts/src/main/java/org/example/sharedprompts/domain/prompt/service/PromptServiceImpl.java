@@ -85,7 +85,7 @@ public class PromptServiceImpl implements PromptService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public PromptResponseDto getPromptDetail(Long promptId) {
         Prompt prompt = promptRepository.findById(promptId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
