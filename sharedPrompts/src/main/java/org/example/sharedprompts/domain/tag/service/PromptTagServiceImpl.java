@@ -55,18 +55,25 @@ public class PromptTagServiceImpl implements PromptTagService {
             try {
                 return tagRepository.saveAndFlush(new Tag(name));
             } catch (DataIntegrityViolationException e) {
-                // Tag.name UNIQUE 위반일 때만 재조회 fallback 처리
-                Throwable mostSpecific = NestedExceptionUtils.getMostSpecificCause(e);
-                if (mostSpecific instanceof ConstraintViolationException cve) {
+
+                Throwable cause = NestedExceptionUtils.getMostSpecificCause(e);
+
+                // 1. 제약 조건명이 명확히 일치할 경우
+                if (cause instanceof ConstraintViolationException cve) {
                     String constraint = cve.getConstraintName();
-                    if ("tag_name_unique".equalsIgnoreCase(constraint)) { // 실제 DB 제약 조건명으로 교체
+                    if ("uk_tag_name".equalsIgnoreCase(constraint)) {
                         return tagRepository.findByName(name)
                                 .orElseThrow(() -> new ApiException(ErrorCode.TAG_CREATION_FAILED));
                     }
                 }
-                // 다른 무결성 위반은 로깅 후 재던지기
-                log.error("Unexpected integrity violation when creating tag: {}", name, e);
-                throw e;
+
+                // 2. 제약 조건명 미확인 (DB / 환경 차이 대응용 fallback)
+                log.warn("Integrity violation without matching constraint name. fallback findByName. tag={}", name);
+                return tagRepository.findByName(name)
+                        .orElseThrow(() -> {
+                            log.error("Tag creation failed after integrity violation. tag={}", name, e);
+                            return new ApiException(ErrorCode.TAG_CREATION_FAILED);
+                        });
             }
         });
     }
