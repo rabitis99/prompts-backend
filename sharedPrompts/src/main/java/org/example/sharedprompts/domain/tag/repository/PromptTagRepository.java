@@ -1,7 +1,6 @@
 package org.example.sharedprompts.domain.tag.repository;
 
 import org.example.sharedprompts.domain.tag.PromptTag;
-import org.example.sharedprompts.domain.tag.Tag;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -9,8 +8,6 @@ import org.springframework.data.jpa.repository.Modifying;
 import java.util.List;
 
 public interface PromptTagRepository extends JpaRepository<PromptTag, Long> {
-    boolean existsByPromptAndTag(Prompt prompt, Tag tag);
-
     @Modifying
     void deletePromptTagByPrompt(Prompt prompt);
 

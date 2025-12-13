@@ -15,7 +15,7 @@ java {
 }
 
 ext {
-	springAiVersion = "1.1.0" // 최신 Spring AI BOM
+	springAiVersion = "1.1.0"
 }
 
 repositories {
@@ -38,7 +38,11 @@ dependencies {
 	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
 	implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
 
-	// Spring AI (OpenAI + Google Gemini)
+	// ShedLock
+	implementation 'net.javacrumbs.shedlock:shedlock-spring'
+	implementation 'net.javacrumbs.shedlock:shedlock-provider-redis-spring'
+
+	// Spring AI
 	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
 	implementation 'org.springframework.ai:spring-ai-starter-model-google-genai'
 	implementation 'com.google.genai:google-genai:1.8.0'
@@ -73,7 +77,7 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-// QueryDSL 소스 설정
+// QueryDSL 설정
 sourceSets {
 	main {
 		java {
@@ -82,14 +86,16 @@ sourceSets {
 	}
 }
 
-// Spring AI BOM 관리
+// BOM 관리
 dependencyManagement {
 	imports {
+		// Spring AI BOM
 		mavenBom "org.springframework.ai:spring-ai-bom:$springAiVersion"
+		// ShedLock BOM
+		mavenBom "net.javacrumbs.shedlock:shedlock-bom:7.2.1"
 	}
 }
 
-// Java 컴파일 옵션
 tasks.withType(JavaCompile).configureEach {
 	options.encoding = 'UTF-8'
 }

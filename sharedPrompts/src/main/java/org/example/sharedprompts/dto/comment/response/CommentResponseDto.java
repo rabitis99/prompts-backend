@@ -24,8 +24,11 @@ public class CommentResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    private Long replyCount;
     private Long parentId;
     private List<CommentResponseDto> replies;
+
+    private Long likeCount;
 
     public static CommentResponseDto from(Comment comment) {
         return CommentResponseDto.builder()
@@ -34,12 +37,14 @@ public class CommentResponseDto {
                 .userResponseDto(UserResponseDto.from(comment.getUser()))
                 .createdAt(comment.getCreatedAt())
                 .updatedAt(comment.getUpdatedAt())
+                .replyCount(comment.getReplyCount())
                 .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
                 .replies(
                         comment.getChildren().stream()
                                 .map(CommentResponseDto::from)
                                 .toList()
                 )
+                .likeCount(comment.getLikeCount())
                 .build();
     }
 }

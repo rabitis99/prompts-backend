@@ -1,20 +1,26 @@
 package org.example.sharedprompts.domain.tag.service;
 
 import lombok.RequiredArgsConstructor;
-
+import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.tag.PromptTag;
 import org.example.sharedprompts.domain.tag.Tag;
 import org.example.sharedprompts.domain.tag.repository.PromptTagRepository;
 import org.example.sharedprompts.domain.tag.repository.TagRepository;
 import org.example.sharedprompts.domain.prompt.Prompt;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.util.TagNormalizer;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.core.NestedExceptionUtils;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional
 public class PromptTagServiceImpl implements PromptTagService {
@@ -25,32 +31,90 @@ public class PromptTagServiceImpl implements PromptTagService {
     @Override
     public List<Tag> addTags(Prompt prompt, List<String> tagNames) {
         if (tagNames == null || tagNames.isEmpty()) return List.of();
-        // 1. 공백 제거 + 영어 대문자 + 중복 제거
-        List<String> processedNames = TagNormalizer.normalizeTags(tagNames);
 
-        List<Tag> tags = processedNames.stream()
-                .map(name -> {
-                    // 기존 태그가 있으면 재사용, 없으면 새로 생성
-                    Tag tag = tagRepository.findByName(name)
-                            .orElseGet(() -> tagRepository.save(new Tag(name)));
-                    // count 증가
-                    tag.increaseCount();
-                    tagRepository.save(tag); // count 업데이트
-                    return tag;
-                })
-                .toList();
-        for (Tag tag : tags) {
-            if (!promptTagRepository.existsByPromptAndTag(prompt, tag)) {
-                promptTagRepository.save(new PromptTag(prompt, tag));
+        List<String> processedNames = TagNormalizer.normalizeTags(tagNames);
+        List<Tag> tags = new ArrayList<>(processedNames.size());
+
+        for (String name : processedNames) {
+            Tag tag = getOrCreateTag(name);
+
+            boolean attached = attachPromptTag(prompt, tag);
+
+            if (attached) {
+                increaseTagCount(tag.getName());
             }
+
+            tags.add(tag);
         }
 
         return tags;
     }
 
+    private Tag getOrCreateTag(String name) {
+        return tagRepository.findByName(name).orElseGet(() -> {
+            try {
+                return tagRepository.saveAndFlush(new Tag(name));
+            } catch (DataIntegrityViolationException e) {
+
+                Throwable cause = NestedExceptionUtils.getMostSpecificCause(e);
+
+                // 1. 제약 조건명이 명확히 일치할 경우
+                if (cause instanceof ConstraintViolationException cve) {
+                    String constraint = cve.getConstraintName();
+                    if ("uk_tag_name".equalsIgnoreCase(constraint)) {
+                        return tagRepository.findByName(name)
+                                .orElseThrow(() -> new ApiException(ErrorCode.TAG_CREATION_FAILED));
+                    }
+                }
+
+                // 2. 제약 조건명 미확인 (DB / 환경 차이 대응용 fallback)
+                log.warn("Integrity violation without matching constraint name. fallback findByName. tag={}", name);
+                return tagRepository.findByName(name)
+                        .orElseThrow(() -> {
+                            log.error("Tag creation failed after integrity violation. tag={}", name, e);
+                            return new ApiException(ErrorCode.TAG_CREATION_FAILED);
+                        });
+            }
+        });
+    }
+
+    private boolean attachPromptTag(Prompt prompt, Tag tag) {
+        try {
+            promptTagRepository.saveAndFlush(new PromptTag(prompt, tag));
+            return true;
+        } catch (DataIntegrityViolationException e) {
+            // 유니크 제약조건(uk_prompt_tag) 위반인 경우만 무시
+            Throwable mostSpecific = NestedExceptionUtils.getMostSpecificCause(e);
+            if (mostSpecific instanceof ConstraintViolationException cve) {
+                String constraintName = cve.getConstraintName();
+                if ("uk_prompt_tag".equalsIgnoreCase(constraintName)) {
+                    return false;
+                }
+            }
+            // 다른 무결성 위반은 로깅하고 재던지기
+            log.error("Unexpected integrity violation when attaching prompt-tag", e);
+            throw e;
+        }
+    }
+
+    private void increaseTagCount(String name) {
+        tagRepository.incrementCount(name);
+    }
+
+    private void decreaseTagCount(String name) {
+        tagRepository.decrementCount(name);
+    }
+
     @Override
     public void updateTags(Prompt prompt, List<String> tagNames) {
+        // 1 기존 태그들 count 감소
+        List<PromptTag> existing = promptTagRepository.findPromptTagByPrompt(prompt);
+        existing.forEach(pt -> decreaseTagCount(pt.getTag().getName()));
+
+        // 2 기존 PromptTag 제거
         promptTagRepository.deletePromptTagByPrompt(prompt);
+
+        // 3 새 태그 적용
         addTags(prompt, tagNames);
     }
 
@@ -60,6 +124,6 @@ public class PromptTagServiceImpl implements PromptTagService {
         return promptTagRepository.findPromptTagByPrompt(prompt)
                 .stream()
                 .map(PromptTag::getTag)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

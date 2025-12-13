@@ -45,7 +45,15 @@ public class Prompt extends BaseEntity {
 
     @Column(nullable = false)
     @Builder.Default
-    private int viewCount = 0;
+    private long viewCount = 0L;
+    // 루트 댓글만 카운트
+    @Column(nullable = false)
+    @Builder.Default
+    private long commentCount = 0L;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private long likeCount = 0L;
 
     @OneToMany(mappedBy = "prompt", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -65,9 +73,5 @@ public class Prompt extends BaseEntity {
 
     public void updateCategory(PromptCategory promptCategory) {
         this.promptCategory = promptCategory;
-    }
-
-    public void updateViewCount(int viewCount) {
-        this.viewCount = viewCount;
     }
 }

@@ -8,23 +8,30 @@ import org.example.sharedprompts.global.entity.BaseEntity;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Table(name = "tags")
+@Table(
+        name = "tags",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_tag_name",
+                        columnNames = "name"
+                )
+        }
+)
 public class Tag extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 50, unique = true)
+    @Column(nullable = false, length = 50)
     private String name;
 
+    @Column(nullable = false)
     private Long count;
 
     @Builder(toBuilder = true)
     public Tag(String name) {
         this.name = name;
+        this.count = 0L;
     }
-
-    public void increaseCount() { this.count = (this.count == null ? 1L : this.count + 1); }
-    public void decreaseCount() { this.count = (this.count == null || this.count <= 0 ? 0L : this.count - 1); }
 }

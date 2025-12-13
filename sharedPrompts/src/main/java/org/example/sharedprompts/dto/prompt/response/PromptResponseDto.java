@@ -25,17 +25,16 @@ public class PromptResponseDto {
     private PromptCategory promptCategory;
     private List<String> tags;
     private UserResponseDto userResponseDto;
+    private Long viewCount;
+    private Long commentCount;
+    private Long likeCount;
 
 
     public static PromptResponseDto from(Prompt prompt, List<Tag> tags) {
 
-        if (tags == null) {
-            tags = List.of();
-        }
-
-        List<String> tagNames = tags.stream()
-                .map(Tag::getName)
-                .toList();
+        List<String> tagNames = tags == null
+                ? List.of()
+                : tags.stream().map(Tag::getName).toList();
 
         return PromptResponseDto.builder()
                 .id(prompt.getId())
@@ -46,6 +45,9 @@ public class PromptResponseDto {
                 .promptCategory(prompt.getPromptCategory())
                 .tags(tagNames)
                 .userResponseDto(prompt.getAuthor() != null ? UserResponseDto.from(prompt.getAuthor()) : null)
+                .viewCount(prompt.getViewCount())
+                .commentCount(prompt.getCommentCount())
+                .likeCount(prompt.getLikeCount())
                 .build();
     }
 }

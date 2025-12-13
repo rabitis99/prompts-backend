@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.comment.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.comment.Comment;
+import org.example.sharedprompts.domain.comment.event.CommentEvent;
 import org.example.sharedprompts.domain.comment.repository.CommentRepository;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
@@ -13,6 +14,7 @@ import org.example.sharedprompts.dto.comment.request.CommentUpdateDto;
 import org.example.sharedprompts.dto.comment.response.CommentResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,7 @@ public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepository;
     private final PromptRepository promptRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public CommentResponseDto createComment(Long userId, Long promptId, CommentRequestDto requestDto) {
@@ -44,7 +47,13 @@ public class CommentServiceImpl implements CommentService {
         }
 
         Comment comment = requestDto.toEntity(user, prompt, parent);
+
         commentRepository.save(comment);
+
+        eventPublisher.publishEvent(new CommentEvent.Created(
+                promptId,
+                parent != null ? parent.getId() : null
+        ));
 
         return CommentResponseDto.from(comment);
     }
@@ -82,7 +91,14 @@ public class CommentServiceImpl implements CommentService {
 
         checkCommentPermission(user, prompt, comment);
 
+        Long parentId = comment.getParent() != null ? comment.getParent().getId() : null;
+
         commentRepository.delete(comment);
+
+        eventPublisher.publishEvent(new CommentEvent.Deleted(
+                promptId,
+                parentId
+        ));
     }
 
     private void checkCommentPermission(User user, Prompt prompt, Comment comment) {
@@ -114,4 +130,3 @@ public class CommentServiceImpl implements CommentService {
                 .orElseThrow(() -> new ApiException(ErrorCode.COMMENT_NOT_FOUND));
     }
 }
-

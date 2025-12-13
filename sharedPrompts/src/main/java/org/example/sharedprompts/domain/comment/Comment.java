@@ -40,6 +40,14 @@ public class Comment extends BaseEntity {
     @Builder.Default
     private List<Comment> children = new ArrayList<>();
 
+    @Column(nullable = false)
+    @Builder.Default
+    private long replyCount = 0L;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private long likeCount = 0L;
+
     public void updateContent(String content) {
         this.content = content;
     }

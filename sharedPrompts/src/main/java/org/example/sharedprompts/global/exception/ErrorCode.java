@@ -72,6 +72,10 @@ public enum ErrorCode {
     COMMENT_ALREADY_LIKED("LK00402", HttpStatus.BAD_REQUEST, "이미 댓글을 좋아요 했습니다."),
     COMMENT_LIKE_NOT_FOUND("LK00702", HttpStatus.NOT_FOUND, "댓글 좋아요 기록이 없습니다."),
 
+    // ==========================
+    // 🔹 TAG
+    // ==========================
+    TAG_CREATION_FAILED("TG01001", HttpStatus.INTERNAL_SERVER_ERROR, "태그 생성 중 내부 오류가 발생했습니다."),
 
     ;
     private final String code;
