@@ -21,13 +21,14 @@ public class CommentBatchService {
 
     @Transactional
     protected void processBatch(List<Long> ids) {
-        if (ids.isEmpty()) return;
+        if (ids == null || ids.isEmpty()) return;
 
         // Redis에서 id 리스트에 대한 counts 조회
         Map<Long, Long> counts = commentCountService.getReplyCounts(ids); // 구현은 이미 안전하게 되어있음
 
         // Prepare batch args: List<Object[]>, 각 원소: {count, id}
         List<Object[]> batchArgs = ids.stream()
+                .filter(counts::containsKey)
                 .map(id -> new Object[]{counts.getOrDefault(id, 0L), id})
                 .collect(Collectors.toList());
 

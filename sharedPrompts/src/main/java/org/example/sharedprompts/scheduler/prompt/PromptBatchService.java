@@ -21,11 +21,12 @@ public class PromptBatchService {
 
     @Transactional
     protected void processBatch(List<Long> ids) {
-        if (ids.isEmpty()) return;
+        if (ids == null || ids.isEmpty()) return;
 
         Map<Long, Long> counts = commentCountService.getCommentCounts(ids);
 
         List<Object[]> batchArgs = ids.stream()
+                .filter(counts::containsKey)
                 .map(id -> new Object[]{counts.getOrDefault(id, 0L), id})
                 .collect(Collectors.toList());
 
