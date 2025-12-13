@@ -3,18 +3,11 @@ package org.example.sharedprompts.scheduler.like;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
-import org.example.sharedprompts.domain.like.service.LikeCountService;
 import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -22,50 +15,37 @@ import java.util.stream.Collectors;
 public class PromptLikeCountSyncScheduler {
 
     private final PromptRepository promptRepository;
-    private final LikeCountService likeCountService;
-    private final JdbcTemplate jdbcTemplate;
+    private final PromptLikeBatchService promptLikeBatchService;
 
     private static final int BATCH_SIZE = 1000;
     private static final long SCHEDULE_DELAY_MS = 10 * 60 * 1000L; // 10분
 
-    @Transactional
     @Scheduled(fixedDelay = SCHEDULE_DELAY_MS)
-    @SchedulerLock(name = "PromptLikeCountSyncScheduler", lockAtMostFor = "15m", lockAtLeastFor = "1m")
+    @SchedulerLock(
+            name = "PromptLikeCountSyncScheduler",
+            lockAtMostFor = "15m",
+            lockAtLeastFor = "1m"
+    )
     public void syncPromptLikeCounts() {
         log.info("PromptLikeCountSyncScheduler started");
-        int page = 0;
 
-        try {
-            Page<Long> pageIds;
-            do {
-                pageIds = promptRepository.findAllIds(PageRequest.of(page, BATCH_SIZE));
-                List<Long> ids = pageIds.getContent();
-                if (!ids.isEmpty()) {
-                    processBatch(ids);
+        Long lastId = 0L;
+        List<Long> ids;
+
+        do {
+            ids = promptRepository.findAllIds(lastId, BATCH_SIZE);
+
+            if (!ids.isEmpty()) {
+                try {
+                    promptLikeBatchService.processBatch(ids);
+                } catch (Exception e) {
+                    log.error("Failed to process like batch, ids={}", ids, e);
                 }
-                page++;
-            } while (pageIds.hasNext());
 
-            log.info("PromptLikeCountSyncScheduler finished");
-        } catch (Exception e) {
-            log.error("PromptLikeCountSyncScheduler failed", e);
-        }
-    }
+                lastId = ids.get(ids.size() - 1);
+            }
+        } while (!ids.isEmpty());
 
-    @Transactional
-    protected void processBatch(List<Long> ids) {
-        if (ids.isEmpty()) return;
-
-        Map<Long, Long> counts = likeCountService.getPromptLikeCounts(ids);
-
-        List<Object[]> batchArgs = ids.stream()
-                .map(id -> new Object[]{counts.getOrDefault(id, 0L), id})
-                .collect(Collectors.toList());
-
-        String sql = "UPDATE prompts SET like_count = ? WHERE id = ?";
-
-        jdbcTemplate.batchUpdate(sql, batchArgs);
-
-        log.debug("Processed prompt-like batch size={}, sampleUpdated={}", ids.size(), Math.min(5, ids.size()));
+        log.info("PromptLikeCountSyncScheduler finished");
     }
 }

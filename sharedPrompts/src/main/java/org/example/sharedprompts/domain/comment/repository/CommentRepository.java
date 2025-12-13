@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.comment.repository;
 
 import org.example.sharedprompts.domain.comment.Comment;
 import org.example.sharedprompts.domain.prompt.Prompt;
-import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,7 +20,21 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
         ORDER BY c.createdAt ASC
     """)
     List<Comment> findAllByPrompt(@Param("prompt") Prompt prompt);
+    @Query("""
+        select c.id
+        from Comment c
+        where c.id > :lastId
+        order by c.id asc
+    """)
+    List<Long> findAllIds(
+            @Param("lastId") Long lastId,
+            Pageable pageable
+    );
 
-    @Query("SELECT c.id FROM Comment c ORDER BY c.id")
-    Page<Long> findAllIds(Pageable pageable);
+    default List<Long> findAllIds(Long lastId, int batchSize) {
+        return findAllIds(
+                lastId,
+                PageRequest.of(0, batchSize)
+        );
+    }
 }
