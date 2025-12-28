@@ -59,9 +59,9 @@ public enum ErrorCode {
     // ==========================
     // 🔹 COMMENT
     // ==========================
-    COMMENT_NOT_FOUND("CM00702", HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),
-    COMMENT_NOT_BELONG_TO_PROMPT("CM00703", HttpStatus.FORBIDDEN, "댓글이 해당 프롬프트에 속하지 않습니다."),
-    COMMENT_FORBIDDEN("CM00602", HttpStatus.FORBIDDEN, "댓글 수정/삭제 권한이 없습니다."),
+    COMMENT_NOT_FOUND("CO00702", HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),
+    COMMENT_NOT_BELONG_TO_PROMPT("CO00703", HttpStatus.FORBIDDEN, "댓글이 해당 프롬프트에 속하지 않습니다."),
+    COMMENT_FORBIDDEN("CO00602", HttpStatus.FORBIDDEN, "댓글 수정/삭제 권한이 없습니다."),
 
     // ==========================
     // 🔹 LIKE

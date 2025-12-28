@@ -71,7 +71,7 @@ public class PromptRequestDto {
     public InputRequestDto toInputRequestDto() {
         ToneType tone = this.tone != null ? this.tone : ToneType.NEUTRAL;
         StyleType style = this.style != null ? this.style : StyleType.NARRATIVE;
-        ExperienceLevel level = this.experience != null ? this.experience : ExperienceLevel.MID;
+        ExperienceLevel level = this.experience != null ? this.experience : ExperienceLevel.INTERMEDIATE;
         LanguageType language = this.language != null ? this.language : LanguageType.KOREAN;
 
         return InputRequestDto.builder()

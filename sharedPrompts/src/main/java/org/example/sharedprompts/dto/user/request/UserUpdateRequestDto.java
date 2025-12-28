@@ -1,6 +1,7 @@
 package org.example.sharedprompts.dto.user.request;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
@@ -26,7 +27,10 @@ public class UserUpdateRequestDto {
 
     @Size(max = 100, message = "직업명은 최대 100자까지 입력 가능합니다.")
     private String job;
+
     private String thumbnail;
+
+    @JsonProperty("userTerms")
     private UserTermsRequestDto userTerms;
 
     public void applyTo (User user) {

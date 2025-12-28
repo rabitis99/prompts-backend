@@ -2,6 +2,8 @@ package org.example.sharedprompts.domain.prompt.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.domain.prompt.service.guideline.GuidelineBuilderFactory;
+import org.example.sharedprompts.domain.prompt.service.guideline.PromptGuidelineBuilder;
 import org.example.sharedprompts.domain.tag.PromptTag;
 import org.example.sharedprompts.domain.tag.Tag;
 import org.example.sharedprompts.domain.tag.service.PromptTagService;
@@ -37,6 +39,7 @@ public class PromptServiceImpl implements PromptService {
     private final GoogleGeminiService googleGeminiService;
     private final PromptGenerator promptGenerator;
     private final PromptTagService promptTagService;
+    private final GuidelineBuilderFactory guidelineBuilderFactory;
 
     @Override
     public PromptResponseDto createPrompt(PromptRequestDto request, Long userId) {
@@ -56,7 +59,12 @@ public class PromptServiceImpl implements PromptService {
                 })
                 .block();
 
-        return savePrompt(request, user, aiGeneratedContent);
+        PromptGuidelineBuilder builder =
+                guidelineBuilderFactory.getBuilder(dto.getLanguage());
+
+        String prompt = builder.build(aiGeneratedContent, dto);
+
+        return savePrompt(request, user, prompt);
     }
 
     protected PromptResponseDto savePrompt(PromptRequestDto request, User user, String aiGeneratedContent) {

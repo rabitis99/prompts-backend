@@ -6,9 +6,10 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum LanguageType {
-    KOREAN("한국어"),
-    ENGLISH("영어"),
-    JAPANESE("일본어");
+    KOREAN("한국어", "Korean"),
+    ENGLISH("영어", "English"),
+    JAPANESE("일본어", "Japanese");
 
     private final String description;
+    private final String promptToken;
 }

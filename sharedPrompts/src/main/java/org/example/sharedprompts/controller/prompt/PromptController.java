@@ -16,7 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/prompt")
+@RequestMapping("/prompts")
 @RequiredArgsConstructor
 public class PromptController {
 

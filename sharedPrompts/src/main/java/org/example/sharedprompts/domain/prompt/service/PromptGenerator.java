@@ -1,84 +1,84 @@
 package org.example.sharedprompts.domain.prompt.service;
 
-import org.example.sharedprompts.domain.prompt.enums.*;
 import org.example.sharedprompts.dto.prompt.request.InputRequestDto;
 import org.example.sharedprompts.global.util.TagNormalizer;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class PromptGenerator {
 
-    private static final String PREFIX = "너는 유용한 AI 비서야. ";
+    public String generatePrompt(InputRequestDto request) {
+        return buildMetaPrompt(request);
+    }
+
+    private String buildMetaPrompt(InputRequestDto request) {
+        StringBuilder metaPrompt = new StringBuilder();
+
+        // === SYSTEM ROLE ===
+        metaPrompt.append("You are a senior AI prompt engineering expert.\n");
+        metaPrompt.append("Your task is to rewrite and enhance a user request ");
+        metaPrompt.append("into a clear, domain-aligned, high-quality AI prompt.\n\n");
+
+        metaPrompt.append("Rules:\n");
+        metaPrompt.append("- Do not explain your reasoning.\n");
+        metaPrompt.append("- Do not include greetings or meta commentary.\n");
+        metaPrompt.append("- Output only the final improved prompt.\n\n");
+
+        // === CORE TASK ===
+        metaPrompt.append(buildEnhancedRequest(request));
+
+        return metaPrompt.toString();
+    }
 
     /**
-     * 입력 DTO를 받아 AI에게 바로 넣기 좋은 프롬프트 생성
+     * 핵심 변경 지점
+     * - input을 그대로 쓰지 않는다
+     * - category + tags를 이용해 의미를 재구성한다
      */
-    public String generatePrompt(InputRequestDto request) {
-        if (request == null) {
-            return PREFIX + "사용자가 제공한 정보가 없습니다. 가능한 최선의 답변을 제공해주세요.";
+    private String buildEnhancedRequest(InputRequestDto request) {
+        StringBuilder section = new StringBuilder();
+
+        section.append("# Request Context\n\n");
+
+        // 1. Domain framing
+        section.append("This request is related to the following domain:\n");
+        section.append("- Domain: ")
+                .append(request.getPromptCategory().getDisplayName())
+                .append("\n");
+        section.append("- Domain Focus: ")
+                .append(request.getPromptCategory().getGuidelineEn())
+                .append("\n\n");
+
+        // 2. User intent (rewritten)
+        section.append("Based on this domain, enhance the following user intent ");
+        section.append("into a clear and professional AI request:\n\n");
+        section.append("Original Intent:\n");
+        section.append("- ").append(request.getInput()).append("\n\n");
+
+        // 3. Tag-based constraints
+        if (request.getTags() != null && !request.getTags().isEmpty()) {
+            section.append("Relevant contextual keywords that must be reflected ");
+            section.append("in the enhanced request:\n");
+            section.append(formatTagsAsConstraints(request.getTags())).append("\n\n");
         }
 
-        StringBuilder sb = new StringBuilder(PREFIX);
+        section.append("Rewrite the intent so that:\n");
+        section.append("- The purpose is explicit and unambiguous\n");
+        section.append("- The request aligns with the stated domain focus\n");
+        section.append("- The result can be directly used as an AI instruction\n");
 
-        appendUserInput(sb, request.getInput());
-        appendExperience(sb, request.getExperience());
-        appendLanguage(sb, request.getLanguage());
-        appendTone(sb, request.getTone());
-        appendStyle(sb, request.getStyle());
-        appendCategory(sb, request.getPromptCategory());
-        appendTags(sb, request.getTags());
-
-        sb.append("위 정보를 바탕으로, 사용자가 이해하기 쉽고 친절하게 답변을 작성해주세요.");
-
-        return sb.toString().trim();
+        return section.toString();
     }
 
-    private void appendUserInput(StringBuilder sb, String input) {
-        if (input != null && !input.isBlank()) {
-            sb.append("사용자가 요청한 내용은 \"").append(input.trim()).append("\" 입니다. ");
-        }
-    }
-
-    private void appendExperience(StringBuilder sb, ExperienceLevel experience) {
-        if (experience != null) {
-            sb.append("이 사용자는 ").append(experience.getDescription()).append(" 수준의 경력을 가지고 있으며, ");
-        }
-    }
-
-    private void appendLanguage(StringBuilder sb, LanguageType language) {
-        if (language != null) {
-            sb.append("주로 사용하는 언어는 ").append(language.getDescription()).append("입니다. ");
-        }
-    }
-
-    private void appendTone(StringBuilder sb, ToneType tone) {
-        if (tone != null) {
-            sb.append("응답 시 ").append(tone.getDescription()).append(" 톤으로 자연스럽게 작성해주세요. ");
-        }
-    }
-
-    private void appendStyle(StringBuilder sb, StyleType style) {
-        if (style != null) {
-            sb.append("문장의 스타일은 ").append(style.getDescription()).append(" 스타일을 선호합니다. ");
-        }
-    }
-
-    private void appendCategory(StringBuilder sb, PromptCategory category) {
-        if (category != null) {
-            sb.append("프롬프트의 카테고리는 ").append(category.getDescription()).append("입니다. ");
-        }
-    }
-
-    private void appendTags(StringBuilder sb, List<String> tags) {
-        // 1. 전처리: 공백 제거, 영어 대문자, null/빈 제거, 중복 제거
-        List<String> processedTags = TagNormalizer.normalizeTags(tags);
-
-        if (!processedTags.isEmpty()) {
-            String joinedTags = String.join(", ", processedTags);
-            sb.append("관련된 태그로는 ").append(joinedTags).append("이 있습니다. ");
-        }
+    private String formatTagsAsConstraints(List<String> tags) {
+        return TagNormalizer.normalizeTags(tags).stream()
+                .map(tag -> "- Consider aspects related to: " + tag)
+                .collect(Collectors.joining("\n"));
     }
 }
+
+
 

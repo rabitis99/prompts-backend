@@ -13,12 +13,17 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
+  ai:
+    openai:
+      api-key: ${GOOGLE_GEMINI_API_KEY}
+
   profiles:
     active: dev
 
   web:
     resources:
       add-mappings: false
+
 
   # =========================
   # OAuth2 클라이언트
@@ -75,9 +80,6 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-  jpa:
-    hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:validate}
     show-sql: ${JPA_SHOW_SQL}
     properties:
       hibernate:
