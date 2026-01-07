@@ -1,0 +1,15 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:7.4.6
+    container_name: sharedprompts_redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    networks:
+      - sharedprompts_network
+
+networks:
+  sharedprompts_network:
+    driver: bridge

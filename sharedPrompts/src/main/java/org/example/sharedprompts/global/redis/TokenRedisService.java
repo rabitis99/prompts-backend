@@ -30,7 +30,7 @@ public class TokenRedisService {
         redisTemplate.opsForValue().set(
                 ACCESS_PREFIX + token,
                 String.valueOf(userId),
-                Duration.ofMillis(ttlConfig.getAccessTokenValidity())
+                Duration.ofMinutes(ttlConfig.getAccessTokenValidity())
         );
     }
 
@@ -66,12 +66,12 @@ public class TokenRedisService {
         redisTemplate.opsForValue().set(
                 key,
                 String.valueOf(userId),
-                Duration.ofMillis(ttlConfig.getRefreshTokenValidity())
+                Duration.ofMinutes(ttlConfig.getRefreshTokenValidity())
         );
 
         String userKey = REFRESH_SET_PREFIX + userId;
         redisTemplate.opsForSet().add(userKey, token);
-        redisTemplate.expire(userKey, Duration.ofMillis(ttlConfig.getRefreshTokenValidity()));
+        redisTemplate.expire(userKey, Duration.ofMinutes(ttlConfig.getRefreshTokenValidity()));
     }
 
     public boolean isRefreshTokenValid(String token, Long userId) {

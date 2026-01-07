@@ -36,7 +36,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
-	implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
 
 	// ShedLock
 	implementation 'net.javacrumbs.shedlock:shedlock-spring'
@@ -44,7 +43,7 @@ dependencies {
 
 	// Spring AI
 	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
-	implementation 'org.springframework.ai:spring-ai-starter-model-google-genai'
+//	implementation 'org.springframework.ai:spring-ai-starter-model-google-genai'
 	implementation 'com.google.genai:google-genai:1.8.0'
 
 	// Database
@@ -81,11 +80,10 @@ dependencies {
 sourceSets {
 	main {
 		java {
-			srcDirs = ['src/main/java', 'build/generated']
+			srcDirs += "build/generated/sources/annotationProcessor/java/main"
 		}
 	}
 }
-
 // BOM 관리
 dependencyManagement {
 	imports {
