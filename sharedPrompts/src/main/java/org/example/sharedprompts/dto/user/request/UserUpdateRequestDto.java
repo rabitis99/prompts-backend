@@ -41,5 +41,6 @@ public class UserUpdateRequestDto {
         if (userTerms != null) {
             user.agreeToTerms(userTerms.toEntity());
         }
+        user.changeSignupCompleted(true);
     }
 }

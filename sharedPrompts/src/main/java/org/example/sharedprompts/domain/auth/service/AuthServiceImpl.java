@@ -34,7 +34,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponseDto signUp(SignUpRequestDto dto) {
-        if (userRepository.existsByProviderAndEmail(Provider.LOCAL, dto.getEmail())) {
+        if (userRepository.existsByProviderAndProviderId(Provider.LOCAL, dto.getEmail())) {
             throw new ApiException(ErrorCode.CONFLICT_EMAIL);
         }
 
@@ -48,7 +48,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public TokenResponseDto login(LoginRequestDto dto) {
-        User user = userRepository.findByProviderAndEmail(Provider.LOCAL, dto.getEmail())
+        User user = userRepository.findByProviderAndProviderId(Provider.LOCAL, dto.getEmail())
                 .orElseThrow(() -> new ApiException(ErrorCode.FORBIDDEN));
 
         if (user.getPassword() == null || !passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
