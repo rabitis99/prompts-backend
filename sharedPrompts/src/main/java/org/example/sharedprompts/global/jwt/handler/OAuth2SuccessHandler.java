@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -34,20 +35,21 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         PrincipalDetails principal = (PrincipalDetails) authentication.getPrincipal();
 
-        // JWT 생성 (임시 저장용)
+        // JWT 생성 (email 제거)
         String accessToken = jwtUtil.generateAccessToken(
                 principal.getId(),
-                principal.getEmail(),
                 principal.getRole(),
                 principal.getNickname(),
-                principal.getProvider()
+                principal.getProvider(),
+                principal.getProviderId()
         );
+
         String refreshToken = jwtUtil.generateRefreshToken(
                 principal.getId(),
-                principal.getEmail(),
                 principal.getRole(),
                 principal.getNickname(),
-                principal.getProvider()
+                principal.getProvider(),
+                principal.getProviderId()
         );
 
         // SecureRandom 기반 임시 key + state 생성
@@ -55,12 +57,32 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         String state = RandomGenerator.randomState();
 
         String provider = principal.getProvider().name();
-        String providerId = principal.getAttributes().get("id").toString();
+        String providerId;
 
-        tokenRedisService.saveTempToken(tempKey, accessToken, refreshToken, state, provider, providerId, Duration.ofMinutes(3));
+        switch (principal.getProvider()) {
+            case GOOGLE -> providerId = principal.getAttributes().get("sub").toString();
+            case KAKAO -> providerId = principal.getAttributes().get("id").toString();
+            case NAVER -> {
+                Map<String, Object> responseMap =
+                        (Map<String, Object>) principal.getAttributes().get("response");
+                providerId = responseMap.get("id").toString();
+            }
+            default -> throw new IllegalStateException("Unknown provider");
+        }
 
-        // 프론트로 리다이렉트 시 key + state 전달
-        String redirectUrl = frontRedirectUrl + "?key=" + URLEncoder.encode(tempKey, StandardCharsets.UTF_8)
+        tokenRedisService.saveTempToken(
+                tempKey,
+                accessToken,
+                refreshToken,
+                state,
+                provider,
+                providerId,
+                Duration.ofMinutes(3)
+        );
+
+        // 프론트로 리다이렉트 (key + state 전달)
+        String redirectUrl = frontRedirectUrl
+                + "?key=" + URLEncoder.encode(tempKey, StandardCharsets.UTF_8)
                 + "&state=" + URLEncoder.encode(state, StandardCharsets.UTF_8);
 
         response.sendRedirect(redirectUrl);

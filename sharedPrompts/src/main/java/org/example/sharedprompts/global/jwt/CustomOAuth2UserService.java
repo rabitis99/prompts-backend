@@ -2,6 +2,7 @@ package org.example.sharedprompts.global.jwt;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.user.User;
+import org.example.sharedprompts.domain.user.UserTerms;
 import org.example.sharedprompts.domain.user.enums.Provider;
 import org.example.sharedprompts.domain.user.enums.Role;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
@@ -40,14 +41,16 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                                 .role(Role.ROLE_USER)
                                 .provider(provider)
                                 .providerId(userInfo.getId())
+                                .terms(UserTerms.ofDefault())
+                                .signupCompleted(false)
                                 .build()
                 ));
         return new PrincipalDetails(
                 user.getId(),
-                user.getEmail(),
                 user.getNickname(),
                 user.getRole(),
                 provider,
+                user.getProviderId(),
                 attributes
         );
     }

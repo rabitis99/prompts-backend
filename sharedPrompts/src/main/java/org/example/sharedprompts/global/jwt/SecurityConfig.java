@@ -49,7 +49,7 @@ public class SecurityConfig {
 
                 // 요청 허용/차단
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/signup", "/auth/login", "/auth/refresh", "/auth/callback").permitAll()
+                        .requestMatchers("/auth/**","/api/auth/**", "/oauth2/**", "/login/**").permitAll()
                         .anyRequest().authenticated()
                 )
 
