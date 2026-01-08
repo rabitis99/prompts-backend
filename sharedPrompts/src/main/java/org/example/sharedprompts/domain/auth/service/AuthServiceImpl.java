@@ -133,10 +133,10 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void logout(Long userId, LogoutRequestDto dto) {
 
-        if (tokenRedisService.isRefreshTokenValid(dto.getAccessToken(),userId)) {
+        if (!tokenRedisService.isRefreshTokenValid(dto.getRefreshToken(),userId)) {
             throw new ApiException(ErrorCode.UNAUTHORIZED_TOKEN_ACCESS);
         }
-        if (tokenRedisService.isAccessTokenValidWithUserId(dto.getAccessToken(), userId)){
+        if (!tokenRedisService.isAccessTokenValidWithUserId(dto.getAccessToken(), userId)){
             throw new ApiException(ErrorCode.UNAUTHORIZED_TOKEN_ACCESS);
         }
 
