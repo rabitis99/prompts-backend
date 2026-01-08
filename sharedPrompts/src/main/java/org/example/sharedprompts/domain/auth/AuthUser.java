@@ -26,5 +26,5 @@ public class AuthUser {
      * - provider + providerId 조합으로 사용자 식별
      * - nickname / 이메일 변경과 무관한 영구 식별자
      */
-    private String providerId;
+    private final String providerId;
 }

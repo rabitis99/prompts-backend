@@ -18,7 +18,7 @@ public class PrincipalDetails extends AuthUser implements UserDetails, OAuth2Use
 
     private final Map<String, Object> attributes;
 
-    // ✅ OAuth2 / 일반 생성자
+    // OAuth2 / 일반 생성자
     public PrincipalDetails(
             Long id,
             String nickname,
@@ -31,7 +31,7 @@ public class PrincipalDetails extends AuthUser implements UserDetails, OAuth2Use
         this.attributes = attributes;
     }
 
-    // ✅ JWT claims 기반 생성자
+    // JWT claims 기반 생성자
     public static PrincipalDetails fromJwtClaims(
             Long id,
             String nickname,
@@ -39,6 +39,13 @@ public class PrincipalDetails extends AuthUser implements UserDetails, OAuth2Use
             String provider,
             String providerId
     ) {
+
+        if (providerId == null || providerId.isBlank()) {
+            throw new ApiException(
+                    ErrorCode.BAD_REQUEST,
+                    "providerId는 null이거나 비어있을 수 없습니다");
+        }
+
         try {
             Role roleEnum = Role.valueOf(role);
             Provider providerEnum = Provider.valueOf(provider);
@@ -81,6 +88,9 @@ public class PrincipalDetails extends AuthUser implements UserDetails, OAuth2Use
      */
     @Override
     public String getUsername() {
+        if (getProviderId() == null || getProviderId().isBlank()) {
+            throw new IllegalStateException("providerId is empty for OAuth2 principal");
+        }
         return getProvider().name() + "_" + getProviderId();
     }
 

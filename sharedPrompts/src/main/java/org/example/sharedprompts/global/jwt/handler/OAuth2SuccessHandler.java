@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -57,18 +56,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         String state = RandomGenerator.randomState();
 
         String provider = principal.getProvider().name();
-        String providerId;
-
-        switch (principal.getProvider()) {
-            case GOOGLE -> providerId = principal.getAttributes().get("sub").toString();
-            case KAKAO -> providerId = principal.getAttributes().get("id").toString();
-            case NAVER -> {
-                Map<String, Object> responseMap =
-                        (Map<String, Object>) principal.getAttributes().get("response");
-                providerId = responseMap.get("id").toString();
-            }
-            default -> throw new IllegalStateException("Unknown provider");
-        }
+        String providerId = principal.getProviderId();
 
         tokenRedisService.saveTempToken(
                 tempKey,
