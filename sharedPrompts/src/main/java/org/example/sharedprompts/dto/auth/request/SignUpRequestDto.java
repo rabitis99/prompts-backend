@@ -33,7 +33,9 @@ public class SignUpRequestDto {
                 .nickname(nickname)
                 .terms(UserTerms.ofDefault())
                 .provider(Provider.LOCAL)
+                .providerId(email)
                 .role(Role.ROLE_USER)
+                .signupCompleted(false)
                 .build();
     }
 }

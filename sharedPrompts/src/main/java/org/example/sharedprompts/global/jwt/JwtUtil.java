@@ -23,34 +23,70 @@ public class JwtUtil {
         this.ttlConfig = ttlConfig;
     }
 
-    // AccessToken 생성
-    public String generateAccessToken(Long userId, String email, Role role, String nickname, Provider provider) {
-        return generateToken(userId, email, role, nickname, provider, ttlConfig.getAccessTokenValidity());
+    /** Access Token 생성 */
+    public String generateAccessToken(
+            Long userId,
+            Role role,
+            String nickname,
+            Provider provider,
+            String providerId
+    ) {
+        return generateToken(
+                userId,
+                role,
+                nickname,
+                provider,
+                providerId,
+                ttlConfig.getAccessTokenValidity()
+        );
     }
 
-    // RefreshToken 생성
-    public String generateRefreshToken(Long userId, String email, Role role, String nickname, Provider provider) {
-        return generateToken(userId, email, role, nickname, provider, ttlConfig.getRefreshTokenValidity());
+    /** Refresh Token 생성 */
+    public String generateRefreshToken(
+            Long userId,
+            Role role,
+            String nickname,
+            Provider provider,
+            String providerId
+    ) {
+        return generateToken(
+                userId,
+                role,
+                nickname,
+                provider,
+                providerId,
+                ttlConfig.getRefreshTokenValidity()
+        );
     }
 
-    // 실제 토큰 생성
-    private String generateToken(Long userId, String email, Role role, String nickname, Provider provider, long validityMinutes) {
-
+    /** 실제 JWT 생성 로직 */
+    private String generateToken(
+            Long userId,
+            Role role,
+            String nickname,
+            Provider provider,
+            String providerId,
+            long validityMinutes
+    ) {
         long expirationMillis = TimeUnit.MINUTES.toMillis(validityMinutes);
 
         return Jwts.builder()
+                // 내부 사용자 식별자
                 .setSubject(String.valueOf(userId))
-                .claim("email", email)
+
+                // 권한 및 인증 정보
                 .claim("role", role.name())
                 .claim("nickname", nickname)
                 .claim("provider", provider.name())
+                .claim("providerId", providerId)
+
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationMillis))
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    // Claims 조회
+    /** JWT Claims 파싱 */
     public Claims getClaims(String token) throws JwtException {
         return Jwts.parserBuilder()
                 .setSigningKey(secretKey)

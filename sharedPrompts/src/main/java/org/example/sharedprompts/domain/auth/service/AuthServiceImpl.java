@@ -34,7 +34,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponseDto signUp(SignUpRequestDto dto) {
-        if (userRepository.existsByProviderAndEmail(Provider.LOCAL, dto.getEmail())) {
+        if (userRepository.existsByProviderAndProviderId(Provider.LOCAL, dto.getEmail())) {
             throw new ApiException(ErrorCode.CONFLICT_EMAIL);
         }
 
@@ -48,7 +48,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public TokenResponseDto login(LoginRequestDto dto) {
-        User user = userRepository.findByProviderAndEmail(Provider.LOCAL, dto.getEmail())
+        User user = userRepository.findByProviderAndProviderId(Provider.LOCAL, dto.getEmail())
                 .orElseThrow(() -> new ApiException(ErrorCode.FORBIDDEN));
 
         if (user.getPassword() == null || !passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
@@ -65,9 +65,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional(readOnly = true)
-    public TokenResponseDto callback(String tempKey, String state) {
+    public TokenResponseDto callback(String key, String state) {
 
-        Map<String, String> tokens = tokenRedisService.getAndDeleteTempToken(tempKey);
+        Map<String, String> tokens = tokenRedisService.getAndDeleteTempToken(key);
 
         if (tokens == null) {
             throw new ApiException(ErrorCode.OAUTH2_INVALID_CODE);
@@ -133,10 +133,10 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void logout(Long userId, LogoutRequestDto dto) {
 
-        if (tokenRedisService.isRefreshTokenValid(dto.getAccessToken(),userId)) {
+        if (!tokenRedisService.isRefreshTokenValid(dto.getRefreshToken(),userId)) {
             throw new ApiException(ErrorCode.UNAUTHORIZED_TOKEN_ACCESS);
         }
-        if (tokenRedisService.isAccessTokenValidWithUserId(dto.getAccessToken(), userId)){
+        if (!tokenRedisService.isAccessTokenValidWithUserId(dto.getAccessToken(), userId)){
             throw new ApiException(ErrorCode.UNAUTHORIZED_TOKEN_ACCESS);
         }
 

@@ -12,7 +12,6 @@ import org.example.sharedprompts.domain.user.enums.Role;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Table(name = "users", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"provider", "email"}),
         @UniqueConstraint(columnNames = {"provider", "providerId"})
 })
 public class User extends BaseEntity {
@@ -21,14 +20,14 @@ public class User extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 150)
+    @Column(nullable = true, length = 150)
     private String email;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Provider provider;
 
-    @Column(length = 200)
+    @Column(nullable = false, length = 200)
     private String providerId;
 
     @Column(nullable = true)
@@ -52,6 +51,9 @@ public class User extends BaseEntity {
     @Embedded
     private UserTerms terms;
 
+    @Column(nullable = false)
+    private boolean signupCompleted = false;
+
     public void changeNickname(String nickname) {
         this.nickname = nickname;
     }
@@ -74,6 +76,10 @@ public class User extends BaseEntity {
 
     public void updateJob(String job) {
         this.job = job;
+    }
+
+    public void changeSignupCompleted(boolean signupCompleted) {
+        this.signupCompleted = signupCompleted;
     }
 
 }

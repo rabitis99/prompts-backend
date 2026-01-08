@@ -18,25 +18,60 @@ public class PrincipalDetails extends AuthUser implements UserDetails, OAuth2Use
 
     private final Map<String, Object> attributes;
 
-    // Constructor
-    public PrincipalDetails(Long id, String email, String nickname, Role role, Provider provider, Map<String, Object> attributes) {
-        super(id, email, nickname, role, provider);
+    // OAuth2 / 일반 생성자
+    public PrincipalDetails(
+            Long id,
+            String nickname,
+            Role role,
+            Provider provider,
+            String providerId,
+            Map<String, Object> attributes
+    ) {
+        super(id, nickname, role, provider, providerId);
         this.attributes = attributes;
     }
 
-    // JWT claims에서 PrincipalDetails 생성
-    public static PrincipalDetails fromJwtClaims(Long id, String email, String nickname, String role, String provider) {
+    // JWT claims 기반 생성자
+    public static PrincipalDetails fromJwtClaims(
+            Long id,
+            String nickname,
+            String role,
+            String provider,
+            String providerId
+    ) {
+
+        if (providerId == null || providerId.isBlank()) {
+            throw new ApiException(
+                    ErrorCode.BAD_REQUEST,
+                    "providerId는 null이거나 비어있을 수 없습니다");
+        }
+
         try {
             Role roleEnum = Role.valueOf(role);
             Provider providerEnum = Provider.valueOf(provider);
-            return new PrincipalDetails(id, email, nickname, roleEnum, providerEnum, null);
+
+            return new PrincipalDetails(
+                    id,
+                    nickname,
+                    roleEnum,
+                    providerEnum,
+                    providerId,
+                    null
+            );
         } catch (IllegalArgumentException e) {
-            throw new ApiException(ErrorCode.BAD_REQUEST,
-                    String.format("유효하지 않은 role 또는 provider 값: role=%s, provider=%s", role, provider));
+            throw new ApiException(
+                    ErrorCode.BAD_REQUEST,
+                    String.format(
+                            "유효하지 않은 role 또는 provider 값: role=%s, provider=%s",
+                            role,
+                            provider
+                    )
+            );
         }
     }
 
-    // UserDetails 구현
+    // ================= UserDetails =================
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(getRole().name()));
@@ -44,30 +79,41 @@ public class PrincipalDetails extends AuthUser implements UserDetails, OAuth2Use
 
     @Override
     public String getPassword() {
-        return null; // JWT나 OAuth2 방식에서는 비밀번호가 없을 수 있음
+        return null; // OAuth2 / JWT 기반 인증
     }
 
+    /**
+     * username은 Security 내부에서 식별자로 사용됨
+     * → email 제거 정책이므로 provider 기반 고유값 사용
+     */
     @Override
     public String getUsername() {
-        return getEmail(); // 이메일을 사용자 이름으로 사용
+        if (getProviderId() == null || getProviderId().isBlank()) {
+            throw new IllegalStateException("providerId is empty for OAuth2 principal");
+        }
+        return getProvider().name() + "_" + getProviderId();
     }
 
-    // OAuth2User 구현
+    // ================= OAuth2User =================
+
     @Override
     public Map<String, Object> getAttributes() {
         return attributes != null ? attributes : Map.of();
     }
 
+    /**
+     * OAuth2AuthorizedClient에서 사용하는 principalName
+     * → 절대 null / empty 불가
+     */
     @Override
     public String getName() {
-        return getNickname() != null ? getNickname() : getEmail();
+        if (getProviderId() == null || getProviderId().isBlank()) {
+            throw new IllegalStateException("providerId is empty for OAuth2 principal");
+        }
+        return getProvider().name() + "_" + getProviderId();
     }
 
-    // TODO: 계정 상태 플래그 연동
-    //  - 현재는 모든 계정 상태(isAccountNonExpired, isAccountNonLocked,
-    //  - isCredentialsNonExpired, isEnabled)를 true로 고정하여 사용합니다.
-    //  - 추후 User 도메인에 enabled, locked, deletedAt, credentialsExpiredAt 등의
-    //  - 필드가 도입되면 아래 메서드들이 해당 상태를 반영하도록 수정할 예정입니다.
+    // ================= Account State =================
 
     @Override
     public boolean isAccountNonExpired() {
