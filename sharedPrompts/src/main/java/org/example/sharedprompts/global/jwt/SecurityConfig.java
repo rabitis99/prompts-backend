@@ -51,7 +51,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/signup","/api/auth/signup",
                                 "/auth/login","/api/auth/login",
-                                "auth/callback","/api/auth/callback",
+                                "/auth/callback","/api/auth/callback",
                                 "/auth/refresh","/api/auth/refresh",
                                 "/oauth2/**", "/login/**").permitAll()
                         .anyRequest().authenticated()

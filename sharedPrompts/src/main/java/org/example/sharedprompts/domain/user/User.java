@@ -52,7 +52,7 @@ public class User extends BaseEntity {
     private UserTerms terms;
 
     @Column(nullable = false)
-    private boolean signupCompleted = Boolean.FALSE;
+    private boolean signupCompleted = false;
 
     public void changeNickname(String nickname) {
         this.nickname = nickname;

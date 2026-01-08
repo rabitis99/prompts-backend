@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.redis.TokenRedisService;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,6 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 @RequiredArgsConstructor
+@Slf4j
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
@@ -64,6 +66,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         tokenRedisService.deleteAccessToken(token);
                     }
                 } catch (Exception e) {
+                    log.warn("JWT 처리 중 오류 발생: {}", e.getMessage());
                     tokenRedisService.deleteAccessToken(token);
                 }
             }

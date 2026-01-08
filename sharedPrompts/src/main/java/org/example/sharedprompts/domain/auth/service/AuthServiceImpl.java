@@ -65,9 +65,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional(readOnly = true)
-    public TokenResponseDto callback(String tempKey, String state) {
+    public TokenResponseDto callback(String key, String state) {
 
-        Map<String, String> tokens = tokenRedisService.getAndDeleteTempToken(tempKey);
+        Map<String, String> tokens = tokenRedisService.getAndDeleteTempToken(key);
 
         if (tokens == null) {
             throw new ApiException(ErrorCode.OAUTH2_INVALID_CODE);
