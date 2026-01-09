@@ -1,5 +1,6 @@
 package org.example.sharedprompts.dto.prompt.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -30,9 +31,11 @@ public class PromptRequestDto {
     @NotBlank(message = "설명은 비어 있을 수 없습니다.")
     private String description;
 
+    @JsonProperty("is_public")
     private Boolean isPublic;
 
     @NotNull(message = "카테고리는 비어 있을 수 없습니다.")
+    @JsonProperty("prompt_category")
     private PromptCategory promptCategory;
 
     @Valid

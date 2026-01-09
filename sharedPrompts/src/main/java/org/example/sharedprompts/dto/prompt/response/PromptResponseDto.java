@@ -1,5 +1,6 @@
 package org.example.sharedprompts.dto.prompt.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,12 +22,18 @@ public class PromptResponseDto {
     private String title;
     private String description;
     private String content;
+    @JsonProperty("is_public")
     private boolean isPublic;
+    @JsonProperty("prompt_category")
     private PromptCategory promptCategory;
     private List<String> tags;
+    @JsonProperty("user_response_dto")
     private UserResponseDto userResponseDto;
+    @JsonProperty("view_count")
     private Long viewCount;
+    @JsonProperty("comment_count")
     private Long commentCount;
+    @JsonProperty("like_count")
     private Long likeCount;
 
 

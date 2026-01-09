@@ -1,5 +1,6 @@
 package org.example.sharedprompts.dto.prompt.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,8 +17,10 @@ public class PromptUpdateDto {
 
     private String description;
 
+    @JsonProperty("is_public")
     private Boolean isPublic;
 
+    @JsonProperty("prompt_category")
     private PromptCategory promptCategory;
 
     private List<String> tags;
