@@ -30,7 +30,7 @@ public class UserUpdateRequestDto {
 
     private String thumbnail;
 
-    @JsonProperty("userTerms")
+    @JsonProperty("user_terms")
     private UserTermsRequestDto userTerms;
 
     public void applyTo (User user) {

@@ -1,6 +1,7 @@
 package org.example.sharedprompts.dto.comment.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,14 +21,20 @@ public class CommentResponseDto {
 
     private Long id;
     private String content;
+    @JsonProperty("user_response_dto")
     private UserResponseDto userResponseDto;
+    @JsonProperty("created_at")
     private LocalDateTime createdAt;
+    @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 
+    @JsonProperty("reply_count")
     private Long replyCount;
+    @JsonProperty("parent_id")
     private Long parentId;
     private List<CommentResponseDto> replies;
 
+    @JsonProperty("like_count")
     private Long likeCount;
 
     public static CommentResponseDto from(Comment comment) {

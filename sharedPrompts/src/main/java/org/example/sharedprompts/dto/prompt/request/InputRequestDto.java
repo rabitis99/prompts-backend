@@ -1,5 +1,6 @@
 package org.example.sharedprompts.dto.prompt.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,6 +20,7 @@ public class InputRequestDto {
     private ExperienceLevel experience;
     private StyleType style;
     private LanguageType language;
+    @JsonProperty("prompt_category")
     private PromptCategory promptCategory;
     private List<String> tags;
 }

@@ -1,5 +1,6 @@
 package org.example.sharedprompts.dto.comment.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,6 +19,7 @@ public class CommentRequestDto {
     @NotBlank(message = "댓글 내용을 입력해주세요.")
     private String content;
 
+    @JsonProperty("parent_id")
     private Long parentId;
 
     public Comment toEntity(User user, Prompt prompt, Comment parent) {

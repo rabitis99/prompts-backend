@@ -1,5 +1,6 @@
 package org.example.sharedprompts.dto.prompt.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,6 +15,7 @@ public class PromptSearchCondition {
     private int page = 0;
     private int size = 20;
     private SortType sort = SortType.LATEST;
+    @JsonProperty("prompt_category")
     private PromptCategory promptCategory;
 
     public static PromptSearchCondition of(int page, int size, SortType sort, PromptCategory category) {

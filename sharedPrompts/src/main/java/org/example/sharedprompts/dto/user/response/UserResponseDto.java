@@ -1,6 +1,7 @@
 package org.example.sharedprompts.dto.user.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,6 +23,7 @@ public class UserResponseDto {
     private Integer age;
     private String job;
     private String thumbnail;
+    @JsonProperty("user_terms")
     private UserTermsResponseDto userTerms;
 
     public static UserResponseDto from(User user) {
