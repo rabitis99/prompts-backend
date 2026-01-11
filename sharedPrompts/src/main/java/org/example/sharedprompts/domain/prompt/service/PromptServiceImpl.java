@@ -18,7 +18,6 @@ import org.example.sharedprompts.dto.prompt.request.PromptUpdateDto;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
-import org.example.sharedprompts.global.google.gemini.GoogleGeminiProperties;
 import org.example.sharedprompts.global.google.gemini.GoogleGeminiService;
 import org.example.sharedprompts.global.response.PageResponse;
 import org.springframework.data.domain.Page;
@@ -27,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import java.time.Duration;
 import java.util.List;
 
 @Service
@@ -41,7 +39,6 @@ public class PromptServiceImpl implements PromptService {
     private final PromptGenerator promptGenerator;
     private final PromptTagService promptTagService;
     private final GuidelineBuilderFactory guidelineBuilderFactory;
-    private final GoogleGeminiProperties googleGeminiProperties;
 
     @Override
     public Mono<PromptResponseDto> createPrompt(PromptRequestDto request, Long userId) {
@@ -53,12 +50,6 @@ public class PromptServiceImpl implements PromptService {
                 String promptText = promptGenerator.generatePrompt(dto);
                 
                 return googleGeminiService.chat(promptText)
-                    .timeout(Duration.ofSeconds(googleGeminiProperties.getTimeoutSeconds()))
-                    .switchIfEmpty(Mono.error(new ApiException(ErrorCode.AI_GENERATION_FAILED)))
-                    .onErrorResume(e -> {
-                        log.error("AI 콘텐츠 생성 실패", e);
-                        return Mono.error(new ApiException(ErrorCode.AI_GENERATION_FAILED));
-                    })
                     .flatMap(aiGeneratedContent -> {
                         PromptGuidelineBuilder builder = 
                             guidelineBuilderFactory.getBuilder(dto.getLanguage());

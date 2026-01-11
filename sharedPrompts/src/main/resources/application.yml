@@ -146,6 +146,22 @@ google:
     timeout-seconds: ${GOOGLE_GEMINI_TIMEOUT_SECONDS:30}
 
 # =========================
+# Resilience4j CircuitBreaker 설정
+# =========================
+resilience4j:
+  circuitbreaker:
+    instances:
+      googleGemini:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 5s
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        minimumNumberOfCalls: 10
+
+# =========================
 # 로깅
 # =========================
 logging:

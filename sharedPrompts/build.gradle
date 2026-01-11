@@ -53,6 +53,14 @@ dependencies {
 	// Redis
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
+	// Resilience4j (CircuitBreaker)
+	implementation 'io.github.resilience4j:resilience4j-spring-boot3'
+	implementation 'io.github.resilience4j:resilience4j-reactor'
+
+	// Micrometer (Metrics)
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'io.micrometer:micrometer-registry-prometheus'
+
 	// QueryDSL
 	implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
 	annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jakarta"
@@ -91,6 +99,8 @@ dependencyManagement {
 		mavenBom "org.springframework.ai:spring-ai-bom:$springAiVersion"
 		// ShedLock BOM
 		mavenBom "net.javacrumbs.shedlock:shedlock-bom:7.2.1"
+		// Resilience4j BOM
+		mavenBom "io.github.resilience4j:resilience4j-bom:2.1.0"
 	}
 }
 

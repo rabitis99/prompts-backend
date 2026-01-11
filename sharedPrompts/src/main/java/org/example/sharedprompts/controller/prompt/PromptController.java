@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
+import org.example.sharedprompts.domain.prompt.facade.PromptFacade;
 import org.example.sharedprompts.domain.prompt.service.PromptService;
 import org.example.sharedprompts.dto.prompt.request.PromptRequestDto;
 import org.example.sharedprompts.dto.prompt.request.PromptSearchCondition;
@@ -14,7 +15,6 @@ import org.example.sharedprompts.global.response.CustomResponseHelper;
 import org.example.sharedprompts.global.response.PageResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/prompts")
@@ -22,14 +22,15 @@ import reactor.core.publisher.Mono;
 public class PromptController {
 
     private final PromptService promptService;
+    private final PromptFacade promptFacade;
 
     @PostMapping
-    public Mono<ResponseEntity<CustomResponse<PromptResponseDto>>> createPrompt(
+    public ResponseEntity<CustomResponse<PromptResponseDto>> createPrompt(
             @Valid @RequestBody PromptRequestDto request,
             @CurrentUser AuthUser authUser
     ) {
-        return promptService.createPrompt(request, authUser.getId())
-            .map(result -> CustomResponseHelper.created(result));
+        PromptResponseDto result = promptFacade.createPrompt(request, authUser.getId());
+        return CustomResponseHelper.created(result);
     }
 
     @GetMapping
