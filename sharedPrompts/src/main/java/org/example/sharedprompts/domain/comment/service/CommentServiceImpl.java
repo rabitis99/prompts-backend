@@ -22,7 +22,6 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
@@ -31,6 +30,7 @@ public class CommentServiceImpl implements CommentService {
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
+    @Transactional
     public CommentResponseDto createComment(Long userId, Long promptId, CommentRequestDto requestDto) {
         User user = getUser(userId);
         Prompt prompt = getPrompt(promptId);
@@ -71,6 +71,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    @Transactional
     public CommentResponseDto updateComment(Long userId, Long promptId, Long commentId, CommentUpdateDto commentUpdateDto) {
         User user = getUser(userId);
         Prompt prompt = getPrompt(promptId);
@@ -84,6 +85,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    @Transactional
     public void deleteComment(Long userId, Long promptId, Long commentId) {
         User user = getUser(userId);
         Prompt prompt = getPrompt(promptId);

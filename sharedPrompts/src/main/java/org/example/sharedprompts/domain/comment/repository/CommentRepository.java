@@ -16,6 +16,8 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
         LEFT JOIN FETCH c.user
         LEFT JOIN FETCH c.children ch
         LEFT JOIN FETCH ch.user
+        LEFT JOIN FETCH c.prompt p
+        LEFT JOIN FETCH p.author
         WHERE c.prompt = :prompt AND c.parent IS NULL
         ORDER BY c.createdAt ASC
     """)
