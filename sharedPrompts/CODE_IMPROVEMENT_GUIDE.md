@@ -74,10 +74,56 @@
 - 테스트 용이성 향상 (Mock 객체 생성)
 - 의존성 주입 명확화
 - 코드 가독성 및 유지보수성 향상
+- 구현체 변경 시 클라이언트 코드 영향 최소화
+
+**Service 인터페이스 현황**:
+- 인터페이스가 있는 Service: `PromptService`, `UserService`, `CommentService`, `LikeService`, `AuthService`, `PromptTagService`
+- 인터페이스가 없는 Service: `BaseCountService`, `GoogleGeminiService`, `TokenRedisService`, `CustomOAuth2UserService` 등
 
 **적용 대상**:
 - 인터페이스가 없는 Service 구현체 확인
 - 모든 Service에 인터페이스 추가
+
+**구현 방법**:
+
+1. **인터페이스 생성** (예: `GoogleGeminiService`)
+```java
+// 기존: 인터페이스 없음
+@Service
+public class GoogleGeminiService {
+    public Mono<String> chat(String prompt) { ... }
+}
+
+// 개선: 인터페이스 분리
+public interface GoogleGeminiService {
+    Mono<String> chat(String prompt);
+}
+
+@Service
+public class GoogleGeminiServiceImpl implements GoogleGeminiService {
+    @Override
+    public Mono<String> chat(String prompt) { ... }
+}
+```
+
+2. **의존성 주입 수정** (Controller, 다른 Service 등)
+```java
+// 개선 전
+@RequiredArgsConstructor
+public class PromptServiceImpl {
+    private final GoogleGeminiService googleGeminiService; // 구현체 직접 참조
+}
+
+// 개선 후 (변경 불필요 - 인터페이스로 이미 주입됨)
+@RequiredArgsConstructor
+public class PromptServiceImpl {
+    private final GoogleGeminiService googleGeminiService; // 인터페이스로 주입
+}
+```
+
+**예외 사항**:
+- `BaseCountService`는 내부 유틸리티 Service로 인터페이스 분리 불필요 (다른 Service에서만 사용)
+- 또는 모든 Service에 인터페이스를 적용하는 원칙에 따라 분리 가능
 
 #### 2. Controller Mono 노출 제거 🟠 **중요** (AI 안정성과 연계)
 
