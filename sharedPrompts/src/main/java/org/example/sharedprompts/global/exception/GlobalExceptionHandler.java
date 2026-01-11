@@ -22,9 +22,9 @@ public class GlobalExceptionHandler {
         return CustomResponseHelper.fail(new ApiException(ErrorCode.NOT_FOUND_ENDPOINT));
     }
 
-    //지원되지 않는 HTTP 메서드 예외 처리
+    // 지원되지 않는 HTTP 메서드 예외 처리
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-     public ResponseEntity<?> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+    public ResponseEntity<?> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
         log.warn("HttpRequestMethodNotSupportedException: {}", e.getMessage());
         return CustomResponseHelper.fail(new ApiException(ErrorCode.METHOD_NOT_ALLOWED));
     }
