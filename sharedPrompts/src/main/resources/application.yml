@@ -152,8 +152,15 @@ google:
 # - Circuit breaker 상태 전환 빈도
 # - Slow call 및 failure 비율
 # - Half-open 상태에서의 성공률
-# 설정값 조정 권장사항:
-# - slowCallDurationThreshold: 5s는 Google Gemini의 timeout-seconds: 30s와 비교했을 때 적절
+# 설정값 조정 권장사항 (AI API 특성 고려):
+# - slowCallDurationThreshold: 15s (timeout 30s의 50%)
+#   * LLM API는 정상적으로 10~20초 응답이 발생할 수 있으므로
+#     slowCallDurationThreshold는 timeout의 50% 이상으로 설정한다.
+#   * Gemini/OpenAI/Claude 공통: 6~12초(정상), 12~18초(복잡한 프롬프트 정상), 20초↑(지연 가능성)
+#   * 15s는 정상 호출 보호 + 실제 지연 감지를 동시에 만족하는 현실적인 경계선
+# - slowCallRateThreshold: 70%
+#   * 50%는 너무 공격적. 70% 이상이면 지속적인 지연과 사용자 체감 장애로 간주
+#   * 느림만으로는 서킷을 열지 않으며, 진짜 성능 저하 시에만 fallback 활성화
 # - failureRateThreshold: 50%는 초기 설정으로 적절하나, 실제 사용 패턴에 따라 조정 필요
 # - minimumNumberOfCalls: 10은 충분한 샘플 크기를 확보하기 위한 값으로 적절
 resilience4j:
@@ -163,8 +170,8 @@ resilience4j:
         slidingWindowType: COUNT_BASED
         slidingWindowSize: 20
         failureRateThreshold: 50
-        slowCallRateThreshold: 50
-        slowCallDurationThreshold: 5s
+        slowCallRateThreshold: 70
+        slowCallDurationThreshold: 15s
         waitDurationInOpenState: 30s
         permittedNumberOfCallsInHalfOpenState: 3
         minimumNumberOfCalls: 10

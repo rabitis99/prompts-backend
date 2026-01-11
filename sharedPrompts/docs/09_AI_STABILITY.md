@@ -72,19 +72,32 @@ resilience4j:
         slidingWindowType: COUNT_BASED
         slidingWindowSize: 20
         failureRateThreshold: 50
-        slowCallRateThreshold: 50
-        slowCallDurationThreshold: 5s
+        slowCallRateThreshold: 70
+        slowCallDurationThreshold: 15s
         waitDurationInOpenState: 30s
         permittedNumberOfCallsInHalfOpenState: 3
         minimumNumberOfCalls: 10
 ```
 
-**설정 설명**:
+**설정 설명 (AI API 특성 고려)**:
 - `slidingWindowSize: 20`: 최근 20개 요청 기준
 - `failureRateThreshold: 50%`: 실패율 50% 초과 시 OPEN
-- `slowCallRateThreshold: 50%`: 느린 호출(5초 초과) 50% 시 OPEN
+- `slowCallDurationThreshold: 15s` (timeout 30s의 50%)
+  - **핵심 원칙**: LLM API는 정상적으로 10~20초 응답이 발생할 수 있으므로 slowCallDurationThreshold는 timeout의 50% 이상으로 설정한다.
+  - Gemini/OpenAI/Claude 공통: 6~12초(매우 정상), 12~18초(복잡한 프롬프트 정상), 20초↑(지연 가능성)
+  - 15s는 정상 호출 보호 + 실제 지연 감지를 동시에 만족하는 현실적인 경계선
+  - 5s는 너무 공격적이어서 정상 호출을 slow call로 분류하여 불필요한 fallback 활성화 위험
+- `slowCallRateThreshold: 70%`
+  - 50%는 너무 공격적. 70% 이상이면 지속적인 지연과 사용자 체감 장애로 간주
+  - 느림만으로는 서킷을 열지 않으며, 진짜 성능 저하 시에만 fallback 활성화
+  - 역할 분리: timeout(30s)은 "하드 컷", slowCall은 "소프트 시그널"
 - `waitDurationInOpenState: 30s`: OPEN 상태에서 30초 후 HALF_OPEN으로 전환
 - `permittedNumberOfCallsInHalfOpenState: 3`: HALF_OPEN에서 3개 요청으로 회복 여부 판단
+
+**설정 철학**:
+- AI API를 REST CRUD API처럼 취급하지 않음
+- 성공한 요청으로 스스로 장애를 유발하지 않음
+- 정상 호출 보호 + 실제 지연 감지의 균형
 
 ### 4.2.4 WebFlux 적용 패턴 ✅ **구현 완료**
 
@@ -342,7 +355,9 @@ Persistence Service (JPA, @Transactional)
 - **Controller는 Mono를 알지 않는다**
 - 리액티브는 외부 API 경계에서만 사용
 - `.block()`은 Facade/Application Service 계층에서만 허용
-- DB 트랜잭션은 항상 blocking 영역에서 시작
+- **트랜잭션 경계 최적화**: 외부 API 호출은 트랜잭션 밖에서 수행, DB 작업만 트랜잭션으로 보장
+  - 외부 API 호출 중 DB 커넥션 점유 방지 (커넥션 풀 고갈 예방)
+  - DB 작업만 트랜잭션 내에서 수행 (savePrompt 메서드의 @Transactional)
 
 ### 4.5.3 구현 상태
 
@@ -359,14 +374,26 @@ public class PromptFacade {
     
     private final PromptService promptService;
     
-    @Transactional
+    /**
+     * 외부 AI API 호출을 포함한 프롬프트 생성
+     * 
+     * 외부 API 호출은 트랜잭션 경계 밖에서 수행하고,
+     * DB 작업만 savePrompt 메서드에서 @Transactional로 보장합니다.
+     * 이를 통해 DB 커넥션 풀 고갈을 방지합니다.
+     */
     public PromptResponseDto createPrompt(PromptRequestDto request, Long userId) {
         // 리액티브 → 동기 변환 (block 허용)
+        // 외부 AI API 호출이 완료된 후, savePrompt 메서드의 @Transactional에서 DB 작업 수행
         return promptService.createPrompt(request, userId)
             .block(Duration.ofSeconds(60));
     }
 }
 ```
+
+**중요**: `@Transactional`을 Facade 레벨에서 제거했습니다. 이유:
+- 외부 AI API 호출(최대 60초) 동안 DB 커넥션을 점유하면 커넥션 풀 고갈 위험
+- 트랜잭션은 DB 작업(`savePrompt` 메서드)에서만 보장
+- 외부 API 호출은 트랜잭션 경계 밖에서 수행하여 확장성 확보
 
 **2. Controller 수정** (✅ 구현 완료)
 
