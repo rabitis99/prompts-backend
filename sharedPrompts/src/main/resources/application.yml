@@ -148,6 +148,14 @@ google:
 # =========================
 # Resilience4j CircuitBreaker 설정
 # =========================
+# 운영 환경 배포 후 Prometheus 메트릭을 통해 다음을 모니터링하세요:
+# - Circuit breaker 상태 전환 빈도
+# - Slow call 및 failure 비율
+# - Half-open 상태에서의 성공률
+# 설정값 조정 권장사항:
+# - slowCallDurationThreshold: 5s는 Google Gemini의 timeout-seconds: 30s와 비교했을 때 적절
+# - failureRateThreshold: 50%는 초기 설정으로 적절하나, 실제 사용 패턴에 따라 조정 필요
+# - minimumNumberOfCalls: 10은 충분한 샘플 크기를 확보하기 위한 값으로 적절
 resilience4j:
   circuitbreaker:
     instances:

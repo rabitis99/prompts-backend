@@ -25,6 +25,10 @@
 - Builder 패턴 서비스: `KoreanGuidelineBuilder`, `JapaneseGuidelineBuilder`, `EnglishGuidelineBuilder`
   - 이러한 서비스들은 특수한 용도(스케줄링, Builder 패턴)로 인터페이스 분리 불필요
 
+**향후 리팩토링 고려 대상**:
+- 테스트 복잡도 증가 시: `PromptBatchService`, `PromptLikeBatchService`, `CommentLikeBatchService` 등 스케줄러 서비스
+- 실행 전략 변경 필요 시: `KoreanGuidelineBuilder`, `JapaneseGuidelineBuilder`, `EnglishGuidelineBuilder` 등 Builder 패턴 서비스
+
 **결론**: 주요 비즈니스 로직을 담당하는 모든 Service에 인터페이스가 적용되어 있어, 아키텍처 관점에서 인터페이스 일관성이 확보되었습니다.
 
 ### 2. Controller Mono 노출 제거 ✅ **완료** (AI 안정성과 연계)

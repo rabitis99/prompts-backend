@@ -100,7 +100,7 @@ dependencyManagement {
 		// ShedLock BOM
 		mavenBom "net.javacrumbs.shedlock:shedlock-bom:7.2.1"
 		// Resilience4j BOM
-		mavenBom "io.github.resilience4j:resilience4j-bom:2.1.0"
+		mavenBom "io.github.resilience4j:resilience4j-bom:2.3.0"
 	}
 }
 

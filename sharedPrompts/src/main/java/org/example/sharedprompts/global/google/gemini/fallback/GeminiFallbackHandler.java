@@ -3,6 +3,7 @@ package org.example.sharedprompts.global.google.gemini.fallback;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -21,7 +22,8 @@ public class GeminiFallbackHandler {
      * @return Fallback 메시지
      */
     public String createFallbackMessage(String originalPrompt) {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+        String timestamp = LocalDateTime.now(ZoneId.of("Asia/Seoul"))
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
 
         return String.format("""
             [AI 응답 생성에 실패했습니다 - %s]

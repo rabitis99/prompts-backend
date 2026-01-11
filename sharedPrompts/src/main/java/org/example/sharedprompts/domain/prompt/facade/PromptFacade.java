@@ -13,13 +13,15 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class PromptFacade {
 
+    private static final Duration BLOCK_TIMEOUT = Duration.ofSeconds(60);
+
     private final PromptService promptService;
 
     @Transactional
     public PromptResponseDto createPrompt(PromptRequestDto request, Long userId) {
         // 리액티브 → 동기 변환 (block 허용)
         return promptService.createPrompt(request, userId)
-            .block(Duration.ofSeconds(60));
+            .block(BLOCK_TIMEOUT);
     }
 }
 
