@@ -1,6 +1,8 @@
 package org.example.sharedprompts.dto.prompt.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,8 +15,10 @@ import java.util.List;
 @AllArgsConstructor
 public class PromptUpdateDto {
 
+    @Size(max = 200, message = "제목은 최대 200자까지 입력해주세요.")
     private String title;
 
+    @Size(max = 5000, message = "설명은 최대 5000자까지 입력해주세요.")
     private String description;
 
     @JsonProperty("is_public")
@@ -23,7 +27,8 @@ public class PromptUpdateDto {
     @JsonProperty("prompt_category")
     private PromptCategory promptCategory;
 
-    private List<String> tags;
+    @Valid
+    private List<@Size(min = 1, max = 50, message = "태그는 1~50자로 입력해주세요.") String> tags;
 
     public void applyTo(Prompt prompt) {
         if (title != null) {

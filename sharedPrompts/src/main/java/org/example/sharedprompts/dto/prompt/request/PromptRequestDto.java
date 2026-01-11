@@ -25,26 +25,28 @@ public class PromptRequestDto {
     // ------------------------------
     // DB 저장용 필드
     // ------------------------------
-    @NotBlank(message = "제목은 비어 있을 수 없습니다.")
+    @NotBlank(message = "제목을 입력해주세요.")
+    @Size(max = 200, message = "제목은 최대 200자까지 입력해주세요.")
     private String title;
 
-    @NotBlank(message = "설명은 비어 있을 수 없습니다.")
+    @NotBlank(message = "설명을 입력해주세요.")
+    @Size(max = 5000, message = "설명은 최대 5000자까지 입력해주세요.")
     private String description;
 
     @JsonProperty("is_public")
     private Boolean isPublic;
 
-    @NotNull(message = "카테고리는 비어 있을 수 없습니다.")
+    @NotNull(message = "카테고리를 입력해주세요.")
     @JsonProperty("prompt_category")
     private PromptCategory promptCategory;
 
     @Valid
-    private List<@Size(min = 1, max = 50, message = "태그는 1~50자여야 합니다.") String> tags;
+    private List<@Size(min = 1, max = 50, message = "태그는 1~50자로 입력해주세요.") String> tags;
 
     // ------------------------------
     // AI 입력용 필드
     // ------------------------------
-    @NotBlank(message = "입력값은 비어 있을 수 없습니다.")
+    @NotBlank(message = "입력값을 입력해주세요.")
     @ValidInputContent
     private String input;                  // rough input
 

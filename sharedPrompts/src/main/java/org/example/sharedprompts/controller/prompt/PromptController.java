@@ -14,6 +14,7 @@ import org.example.sharedprompts.global.response.CustomResponseHelper;
 import org.example.sharedprompts.global.response.PageResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/prompts")
@@ -23,11 +24,12 @@ public class PromptController {
     private final PromptService promptService;
 
     @PostMapping
-    public ResponseEntity<CustomResponse<PromptResponseDto>> createPrompt(
+    public Mono<ResponseEntity<CustomResponse<PromptResponseDto>>> createPrompt(
             @Valid @RequestBody PromptRequestDto request,
             @CurrentUser AuthUser authUser
     ) {
-        return CustomResponseHelper.created(promptService.createPrompt(request, authUser.getId()));
+        return promptService.createPrompt(request, authUser.getId())
+            .map(result -> CustomResponseHelper.created(result));
     }
 
     @GetMapping
