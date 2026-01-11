@@ -75,8 +75,14 @@ public class TokenRedisServiceImpl implements TokenRedisService {
         );
 
         String userKey = REFRESH_SET_PREFIX + userId;
+        // Only set TTL if the Set doesn't exist yet (first token for this user)
+        // This avoids unnecessary TTL reset on every token save
+        // Individual tokens have their own TTL, so the Set TTL is mainly for cleanup
+        boolean setExists = Boolean.TRUE.equals(redisTemplate.hasKey(userKey));
         redisTemplate.opsForSet().add(userKey, token);
-        redisTemplate.expire(userKey, Duration.ofMinutes(ttlConfig.getRefreshTokenValidity()));
+        if (!setExists) {
+            redisTemplate.expire(userKey, Duration.ofMinutes(ttlConfig.getRefreshTokenValidity()));
+        }
     }
 
     @Override

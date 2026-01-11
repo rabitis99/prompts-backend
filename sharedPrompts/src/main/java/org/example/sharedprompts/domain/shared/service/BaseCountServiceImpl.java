@@ -3,6 +3,8 @@ package org.example.sharedprompts.domain.shared.service;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.global.Lua.LuaScripts;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,8 @@ import java.util.function.Function;
 @RequiredArgsConstructor
 public class BaseCountServiceImpl implements BaseCountService {
 
+    private static final Logger log = LoggerFactory.getLogger(BaseCountServiceImpl.class);
+
     private final StringRedisTemplate redisTemplate;
     private DefaultRedisScript<Long> safeDecrScript;
 
@@ -28,12 +32,22 @@ public class BaseCountServiceImpl implements BaseCountService {
 
     @Override
     public void increment(String key) {
-        redisTemplate.opsForValue().increment(key);
+        try {
+            redisTemplate.opsForValue().increment(key);
+        } catch (Exception e) {
+            log.error("Redis increment operation failed for key: {}", key, e);
+            throw e;
+        }
     }
 
     @Override
     public void decrement(String key) {
-        redisTemplate.execute(safeDecrScript, List.of(key));
+        try {
+            redisTemplate.execute(safeDecrScript, List.of(key));
+        } catch (Exception e) {
+            log.error("Redis decrement operation failed for key: {}", key, e);
+            throw e;
+        }
     }
 
     @Override

@@ -6,6 +6,8 @@ import org.example.sharedprompts.domain.user.UserTerms;
 import org.example.sharedprompts.domain.user.enums.Provider;
 import org.example.sharedprompts.domain.user.enums.Role;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.jwt.oauth2userinfo.*;
 import org.example.sharedprompts.global.util.RandomGenerator;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -29,7 +31,16 @@ public class CustomOAuth2UserServiceImpl extends DefaultOAuth2UserService implem
         Map<String, Object> attributes = oAuth2User.getAttributes();
 
         // provider 정보
-        Provider provider = Provider.valueOf(userRequest.getClientRegistration().getRegistrationId().toUpperCase());
+        String registrationId = userRequest.getClientRegistration().getRegistrationId().toUpperCase();
+        Provider provider;
+        try {
+            provider = Provider.valueOf(registrationId);
+        } catch (IllegalArgumentException e) {
+            throw new ApiException(
+                    ErrorCode.BAD_REQUEST,
+                    String.format("지원하지 않는 OAuth2 제공자입니다: %s", registrationId)
+            );
+        }
         OAuth2UserInfo userInfo = getOAuth2UserInfo(provider, attributes);
 
         // 사용자 조회 및 신규 생성
