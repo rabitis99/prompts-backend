@@ -70,7 +70,7 @@
 
 이 가이드는 주제별로 다음과 같이 구성되어 있습니다:
 
-```
+```text
 CODE_IMPROVEMENT_GUIDE.md (메인 인덱스)
 ├── docs/
 │   ├── 01_PROJECT_OVERVIEW.md          # 프로젝트 개요

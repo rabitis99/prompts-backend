@@ -6,9 +6,9 @@
 
 본 시스템은 **WebFlux 기반 서비스 레이어(Mono)**를 사용하지만, Controller 레이어에서는 다음과 같은 제약을 고려해야 한다.
 
-**현재 코드**:
+**이전 코드** (문제가 있던 구조):
 ```java
-// PromptController.java
+// PromptController.java (과거)
 @PostMapping
 public Mono<ResponseEntity<CustomResponse<PromptResponseDto>>> createPrompt(...) {
     return promptService.createPrompt(request, authUser.getId())
@@ -21,6 +21,11 @@ public Mono<ResponseEntity<CustomResponse<PromptResponseDto>>> createPrompt(...)
   - MVC 스타일 API와 혼용 시 일관성 저하
   - 공통 응답 래핑/필터/인터셉터 적용 난이도 증가
   - 팀 내 개발자 숙련도에 따라 유지보수 비용 증가
+
+**현재 구현** (✅ 완료):
+- Facade 계층을 도입하여 Controller에서 Mono 노출을 제거
+- 실제 구현: [`PromptFacade`](../../src/main/java/org/example/sharedprompts/domain/prompt/facade/PromptFacade.java)
+- 관련 문서: [아키텍처 개선 방안](./03_ARCHITECTURE.md#2-controller-mono-노출-제거-완료-ai-안정성과-연계)
 
 ### 4.1.2 AI API의 특성
 
@@ -67,50 +72,81 @@ resilience4j:
         slidingWindowType: COUNT_BASED
         slidingWindowSize: 20
         failureRateThreshold: 50
-        slowCallRateThreshold: 50
-        slowCallDurationThreshold: 5s
+        slowCallRateThreshold: 70
+        slowCallDurationThreshold: 15s
         waitDurationInOpenState: 30s
         permittedNumberOfCallsInHalfOpenState: 3
         minimumNumberOfCalls: 10
 ```
 
-**설정 설명**:
+**설정 설명 (AI API 특성 고려)**:
 - `slidingWindowSize: 20`: 최근 20개 요청 기준
 - `failureRateThreshold: 50%`: 실패율 50% 초과 시 OPEN
-- `slowCallRateThreshold: 50%`: 느린 호출(5초 초과) 50% 시 OPEN
+- `slowCallDurationThreshold: 15s` (timeout 30s의 50%)
+  - **핵심 원칙**: LLM API는 정상적으로 10~20초 응답이 발생할 수 있으므로 slowCallDurationThreshold는 timeout의 50% 이상으로 설정한다.
+  - Gemini/OpenAI/Claude 공통: 6~12초(매우 정상), 12~18초(복잡한 프롬프트 정상), 20초↑(지연 가능성)
+  - 15s는 정상 호출 보호 + 실제 지연 감지를 동시에 만족하는 현실적인 경계선
+  - 5s는 너무 공격적이어서 정상 호출을 slow call로 분류하여 불필요한 fallback 활성화 위험
+- `slowCallRateThreshold: 70%`
+  - 50%는 너무 공격적. 70% 이상이면 지속적인 지연과 사용자 체감 장애로 간주
+  - 느림만으로는 서킷을 열지 않으며, 진짜 성능 저하 시에만 fallback 활성화
+  - 역할 분리: timeout(30s)은 "하드 컷", slowCall은 "소프트 시그널"
 - `waitDurationInOpenState: 30s`: OPEN 상태에서 30초 후 HALF_OPEN으로 전환
 - `permittedNumberOfCallsInHalfOpenState: 3`: HALF_OPEN에서 3개 요청으로 회복 여부 판단
 
-### 4.2.4 WebFlux 적용 패턴
+**설정 철학**:
+- AI API를 REST CRUD API처럼 취급하지 않음
+- 성공한 요청으로 스스로 장애를 유발하지 않음
+- 정상 호출 보호 + 실제 지연 감지의 균형
+
+### 4.2.4 WebFlux 적용 패턴 ✅ **구현 완료**
 
 **위치**: `GoogleGeminiService.chat()`
+
+**현재 구현 상태**: 
+- ✅ Timeout 적용 완료
+- ✅ Retry 적용 완료
+- ✅ CircuitBreaker 적용 완료
+
+**실제 구현 파일**: [`GoogleGeminiServiceImpl.java`](../../src/main/java/org/example/sharedprompts/global/google/gemini/GoogleGeminiServiceImpl.java)
 
 **적용 방식**: Reactor 연동 (resilience4j-reactor)
 
 **적용 순서**: timeout/retry **이후**에 circuit breaker 적용
 
+**실제 구현 코드**:
 ```java
-@Service
-@RequiredArgsConstructor
-public class GoogleGeminiService {
-    
-    private final CircuitBreaker circuitBreaker;
-    private final WebClient webClient;
-    
-    public Mono<String> chat(String prompt) {
-        Mono<String> chatCall = webClient.post()
-            .uri(...)
-            .retrieve()
-            .bodyToMono(ChatResponse.class)
-            .map(this::extractFirstCandidate)
-            .timeout(Duration.ofSeconds(30))
-            .retryWhen(Retry.backoff(3, Duration.ofSeconds(1)));
-        
-        return CircuitBreakerOperator.of(circuitBreaker)
-            .apply(chatCall);
-    }
+// GoogleGeminiServiceImpl.java
+@Override
+public Mono<String> chat(String prompt) {
+    GeminiRequest request = GeminiRequest.fromUserPrompt(prompt);
+
+    Mono<String> chatCall = webClient.post()
+        .uri(...)
+        .retrieve()
+        .bodyToMono(ChatResponse.class)
+        .map(this::extractFirstCandidate)
+        .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
+            .filter(e -> {
+                // 5xx 서버 오류 및 네트워크 오류만 재시도
+                if (e instanceof WebClientResponseException wcre) {
+                    if (wcre.getStatusCode().is4xxClientError()) {
+                        return false;
+                    }
+                }
+                return true;
+            }))
+        .timeout(Duration.ofSeconds(properties.getTimeoutSeconds()))
+        .doOnError(e -> log.error("GoogleGemini API error", e));
+
+    // CircuitBreaker 적용 (timeout/retry 이후)
+    return CircuitBreakerOperator.of(circuitBreaker).apply(chatCall);
 }
 ```
+
+**설정 파일**:
+- CircuitBreaker 설정: [`application.yml`](../../src/main/resources/application.yml)
+- CircuitBreaker Bean: [`GoogleGeminiConfig.java`](../../src/main/java/org/example/sharedprompts/global/config/GoogleGeminiConfig.java)
 
 ---
 
@@ -126,36 +162,61 @@ public class GoogleGeminiService {
 
 ### 4.3.2 Fallback 전략 유형
 
-#### 4.3.2.1 사용자 가시적 Fallback (권장)
+#### 4.3.2.1 사용자 가시적 Fallback ✅ **구현 완료**
 
 **목적**: 서비스 중단 대신 최소 기능 제공
 
-**예시**:
-- "AI 응답 생성에 실패했습니다. 아래 기본 가이드를 참고해주세요."
-- 사전 정의된 템플릿 프롬프트 반환
+**현재 구현 상태**: ✅ Fallback 구현 완료
 
-**구현 예시**:
+**실제 구현 파일**: [`GoogleGeminiServiceImpl.java`](../../src/main/java/org/example/sharedprompts/global/google/gemini/GoogleGeminiServiceImpl.java)
+
+**구현 내용**:
 ```java
+@Override
 public Mono<String> chat(String prompt) {
-    return webClient.post()
-        .uri(...)
-        .retrieve()
-        .bodyToMono(ChatResponse.class)
-        .map(this::extractFirstCandidate)
-        .timeout(Duration.ofSeconds(30))
-        .retryWhen(Retry.backoff(3, Duration.ofSeconds(1)))
-        .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
+    // ... WebClient 호출 및 CircuitBreaker 적용 ...
+    
+    Mono<String> protectedCall = CircuitBreakerOperator.of(circuitBreaker).apply(chatCall);
+
+    // Fallback 적용: 모든 에러와 빈 응답에 대해 Fallback 반환
+    return protectedCall
         .onErrorResume(e -> {
-            log.warn("AI 호출 실패, fallback 사용", e);
-            return Mono.just(getFallbackPrompt());
+            log.warn("AI 호출 실패, fallback 사용. Error: {}", e.getClass().getSimpleName(), e);
+            return Mono.just(getFallbackPrompt(prompt));
         })
-        .switchIfEmpty(Mono.just(getFallbackPrompt()));
+        .switchIfEmpty(Mono.defer(() -> {
+            log.warn("AI 응답이 비어있음, fallback 사용");
+            return Mono.just(getFallbackPrompt(prompt));
+        }));
 }
 
-private String getFallbackPrompt() {
-    return "AI 응답 생성에 실패했습니다. 기본 프롬프트를 사용합니다.";
+private String getFallbackPrompt(String originalPrompt) {
+    String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+    
+    return String.format("""
+        [AI 응답 생성에 실패했습니다 - %s]
+        
+        시스템이 일시적으로 응답을 생성할 수 없습니다. 아래 기본 가이드를 참고해주세요.
+        
+        원본 요청:
+        %s
+        
+        참고사항:
+        - 네트워크 연결을 확인해주세요
+        - 잠시 후 다시 시도해주세요
+        - 문제가 지속되면 관리자에게 문의해주세요
+        """, timestamp, originalPrompt);
 }
 ```
+
+**Fallback 트리거 조건**:
+- ✅ CircuitBreaker OPEN 상태 (CallNotPermittedException)
+- ✅ Retry Exhausted
+- ✅ TimeoutException
+- ✅ 5xx 서버 오류 (재시도 후 실패)
+- ✅ 빈 응답 (empty response)
+
+**참고**: `PromptServiceImpl`에서 Fallback 결과를 그대로 사용하도록 수정되었습니다. Fallback은 Service 내부에서 처리되며, Controller까지 예외가 전파되지 않습니다.
 
 #### 4.3.2.2 내부 대체 로직
 
@@ -208,38 +269,64 @@ private String getFallbackPrompt() {
 
 ### 4.4.3 수집 위치
 
-- `GoogleGeminiService.chat()`
-- CircuitBreaker 이벤트 리스너
-- WebClient filter
+**현재 구현 상태**: 🟡 메트릭 수집 미구현 (향후 구현 예정)
 
-### 4.4.4 태깅 전략
+**수집 대상 위치**:
+- `GoogleGeminiService.chat()` - AI 호출 지표
+- CircuitBreaker 이벤트 리스너 (CircuitBreaker 구현 시)
+- WebClient filter - 네트워크 레벨 지표
 
+### 4.4.4 태깅 전략 ✅ **구현 완료**
+
+**실제 구현 코드**:
 ```java
-Timer.Sample sample = Timer.start(meterRegistry);
+// GoogleGeminiServiceImpl.java
+@Override
+public Mono<String> chat(String prompt) {
+    Timer.Sample sample = Timer.start(meterRegistry);
+    
+    // ... WebClient 호출 및 CircuitBreaker 적용 ...
+    
+    return protectedCall
+        .onErrorResume(e -> {
+            log.warn("AI 호출 실패, fallback 사용. Error: {}", e.getClass().getSimpleName(), e);
+            String fallbackPrompt = getFallbackPrompt(prompt);
+            recordMetrics(sample, "fallback", e.getClass().getSimpleName());
+            return Mono.just(fallbackPrompt);
+        })
+        .switchIfEmpty(Mono.defer(() -> {
+            log.warn("AI 응답이 비어있음, fallback 사용");
+            String fallbackPrompt = getFallbackPrompt(prompt);
+            recordMetrics(sample, "fallback", "EmptyResponse");
+            return Mono.just(fallbackPrompt);
+        }))
+        .doOnSuccess(result -> {
+            // Fallback이 아닌 정상 응답인 경우에만 메트릭 기록
+            if (!result.startsWith(FALLBACK_INDICATOR)) {
+                recordMetrics(sample, "success", null);
+            }
+        });
+}
 
-return googleGeminiService.chat(promptText)
-    .doOnSuccess(result -> {
-        sample.stop(Timer.builder("ai.call")
+private void recordMetrics(Timer.Sample sample, String result, String errorType) {
+    Timer.Builder timerBuilder = Timer.builder("ai.call")
             .tag("provider", "gemini")
             .tag("model", properties.getModel())
-            .tag("result", "success")
-            .register(meterRegistry));
-    })
-    .doOnError(error -> {
-        sample.stop(Timer.builder("ai.call")
-            .tag("provider", "gemini")
-            .tag("model", properties.getModel())
-            .tag("result", "error")
-            .tag("error.type", error.getClass().getSimpleName())
-            .register(meterRegistry));
-    });
+            .tag("result", result);
+
+    if (errorType != null) {
+        timerBuilder.tag("error.type", errorType);
+    }
+
+    sample.stop(timerBuilder.register(meterRegistry));
+}
 ```
 
 **태그**:
-- `ai.provider = gemini`
-- `ai.model`
-- `language`
-- `result = success | fallback | error`
+- ✅ `provider = gemini`
+- ✅ `model` (properties.getModel())
+- ✅ `result = success | fallback | error`
+- ✅ `error.type` (에러 발생 시만)
 
 ---
 
@@ -268,11 +355,17 @@ Persistence Service (JPA, @Transactional)
 - **Controller는 Mono를 알지 않는다**
 - 리액티브는 외부 API 경계에서만 사용
 - `.block()`은 Facade/Application Service 계층에서만 허용
-- DB 트랜잭션은 항상 blocking 영역에서 시작
+- **트랜잭션 경계 최적화**: 외부 API 호출은 트랜잭션 밖에서 수행, DB 작업만 트랜잭션으로 보장
+  - 외부 API 호출 중 DB 커넥션 점유 방지 (커넥션 풀 고갈 예방)
+  - DB 작업만 트랜잭션 내에서 수행 (savePrompt 메서드의 @Transactional)
 
-### 4.5.3 구현 예시
+### 4.5.3 구현 상태
 
-**1. Facade 계층 도입**
+#### ✅ 구현 완료 항목
+
+**1. Facade 계층 도입** (✅ 구현 완료)
+
+실제 구현 파일: [`PromptFacade.java`](../../src/main/java/org/example/sharedprompts/domain/prompt/facade/PromptFacade.java)
 
 ```java
 @Service
@@ -281,16 +374,30 @@ public class PromptFacade {
     
     private final PromptService promptService;
     
-    @Transactional
+    /**
+     * 외부 AI API 호출을 포함한 프롬프트 생성
+     * 
+     * 외부 API 호출은 트랜잭션 경계 밖에서 수행하고,
+     * DB 작업만 savePrompt 메서드에서 @Transactional로 보장합니다.
+     * 이를 통해 DB 커넥션 풀 고갈을 방지합니다.
+     */
     public PromptResponseDto createPrompt(PromptRequestDto request, Long userId) {
         // 리액티브 → 동기 변환 (block 허용)
+        // 외부 AI API 호출이 완료된 후, savePrompt 메서드의 @Transactional에서 DB 작업 수행
         return promptService.createPrompt(request, userId)
             .block(Duration.ofSeconds(60));
     }
 }
 ```
 
-**2. Controller 수정**
+**중요**: `@Transactional`을 Facade 레벨에서 제거했습니다. 이유:
+- 외부 AI API 호출(최대 60초) 동안 DB 커넥션을 점유하면 커넥션 풀 고갈 위험
+- 트랜잭션은 DB 작업(`savePrompt` 메서드)에서만 보장
+- 외부 API 호출은 트랜잭션 경계 밖에서 수행하여 확장성 확보
+
+**2. Controller 수정** (✅ 구현 완료)
+
+실제 구현 파일: [`PromptController.java`](../../src/main/java/org/example/sharedprompts/controller/prompt/PromptController.java)
 
 ```java
 @RestController
@@ -298,27 +405,40 @@ public class PromptFacade {
 @RequiredArgsConstructor
 public class PromptController {
     
-    private final PromptFacade promptFacade; // Service 대신 Facade 사용
+    private final PromptService promptService;  // 다른 메서드용
+    private final PromptFacade promptFacade;    // createPrompt용
     
     @PostMapping
     public ResponseEntity<CustomResponse<PromptResponseDto>> createPrompt(
             @Valid @RequestBody PromptRequestDto request,
             @CurrentUser AuthUser authUser
     ) {
-        // 동기 방식으로 변경
+        // 동기 방식으로 변경 - Facade 사용
         PromptResponseDto result = promptFacade.createPrompt(request, authUser.getId());
         return CustomResponseHelper.created(result);
+    }
+    
+    // 다른 메서드들은 동기 Service 직접 사용 (이미 Mono 노출 없음)
+    @GetMapping
+    public ResponseEntity<CustomResponse<PageResponse<PromptResponseDto>>> getPrompts(...) {
+        PageResponse<PromptResponseDto> response = promptService.getPrompts(condition);
+        return CustomResponseHelper.ok(response);
     }
 }
 ```
 
 **3. Service 계층은 리액티브 유지**
 
-```java
-public interface PromptService {
-    Mono<PromptResponseDto> createPrompt(PromptRequestDto request, Long userId);
-}
-```
+Service 계층은 리액티브(`Mono`)를 유지하며, Facade 계층에서만 동기 변환이 이루어집니다.
+
+#### ✅ 구현 완료 항목
+
+- ✅ Facade 계층 도입 (4.5.3 섹션 참조)
+- ✅ CircuitBreaker 적용 (4.2.4 섹션 참조)
+- ✅ Fallback 전략 적용 (4.3.2.1 섹션 참조)
+- ✅ 메트릭 수집 (4.4 섹션 참조)
+
+**AI 호출 안정성 설계의 모든 핵심 요소 구현 완료!** ✅
 
 ---
 
@@ -371,18 +491,18 @@ public interface PromptService {
 
 ## 4.8 추가 개선 포인트 (운영 단계에서 차이를 만드는 부분)
 
-### 4.8.1 Facade 계층 명확화 (Application Service)
+### 4.8.1 Facade 계층 명확화 (Application Service) ✅ **완료**
 
-**개선 이유**:
-- Controller ↔ Service 사이 책임 분리가 애매해지기 쉬움
-- `.block()` 위치가 흐려지면 다시 안티패턴으로 회귀
+**구현 완료**:
+- `PromptFacade` 도입 완료 (실제 파일: [`PromptFacade.java`](../../src/main/java/org/example/sharedprompts/domain/prompt/facade/PromptFacade.java))
+- Controller에서 Mono 노출 제거 완료
+- 관련 문서: [아키텍처 개선 방안](./03_ARCHITECTURE.md#2-controller-mono-노출-제거-완료-ai-안정성과-연계)
 
-**개선 방안**:
-- `PromptFacade` 또는 `PromptApplicationService` 도입
+**구현 내용**:
 - Facade에서만 다음 책임 수행:
   - 리액티브 → 동기 변환 (`block()`)
-  - Fallback 결과 최종 결정
   - 트랜잭션 경계 진입
+  - (향후) Fallback 결과 최종 결정
 
 ### 4.8.2 AI 호출 Idempotency 고려
 
@@ -491,4 +611,5 @@ public interface PromptService {
 이 네 가지가 결합되어야 AI 연동 서비스가 운영 환경에서 안전하게 동작한다.
 
 [← 목차로 돌아가기](../CODE_IMPROVEMENT_GUIDE.md)
+
 

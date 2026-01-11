@@ -4,88 +4,69 @@
 
 - 계층 분리 명확
 - BaseCountService 리팩토링 우수
-- 서비스 인터페이스 일관성 부족 (일부는 인터페이스 분리, 일부는 직접 구현)
-- Controller에서 Mono 노출 (일관성 저하)
+- **서비스 인터페이스 일관성 확보 완료** ✅ (모든 주요 비즈니스 로직 Service에 인터페이스 분리됨)
+- **Controller Mono 노출 제거 완료** ✅ (Facade 계층 도입으로 일관성 확보)
 
 ## 5점 달성 방안
 
-### 1. 서비스 인터페이스 일관성 확보 🟠 **중요**
+### 1. 서비스 인터페이스 일관성 확보 ✅ **완료**
 
-**목표**: 모든 Service 클래스에 인터페이스 분리
+**현황**: 모든 주요 비즈니스 로직 Service에 인터페이스가 분리되어 있습니다.
 
-**이유**:
-- 테스트 용이성 향상 (Mock 객체 생성)
-- 의존성 주입 명확화
-- 코드 가독성 및 유지보수성 향상
-- 구현체 변경 시 클라이언트 코드 영향 최소화
+**Service 인터페이스 목록**:
+- ✅ 인터페이스가 있는 Service: 
+  - `PromptService`, `UserService`, `CommentService`, `LikeService`, 
+  - `AuthService`, `PromptTagService`, `BaseCountService`, 
+  - `GoogleGeminiService`, `TokenRedisService`, `CustomOAuth2UserService`,
+  - `CommentCountService`, `LikeCountService`
 
-**Service 인터페이스 현황**:
-- 인터페이스가 있는 Service: `PromptService`, `UserService`, `CommentService`, `LikeService`, `AuthService`, `PromptTagService`
-- 인터페이스가 없는 Service: `BaseCountService`, `GoogleGeminiService`, `TokenRedisService`, `CustomOAuth2UserService` 등
+**예외 사항** (인터페이스 분리 불필요):
+- 스케줄러 서비스: `PromptBatchService`, `PromptLikeBatchService`, `CommentLikeBatchService`, `PromptCountSyncScheduler`
+- Builder 패턴 서비스: `KoreanGuidelineBuilder`, `JapaneseGuidelineBuilder`, `EnglishGuidelineBuilder`
+  - 이러한 서비스들은 특수한 용도(스케줄링, Builder 패턴)로 인터페이스 분리 불필요
 
-**적용 대상**:
-- 인터페이스가 없는 Service 구현체 확인
-- 모든 Service에 인터페이스 추가
+**향후 리팩토링 고려 대상**:
+- 테스트 복잡도 증가 시: `PromptBatchService`, `PromptLikeBatchService`, `CommentLikeBatchService` 등 스케줄러 서비스
+- 실행 전략 변경 필요 시: `KoreanGuidelineBuilder`, `JapaneseGuidelineBuilder`, `EnglishGuidelineBuilder` 등 Builder 패턴 서비스
 
-**구현 방법**:
+**결론**: 주요 비즈니스 로직을 담당하는 모든 Service에 인터페이스가 적용되어 있어, 아키텍처 관점에서 인터페이스 일관성이 확보되었습니다.
 
-1. **인터페이스 생성** (예: `GoogleGeminiService`)
+### 2. Controller Mono 노출 제거 ✅ **완료** (AI 안정성과 연계)
+
+**관련 문서**: [AI 호출 안정성 설계](./09_AI_STABILITY.md) (4.5.3 섹션 참조)
+
+**완료 내역**:
+- `PromptFacade` 클래스 생성 (`domain/prompt/facade/PromptFacade.java`)
+- Controller의 `createPrompt` 메서드에서 Mono 반환 타입 제거
+- 리액티브 → 동기 변환을 Facade 계층에서 처리
+
+**구현 내용**:
 ```java
-// 기존: 인터페이스 없음
+// PromptFacade.java
 @Service
-public class GoogleGeminiService {
-    public Mono<String> chat(String prompt) { ... }
-}
-
-// 개선: 인터페이스 분리
-public interface GoogleGeminiService {
-    Mono<String> chat(String prompt);
-}
-
-@Service
-public class GoogleGeminiServiceImpl implements GoogleGeminiService {
-    @Override
-    public Mono<String> chat(String prompt) { ... }
-}
-```
-
-2. **의존성 주입 수정** (Controller, 다른 Service 등)
-```java
-// 개선 전
 @RequiredArgsConstructor
-public class PromptServiceImpl {
-    private final GoogleGeminiService googleGeminiService; // 구현체 직접 참조
+public class PromptFacade {
+    private final PromptService promptService;
+    
+    @Transactional
+    public PromptResponseDto createPrompt(PromptRequestDto request, Long userId) {
+        return promptService.createPrompt(request, userId)
+            .block(Duration.ofSeconds(60));
+    }
 }
 
-// 개선 후 (변경 불필요 - 인터페이스로 이미 주입됨)
-@RequiredArgsConstructor
-public class PromptServiceImpl {
-    private final GoogleGeminiService googleGeminiService; // 인터페이스로 주입
-}
-```
-
-**예외 사항**:
-- `BaseCountService`는 내부 유틸리티 Service로 인터페이스 분리 불필요 (다른 Service에서만 사용)
-- 또는 모든 Service에 인터페이스를 적용하는 원칙에 따라 분리 가능
-
-### 2. Controller Mono 노출 제거 🟠 **중요** (AI 안정성과 연계)
-
-**현재 문제점**:
-```java
 // PromptController.java
 @PostMapping
-public Mono<ResponseEntity<CustomResponse<PromptResponseDto>>> createPrompt(...) {
-    return promptService.createPrompt(request, authUser.getId())
-        .map(result -> CustomResponseHelper.created(result));
+public ResponseEntity<CustomResponse<PromptResponseDto>> createPrompt(...) {
+    PromptResponseDto result = promptFacade.createPrompt(request, authUser.getId());
+    return CustomResponseHelper.created(result);
 }
 ```
 
-**문제점**:
-- MVC 스타일 API와 혼용 시 일관성 저하
-- 공통 응답 래핑/필터/인터셉터 적용 난이도 증가
-- 팀 내 개발자 숙련도에 따라 유지보수 비용 증가
-
-**개선 방안**: Facade 계층 도입 ([AI 호출 안정성 설계](./09_AI_STABILITY.md) 섹션 참조)
+**개선 효과**:
+- ✅ MVC 스타일 API와 일관성 확보
+- ✅ 공통 응답 래핑/필터/인터셉터 적용 용이
+- ✅ Controller 계층의 복잡도 감소 및 유지보수성 향상
 
 ### 3. 도메인 이벤트 패턴 고도화 🟡
 
@@ -99,7 +80,8 @@ public Mono<ResponseEntity<CustomResponse<PromptResponseDto>>> createPrompt(...)
 - Value Object 도입 (예: `Email`, `Tag` 등)
 - Domain Service 패턴 적용 (복잡한 도메인 로직 분리)
 
-**우선순위**: 서비스 인터페이스 일관성 확보 + Controller Mono 노출 제거가 가장 중요
+**우선순위**: ✅ Controller Mono 노출 제거 완료, ✅ 서비스 인터페이스 일관성 확보 완료
 
 [← 목차로 돌아가기](../CODE_IMPROVEMENT_GUIDE.md)
+
 

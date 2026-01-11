@@ -1,5 +1,7 @@
 package org.example.sharedprompts.global.config;
 
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.global.google.gemini.GoogleGeminiProperties;
 import org.slf4j.Logger;
@@ -17,8 +19,14 @@ import reactor.core.publisher.Mono;
 public class GoogleGeminiConfig {
 
     private static final Logger log = LoggerFactory.getLogger(GoogleGeminiConfig.class);
+    private static final String CIRCUIT_BREAKER_NAME = "googleGemini";
 
     private final GoogleGeminiProperties properties;
+
+    @Bean
+    public CircuitBreaker googleGeminiCircuitBreaker(CircuitBreakerRegistry circuitBreakerRegistry) {
+        return circuitBreakerRegistry.circuitBreaker(CIRCUIT_BREAKER_NAME);
+    }
 
     @Bean
     public WebClient googleGeminiWebClient(WebClient.Builder webClientBuilder) {
