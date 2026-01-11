@@ -13,6 +13,7 @@ import org.example.sharedprompts.dto.auth.response.AuthResponseDto;
 import org.example.sharedprompts.dto.auth.response.TokenResponseDto;
 import org.example.sharedprompts.global.response.CustomResponse;
 import org.example.sharedprompts.global.response.CustomResponseHelper;
+import org.example.sharedprompts.global.util.JwtTokenExtractor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -55,9 +56,11 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             @CurrentUser AuthUser authUser,
+            @RequestHeader("Authorization") String authorizationHeader,
             @Valid @RequestBody LogoutRequestDto dto
     ){
-        authService.logout(authUser.getId(),dto);
+        String accessToken = JwtTokenExtractor.extractAccessToken(authorizationHeader);
+        authService.logout(authUser.getId(), dto, accessToken);
         return CustomResponseHelper.noContent();
     }
 }

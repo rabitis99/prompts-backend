@@ -23,7 +23,7 @@ public class SignUpRequestDto {
     private String email;
 
     @NotEmpty(message = "비밀번호를 입력해주세요.")
-    @Size(min = 8, message = "비밀번호는 최소 8자 이상이어야 합니다.")
+    @Size(min = 8, max = 100, message = "비밀번호는 8자 이상 100자 이하로 입력해주세요.")
     private String password;
 
     public User toEntity(String encodedPassword, String nickname) {

@@ -131,17 +131,17 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void logout(Long userId, LogoutRequestDto dto) {
+    public void logout(Long userId, LogoutRequestDto dto, String accessToken) {
 
-        if (!tokenRedisService.isRefreshTokenValid(dto.getRefreshToken(),userId)) {
-            throw new ApiException(ErrorCode.UNAUTHORIZED_TOKEN_ACCESS);
+        if (!tokenRedisService.isRefreshTokenValid(dto.getRefreshToken(), userId)) {
+            throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
-        if (!tokenRedisService.isAccessTokenValidWithUserId(dto.getAccessToken(), userId)){
-            throw new ApiException(ErrorCode.UNAUTHORIZED_TOKEN_ACCESS);
+        if (!tokenRedisService.isAccessTokenValidWithUserId(accessToken, userId)) {
+            throw new ApiException(ErrorCode.INVALID_ACCESS_TOKEN);
         }
 
-        tokenRedisService.deleteAccessToken(dto.getAccessToken());
-        tokenRedisService.deleteRefreshToken(dto.getRefreshToken(),userId);
+        tokenRedisService.deleteAccessToken(accessToken);
+        tokenRedisService.deleteRefreshToken(dto.getRefreshToken(), userId);
 
     }
 
