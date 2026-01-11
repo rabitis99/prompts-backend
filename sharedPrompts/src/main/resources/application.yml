@@ -103,6 +103,13 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+  # =========================
+  # OpenAI AI 설정
+  # =========================
+  ai:
+    openai:
+      api-key: ${SPRING_AI_OPENAI_API_KEY:dummy-openai-api-key}
+
 # =========================
 # JWT
 # =========================
