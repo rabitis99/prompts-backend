@@ -13,10 +13,6 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
-  ai:
-    openai:
-      api-key: ${GOOGLE_GEMINI_API_KEY}
-
   profiles:
     active: dev
 
@@ -140,6 +136,7 @@ google:
     api-key: ${GOOGLE_GEMINI_API_KEY}
     model: ${GOOGLE_GEMINI_MODEL}
     base-url: ${GOOGLE_GEMINI_BASE_URL}
+    timeout-seconds: ${GOOGLE_GEMINI_TIMEOUT_SECONDS:30}
 
 # =========================
 # 로깅

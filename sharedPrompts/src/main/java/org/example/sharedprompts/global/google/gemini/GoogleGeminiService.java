@@ -36,7 +36,7 @@ public class GoogleGeminiService {
                 .retrieve()
                 .bodyToMono(ChatResponse.class)
                 .map(this::extractFirstCandidate)
-                .timeout(Duration.ofSeconds(30))
+                .timeout(Duration.ofSeconds(properties.getTimeoutSeconds()))
                 .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
                         .filter(e -> {
                             // 5xx 서버 오류 및 네트워크 오류만 재시도
