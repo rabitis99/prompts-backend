@@ -26,7 +26,7 @@ public interface PromptRepository extends JpaRepository<Prompt, Long>,CustomProm
         );
     }
 
-    @Modifying(clearAutomatically = true)
+    @Modifying(clearAutomatically = false, flushAutomatically = true)
     @Query(
             value = "UPDATE prompts SET view_count = view_count + 1 WHERE id = :id",
             nativeQuery = true

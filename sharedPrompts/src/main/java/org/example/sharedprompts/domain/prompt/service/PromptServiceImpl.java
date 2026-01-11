@@ -18,19 +18,20 @@ import org.example.sharedprompts.dto.prompt.request.PromptUpdateDto;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.global.google.gemini.GoogleGeminiProperties;
 import org.example.sharedprompts.global.google.gemini.GoogleGeminiService;
 import org.example.sharedprompts.global.response.PageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.util.List;
 
 @Service
 @Slf4j
-@Transactional
 @RequiredArgsConstructor
 public class PromptServiceImpl implements PromptService {
 
@@ -40,33 +41,35 @@ public class PromptServiceImpl implements PromptService {
     private final PromptGenerator promptGenerator;
     private final PromptTagService promptTagService;
     private final GuidelineBuilderFactory guidelineBuilderFactory;
+    private final GoogleGeminiProperties googleGeminiProperties;
 
     @Override
-    public PromptResponseDto createPrompt(PromptRequestDto request, Long userId) {
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
-
-        InputRequestDto dto = request.toInputRequestDto();
-        String promptText = promptGenerator.generatePrompt(dto);
-
-        String aiGeneratedContent = googleGeminiService.chat(promptText)
-                .timeout(Duration.ofSeconds(30))
-                .switchIfEmpty(Mono.error(new ApiException(ErrorCode.AI_GENERATION_FAILED)))
-                .onErrorResume(e -> {
-                    log.error("AI 콘텐츠 생성 실패", e);
-                    return Mono.error(new ApiException(ErrorCode.AI_GENERATION_FAILED));
-                })
-                .block();
-
-        PromptGuidelineBuilder builder =
-                guidelineBuilderFactory.getBuilder(dto.getLanguage());
-
-        String prompt = builder.build(aiGeneratedContent, dto);
-
-        return savePrompt(request, user, prompt);
+    public Mono<PromptResponseDto> createPrompt(PromptRequestDto request, Long userId) {
+        return Mono.fromCallable(() -> userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND)))
+            .subscribeOn(Schedulers.boundedElastic())
+            .flatMap(user -> {
+                InputRequestDto dto = request.toInputRequestDto();
+                String promptText = promptGenerator.generatePrompt(dto);
+                
+                return googleGeminiService.chat(promptText)
+                    .timeout(Duration.ofSeconds(googleGeminiProperties.getTimeoutSeconds()))
+                    .switchIfEmpty(Mono.error(new ApiException(ErrorCode.AI_GENERATION_FAILED)))
+                    .onErrorResume(e -> {
+                        log.error("AI 콘텐츠 생성 실패", e);
+                        return Mono.error(new ApiException(ErrorCode.AI_GENERATION_FAILED));
+                    })
+                    .flatMap(aiGeneratedContent -> {
+                        PromptGuidelineBuilder builder = 
+                            guidelineBuilderFactory.getBuilder(dto.getLanguage());
+                        String prompt = builder.build(aiGeneratedContent, dto);
+                        return Mono.fromCallable(() -> savePrompt(request, user, prompt))
+                            .subscribeOn(Schedulers.boundedElastic());
+                    });
+            });
     }
 
+    @Transactional
     protected PromptResponseDto savePrompt(PromptRequestDto request, User user, String aiGeneratedContent) {
         Prompt promptEntity = request.toEntity(user, aiGeneratedContent);
         promptEntity = promptRepository.save(promptEntity);
@@ -106,6 +109,7 @@ public class PromptServiceImpl implements PromptService {
 
     // ============ 수정 ===============
     @Override
+    @Transactional
     public PromptResponseDto updatePrompt(Long promptId, PromptUpdateDto promptUpdateDto, Long userId) {
         Prompt prompt = promptRepository.findById(promptId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
@@ -126,6 +130,7 @@ public class PromptServiceImpl implements PromptService {
 
     // ============ 삭제 ===============
     @Override
+    @Transactional
     public void deletePrompt(Long promptId, Long userId) {
         Prompt prompt = promptRepository.findById(promptId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));

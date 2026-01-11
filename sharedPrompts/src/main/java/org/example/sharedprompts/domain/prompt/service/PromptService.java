@@ -5,10 +5,11 @@ import org.example.sharedprompts.dto.prompt.request.PromptSearchCondition;
 import org.example.sharedprompts.dto.prompt.request.PromptUpdateDto;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
 import org.example.sharedprompts.global.response.PageResponse;
+import reactor.core.publisher.Mono;
 
 public interface PromptService {
 
-    PromptResponseDto createPrompt(PromptRequestDto request, Long userId);
+    Mono<PromptResponseDto> createPrompt(PromptRequestDto request, Long userId);
 
     PageResponse<PromptResponseDto> getPrompts(PromptSearchCondition condition);
 
