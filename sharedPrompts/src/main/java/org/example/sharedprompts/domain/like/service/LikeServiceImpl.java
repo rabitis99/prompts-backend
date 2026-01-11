@@ -22,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class LikeServiceImpl implements LikeService {
 
     private final PromptLikeRepository likeRepository;
@@ -34,10 +33,12 @@ public class LikeServiceImpl implements LikeService {
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
+    @Transactional
     public void likePrompt(Long userId, Long promptId) {
 
-        promptRepository.findById(promptId)
-                .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
+        if (!promptRepository.existsById(promptId)) {
+            throw new ApiException(ErrorCode.PROMPT_NOT_FOUND);
+        }
 
         PromptLikeId id = new PromptLikeId(userId, promptId);
 
@@ -60,6 +61,7 @@ public class LikeServiceImpl implements LikeService {
     }
 
     @Override
+    @Transactional
     public void unlikePrompt(Long userId, Long promptId) {
 
         PromptLikeId id = new PromptLikeId(userId, promptId);
@@ -74,11 +76,13 @@ public class LikeServiceImpl implements LikeService {
     }
 
     @Override
+    @Transactional
     public void likeComment(Long userId, Long commentId) {
 
         // 댓글 존재 체크
-        commentRepository.findById(commentId)
-                .orElseThrow(() -> new ApiException(ErrorCode.COMMENT_NOT_FOUND));
+        if (!commentRepository.existsById(commentId)) {
+            throw new ApiException(ErrorCode.COMMENT_NOT_FOUND);
+        }
 
         CommentLikeId id = new CommentLikeId(userId, commentId);
 
@@ -101,6 +105,7 @@ public class LikeServiceImpl implements LikeService {
     }
 
     @Override
+    @Transactional
     public void unlikeComment(Long userId, Long commentId) {
 
         CommentLikeId id = new CommentLikeId(userId, commentId);
