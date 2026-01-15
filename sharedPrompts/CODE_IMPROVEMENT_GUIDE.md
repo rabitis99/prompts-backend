@@ -55,8 +55,8 @@
 - [**아키텍처 개선 방안**](./docs/03_ARCHITECTURE.md) (4/5 → 5/5)
   - ✅ 서비스 인터페이스 일관성 확보 (완료)
   - ✅ Controller Mono 노출 제거 (완료)
-  - 도메인 이벤트 패턴 고도화
-  - DDD 패턴 적용 심화
+  - 🟡 도메인 이벤트 패턴 고도화 (진행 중)
+  - 🟡 DDD 패턴 적용 심화 (진행 중)
 
 - [**코드 품질 개선 방안**](./docs/06_CODE_QUALITY.md) (4/5 → 5/5)
   - JavaDoc 추가
@@ -75,9 +75,24 @@
 ### 완료된 항목
 
 다음 항목들은 이미 구현이 완료되어 로드맵에서 제거되었습니다:
-- ✅ **AI 호출 안정성**: CircuitBreaker, Fallback, Metrics 구현 완료 (관련 문서: [AI 호출 안정성 설계](./docs/09_AI_STABILITY.md))
-- ✅ **서비스 인터페이스 일관성**: 모든 주요 Service에 인터페이스 분리 완료
-- ✅ **Controller Mono 노출 제거**: Facade 계층 도입으로 일관성 확보
+
+#### ✅ AI 호출 안정성 (완료)
+- **CircuitBreaker**: Resilience4j 기반 서킷브레이커 구현 완료
+- **Fallback**: 모든 에러 상황에 대한 Fallback 전략 구현 완료
+- **Metrics**: Micrometer 기반 메트릭 수집 구현 완료 (provider, model, result, error.type 태깅)
+- **Timeout & Retry**: WebFlux 기반 타임아웃 및 재시도 로직 구현 완료
+- 관련 문서: [AI 호출 안정성 설계](./docs/09_AI_STABILITY.md)
+
+#### ✅ 서비스 인터페이스 일관성 (완료)
+- 모든 주요 비즈니스 로직 Service에 인터페이스 분리 완료
+- 인터페이스가 있는 Service: `PromptService`, `UserService`, `CommentService`, `LikeService`, `AuthService`, `PromptTagService`, `BaseCountService`, `GoogleGeminiService`, `TokenRedisService`, `CustomOAuth2UserService`, `CommentCountService`, `LikeCountService`
+- 관련 문서: [아키텍처 개선 방안](./docs/03_ARCHITECTURE.md#1-서비스-인터페이스-일관성-확보-완료)
+
+#### ✅ Controller Mono 노출 제거 (완료)
+- `PromptFacade` 클래스 도입으로 Controller에서 Mono 반환 타입 제거
+- 리액티브 → 동기 변환을 Facade 계층에서 처리
+- MVC 스타일 API와 일관성 확보
+- 관련 문서: [아키텍처 개선 방안](./docs/03_ARCHITECTURE.md#2-controller-mono-노출-제거-완료-ai-안정성과-연계)
 
 ---
 
@@ -105,6 +120,28 @@ CODE_IMPROVEMENT_GUIDE.md (메인 인덱스)
 
 ---
 
+## 📝 문서 정보
+
 **작성일**: 2024년  
+**최종 업데이트**: 2025년  
 **문서 목적**: 코드 품질 개선 및 AI 호출 안정성 확보를 위한 종합 가이드  
 **대상 독자**: 개발팀 전원, 아키텍트, 기술 리더
+
+---
+
+## 🔄 최신 상태 요약
+
+### 완료율
+- ✅ **AI 호출 안정성**: 100% 완료 (CircuitBreaker, Fallback, Metrics)
+- ✅ **아키텍처 핵심 개선**: 100% 완료 (인터페이스 일관성, Controller Mono 제거)
+- 🟡 **보안**: 진행 중 (Rate Limiting, Sanitization, 보안 헤더)
+- 🟡 **성능**: 진행 중 (캐싱 전략, Connection Pool, 인덱스 최적화)
+- 🟡 **문서화**: 진행 중 (README, API 문서화, JavaDoc)
+- 🟡 **테스트**: 진행 중 (단위/통합 테스트, 커버리지 측정)
+
+### 다음 단계
+1. 🔴 **보안 강화** (Phase 1) - Rate Limiting, 입력값 Sanitization 우선 구현
+2. 🟠 **성능 개선** (Phase 2) - 캐싱 전략 확대, Connection Pool 최적화
+3. 🟡 **문서화** (Phase 3) - README 보완, API 문서화, JavaDoc 추가
+
+자세한 내용은 [개선 로드맵](./docs/10_ROADMAP.md)과 [체크리스트](./docs/11_CHECKLIST.md)를 참고하세요.
