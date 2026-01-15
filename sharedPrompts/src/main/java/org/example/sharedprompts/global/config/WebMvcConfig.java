@@ -1,11 +1,7 @@
 package org.example.sharedprompts.global.config;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -38,35 +34,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .allowedHeaders("Content-Type","Authorization","Accept","Origin")
                 .maxAge(3600)
                 .allowCredentials(true);
-    }
-
-    /**
-     * Spring Security에서 사용할 CORS 설정
-     * Spring Security의 필터 체인에서 CORS preflight 요청을 처리하기 위해 필요합니다.
-     */
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        List<String> origins = Arrays.stream(corsAllowedOrigins.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .toList();
-        boolean isWildcard = origins.size() == 1 && "*".equals(origins.get(0));
-        
-        if (isWildcard) {
-            throw new IllegalStateException(
-                "CORS 설정 오류: 와일드카드(*) origin과 allowCredentials(true)는 동시에 사용할 수 없습니다.");
-        }
-
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(origins);
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization", "Accept", "Origin"));
-        configuration.setMaxAge(3600L);
-        configuration.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
     }
 
 }
