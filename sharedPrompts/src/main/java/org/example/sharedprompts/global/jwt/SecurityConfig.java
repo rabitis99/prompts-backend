@@ -15,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
 @RequiredArgsConstructor
@@ -26,47 +27,76 @@ public class SecurityConfig {
     private final OAuth2FailureHandler oAuth2FailureHandler;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final CorsConfigurationSource corsConfigurationSource;
+
+    /* =========================
+       Password / Auth Manager
+       ========================= */
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
     }
+
+    /* =========================
+       JWT Filter Bean
+       ========================= */
+
+    @Bean
+    public JwtAuthFilter jwtAuthFilter() {
+        return new JwtAuthFilter(jwtProvider, tokenRedisService);
+    }
+
+    /* =========================
+       Security Filter Chain
+       ========================= */
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 // CSRF, Session 사용 안 함
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // CORS 설정 (Security Filter Chain 단일 처리)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
 
                 // 인증 예외 처리
-                .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(jwtAuthenticationEntryPoint))
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
 
                 // 요청 허용/차단
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/signup","/api/auth/signup",
+                        .requestMatchers(
+                                "/auth/signup","/api/auth/signup",
                                 "/auth/login","/api/auth/login",
                                 "/auth/callback","/api/auth/callback",
                                 "/auth/refresh","/api/auth/refresh",
-                                "/oauth2/**", "/login/**").permitAll()
+                                "/oauth2/**", "/login/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
 
-                // OAuth2 로그인 설정
+                // OAuth2 로그인
                 .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .userInfoEndpoint(userInfo ->
+                                userInfo.userService(customOAuth2UserService))
                         .successHandler(oAuth2SuccessHandler)
                         .failureHandler(oAuth2FailureHandler)
                 )
 
-                // JWT Filter 적용
-                .addFilterBefore(new JwtAuthFilter(jwtProvider, tokenRedisService),
-                        UsernamePasswordAuthenticationFilter.class);
+                // JWT 인증 필터
+                .addFilterBefore(
+                        jwtAuthFilter(),
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }
