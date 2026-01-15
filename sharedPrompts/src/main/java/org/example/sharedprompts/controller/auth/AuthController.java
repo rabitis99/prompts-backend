@@ -5,12 +5,14 @@ import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.auth.service.AuthService;
+import org.example.sharedprompts.domain.user.service.UserService;
 import org.example.sharedprompts.dto.auth.request.LoginRequestDto;
 import org.example.sharedprompts.dto.auth.request.LogoutRequestDto;
 import org.example.sharedprompts.dto.auth.request.RefreshRequestDto;
 import org.example.sharedprompts.dto.auth.request.SignUpRequestDto;
 import org.example.sharedprompts.dto.auth.response.AuthResponseDto;
 import org.example.sharedprompts.dto.auth.response.TokenResponseDto;
+import org.example.sharedprompts.dto.user.response.UserResponseDto;
 import org.example.sharedprompts.global.response.CustomResponse;
 import org.example.sharedprompts.global.response.CustomResponseHelper;
 import org.example.sharedprompts.global.util.JwtTokenExtractor;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserService userService;
 
     @PostMapping("/signup")
     public ResponseEntity<CustomResponse<AuthResponseDto>> signup(
@@ -62,5 +65,11 @@ public class AuthController {
         String accessToken = JwtTokenExtractor.extractAccessToken(authorizationHeader);
         authService.logout(authUser.getId(), dto, accessToken);
         return CustomResponseHelper.noContent();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<CustomResponse<UserResponseDto>> getMyInfo(@CurrentUser AuthUser authUser) {
+        UserResponseDto response = userService.getMyInfo(authUser.getId());
+        return CustomResponseHelper.ok(response);
     }
 }
