@@ -18,6 +18,18 @@ public class PromptSearchCondition {
     @JsonProperty("prompt_category")
     private PromptCategory promptCategory;
 
+    /**
+     * @ModelAttribute 바인딩을 위한 snake_case 파라미터 지원
+     * Spring은 쿼리 파라미터 "prompt_category"를 이 메서드로 바인딩합니다.
+     * 
+     * null 값 처리:
+     * - 쿼리 파라미터가 없거나 null이면 null로 설정되어 필터링 없이 모든 카테고리를 조회합니다.
+     * - Repository의 applyCategory() 메서드에서 null 체크를 통해 필터링을 건너뜁니다.
+     */
+    public void setPrompt_category(PromptCategory promptCategory) {
+        this.promptCategory = promptCategory;
+    }
+
     public static PromptSearchCondition of(int page, int size, SortType sort, PromptCategory category) {
         PromptSearchCondition condition = new PromptSearchCondition();
         condition.setPage(page);
