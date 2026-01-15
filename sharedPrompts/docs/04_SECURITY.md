@@ -59,7 +59,7 @@ http.headers()
 - 토큰 저장소 보안 강화 (HttpOnly Cookie 고려)
 - 토큰 탈취 감지 메커니즘
 
-**우선순위**: Rate Limiting과 입력값 Sanitization이 가장 중요 (공격 방어)
+**우선순위**: 🔴 **최우선** - Rate Limiting과 입력값 Sanitization이 가장 중요 (공격 방어)
 
 [← 목차로 돌아가기](../CODE_IMPROVEMENT_GUIDE.md)
 

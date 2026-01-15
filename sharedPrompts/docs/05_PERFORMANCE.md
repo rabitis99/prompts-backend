@@ -52,7 +52,7 @@ spring.datasource.hikari.max-lifetime=1800000
 - DTO Projection 활용 (엔티티 전체 조회 대신 필요한 필드만)
 - `@EntityGraph` 활용 범위 확대
 
-**우선순위**: 캐싱 전략 확대와 Connection Pool 최적화가 가장 중요 (즉각적인 성능 향상)
+**우선순위**: 🟠 **우선순위 2** (보안 다음) - 캐싱 전략 확대와 Connection Pool 최적화가 가장 중요 (즉각적인 성능 향상)
 
 [← 목차로 돌아가기](../CODE_IMPROVEMENT_GUIDE.md)
 
