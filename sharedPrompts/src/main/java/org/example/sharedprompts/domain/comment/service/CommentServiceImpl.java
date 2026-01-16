@@ -51,6 +51,8 @@ public class CommentServiceImpl implements CommentService {
         commentRepository.save(comment);
 
         eventPublisher.publishEvent(new CommentEvent.Created(
+                comment.getId(),
+                userId,
                 promptId,
                 parent != null ? parent.getId() : null
         ));

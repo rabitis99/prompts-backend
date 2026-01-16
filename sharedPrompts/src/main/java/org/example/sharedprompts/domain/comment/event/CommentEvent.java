@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 public final class CommentEvent {
 
     // 댓글 생성 이벤트
-    public record Created(Long promptId, Long parentId) {}
+    public record Created(Long commentId, Long userId, Long promptId, Long parentId) {}
 
     // 댓글 삭제 이벤트
     public record Deleted(Long promptId, Long parentId) {}

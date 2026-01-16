@@ -95,6 +95,12 @@ public enum ErrorCode {
     REPORT_PROMPT_MISSING("RP00407", HttpStatus.BAD_REQUEST, "프롬프트 신고는 prompt가 필수입니다."),
     REPORT_COMMENT_MISSING("RP00408", HttpStatus.BAD_REQUEST, "댓글 신고는 comment가 필수입니다."),
 
+    // ==========================
+    // 🔹 NOTIFICATION
+    // ==========================
+    NOTIFICATION_NOT_FOUND("NT00701", HttpStatus.NOT_FOUND, "알림을 찾을 수 없습니다."),
+    NOTIFICATION_PUBLISH_FAILED("NT01001", HttpStatus.INTERNAL_SERVER_ERROR, "알림 발행에 실패했습니다."),
+
     ;
     private final String code;
     private final HttpStatus httpStatus;

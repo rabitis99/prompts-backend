@@ -57,7 +57,7 @@ public class LikeServiceImpl implements LikeService {
 
         likeRepository.save(promptLike);
 
-        eventPublisher.publishEvent(new LikeEvent.PromptLiked(promptId));
+        eventPublisher.publishEvent(new LikeEvent.PromptLiked(userId, promptId));
     }
 
     @Override
@@ -101,7 +101,7 @@ public class LikeServiceImpl implements LikeService {
 
         commentLikeRepository.save(commentLike);
 
-        eventPublisher.publishEvent(new LikeEvent.CommentLiked(commentId));
+        eventPublisher.publishEvent(new LikeEvent.CommentLiked(userId, commentId));
     }
 
     @Override
