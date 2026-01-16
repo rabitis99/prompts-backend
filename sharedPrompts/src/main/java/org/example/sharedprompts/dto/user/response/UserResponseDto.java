@@ -23,6 +23,8 @@ public class UserResponseDto {
     private Integer age;
     private String job;
     private String thumbnail;
+    @JsonProperty("is_signup_completed")
+    private boolean isSignupCompleted;
     @JsonProperty("user_terms")
     private UserTermsResponseDto userTerms;
 
@@ -35,6 +37,7 @@ public class UserResponseDto {
                 .age(user.getAge())
                 .job(user.getJob())
                 .thumbnail(user.getThumbnail())
+                .isSignupCompleted(user.isSignupCompleted())
                 .userTerms(UserTermsResponseDto.from(user.getTerms()))
                 .build();
     }
