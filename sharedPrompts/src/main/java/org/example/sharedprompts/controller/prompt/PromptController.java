@@ -24,6 +24,7 @@ public class PromptController {
     private final PromptService promptService;
     private final PromptFacade promptFacade;
 
+
     @PostMapping
     public ResponseEntity<CustomResponse<PromptResponseDto>> createPrompt(
             @Valid @RequestBody PromptRequestDto request,
@@ -35,7 +36,7 @@ public class PromptController {
 
     @GetMapping
     public ResponseEntity<CustomResponse<PageResponse<PromptResponseDto>>> getPrompts(
-            @ModelAttribute PromptSearchCondition condition
+            @ModelAttribute("condition") PromptSearchCondition condition
     ) {
         PageResponse<PromptResponseDto> response = promptService.getPrompts(condition);
         return CustomResponseHelper.ok(response);
@@ -67,7 +68,7 @@ public class PromptController {
     @GetMapping("/me")
     public ResponseEntity<CustomResponse<PageResponse<PromptResponseDto>>> getMyPrompts(
             @CurrentUser AuthUser authUser,
-            @ModelAttribute PromptSearchCondition condition
+            @ModelAttribute("condition") PromptSearchCondition condition
     ) {
         PageResponse<PromptResponseDto> response = promptService.getMyPrompts(authUser.getId(), condition);
         return CustomResponseHelper.ok(response);
