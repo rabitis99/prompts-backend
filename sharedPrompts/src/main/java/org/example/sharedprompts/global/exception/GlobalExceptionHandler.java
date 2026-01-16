@@ -51,8 +51,15 @@ public class GlobalExceptionHandler {
     // 낙관적 락 예외 처리 (동시 수정 감지)
     @ExceptionHandler(OptimisticLockException.class)
     public ResponseEntity<?> handleOptimisticLockException(OptimisticLockException e) {
-        log.warn("OptimisticLockException: 동시 수정이 감지되었습니다. (entity={})", e.getEntity());
-        return CustomResponseHelper.fail(new ApiException(ErrorCode.REPORT_ALREADY_PROCESSED));
+        Object entity = e.getEntity();
+        String entityType = entity != null ? entity.getClass().getSimpleName() : "unknown";
+        log.warn("OptimisticLockException: 동시 수정이 감지되었습니다. (entityType={})", entityType);
+        
+        // 엔티티 타입에 따라 적절한 에러 코드 반환
+        if (entity != null && entity.getClass().getSimpleName().equals("Report")) {
+            return CustomResponseHelper.fail(new ApiException(ErrorCode.REPORT_ALREADY_PROCESSED));
+        }
+        return CustomResponseHelper.fail(new ApiException(ErrorCode.DATA_INTEGRITY_VIOLATION));
     }
 
     // DB 제약 조건 위반 예외 처리 (UNIQUE 제약 등)
@@ -94,12 +101,10 @@ public class GlobalExceptionHandler {
         // 사용자 중복 제약 조건 위반 (provider, providerId)
         // User 엔티티에 명시적 constraint name이 없어 Hibernate가 자동 생성하므로
         // constraint name에 provider와 providerId가 포함된 경우로 판단
-        if (constraintName != null) {
-            String lowerConstraintName = constraintName.toLowerCase();
-            if ((lowerConstraintName.contains("provider") && lowerConstraintName.contains("providerid")) ||
-                lowerConstraintName.contains("users_provider_providerid")) {
-                return ErrorCode.CONFLICT_EMAIL;
-            }
+        String lowerConstraintName = constraintName.toLowerCase();
+        if ((lowerConstraintName.contains("provider") && lowerConstraintName.contains("providerid")) ||
+            lowerConstraintName.contains("users_provider_providerid")) {
+            return ErrorCode.CONFLICT_EMAIL;
         }
         
         // 태그 이름 중복 제약 조건 위반

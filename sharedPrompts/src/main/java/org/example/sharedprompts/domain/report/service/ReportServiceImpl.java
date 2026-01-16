@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.comment.repository.CommentRepository;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
 import org.example.sharedprompts.domain.report.Report;
+import org.example.sharedprompts.domain.report.ReportTargetEntity;
 import org.example.sharedprompts.domain.report.enums.ReportStatus;
 import org.example.sharedprompts.domain.report.enums.ReportType;
 import org.example.sharedprompts.domain.report.repository.ReportRepository;
@@ -23,6 +24,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.OptimisticLockException;
+
 @Service
 @RequiredArgsConstructor
 public class ReportServiceImpl implements ReportService {
@@ -31,136 +35,67 @@ public class ReportServiceImpl implements ReportService {
     private final UserRepository userRepository;
     private final PromptRepository promptRepository;
     private final CommentRepository commentRepository;
+    private final EntityManager entityManager;
 
+    // ======================
+    //      신고 생성
+    // ======================
     @Override
     @Transactional
     public ReportResponseDto createReport(Long userId, ReportCreateRequestDto requestDto) {
         User reporter = getUser(userId);
-        
-        // 타겟 엔티티 조회 및 검증
-        TargetEntity targetEntity = getTargetEntity(requestDto.getReportType(), requestDto.getTargetId());
-        
-        // 자기 자신의 콘텐츠 신고 방지
-        validateNotSelfReport(targetEntity, reporter);
 
-        // 신고 대상 검증 (reportType과 prompt/comment 일치 여부)
-        validateReportTarget(requestDto.getReportType(), targetEntity);
-        
-        // 중복 신고는 DB 레벨 UNIQUE 제약 조건으로 처리
-        // (uk_report_prompt_reporter, uk_report_comment_reporter)
-        // DataIntegrityViolationException이 발생하면 GlobalExceptionHandler에서 REPORT_ALREADY_EXISTS로 매핑
+        ReportTargetEntity target = getTargetEntity(requestDto.getReportType(), requestDto.getTargetId());
+        validateNotSelfReport(target, reporter);
+        validateReportTarget(requestDto.getReportType(), target);
 
-        Report report = requestDto.toEntity(targetEntity.prompt, targetEntity.comment, reporter);
-        Report savedReport = reportRepository.save(report);
-        return ReportResponseDto.from(savedReport);
-    }
-    
-    /**
-     * 타겟 엔티티 조회
-     */
-    private TargetEntity getTargetEntity(ReportType reportType, Long targetId) {
-        if (reportType == ReportType.PROMPT) {
-            Prompt prompt = promptRepository.findById(targetId)
-                    .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
-            return new TargetEntity(prompt, null);
-        } else if (reportType == ReportType.COMMENT) {
-            Comment comment = commentRepository.findById(targetId)
-                    .orElseThrow(() -> new ApiException(ErrorCode.COMMENT_NOT_FOUND));
-            return new TargetEntity(null, comment);
-        } else {
-            throw new ApiException(ErrorCode.BAD_REQUEST);
-        }
-    }
-    
-    /**
-     * 자기 자신의 콘텐츠 신고 방지
-     */
-    private void validateNotSelfReport(TargetEntity targetEntity, User reporter) {
-        if (targetEntity.prompt != null && targetEntity.prompt.getAuthor().getId().equals(reporter.getId())) {
-            throw new ApiException(ErrorCode.CANNOT_REPORT_OWN_CONTENT);
-        }
-        if (targetEntity.comment != null && targetEntity.comment.getUser().getId().equals(reporter.getId())) {
-            throw new ApiException(ErrorCode.CANNOT_REPORT_OWN_CONTENT);
-        }
-    }
-    
-    /**
-     * 신고 대상 검증
-     * reportType과 prompt/comment의 일치 여부를 검증
-     */
-    private void validateReportTarget(ReportType reportType, TargetEntity targetEntity) {
-        boolean hasPrompt = targetEntity.prompt != null;
-        boolean hasComment = targetEntity.comment != null;
-        
-        // prompt와 comment가 둘 다 있거나 둘 다 없는 경우
-        if (hasPrompt == hasComment) {
-            throw new ApiException(ErrorCode.REPORT_TARGET_CONFLICT);
-        }
-        
-        // PROMPT 타입인데 prompt가 없는 경우
-        if (reportType == ReportType.PROMPT && !hasPrompt) {
-            throw new ApiException(ErrorCode.REPORT_PROMPT_MISSING);
-        }
-        
-        // COMMENT 타입인데 comment가 없는 경우
-        if (reportType == ReportType.COMMENT && !hasComment) {
-            throw new ApiException(ErrorCode.REPORT_COMMENT_MISSING);
-        }
-    }
-    
-    /**
-     * 타겟 엔티티를 담는 내부 클래스
-     */
-    private static class TargetEntity {
-        final Prompt prompt;
-        final Comment comment;
-        
-        TargetEntity(Prompt prompt, Comment comment) {
-            this.prompt = prompt;
-            this.comment = comment;
-        }
+        Report report = requestDto.toEntity(target.getPrompt(), target.getComment(), reporter);
+        Report saved = reportRepository.save(report);
+
+        return ReportResponseDto.from(saved);
     }
 
+    // ======================
+    //      신고 조회
+    // ======================
     @Override
     @Transactional(readOnly = true)
     public ReportDetailResponseDto getReportDetail(Long reportId) {
-        Report report = getReportWithDetails(reportId);
-        return ReportDetailResponseDto.from(report);
+        return ReportDetailResponseDto.from(getReportWithDetails(reportId));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<ReportResponseDto> getReports(Pageable pageable) {
-        Page<Report> reports = reportRepository.findAllReports(pageable);
-        return reports.map(ReportResponseDto::from);
+        return reportRepository.findAllReports(pageable).map(ReportResponseDto::from);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<ReportResponseDto> getReportsByStatus(ReportStatus status, Pageable pageable) {
-        Page<Report> reports = reportRepository.findReportsByStatus(status, pageable);
-        return reports.map(ReportResponseDto::from);
+        return reportRepository.findReportsByStatus(status, pageable)
+                .map(ReportResponseDto::from);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<ReportResponseDto> getReportsByType(ReportType reportType, Pageable pageable) {
-        Page<Report> reports = reportRepository.findReportsByType(reportType, pageable);
-        return reports.map(ReportResponseDto::from);
+        return reportRepository.findReportsByType(reportType, pageable)
+                .map(ReportResponseDto::from);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<ReportResponseDto> getReportsByStatusAndType(ReportStatus status, ReportType reportType, Pageable pageable) {
-        Page<Report> reports = reportRepository.findReportsByStatusAndType(status, reportType, pageable);
-        return reports.map(ReportResponseDto::from);
+        return reportRepository.findReportsByStatusAndType(status, reportType, pageable)
+                .map(ReportResponseDto::from);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<ReportResponseDto> getMyReports(Long userId, Pageable pageable) {
-        Page<Report> reports = reportRepository.findReportsByReporterId(userId, pageable);
-        return reports.map(ReportResponseDto::from);
+        return reportRepository.findReportsByReporterId(userId, pageable)
+                .map(ReportResponseDto::from);
     }
 
     @Override
@@ -168,20 +103,53 @@ public class ReportServiceImpl implements ReportService {
     public ReportDetailResponseDto processReport(Long reportId, Long adminId, ReportProcessRequestDto requestDto) {
         User admin = validateAdmin(adminId);
         Report report = getReportWithDetails(reportId);
-        
-        // 이미 처리된 신고인지 확인
+
         if (!report.canChangeStatus()) {
             throw new ApiException(ErrorCode.REPORT_ALREADY_PROCESSED);
         }
 
         requestDto.applyTo(report, admin);
 
+        // 낙관적 락 적용: flush로 충돌 감지
+        try {
+            entityManager.flush();
+        } catch (OptimisticLockException e) {
+            throw new ApiException(ErrorCode.REPORT_ALREADY_PROCESSED);
+        }
+
         return ReportDetailResponseDto.from(report);
     }
-    
-    /**
-     * 관리자 권한 검증
-     */
+
+    // ======================
+    //      신고 카운트
+    // ======================
+    @Override
+    @Transactional(readOnly = true)
+    public long getReportCount(ReportType reportType, Long targetId, ReportStatus status) {
+        ReportTargetEntity target = getTargetEntity(reportType, targetId);
+
+        if (target.getPrompt() != null) {
+            return reportRepository.countByPromptAndStatus(target.getPrompt(), status);
+        } else if (target.getComment() != null) {
+            return reportRepository.countByCommentAndStatus(target.getComment(), status);
+        } else {
+            throw new ApiException(ErrorCode.BAD_REQUEST);
+        }
+    }
+
+    // ======================
+    //      내부 헬퍼 메서드
+    // ======================
+    private User getUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    private Report getReportWithDetails(Long reportId) {
+        return reportRepository.findByIdWithDetails(reportId)
+                .orElseThrow(() -> new ApiException(ErrorCode.REPORT_NOT_FOUND));
+    }
+
     private User validateAdmin(Long adminId) {
         User admin = getUser(adminId);
         if (admin.getRole() != Role.ROLE_ADMIN) {
@@ -189,34 +157,45 @@ public class ReportServiceImpl implements ReportService {
         }
         return admin;
     }
-    
-    /**
-     * 신고 상세 조회 (fetch join 포함)
-     */
-    private Report getReportWithDetails(Long reportId) {
-        return reportRepository.findByIdWithDetails(reportId)
-                .orElseThrow(() -> new ApiException(ErrorCode.REPORT_NOT_FOUND));
-    }
 
-    @Override
-    @Transactional(readOnly = true)
-    public long getReportCount(ReportType reportType, Long targetId, ReportStatus status) {
-        // 엔티티 조회 후 카운트 (Repository 메서드가 엔티티를 받도록 설계됨)
-        // getTargetEntity에서 이미 존재 여부 검증을 수행하므로 중복 검증 제거
-        TargetEntity targetEntity = getTargetEntity(reportType, targetId);
-        
-        if (targetEntity.prompt != null) {
-            return reportRepository.countByPromptAndStatus(targetEntity.prompt, status);
-        } else if (targetEntity.comment != null) {
-            return reportRepository.countByCommentAndStatus(targetEntity.comment, status);
-        } else {
-            throw new ApiException(ErrorCode.BAD_REQUEST);
+    private ReportTargetEntity getTargetEntity(ReportType reportType, Long targetId) {
+        switch (reportType) {
+            case PROMPT -> {
+                Prompt prompt = promptRepository.findById(targetId)
+                        .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
+                return new ReportTargetEntity(prompt, null);
+            }
+            case COMMENT -> {
+                Comment comment = commentRepository.findById(targetId)
+                        .orElseThrow(() -> new ApiException(ErrorCode.COMMENT_NOT_FOUND));
+                return new ReportTargetEntity(null, comment);
+            }
+            default -> throw new ApiException(ErrorCode.BAD_REQUEST);
         }
     }
 
-    private User getUser(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+    private void validateNotSelfReport(ReportTargetEntity target, User reporter) {
+        if (target.getPrompt() != null && target.getPrompt().getAuthor().getId().equals(reporter.getId())) {
+            throw new ApiException(ErrorCode.CANNOT_REPORT_OWN_CONTENT);
+        }
+        if (target.getComment() != null && target.getComment().getUser().getId().equals(reporter.getId())) {
+            throw new ApiException(ErrorCode.CANNOT_REPORT_OWN_CONTENT);
+        }
     }
-}
 
+    private void validateReportTarget(ReportType reportType, ReportTargetEntity target) {
+        boolean hasPrompt = target.getPrompt() != null;
+        boolean hasComment = target.getComment() != null;
+
+        if (hasPrompt == hasComment) {
+            throw new ApiException(ErrorCode.REPORT_TARGET_CONFLICT);
+        }
+        if (reportType == ReportType.PROMPT && !hasPrompt) {
+            throw new ApiException(ErrorCode.REPORT_PROMPT_MISSING);
+        }
+        if (reportType == ReportType.COMMENT && !hasComment) {
+            throw new ApiException(ErrorCode.REPORT_COMMENT_MISSING);
+        }
+    }
+
+}
