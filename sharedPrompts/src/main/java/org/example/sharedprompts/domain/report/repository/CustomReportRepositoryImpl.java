@@ -55,7 +55,7 @@ public class CustomReportRepositoryImpl implements CustomReportRepository {
                 .select(report.id)
                 .from(report)
                 .where(where)
-                .orderBy(report.createdAt.desc())
+                .orderBy(report.createdAt.desc(), report.id.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
@@ -82,7 +82,7 @@ public class CustomReportRepositoryImpl implements CustomReportRepository {
                 .leftJoin(report.prompt).fetchJoin()     // nullable (댓글 신고인 경우 null)
                 .leftJoin(report.comment).fetchJoin()    // nullable (프롬프트 신고인 경우 null)
                 .where(report.id.in(ids))
-                .orderBy(report.createdAt.desc())
+                .orderBy(report.createdAt.desc(), report.id.desc())
                 .fetch();
 
         return new PageImpl<>(content, pageable, total);
@@ -93,9 +93,32 @@ public class CustomReportRepositoryImpl implements CustomReportRepository {
      * QueryDSL의 null 안전 조합 활용
      */
     private BooleanExpression buildWhereCondition(ReportStatus status, ReportType reportType, Long reporterId) {
-        return statusEq(status)
-                .and(reportTypeEq(reportType))
-                .and(reporterIdEq(reporterId));
+        BooleanExpression condition = null;
+        
+        if (status != null) {
+            condition = combine(condition, statusEq(status));
+        }
+        if (reportType != null) {
+            condition = combine(condition, reportTypeEq(reportType));
+        }
+        if (reporterId != null) {
+            condition = combine(condition, reporterIdEq(reporterId));
+        }
+        
+        return condition;
+    }
+    
+    /**
+     * null-safe BooleanExpression 조합
+     */
+    private BooleanExpression combine(BooleanExpression condition, BooleanExpression other) {
+        if (condition == null) {
+            return other;
+        }
+        if (other == null) {
+            return condition;
+        }
+        return condition.and(other);
     }
 
     private BooleanExpression statusEq(ReportStatus status) {

@@ -17,6 +17,7 @@ import org.example.sharedprompts.domain.user.User;
 public class ReportProcessRequestDto {
 
     @NotNull(message = "처리 상태는 필수입니다.")
+    @ValidReportProcessStatus
     private ReportStatus status;
 
     @Size(max = 1000, message = "처리 코멘트는 최대 1000자까지 입력 가능합니다.")

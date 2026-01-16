@@ -11,7 +11,7 @@ public enum ReportStatus {
     RESOLVED("처리완료", "신고 처리 완료 상태"),
     REJECTED("반려", "신고 반려 상태");
 
-    private final String name;
+    private final String displayName;
     private final String description;
 }
 

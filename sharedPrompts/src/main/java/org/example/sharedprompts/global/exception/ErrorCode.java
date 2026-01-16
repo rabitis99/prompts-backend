@@ -23,6 +23,7 @@ public enum ErrorCode {
     NOT_FOUND("CM00701", HttpStatus.NOT_FOUND, "리소스를 찾을 수 없습니다."),
     NOT_FOUND_ENDPOINT("CM00702", HttpStatus.NOT_FOUND, "엔드포인트를 찾을 수 없습니다."),
     METHOD_NOT_ALLOWED("CM00703", HttpStatus.METHOD_NOT_ALLOWED, "허용되지 않은 메소드입니다."),
+    DATA_INTEGRITY_VIOLATION("CM00901", HttpStatus.CONFLICT, "데이터 무결성 제약 조건을 위반했습니다."),
     INTERNAL_SERVER_ERROR("CM01001", HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다."),
 
     // ==========================
@@ -88,6 +89,11 @@ public enum ErrorCode {
     REPORT_ALREADY_EXISTS("RP00401", HttpStatus.BAD_REQUEST, "이미 신고한 콘텐츠입니다."),
     REPORT_ALREADY_PROCESSED("RP00402", HttpStatus.BAD_REQUEST, "이미 처리된 신고입니다."),
     CANNOT_REPORT_OWN_CONTENT("RP00403", HttpStatus.BAD_REQUEST, "자신의 콘텐츠는 신고할 수 없습니다."),
+    REPORT_TYPE_REQUIRED("RP00404", HttpStatus.BAD_REQUEST, "신고 타입은 필수입니다."),
+    REPORT_REPORTER_REQUIRED("RP00405", HttpStatus.BAD_REQUEST, "신고자는 필수입니다."),
+    REPORT_TARGET_CONFLICT("RP00406", HttpStatus.BAD_REQUEST, "신고는 프롬프트 또는 댓글 중 하나만 대상으로 해야 합니다."),
+    REPORT_PROMPT_MISSING("RP00407", HttpStatus.BAD_REQUEST, "프롬프트 신고는 prompt가 필수입니다."),
+    REPORT_COMMENT_MISSING("RP00408", HttpStatus.BAD_REQUEST, "댓글 신고는 comment가 필수입니다."),
 
     ;
     private final String code;
