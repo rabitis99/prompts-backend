@@ -15,13 +15,19 @@ import org.example.sharedprompts.global.entity.BaseEntity;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "reports", indexes = {
-        @Index(name = "idx_report_prompt_reporter", columnList = "prompt_id,reporter_id"),
-        @Index(name = "idx_report_comment_reporter", columnList = "comment_id,reporter_id"),
-        @Index(name = "idx_report_status", columnList = "status"),
-        @Index(name = "idx_report_type", columnList = "report_type"),
-        @Index(name = "idx_report_created_at", columnList = "created_at")
-})
+@Table(
+        name = "reports",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_report_prompt_reporter",
+                        columnNames = {"prompt_id", "reporter_id"}
+                ),
+                @UniqueConstraint(
+                        name = "uk_report_comment_reporter",
+                        columnNames = {"comment_id", "reporter_id"}
+                )
+        }
+)
 public class Report extends BaseEntity {
 
     @Id
@@ -68,10 +74,8 @@ public class Report extends BaseEntity {
      * @param status 새로운 상태
      * @param processor 처리자 (관리자)
      * @param processComment 처리 코멘트
-     * @throws IllegalStateException 이미 최종 처리된 신고인 경우
      */
     public void updateStatus(ReportStatus status, User processor, String processComment) {
-        validateStatusChange(status);
         this.status = status;
         this.processor = processor;
         this.processComment = processComment;
@@ -80,21 +84,17 @@ public class Report extends BaseEntity {
     /**
      * 신고 상태 업데이트 (처리자 없이)
      * @param status 새로운 상태
-     * @throws IllegalStateException 이미 최종 처리된 신고인 경우
      */
     public void updateStatus(ReportStatus status) {
-        validateStatusChange(status);
         this.status = status;
     }
 
     /**
-     * 상태 변경 검증
-     * 이미 최종 처리된 신고(RESOLVED, REJECTED)는 다시 변경할 수 없음
+     * 상태 변경 가능 여부 확인
+     * @return 이미 최종 처리된 신고(RESOLVED, REJECTED)인 경우 false
      */
-    private void validateStatusChange(ReportStatus newStatus) {
-        if (this.status == ReportStatus.RESOLVED || this.status == ReportStatus.REJECTED) {
-            throw new IllegalStateException("이미 최종 처리된 신고는 상태를 변경할 수 없습니다.");
-        }
+    public boolean canChangeStatus() {
+        return this.status != ReportStatus.RESOLVED && this.status != ReportStatus.REJECTED;
     }
 
     /**
@@ -123,5 +123,6 @@ public class Report extends BaseEntity {
     public boolean isCommentReport() {
         return reportType == ReportType.COMMENT && comment != null;
     }
+
 }
 

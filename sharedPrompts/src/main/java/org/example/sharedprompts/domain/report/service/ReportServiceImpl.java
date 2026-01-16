@@ -46,6 +46,9 @@ public class ReportServiceImpl implements ReportService {
         // 중복 신고 체크 (같은 사용자가 같은 타겟을 이미 신고한 경우)
         checkDuplicateReport(targetEntity, reporter);
 
+        // 신고 대상 검증 (reportType과 prompt/comment 일치 여부)
+        validateReportTarget(requestDto.getReportType(), targetEntity);
+
         Report report = requestDto.toEntity(targetEntity.prompt, targetEntity.comment, reporter);
         Report savedReport = reportRepository.save(report);
         return ReportResponseDto.from(savedReport);
@@ -94,6 +97,30 @@ public class ReportServiceImpl implements ReportService {
                     .ifPresent(report -> {
                         throw new ApiException(ErrorCode.REPORT_ALREADY_EXISTS);
                     });
+        }
+    }
+    
+    /**
+     * 신고 대상 검증
+     * reportType과 prompt/comment의 일치 여부를 검증
+     */
+    private void validateReportTarget(ReportType reportType, TargetEntity targetEntity) {
+        boolean hasPrompt = targetEntity.prompt != null;
+        boolean hasComment = targetEntity.comment != null;
+        
+        // prompt와 comment가 둘 다 있거나 둘 다 없는 경우
+        if (hasPrompt == hasComment) {
+            throw new ApiException(ErrorCode.REPORT_TARGET_CONFLICT);
+        }
+        
+        // PROMPT 타입인데 prompt가 없는 경우
+        if (reportType == ReportType.PROMPT && !hasPrompt) {
+            throw new ApiException(ErrorCode.REPORT_PROMPT_MISSING);
+        }
+        
+        // COMMENT 타입인데 comment가 없는 경우
+        if (reportType == ReportType.COMMENT && !hasComment) {
+            throw new ApiException(ErrorCode.REPORT_COMMENT_MISSING);
         }
     }
     
@@ -158,22 +185,14 @@ public class ReportServiceImpl implements ReportService {
         User admin = validateAdmin(adminId);
         Report report = getReportWithDetails(reportId);
         
-        // 이미 처리된 신고인지 확인 (Entity의 validateStatusChange와 중복이지만, 
-        // 더 명확한 에러 메시지를 위해 Service에서도 체크)
-        validateReportCanBeProcessed(report);
+        // 이미 처리된 신고인지 확인
+        if (!report.canChangeStatus()) {
+            throw new ApiException(ErrorCode.REPORT_ALREADY_PROCESSED);
+        }
 
         requestDto.applyTo(report, admin);
 
         return ReportDetailResponseDto.from(report);
-    }
-    
-    /**
-     * 신고 처리 가능 여부 검증
-     */
-    private void validateReportCanBeProcessed(Report report) {
-        if (report.getStatus() != ReportStatus.PENDING && report.getStatus() != ReportStatus.PROCESSING) {
-            throw new ApiException(ErrorCode.REPORT_ALREADY_PROCESSED);
-        }
     }
     
     /**
