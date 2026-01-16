@@ -81,6 +81,14 @@ public enum ErrorCode {
     // ==========================
     TAG_CREATION_FAILED("TG01001", HttpStatus.INTERNAL_SERVER_ERROR, "태그 생성 중 내부 오류가 발생했습니다."),
 
+    // ==========================
+    // 🔹 REPORT
+    // ==========================
+    REPORT_NOT_FOUND("RP00701", HttpStatus.NOT_FOUND, "신고를 찾을 수 없습니다."),
+    REPORT_ALREADY_EXISTS("RP00401", HttpStatus.BAD_REQUEST, "이미 신고한 콘텐츠입니다."),
+    REPORT_ALREADY_PROCESSED("RP00402", HttpStatus.BAD_REQUEST, "이미 처리된 신고입니다."),
+    CANNOT_REPORT_OWN_CONTENT("RP00403", HttpStatus.BAD_REQUEST, "자신의 콘텐츠는 신고할 수 없습니다."),
+
     ;
     private final String code;
     private final HttpStatus httpStatus;
