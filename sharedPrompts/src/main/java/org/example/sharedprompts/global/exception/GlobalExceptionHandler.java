@@ -3,6 +3,7 @@ package org.example.sharedprompts.global.exception;
 import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.response.CustomResponseHelper;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -52,19 +53,64 @@ public class GlobalExceptionHandler {
         String message = e.getMessage();
         log.warn("DataIntegrityViolationException: {}", message);
         
-        if (message == null) {
-            return CustomResponseHelper.fail(new ApiException(ErrorCode.DATA_INTEGRITY_VIOLATION));
+        // ConstraintViolationException의 constraint name을 기준으로 매핑 (더 안정적)
+        Throwable cause = e.getCause();
+        if (cause instanceof ConstraintViolationException cve) {
+            String constraintName = cve.getConstraintName();
+            if (constraintName != null) {
+                ErrorCode errorCode = mapToDomainErrorCodeByConstraint(constraintName);
+                return CustomResponseHelper.fail(new ApiException(errorCode));
+            }
         }
         
-        // 도메인별 UNIQUE 제약 조건 위반 매핑
-        ErrorCode errorCode = mapToDomainErrorCode(message);
-        return CustomResponseHelper.fail(new ApiException(errorCode));
+        // constraint name을 찾을 수 없는 경우 메시지 기반 매핑 (fallback)
+        if (message != null) {
+            ErrorCode errorCode = mapToDomainErrorCodeByMessage(message);
+            return CustomResponseHelper.fail(new ApiException(errorCode));
+        }
+        
+        return CustomResponseHelper.fail(new ApiException(ErrorCode.DATA_INTEGRITY_VIOLATION));
     }
     
     /**
-     * 제약 조건 위반 메시지를 도메인별 ErrorCode로 매핑
+     * 제약 조건 이름을 기준으로 도메인별 ErrorCode로 매핑 (권장 방식)
      */
-    private ErrorCode mapToDomainErrorCode(String message) {
+    private ErrorCode mapToDomainErrorCodeByConstraint(String constraintName) {
+        // 신고 중복 제약 조건 위반
+        if ("uk_report_prompt_reporter".equalsIgnoreCase(constraintName) || 
+            "uk_report_comment_reporter".equalsIgnoreCase(constraintName)) {
+            return ErrorCode.REPORT_ALREADY_EXISTS;
+        }
+        
+        // 사용자 중복 제약 조건 위반 (provider, providerId)
+        // User 엔티티에 명시적 constraint name이 없어 Hibernate가 자동 생성하므로
+        // constraint name에 provider와 providerId가 포함된 경우로 판단
+        if (constraintName != null) {
+            String lowerConstraintName = constraintName.toLowerCase();
+            if ((lowerConstraintName.contains("provider") && lowerConstraintName.contains("providerid")) ||
+                lowerConstraintName.contains("users_provider_providerid")) {
+                return ErrorCode.CONFLICT_EMAIL;
+            }
+        }
+        
+        // 태그 이름 중복 제약 조건 위반
+        if ("uk_tag_name".equalsIgnoreCase(constraintName)) {
+            return ErrorCode.DATA_INTEGRITY_VIOLATION; // 또는 TAG_ALREADY_EXISTS ErrorCode 추가 가능
+        }
+        
+        // 프롬프트-태그 중복 제약 조건 위반
+        if ("uk_prompt_tag".equalsIgnoreCase(constraintName)) {
+            return ErrorCode.DATA_INTEGRITY_VIOLATION; // 또는 PROMPT_TAG_ALREADY_EXISTS ErrorCode 추가 가능
+        }
+        
+        // 기타 제약 조건 위반
+        return ErrorCode.DATA_INTEGRITY_VIOLATION;
+    }
+    
+    /**
+     * 제약 조건 위반 메시지를 도메인별 ErrorCode로 매핑 (fallback)
+     */
+    private ErrorCode mapToDomainErrorCodeByMessage(String message) {
         // 신고 중복 제약 조건 위반
         if (message.contains("uk_report_prompt_reporter") || 
             message.contains("uk_report_comment_reporter") ||
@@ -75,7 +121,7 @@ public class GlobalExceptionHandler {
         
         // 사용자 중복 제약 조건 위반 (provider, providerId)
         if (message.contains("provider") && message.contains("providerId")) {
-            return ErrorCode.CONFLICT_EMAIL; // 또는 새로운 USER_ALREADY_EXISTS ErrorCode 추가 가능
+            return ErrorCode.CONFLICT_EMAIL;
         }
         
         // 태그 이름 중복 제약 조건 위반

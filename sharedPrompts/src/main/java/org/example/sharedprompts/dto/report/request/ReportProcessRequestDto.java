@@ -1,5 +1,6 @@
 package org.example.sharedprompts.dto.report.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -21,6 +22,7 @@ public class ReportProcessRequestDto {
     private ReportStatus status;
 
     @Size(max = 1000, message = "처리 코멘트는 최대 1000자까지 입력 가능합니다.")
+    @JsonProperty("process_comment")
     private String processComment; // 처리 코멘트 (선택)
 
     /**

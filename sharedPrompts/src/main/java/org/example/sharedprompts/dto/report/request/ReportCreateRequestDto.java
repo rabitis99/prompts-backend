@@ -1,5 +1,6 @@
 package org.example.sharedprompts.dto.report.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -24,10 +25,12 @@ import org.example.sharedprompts.global.exception.ErrorCode;
 public class ReportCreateRequestDto {
 
     @NotNull(message = "신고 타입은 필수입니다.")
+    @JsonProperty("report_type")
     private ReportType reportType;
 
     @NotNull(message = "신고 대상 ID는 필수입니다.")
     @Positive(message = "신고 대상 ID는 양수여야 합니다.")
+    @JsonProperty("target_id")
     private Long targetId;
 
     @NotNull(message = "신고 사유는 필수입니다.")

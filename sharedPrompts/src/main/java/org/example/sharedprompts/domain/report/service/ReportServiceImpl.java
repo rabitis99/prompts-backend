@@ -42,12 +42,13 @@ public class ReportServiceImpl implements ReportService {
         
         // 자기 자신의 콘텐츠 신고 방지
         validateNotSelfReport(targetEntity, reporter);
-        
-        // 중복 신고 체크 (같은 사용자가 같은 타겟을 이미 신고한 경우)
-        checkDuplicateReport(targetEntity, reporter);
 
         // 신고 대상 검증 (reportType과 prompt/comment 일치 여부)
         validateReportTarget(requestDto.getReportType(), targetEntity);
+        
+        // 중복 신고는 DB 레벨 UNIQUE 제약 조건으로 처리
+        // (uk_report_prompt_reporter, uk_report_comment_reporter)
+        // DataIntegrityViolationException이 발생하면 GlobalExceptionHandler에서 REPORT_ALREADY_EXISTS로 매핑
 
         Report report = requestDto.toEntity(targetEntity.prompt, targetEntity.comment, reporter);
         Report savedReport = reportRepository.save(report);
@@ -80,23 +81,6 @@ public class ReportServiceImpl implements ReportService {
         }
         if (targetEntity.comment != null && targetEntity.comment.getUser().getId().equals(reporter.getId())) {
             throw new ApiException(ErrorCode.CANNOT_REPORT_OWN_CONTENT);
-        }
-    }
-    
-    /**
-     * 중복 신고 체크
-     */
-    private void checkDuplicateReport(TargetEntity targetEntity, User reporter) {
-        if (targetEntity.prompt != null) {
-            reportRepository.findByPromptAndReporter(targetEntity.prompt, reporter)
-                    .ifPresent(report -> {
-                        throw new ApiException(ErrorCode.REPORT_ALREADY_EXISTS);
-                    });
-        } else if (targetEntity.comment != null) {
-            reportRepository.findByCommentAndReporter(targetEntity.comment, reporter)
-                    .ifPresent(report -> {
-                        throw new ApiException(ErrorCode.REPORT_ALREADY_EXISTS);
-                    });
         }
     }
     
