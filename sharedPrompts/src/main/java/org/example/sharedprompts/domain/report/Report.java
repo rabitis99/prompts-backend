@@ -69,6 +69,9 @@ public class Report extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String processComment; // 처리 코멘트
 
+    @Version
+    private Long version; // 낙관적 락을 위한 버전 필드
+
     /**
      * 신고 상태 업데이트 (처리자 포함)
      * @param status 새로운 상태

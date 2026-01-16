@@ -27,6 +27,7 @@ public interface ReportRepository extends JpaRepository<Report, Long>, CustomRep
     List<Report> findByComment(Comment comment);
 
     // 신고 상세 조회 (fetch join으로 N+1 문제 방지)
+    // 낙관적 락(@Version)을 사용하여 동시성 문제 방지
     @Query("""
         SELECT DISTINCT r FROM Report r
         LEFT JOIN FETCH r.reporter

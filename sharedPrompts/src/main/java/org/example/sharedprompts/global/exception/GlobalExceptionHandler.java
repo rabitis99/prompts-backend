@@ -3,6 +3,7 @@ package org.example.sharedprompts.global.exception;
 import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.response.CustomResponseHelper;
+import jakarta.persistence.OptimisticLockException;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
@@ -47,20 +48,28 @@ public class GlobalExceptionHandler {
         return CustomResponseHelper.fail(new ApiException(ErrorCode.UNAUTHORIZED));
     }
 
+    // 낙관적 락 예외 처리 (동시 수정 감지)
+    @ExceptionHandler(OptimisticLockException.class)
+    public ResponseEntity<?> handleOptimisticLockException(OptimisticLockException e) {
+        log.warn("OptimisticLockException: 동시 수정이 감지되었습니다. (entity={})", e.getEntity());
+        return CustomResponseHelper.fail(new ApiException(ErrorCode.REPORT_ALREADY_PROCESSED));
+    }
+
     // DB 제약 조건 위반 예외 처리 (UNIQUE 제약 등)
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<?> handleDataIntegrityViolation(DataIntegrityViolationException e) {
         String message = e.getMessage();
-        log.warn("DataIntegrityViolationException: {}", message);
-        
-        // ConstraintViolationException의 constraint name을 기준으로 매핑 (더 안정적)
+        String constraintName = null;
         Throwable cause = e.getCause();
         if (cause instanceof ConstraintViolationException cve) {
-            String constraintName = cve.getConstraintName();
-            if (constraintName != null) {
-                ErrorCode errorCode = mapToDomainErrorCodeByConstraint(constraintName);
-                return CustomResponseHelper.fail(new ApiException(errorCode));
-            }
+            constraintName = cve.getConstraintName();
+        }
+        log.warn("DataIntegrityViolationException (constraint={})", constraintName);
+        
+        // ConstraintViolationException의 constraint name을 기준으로 매핑 (더 안정적)
+        if (constraintName != null) {
+            ErrorCode errorCode = mapToDomainErrorCodeByConstraint(constraintName);
+            return CustomResponseHelper.fail(new ApiException(errorCode));
         }
         
         // constraint name을 찾을 수 없는 경우 메시지 기반 매핑 (fallback)
@@ -111,26 +120,27 @@ public class GlobalExceptionHandler {
      * 제약 조건 위반 메시지를 도메인별 ErrorCode로 매핑 (fallback)
      */
     private ErrorCode mapToDomainErrorCodeByMessage(String message) {
+        String lower = message.toLowerCase();
         // 신고 중복 제약 조건 위반
-        if (message.contains("uk_report_prompt_reporter") || 
-            message.contains("uk_report_comment_reporter") ||
-            (message.contains("reporter_id") && message.contains("prompt_id")) ||
-            (message.contains("reporter_id") && message.contains("comment_id"))) {
+        if (lower.contains("uk_report_prompt_reporter") || 
+            lower.contains("uk_report_comment_reporter") ||
+            (lower.contains("reporter_id") && lower.contains("prompt_id")) ||
+            (lower.contains("reporter_id") && lower.contains("comment_id"))) {
             return ErrorCode.REPORT_ALREADY_EXISTS;
         }
         
         // 사용자 중복 제약 조건 위반 (provider, providerId)
-        if (message.contains("provider") && message.contains("providerId")) {
+        if (lower.contains("provider") && (lower.contains("providerid") || lower.contains("provider_id"))) {
             return ErrorCode.CONFLICT_EMAIL;
         }
         
         // 태그 이름 중복 제약 조건 위반
-        if (message.contains("uk_tag_name") || (message.contains("tags") && message.contains("name"))) {
+        if (lower.contains("uk_tag_name") || (lower.contains("tags") && lower.contains("name"))) {
             return ErrorCode.DATA_INTEGRITY_VIOLATION; // 또는 TAG_ALREADY_EXISTS ErrorCode 추가 가능
         }
         
         // 프롬프트-태그 중복 제약 조건 위반
-        if (message.contains("prompt_id") && message.contains("tag_id")) {
+        if (lower.contains("prompt_id") && lower.contains("tag_id")) {
             return ErrorCode.DATA_INTEGRITY_VIOLATION; // 또는 PROMPT_TAG_ALREADY_EXISTS ErrorCode 추가 가능
         }
         
