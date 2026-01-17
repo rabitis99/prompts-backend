@@ -86,15 +86,17 @@ public class NotificationSseService {
         // 연결 완료 콜백
         emitter.onCompletion(() -> {
             log.debug("SSE connection completed for user: {}", userId);
-            emitters.remove(userId);
-            redisTemplate.delete(SSE_CONNECTION_PREFIX + userId);
+            if (emitters.remove(userId, emitter)) {
+                redisTemplate.delete(SSE_CONNECTION_PREFIX + userId);
+            }
         });
 
         // 타임아웃 콜백
         emitter.onTimeout(() -> {
             log.debug("SSE connection timeout for user: {}", userId);
-            emitters.remove(userId);
-            redisTemplate.delete(SSE_CONNECTION_PREFIX + userId);
+            if (emitters.remove(userId, emitter)) {
+                redisTemplate.delete(SSE_CONNECTION_PREFIX + userId);
+            }
             try {
                 emitter.complete();
             } catch (Exception e) {
@@ -105,8 +107,9 @@ public class NotificationSseService {
         // 에러 콜백
         emitter.onError((ex) -> {
             log.error("SSE connection error for user {}: {}", userId, ex.getMessage(), ex);
-            emitters.remove(userId);
-            redisTemplate.delete(SSE_CONNECTION_PREFIX + userId);
+            if (emitters.remove(userId, emitter)) {
+                redisTemplate.delete(SSE_CONNECTION_PREFIX + userId);
+            }
             try {
                 emitter.completeWithError(ex);
             } catch (Exception e) {
@@ -127,8 +130,14 @@ public class NotificationSseService {
                     .data("알림 구독이 시작되었습니다."));
         } catch (IOException e) {
             log.error("Failed to send initial SSE message to user {}: {}", userId, e.getMessage(), e);
-            emitters.remove(userId);
-            redisTemplate.delete(connectionKey);
+            if (emitters.remove(userId, emitter)) {
+                redisTemplate.delete(connectionKey);
+            }
+            try {
+                emitter.completeWithError(e);
+            } catch (Exception ex) {
+                log.warn("Failed to complete emitter with error: {}", ex.getMessage());
+            }
             return emitter;
         }
 
@@ -152,8 +161,9 @@ public class NotificationSseService {
                 log.debug("Notification sent to user {}: {}", userId, notification.getId());
             } catch (IOException e) {
                 log.error("Failed to send notification to user {}: {}", userId, e.getMessage(), e);
-                emitters.remove(userId);
-                redisTemplate.delete(SSE_CONNECTION_PREFIX + userId);
+                if (emitters.remove(userId, emitter)) {
+                    redisTemplate.delete(SSE_CONNECTION_PREFIX + userId);
+                }
                 try {
                     emitter.completeWithError(e);
                 } catch (Exception ex) {
@@ -178,8 +188,8 @@ public class NotificationSseService {
      * @param userId 사용자 ID
      */
     public void disconnect(Long userId) {
-        SseEmitter emitter = emitters.remove(userId);
-        if (emitter != null) {
+        SseEmitter emitter = emitters.get(userId);
+        if (emitter != null && emitters.remove(userId, emitter)) {
             try {
                 emitter.complete();
                 redisTemplate.delete(SSE_CONNECTION_PREFIX + userId);

@@ -31,6 +31,12 @@ public class RabbitMQConfig {
     // Dead Letter Queue 이름
     public static final String NOTIFICATION_DLQ = "notification.dlq";
 
+    // Publish Failure Queue 이름 (발행 실패 시 메시지 보존)
+    public static final String NOTIFICATION_PUBLISH_FAILURE_QUEUE = "notification.publish.failure.queue";
+
+    // Publish Failure Exchange 이름
+    public static final String NOTIFICATION_PUBLISH_FAILURE_EXCHANGE = "notification.publish.failure.exchange";
+
     /**
      * Topic Exchange 생성
      * - 알림 메시지를 라우팅하기 위한 Exchange
@@ -67,6 +73,36 @@ public class RabbitMQConfig {
                 .bind(notificationDlq())
                 .to(notificationDlx())
                 .with(NOTIFICATION_DLQ);
+    }
+
+    /**
+     * Publish Failure Exchange 생성
+     * - 발행 실패한 메시지를 보존하기 위한 Exchange
+     */
+    @Bean
+    public DirectExchange notificationPublishFailureExchange() {
+        return new DirectExchange(NOTIFICATION_PUBLISH_FAILURE_EXCHANGE, true, false);
+    }
+
+    /**
+     * Publish Failure Queue 생성
+     * - 발행 실패한 메시지를 저장하는 Queue
+     * - 나중에 재시도하거나 분석할 수 있도록 보존
+     */
+    @Bean
+    public Queue notificationPublishFailureQueue() {
+        return QueueBuilder.durable(NOTIFICATION_PUBLISH_FAILURE_QUEUE).build();
+    }
+
+    /**
+     * Publish Failure Queue Binding
+     */
+    @Bean
+    public Binding notificationPublishFailureQueueBinding() {
+        return BindingBuilder
+                .bind(notificationPublishFailureQueue())
+                .to(notificationPublishFailureExchange())
+                .with(NOTIFICATION_PUBLISH_FAILURE_QUEUE);
     }
 
     /**
@@ -128,6 +164,7 @@ public class RabbitMQConfig {
         factory.setMessageConverter(jsonMessageConverter());
         factory.setConcurrentConsumers(3);
         factory.setMaxConcurrentConsumers(10);
+        factory.setDefaultRequeueRejected(false);
         return factory;
     }
 }

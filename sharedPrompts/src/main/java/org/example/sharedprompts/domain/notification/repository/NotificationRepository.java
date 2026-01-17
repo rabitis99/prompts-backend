@@ -9,7 +9,9 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
@@ -26,7 +28,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     /**
      * 사용자의 모든 알림을 읽음 처리
      */
-    @Modifying(clearAutomatically = false)
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Notification n SET n.isRead = true WHERE n.user = :user AND n.isRead = false")
     int markAllAsReadByUser(@Param("user") User user);
 
@@ -53,6 +55,11 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
                                      @Param("type") org.example.sharedprompts.domain.notification.enums.NotificationType type,
                                      @Param("relatedEntityId") Long relatedEntityId,
                                      @Param("since") java.time.LocalDateTime since);
+
+    /**
+     * 그룹 키와 읽지 않은 알림 중 특정 시간 이후 생성된 가장 최근 알림 조회
+     */
+    Optional<Notification> findFirstByGroupKeyAndIsReadFalseAndCreatedAtAfterOrderByCreatedAtDesc(String groupKey, LocalDateTime createdAt);
 
     /**
      * 사용자의 읽은 알림 중 오래된 알림 삭제

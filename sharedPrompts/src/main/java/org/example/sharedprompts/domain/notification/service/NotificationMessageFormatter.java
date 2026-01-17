@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.notification.service;
 import org.example.sharedprompts.domain.user.User;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -10,6 +11,7 @@ import java.util.function.Function;
  * 알림 메시지 포맷팅 서비스
  * - 알림 타입별 메시지 템플릿 관리
  * - 템플릿을 Map으로 관리하여 중앙화
+ * - 동적 추가 가능: 런타임에 새로운 템플릿 등록 지원
  */
 @Component
 public class NotificationMessageFormatter {
@@ -17,13 +19,31 @@ public class NotificationMessageFormatter {
     /**
      * 메시지 템플릿 맵
      * - 알림 타입별 포맷팅 함수를 저장
+     * - 동적 추가 가능한 mutable Map 사용
      */
-    private final Map<String, Function<User, String>> messageTemplates = Map.of(
-            "comment", this::formatCommentMessage,
-            "reply", this::formatReplyMessage,
-            "prompt_like", this::formatPromptLikeMessage,
-            "comment_like", this::formatCommentLikeMessage
-    );
+    private final Map<String, Function<User, String>> messageTemplates = new HashMap<>();
+
+    /**
+     * 기본 템플릿 초기화
+     * - 기본 알림 타입들의 템플릿을 등록
+     */
+    public NotificationMessageFormatter() {
+        registerTemplate("comment", this::formatCommentMessage);
+        registerTemplate("reply", this::formatReplyMessage);
+        registerTemplate("prompt_like", this::formatPromptLikeMessage);
+        registerTemplate("comment_like", this::formatCommentLikeMessage);
+    }
+
+    /**
+     * 템플릿 등록
+     * - 런타임에 새로운 포맷팅 템플릿을 동적으로 추가
+     *
+     * @param templateKey 템플릿 키
+     * @param formatter 포맷팅 함수
+     */
+    public void registerTemplate(String templateKey, Function<User, String> formatter) {
+        messageTemplates.put(templateKey, formatter);
+    }
 
     /**
      * 댓글 알림 메시지 생성
