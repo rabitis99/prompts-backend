@@ -1,6 +1,7 @@
 package org.example.sharedprompts.domain.statistics.service;
 
 import org.example.sharedprompts.dto.statistics.response.AiCallStatisticsResponseDto;
+import org.example.sharedprompts.dto.statistics.response.MyStatisticsResponseDto;
 import org.example.sharedprompts.dto.statistics.response.PromptStatisticsResponseDto;
 import org.example.sharedprompts.dto.statistics.response.StatisticsResponseDto;
 import org.example.sharedprompts.dto.statistics.response.UserStatisticsResponseDto;
@@ -45,4 +46,12 @@ public interface StatisticsService {
      * @return 통합 통계 응답 DTO
      */
     StatisticsResponseDto getAllStatisticsWithoutCache();
+
+    /**
+     * 내 통계 조회
+     *
+     * @param userId 사용자 ID
+     * @return 개인 통계 응답 DTO
+     */
+    MyStatisticsResponseDto getMyStatistics(Long userId);
 }

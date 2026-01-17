@@ -42,7 +42,7 @@ public class CacheConfig {
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory, ObjectMapper objectMapper) {
         // 도메인 DTO, java.time, 컬렉션 인터페이스만 허용하는 보안 강화된 타입 검증자
         BasicPolymorphicTypeValidator validator = BasicPolymorphicTypeValidator.builder()
-                // 통계 관련 DTO 패키지만 허용 (StatisticsResponseDto, UserStatisticsResponseDto 등)
+                // 통계 관련 DTO 패키지만 허용 (StatisticsResponseDto, UserStatisticsResponseDto, MyStatisticsResponseDto 등)
                 .allowIfSubType("org.example.sharedprompts.dto.statistics.response")
                 // 알림 관련 DTO 패키지만 허용 (NotificationSummaryDto)
                 .allowIfSubType("org.example.sharedprompts.dto.notification.response")
