@@ -37,4 +37,12 @@ public interface StatisticsService {
      * @return AI 호출 통계 응답 DTO
      */
     AiCallStatisticsResponseDto getAiCallStatistics();
+
+    /**
+     * 캐시를 사용하지 않고 전체 통계 조회 (캐시 갱신용)
+     * 데이터 검증 후 캐시 갱신 시 사용
+     *
+     * @return 통합 통계 응답 DTO
+     */
+    StatisticsResponseDto getAllStatisticsWithoutCache();
 }

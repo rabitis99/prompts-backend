@@ -37,5 +37,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
         GROUP BY DATE(created_at)
         ORDER BY date ASC
         """, nativeQuery = true)
-    List<Object[]> countDailyNewUsersLast30Days();
+    List<DailyUserCountProjection> countDailyNewUsersLast30Days();
 }

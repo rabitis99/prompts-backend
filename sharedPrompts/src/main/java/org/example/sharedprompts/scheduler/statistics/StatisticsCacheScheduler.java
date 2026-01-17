@@ -31,27 +31,22 @@ public class StatisticsCacheScheduler {
         log.info("StatisticsCacheScheduler started - refreshing statistics cache");
 
         try {
-            // 통계 조회로 데이터 수집 (실패 시 기존 캐시 유지)
-            statisticsService.getAllStatistics();
-            statisticsService.getUserStatistics();
-            statisticsService.getPromptStatistics();
-            statisticsService.getAiCallStatistics();
+            // 캐시를 사용하지 않고 데이터 조회 (실패 시 기존 캐시 유지)
+            statisticsService.getAllStatisticsWithoutCache();
+            log.debug("Statistics data validation completed successfully");
 
-            // 모든 수집이 성공한 경우에만 캐시 초기화 후 재적재하여 최신 데이터 보장
+            // 데이터 조회가 성공한 경우에만 캐시 초기화 후 재적재
             if (cacheManager.getCache(CACHE_NAME) != null) {
                 cacheManager.getCache(CACHE_NAME).clear();
-                log.debug("Statistics cache cleared after successful data collection");
+                log.debug("Statistics cache cleared after successful data validation");
 
-                // 캐시 재생성 (이미 수집한 데이터를 다시 캐시에 저장)
+                // 캐시 재생성 (getAllStatistics가 내부적으로 모든 통계를 조회)
                 statisticsService.getAllStatistics();
-                statisticsService.getUserStatistics();
-                statisticsService.getPromptStatistics();
-                statisticsService.getAiCallStatistics();
-            }
 
-            log.info("StatisticsCacheScheduler finished - cache refreshed successfully");
+                log.info("StatisticsCacheScheduler finished - cache refreshed successfully");
+            }
         } catch (Exception e) {
-            log.error("Failed to refresh statistics cache", e);
+            log.error("Failed to refresh statistics cache - keeping existing cache", e);
         }
     }
 }

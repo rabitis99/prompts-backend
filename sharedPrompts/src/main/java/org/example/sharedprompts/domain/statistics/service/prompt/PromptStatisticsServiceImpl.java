@@ -3,7 +3,6 @@ package org.example.sharedprompts.domain.statistics.service.prompt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
-import org.example.sharedprompts.domain.statistics.util.StatisticsDateUtils;
 import org.example.sharedprompts.domain.tag.repository.TagRepository;
 import org.example.sharedprompts.dto.statistics.response.PopularTagDto;
 import org.example.sharedprompts.dto.statistics.response.PromptStatisticsResponseDto;
@@ -12,6 +11,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,24 +37,23 @@ public class PromptStatisticsServiceImpl implements PromptStatisticsService {
     public PromptStatisticsResponseDto getPromptStatistics() {
         log.debug("프롬프트 통계 조회");
 
-        StatisticsDateUtils.DateRange todayRange = StatisticsDateUtils.todayRange();
-        StatisticsDateUtils.DateRange weeklyRange = StatisticsDateUtils.lastDaysRange(7);
-        StatisticsDateUtils.DateRange monthlyRange = StatisticsDateUtils.lastDaysRange(MONTHLY_RANGE_DAYS);
+        // 단일 기준 시점 사용 (모든 통계에서 일관된 시점 보장)
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime todayStart = LocalDateTime.of(now.toLocalDate(), LocalTime.MIN);
+        LocalDateTime weekStart = now.minusDays(7);
+        LocalDateTime monthStart = now.minusDays(MONTHLY_RANGE_DAYS);
 
         // 전체 프롬프트 수
         Long totalPrompts = promptRepository.count();
 
         // 오늘 생성된 프롬프트 수
-        Long todayCreatedPrompts = promptRepository.countCreatedPromptsBetween(
-                todayRange.getStart(), todayRange.getEnd());
+        Long todayCreatedPrompts = promptRepository.countCreatedPromptsBetween(todayStart, now);
 
         // 최근 7일 생성된 프롬프트 수
-        Long weeklyCreatedPrompts = promptRepository.countCreatedPromptsBetween(
-                weeklyRange.getStart(), weeklyRange.getEnd());
+        Long weeklyCreatedPrompts = promptRepository.countCreatedPromptsBetween(weekStart, now);
 
         // 최근 30일 생성된 프롬프트 수
-        Long monthlyCreatedPrompts = promptRepository.countCreatedPromptsBetween(
-                monthlyRange.getStart(), monthlyRange.getEnd());
+        Long monthlyCreatedPrompts = promptRepository.countCreatedPromptsBetween(monthStart, now);
 
         // 전체 조회 수
         Long totalViewCount = getTotalViewCount();

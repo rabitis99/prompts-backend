@@ -68,18 +68,10 @@ public class CacheConfig {
         GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(cacheObjectMapper);
 
         // 기본 캐시 설정 (알림용)
-        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofSeconds(unreadCountTtl))
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
-                .disableCachingNullValues();
+        RedisCacheConfiguration defaultConfig = createCacheConfig(unreadCountTtl, serializer);
 
         // 통계 캐시 설정
-        RedisCacheConfiguration statisticsConfig = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofSeconds(statisticsTtl))
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
-                .disableCachingNullValues();
+        RedisCacheConfiguration statisticsConfig = createCacheConfig(statisticsTtl, serializer);
 
         // 캐시별 설정 맵
         Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
@@ -90,6 +82,21 @@ public class CacheConfig {
                 .cacheDefaults(defaultConfig)
                 .withInitialCacheConfigurations(cacheConfigurations)
                 .build();
+    }
+
+    /**
+     * Redis 캐시 설정 생성 (TTL과 직렬화 설정)
+     *
+     * @param ttlSeconds TTL (초 단위)
+     * @param serializer 값 직렬화를 위한 GenericJackson2JsonRedisSerializer
+     * @return RedisCacheConfiguration
+     */
+    private RedisCacheConfiguration createCacheConfig(long ttlSeconds, GenericJackson2JsonRedisSerializer serializer) {
+        return RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofSeconds(ttlSeconds))
+                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
+                .disableCachingNullValues();
     }
 }
 
