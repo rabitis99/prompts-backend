@@ -2,7 +2,10 @@ package org.example.sharedprompts.controller.statistics;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.statistics.service.StatisticsService;
+import org.example.sharedprompts.domain.auth.AuthUser;
+import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.dto.statistics.response.AiCallStatisticsResponseDto;
+import org.example.sharedprompts.dto.statistics.response.MyStatisticsResponseDto;
 import org.example.sharedprompts.dto.statistics.response.PromptStatisticsResponseDto;
 import org.example.sharedprompts.dto.statistics.response.StatisticsResponseDto;
 import org.example.sharedprompts.dto.statistics.response.UserStatisticsResponseDto;
@@ -56,6 +59,17 @@ public class StatisticsController {
     @GetMapping("/ai-calls")
     public ResponseEntity<CustomResponse<AiCallStatisticsResponseDto>> getAiCallStatistics() {
         AiCallStatisticsResponseDto statistics = statisticsService.getAiCallStatistics();
+        return CustomResponseHelper.ok(statistics);
+    }
+
+    /**
+     * 내 통계 조회
+     */
+    @GetMapping("/me")
+    public ResponseEntity<CustomResponse<MyStatisticsResponseDto>> getMyStatistics(
+            @CurrentUser AuthUser authUser
+    ) {
+        MyStatisticsResponseDto statistics = statisticsService.getMyStatistics(authUser.getId());
         return CustomResponseHelper.ok(statistics);
     }
 }

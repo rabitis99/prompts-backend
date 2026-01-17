@@ -5,7 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.statistics.service.aicall.AiCallStatisticsService;
 import org.example.sharedprompts.domain.statistics.service.prompt.PromptStatisticsService;
 import org.example.sharedprompts.domain.statistics.service.user.UserStatisticsService;
+import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
+import org.example.sharedprompts.domain.prompt.repository.UserStatisticsProjection;
 import org.example.sharedprompts.dto.statistics.response.AiCallStatisticsResponseDto;
+import org.example.sharedprompts.dto.statistics.response.MyStatisticsResponseDto;
 import org.example.sharedprompts.dto.statistics.response.PromptStatisticsResponseDto;
 import org.example.sharedprompts.dto.statistics.response.StatisticsResponseDto;
 import org.example.sharedprompts.dto.statistics.response.UserStatisticsResponseDto;
@@ -30,6 +33,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final UserStatisticsService userStatisticsService;
     private final PromptStatisticsService promptStatisticsService;
     private final AiCallStatisticsService aiCallStatisticsService;
+    private final PromptRepository promptRepository;
     private final CacheManager cacheManager;
 
     @Override
@@ -97,6 +101,31 @@ public class StatisticsServiceImpl implements StatisticsService {
                 .userStatistics(userStatisticsService.getUserStatistics())
                 .promptStatistics(promptStatisticsService.getPromptStatistics())
                 .aiCallStatistics(aiCallStatisticsService.getAiCallStatistics())
+                .build();
+    }
+
+    @Override
+    @Cacheable(value = CACHE_NAME, key = "'my:' + #userId.toString()", unless = "#result == null")
+    public MyStatisticsResponseDto getMyStatistics(Long userId) {
+        log.debug("개인 통계 조회: userId={}", userId);
+        
+        // 단일 쿼리로 사용자 통계 조회 (성능 최적화)
+        // SUM은 결과가 없거나 null인 경우 null을 반환할 수 있으므로 Java에서 처리
+        UserStatisticsProjection statistics = promptRepository.getUserStatisticsByUserId(userId);
+        
+        Long myPromptsCount = 0L;
+        Long totalLikesReceived = 0L;
+        
+        if (statistics != null) {
+            // COUNT는 항상 0 이상의 값을 반환하므로 null 체크는 선택적
+            myPromptsCount = statistics.getPromptCount() != null ? statistics.getPromptCount() : 0L;
+            // SUM은 null일 수 있으므로 반드시 null 체크 필요
+            totalLikesReceived = statistics.getTotalLikeCount() != null ? statistics.getTotalLikeCount() : 0L;
+        }
+        
+        return MyStatisticsResponseDto.builder()
+                .myPromptsCount(myPromptsCount)
+                .totalLikesReceived(totalLikesReceived)
                 .build();
     }
 }
