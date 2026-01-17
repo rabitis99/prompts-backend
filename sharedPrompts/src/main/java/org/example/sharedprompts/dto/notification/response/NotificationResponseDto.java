@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.example.sharedprompts.domain.notification.Notification;
 import org.example.sharedprompts.domain.notification.enums.NotificationType;
+import org.example.sharedprompts.domain.notification.enums.RelatedEntityType;
 
 import java.time.LocalDateTime;
 
@@ -18,6 +19,9 @@ public class NotificationResponseDto {
 
     @JsonProperty("type")
     private NotificationType type;
+
+    @JsonProperty("related_entity_type")
+    private RelatedEntityType relatedEntityType;
 
     @JsonProperty("related_entity_id")
     private Long relatedEntityId;
@@ -37,6 +41,7 @@ public class NotificationResponseDto {
         return NotificationResponseDto.builder()
                 .id(notification.getId())
                 .type(notification.getType())
+                .relatedEntityType(notification.getRelatedEntityType())
                 .relatedEntityId(notification.getRelatedEntityId())
                 .actorId(notification.getActorId())
                 .message(notification.getMessage())

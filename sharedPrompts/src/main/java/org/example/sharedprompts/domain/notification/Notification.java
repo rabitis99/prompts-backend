@@ -5,6 +5,7 @@ import lombok.*;
 import org.example.sharedprompts.domain.notification.enums.NotificationCategory;
 import org.example.sharedprompts.domain.notification.enums.NotificationPriority;
 import org.example.sharedprompts.domain.notification.enums.NotificationType;
+import org.example.sharedprompts.domain.notification.enums.RelatedEntityType;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.global.entity.BaseEntity;
 
@@ -32,6 +33,10 @@ public class Notification extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private NotificationType type;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private RelatedEntityType relatedEntityType; // 관련 엔티티 타입 (PROMPT, COMMENT)
 
     @Column(nullable = false)
     private Long relatedEntityId; // 프롬프트 ID 또는 댓글 ID

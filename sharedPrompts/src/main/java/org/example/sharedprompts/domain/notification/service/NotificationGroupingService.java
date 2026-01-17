@@ -37,11 +37,8 @@ public class NotificationGroupingService {
     public Optional<Notification> findExistingGroupNotification(String groupKey, int windowMinutes) {
         LocalDateTime since = LocalDateTime.now().minusMinutes(windowMinutes);
         
-        return notificationRepository.findAll().stream()
-                .filter(n -> groupKey.equals(n.getGroupKey()))
-                .filter(n -> !n.isRead())
-                .filter(n -> n.getCreatedAt().isAfter(since))
-                .findFirst();
+        return notificationRepository
+                .findFirstByGroupKeyAndIsReadFalseAndCreatedAtAfterOrderByCreatedAtDesc(groupKey, since);
     }
 
     /**
