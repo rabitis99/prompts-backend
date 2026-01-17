@@ -1,6 +1,7 @@
 package org.example.sharedprompts.domain.notification.event;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.notification.metrics.NotificationMetrics;
 import org.example.sharedprompts.domain.notification.service.NotificationSseService;
 import org.example.sharedprompts.dto.notification.response.NotificationResponseDto;
@@ -15,6 +16,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationSseEventListener {
 
     private final NotificationSseService sseService;
@@ -33,6 +35,8 @@ public class NotificationSseEventListener {
             metrics.recordSseSent(event.notification().getType().name());
         } catch (Exception e) {
             metrics.recordSseFailed(event.notification().getType().name());
+            log.warn("SSE 전송 실패: notificationId={}, type={}",
+                    event.notification().getId(), event.notification().getType(), e);
         }
     }
 }

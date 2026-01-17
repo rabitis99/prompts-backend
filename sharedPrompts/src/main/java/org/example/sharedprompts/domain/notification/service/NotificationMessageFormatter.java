@@ -9,7 +9,7 @@ import java.util.function.Function;
 /**
  * 알림 메시지 포맷팅 서비스
  * - 알림 타입별 메시지 템플릿 관리
- * - 확장 가능한 구조: 템플릿을 Map으로 관리하여 동적 추가 가능
+ * - 템플릿을 Map으로 관리하여 중앙화
  */
 @Component
 public class NotificationMessageFormatter {
@@ -55,7 +55,7 @@ public class NotificationMessageFormatter {
 
     /**
      * 템플릿 키로 메시지 포맷팅
-     * - 확장 가능한 구조: 새로운 템플릿을 추가할 때 이 메서드 사용
+     * - 템플릿 키 기반 포맷팅
      */
     public String format(String templateKey, User user) {
         Function<User, String> formatter = messageTemplates.get(templateKey);
