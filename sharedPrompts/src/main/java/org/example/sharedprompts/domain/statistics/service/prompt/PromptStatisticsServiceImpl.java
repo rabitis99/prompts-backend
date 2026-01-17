@@ -26,6 +26,7 @@ public class PromptStatisticsServiceImpl implements PromptStatisticsService {
 
     private static final String CACHE_NAME = "statistics";
     private static final int POPULAR_TAG_LIMIT = 10;
+    private static final int MONTHLY_RANGE_DAYS = 30;
 
     private final PromptRepository promptRepository;
     private final TagRepository tagRepository;
@@ -37,7 +38,7 @@ public class PromptStatisticsServiceImpl implements PromptStatisticsService {
 
         StatisticsDateUtils.DateRange todayRange = StatisticsDateUtils.todayRange();
         StatisticsDateUtils.DateRange weeklyRange = StatisticsDateUtils.lastDaysRange(7);
-        StatisticsDateUtils.DateRange monthlyRange = StatisticsDateUtils.lastDaysRange(30);
+        StatisticsDateUtils.DateRange monthlyRange = StatisticsDateUtils.lastDaysRange(MONTHLY_RANGE_DAYS);
 
         // 전체 프롬프트 수
         Long totalPrompts = promptRepository.count();

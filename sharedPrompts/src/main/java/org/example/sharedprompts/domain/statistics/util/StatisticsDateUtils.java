@@ -39,7 +39,7 @@ public class StatisticsDateUtils {
      */
     public static DateRange todayRange() {
         LocalDateTime now = now();
-        LocalDateTime todayStart = todayStart();
+        LocalDateTime todayStart = LocalDateTime.of(now.toLocalDate(), LocalTime.MIN);
         return new DateRange(todayStart, now);
     }
 

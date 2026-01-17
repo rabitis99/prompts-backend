@@ -31,17 +31,23 @@ public class StatisticsCacheScheduler {
         log.info("StatisticsCacheScheduler started - refreshing statistics cache");
 
         try {
-            // 캐시 초기화
-            if (cacheManager.getCache(CACHE_NAME) != null) {
-                cacheManager.getCache(CACHE_NAME).clear();
-                log.debug("Statistics cache cleared");
-            }
-
-            // 통계 조회로 캐시 재생성
+            // 통계 조회로 데이터 수집 (실패 시 기존 캐시 유지)
             statisticsService.getAllStatistics();
             statisticsService.getUserStatistics();
             statisticsService.getPromptStatistics();
             statisticsService.getAiCallStatistics();
+
+            // 모든 수집이 성공한 경우에만 캐시 초기화 후 재적재하여 최신 데이터 보장
+            if (cacheManager.getCache(CACHE_NAME) != null) {
+                cacheManager.getCache(CACHE_NAME).clear();
+                log.debug("Statistics cache cleared after successful data collection");
+
+                // 캐시 재생성 (이미 수집한 데이터를 다시 캐시에 저장)
+                statisticsService.getAllStatistics();
+                statisticsService.getUserStatistics();
+                statisticsService.getPromptStatistics();
+                statisticsService.getAiCallStatistics();
+            }
 
             log.info("StatisticsCacheScheduler finished - cache refreshed successfully");
         } catch (Exception e) {

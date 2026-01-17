@@ -6,6 +6,8 @@ import org.example.sharedprompts.domain.statistics.util.StatisticsDateUtils;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.dto.statistics.response.DailyNewUsersTrendDto;
 import org.example.sharedprompts.dto.statistics.response.UserStatisticsResponseDto;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -75,7 +77,14 @@ public class UserStatisticsServiceImpl implements UserStatisticsService {
     private List<DailyNewUsersTrendDto> convertDailyNewUsersTrend(List<Object[]> results) {
         return results.stream()
                 .map(result -> {
-                    LocalDate date = ((java.sql.Date) result[0]).toLocalDate();
+                    LocalDate date;
+                    if (result[0] instanceof java.sql.Date) {
+                        date = ((java.sql.Date) result[0]).toLocalDate();
+                    } else if (result[0] instanceof LocalDate) {
+                        date = (LocalDate) result[0];
+                    } else {
+                        throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
+                    }
                     Long count = ((Number) result[1]).longValue();
                     return DailyNewUsersTrendDto.builder()
                             .date(date)

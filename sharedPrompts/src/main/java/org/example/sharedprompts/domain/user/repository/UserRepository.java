@@ -28,12 +28,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Long countNewUsersBetween(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
     /**
-     * 일별 신규 가입자 수 조회 (최근 30일)
+     * 일별 신규 가입자 수 조회 (최근 30일 - 오늘 포함)
      */
     @Query(value = """
         SELECT DATE(created_at) as date, COUNT(*) as count
         FROM users
-        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
         GROUP BY DATE(created_at)
         ORDER BY date ASC
         """, nativeQuery = true)

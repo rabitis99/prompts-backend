@@ -1,7 +1,7 @@
 package org.example.sharedprompts.global.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
@@ -16,7 +16,9 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 캐시 설정
@@ -38,10 +40,28 @@ public class CacheConfig {
 
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory, ObjectMapper objectMapper) {
-        // RedisConfig와 동일하게 objectMapper를 사용하되, 타입 정보를 포함하도록 설정
+        // 도메인 DTO, java.time, 컬렉션 인터페이스만 허용하는 보안 강화된 타입 검증자
+        BasicPolymorphicTypeValidator validator = BasicPolymorphicTypeValidator.builder()
+                // 통계 관련 DTO 패키지만 허용 (StatisticsResponseDto, UserStatisticsResponseDto 등)
+                .allowIfSubType("org.example.sharedprompts.dto.statistics.response")
+                // 알림 관련 DTO 패키지만 허용 (NotificationSummaryDto)
+                .allowIfSubType("org.example.sharedprompts.dto.notification.response")
+                // java.time 패키지만 허용 (날짜/시간 타입)
+                .allowIfSubType("java.time")
+                // 컬렉션 인터페이스만 허용 (구현체는 허용하지 않음)
+                .allowIfBaseType(List.class)
+                .allowIfBaseType(Map.class)
+                .allowIfBaseType(Set.class)
+                .build();
+
         ObjectMapper cacheObjectMapper = objectMapper.copy();
+        // 다형성 타입 정보 활성화 (Redis 직렬화 시 필수)
+        // NON_FINAL: final이 아닌 타입에만 타입 정보 포함
+        // - List<DailyNewUsersTrendDto>, Map 등 컬렉션과 제네릭 타입 역직렬화에 필요
+        // - 중첩 DTO (StatisticsResponseDto 내부의 UserStatisticsResponseDto 등) 올바른 역직렬화 보장
+        // - BasicPolymorphicTypeValidator와 함께 사용하여 허용된 타입만 역직렬화
         cacheObjectMapper.activateDefaultTyping(
-                LaissezFaireSubTypeValidator.instance,
+                validator,
                 ObjectMapper.DefaultTyping.NON_FINAL
         );
 
