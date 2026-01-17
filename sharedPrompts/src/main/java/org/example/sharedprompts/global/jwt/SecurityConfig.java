@@ -3,7 +3,6 @@ package org.example.sharedprompts.global.jwt;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.global.jwt.handler.OAuth2FailureHandler;
 import org.example.sharedprompts.global.jwt.handler.OAuth2SuccessHandler;
-import org.example.sharedprompts.global.redis.TokenRedisService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,8 +20,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtProvider jwtProvider;
-    private final TokenRedisService tokenRedisService;
+    private final JwtAuthFilter jwtAuthFilter;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final OAuth2FailureHandler oAuth2FailureHandler;
     private final CustomOAuth2UserService customOAuth2UserService;
@@ -42,15 +40,6 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
-    }
-
-    /* =========================
-       JWT Filter Bean
-       ========================= */
-
-    @Bean
-    public JwtAuthFilter jwtAuthFilter() {
-        return new JwtAuthFilter(jwtProvider, tokenRedisService);
     }
 
     /* =========================
@@ -94,7 +83,7 @@ public class SecurityConfig {
 
                 // JWT 인증 필터
                 .addFilterBefore(
-                        jwtAuthFilter(),
+                        jwtAuthFilter,
                         UsernamePasswordAuthenticationFilter.class
                 );
 

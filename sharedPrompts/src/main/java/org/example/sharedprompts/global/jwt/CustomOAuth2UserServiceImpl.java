@@ -9,6 +9,7 @@ import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.jwt.oauth2userinfo.*;
+import org.example.sharedprompts.global.redis.TokenVersionCacheService;
 import org.example.sharedprompts.global.util.RandomGenerator;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -17,12 +18,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class CustomOAuth2UserServiceImpl extends DefaultOAuth2UserService implements CustomOAuth2UserService {
 
     private final UserRepository userRepository;
+    private final TokenVersionCacheService tokenVersionCacheService;
 
     @Override
     @Transactional
@@ -44,18 +47,35 @@ public class CustomOAuth2UserServiceImpl extends DefaultOAuth2UserService implem
         OAuth2UserInfo userInfo = getOAuth2UserInfo(provider, attributes);
 
         // 사용자 조회 및 신규 생성
-        User user = userRepository.findByProviderAndProviderId(provider, userInfo.getId())
-                .orElseGet(() -> userRepository.save(
-                        User.builder()
-                                .email(userInfo.getEmail())
-                                .nickname(userInfo.getNickname() != null ? userInfo.getNickname() : RandomGenerator.randomNickname())
-                                .role(Role.ROLE_USER)
-                                .provider(provider)
-                                .providerId(userInfo.getId())
-                                .terms(UserTerms.ofDefault())
-                                .signupCompleted(false)
-                                .build()
-                ));
+        Optional<User> existingUser = userRepository.findByProviderAndProviderId(provider, userInfo.getId());
+        User user;
+        
+        if (existingUser.isPresent()) {
+            user = existingUser.get();
+            // 차단된 사용자는 로그인 불가 (tokenVersion 검증으로도 처리되지만 명시적 체크)
+            if (user.isBlocked()) {
+                throw new ApiException(
+                        ErrorCode.UNAUTHORIZED,
+                        "차단된 사용자입니다."
+                );
+            }
+        } else {
+            // 신규 사용자 생성
+            user = userRepository.save(
+                    User.builder()
+                            .email(userInfo.getEmail())
+                            .nickname(userInfo.getNickname() != null ? userInfo.getNickname() : RandomGenerator.randomNickname())
+                            .role(Role.ROLE_USER)
+                            .provider(provider)
+                            .providerId(userInfo.getId())
+                            .terms(UserTerms.ofDefault())
+                            .signupCompleted(false)
+                            .build()
+            );
+            // 신규 사용자 tokenVersion 초기화
+            tokenVersionCacheService.initializeTokenVersion(user.getId());
+        }
+        
         return new PrincipalDetails(
                 user.getId(),
                 user.getNickname(),

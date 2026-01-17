@@ -79,4 +79,21 @@ public interface PromptRepository extends JpaRepository<Prompt, Long>,CustomProm
         WHERE p.user.id = :userId
         """)
     UserStatisticsProjection getUserStatisticsByUserId(@Param("userId") Long userId);
+
+    /**
+     * 제목 또는 작성자 닉네임으로 프롬프트 검색 (관리자용)
+     * 페이징 성능 최적화를 위해 2-step 쿼리 방식 사용 (CustomPromptRepository 참고)
+     */
+    @Query("""
+        SELECT DISTINCT p FROM Prompt p 
+        LEFT JOIN FETCH p.author
+        WHERE (:keyword IS NULL OR :keyword = '' OR 
+               LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR 
+               LOWER(p.author.nickname) LIKE LOWER(CONCAT('%', :keyword, '%')))
+        ORDER BY p.createdAt DESC
+        """)
+    org.springframework.data.domain.Page<Prompt> searchPrompts(
+            @Param("keyword") String keyword,
+            org.springframework.data.domain.Pageable pageable
+    );
 }

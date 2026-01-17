@@ -30,6 +30,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final TokenRedisService tokenRedisService;
+    private final org.example.sharedprompts.global.redis.TokenVersionCacheService tokenVersionCacheService;
 
     @Override
     @Transactional
@@ -42,6 +43,10 @@ public class AuthServiceImpl implements AuthService {
         String nickname = RandomGenerator.randomNickname();
 
         User user = userRepository.save(dto.toEntity(encodedPassword, nickname));
+        
+        // 회원가입 시 tokenVersion 초기화
+        tokenVersionCacheService.initializeTokenVersion(user.getId());
+        
         return AuthResponseDto.from(user);
     }
 

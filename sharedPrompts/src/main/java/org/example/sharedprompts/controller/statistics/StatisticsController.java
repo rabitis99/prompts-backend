@@ -9,6 +9,7 @@ import org.example.sharedprompts.dto.statistics.response.MyStatisticsResponseDto
 import org.example.sharedprompts.dto.statistics.response.PromptStatisticsResponseDto;
 import org.example.sharedprompts.dto.statistics.response.StatisticsResponseDto;
 import org.example.sharedprompts.dto.statistics.response.UserStatisticsResponseDto;
+import org.example.sharedprompts.global.annotation.AdminOnly;
 import org.example.sharedprompts.global.response.CustomResponse;
 import org.example.sharedprompts.global.response.CustomResponseHelper;
 import org.springframework.http.ResponseEntity;
@@ -27,8 +28,9 @@ public class StatisticsController {
     private final StatisticsService statisticsService;
 
     /**
-     * 전체 통계 조회
+     * 전체 통계 조회 (관리자 전용)
      */
+    @AdminOnly
     @GetMapping
     public ResponseEntity<CustomResponse<StatisticsResponseDto>> getAllStatistics() {
         StatisticsResponseDto statistics = statisticsService.getAllStatistics();
@@ -36,8 +38,9 @@ public class StatisticsController {
     }
 
     /**
-     * 사용자 통계 조회
+     * 사용자 통계 조회 (관리자 전용)
      */
+    @AdminOnly
     @GetMapping("/users")
     public ResponseEntity<CustomResponse<UserStatisticsResponseDto>> getUserStatistics() {
         UserStatisticsResponseDto statistics = statisticsService.getUserStatistics();
@@ -45,8 +48,9 @@ public class StatisticsController {
     }
 
     /**
-     * 프롬프트 통계 조회
+     * 프롬프트 통계 조회 (관리자 전용)
      */
+    @AdminOnly
     @GetMapping("/prompts")
     public ResponseEntity<CustomResponse<PromptStatisticsResponseDto>> getPromptStatistics() {
         PromptStatisticsResponseDto statistics = statisticsService.getPromptStatistics();
@@ -54,8 +58,9 @@ public class StatisticsController {
     }
 
     /**
-     * AI 호출 통계 조회
+     * AI 호출 통계 조회 (관리자 전용)
      */
+    @AdminOnly
     @GetMapping("/ai-calls")
     public ResponseEntity<CustomResponse<AiCallStatisticsResponseDto>> getAiCallStatistics() {
         AiCallStatisticsResponseDto statistics = statisticsService.getAiCallStatistics();
