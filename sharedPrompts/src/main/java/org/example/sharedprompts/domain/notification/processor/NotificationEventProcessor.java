@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.comment.event.CommentEvent;
 import org.example.sharedprompts.domain.comment.repository.CommentRepository;
 import org.example.sharedprompts.domain.like.event.LikeEvent;
 import org.example.sharedprompts.domain.notification.enums.NotificationType;
+import org.example.sharedprompts.domain.notification.enums.RelatedEntityType;
 import org.example.sharedprompts.domain.notification.message.NotificationMessage;
 import org.example.sharedprompts.domain.notification.producer.NotificationProducer;
 import org.example.sharedprompts.domain.notification.repository.NotificationRepository;
@@ -71,6 +72,7 @@ public class NotificationEventProcessor {
                     notifications.add(createNotification(
                             promptAuthor.getId(),
                             NotificationType.COMMENT,
+                            RelatedEntityType.PROMPT,
                             event.promptId(),
                             event.userId(),
                             message
@@ -97,6 +99,7 @@ public class NotificationEventProcessor {
                             notifications.add(createNotification(
                                     parentCommentAuthor.getId(),
                                     NotificationType.COMMENT,
+                                    RelatedEntityType.PROMPT,
                                     event.promptId(),
                                     event.userId(),
                                     replyMessage
@@ -130,6 +133,7 @@ public class NotificationEventProcessor {
                     NotificationMessage notification = createNotification(
                             promptAuthor.getId(),
                             NotificationType.LIKE,
+                            RelatedEntityType.PROMPT,
                             event.promptId(),
                             event.userId(),
                             message
@@ -153,15 +157,16 @@ public class NotificationEventProcessor {
         if (!event.userId().equals(commentAuthor.getId())) {
             // 알림 설정 확인
             if (isNotificationEnabled(commentAuthor, NotificationType.LIKE)) {
-                // relatedEntityId는 댓글이 속한 프롬프트 ID로 설정
-                Long promptId = comment.getPrompt().getId();
+                // relatedEntityId는 댓글 ID로 설정하여 댓글 좋아요임을 명확히 함
+                Long commentId = comment.getId();
                 // 중복 알림 방지 체크
-                if (!isDuplicateNotification(commentAuthor.getId(), NotificationType.LIKE, promptId)) {
+                if (!isDuplicateNotification(commentAuthor.getId(), NotificationType.LIKE, commentId)) {
                     String message = messageFormatter.formatCommentLikeMessage(likeUser);
                     NotificationMessage notification = createNotification(
                             commentAuthor.getId(),
                             NotificationType.LIKE,
-                            promptId,
+                            RelatedEntityType.COMMENT,
+                            commentId,
                             event.userId(),
                             message
                     );
@@ -203,11 +208,13 @@ public class NotificationEventProcessor {
      * 알림 메시지 생성
      */
     private NotificationMessage createNotification(Long userId, NotificationType type,
+                                                    RelatedEntityType relatedEntityType,
                                                     Long relatedEntityId, Long actorId, String message) {
         String groupKey = groupingService.generateGroupKey(userId, type, relatedEntityId);
         return NotificationMessage.builder()
                 .userId(userId)
                 .type(type)
+                .relatedEntityType(relatedEntityType)
                 .relatedEntityId(relatedEntityId)
                 .actorId(actorId)
                 .message(message)

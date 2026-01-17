@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.example.sharedprompts.domain.notification.enums.NotificationCategory;
 import org.example.sharedprompts.domain.notification.enums.NotificationPriority;
 import org.example.sharedprompts.domain.notification.enums.NotificationType;
+import org.example.sharedprompts.domain.notification.enums.RelatedEntityType;
 
 import java.io.Serializable;
 
@@ -34,6 +35,13 @@ public class NotificationMessage implements Serializable {
     @NotNull(message = "알림 타입은 필수입니다")
     @JsonProperty("type")
     private NotificationType type;
+
+    /**
+     * 관련 엔티티 타입 (PROMPT, COMMENT)
+     */
+    @NotNull(message = "관련 엔티티 타입은 필수입니다")
+    @JsonProperty("related_entity_type")
+    private RelatedEntityType relatedEntityType;
 
     /**
      * 관련 엔티티 ID (프롬프트 ID 또는 댓글 ID)

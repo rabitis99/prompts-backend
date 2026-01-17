@@ -27,7 +27,8 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional(readOnly = true)
     public Page<NotificationResponseDto> getNotifications(Long userId, Pageable pageable) {
         User user = getUser(userId);
-        Page<Notification> notifications = notificationRepository.findByUserOrderByCreatedAtDesc(user, pageable);
+        // 읽지 않은 알림만 조회
+        Page<Notification> notifications = notificationRepository.findByUserAndIsReadFalseOrderByCreatedAtDesc(user, pageable);
         return notifications.map(NotificationResponseDto::from);
     }
 

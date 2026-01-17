@@ -46,16 +46,17 @@ public class NotificationCleanupScheduler {
             return;
         }
 
+        if (retentionDays <= 0) {
+            log.warn("Notification cleanup skipped due to invalid retentionDays={}", retentionDays);
+            return;
+        }
+
         log.info("NotificationCleanupScheduler started: retentionDays={}", retentionDays);
 
-        try {
-            LocalDateTime cutoffDate = LocalDateTime.now().minusDays(retentionDays);
-            int deletedCount = notificationRepository.deleteAllOldReadNotifications(cutoffDate);
+        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(retentionDays);
+        int deletedCount = notificationRepository.deleteAllOldReadNotifications(cutoffDate);
 
-            log.info("NotificationCleanupScheduler finished: deleted {} old read notifications", deletedCount);
-        } catch (Exception e) {
-            log.error("Failed to cleanup old notifications", e);
-        }
+        log.info("NotificationCleanupScheduler finished: deleted {} old read notifications", deletedCount);
     }
 }
 
