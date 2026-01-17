@@ -14,6 +14,8 @@ import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
+import org.example.sharedprompts.dto.like.response.CommentLikeResponseDto;
+import org.example.sharedprompts.dto.like.response.PromptLikeResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.context.ApplicationEventPublisher;
@@ -117,5 +119,21 @@ public class LikeServiceImpl implements LikeService {
         commentLikeRepository.deleteById(id);
 
         eventPublisher.publishEvent(new LikeEvent.CommentUnliked(commentId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PromptLikeResponseDto checkPromptLike(Long userId, Long promptId) {
+        PromptLikeId id = new PromptLikeId(userId, promptId);
+        boolean isLiked = likeRepository.existsById(id);
+        return PromptLikeResponseDto.from(isLiked);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CommentLikeResponseDto checkCommentLike(Long userId, Long commentId) {
+        CommentLikeId id = new CommentLikeId(userId, commentId);
+        boolean isLiked = commentLikeRepository.existsById(id);
+        return CommentLikeResponseDto.from(isLiked);
     }
 }
