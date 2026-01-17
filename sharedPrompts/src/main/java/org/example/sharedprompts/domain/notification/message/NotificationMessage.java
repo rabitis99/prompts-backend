@@ -22,6 +22,8 @@ import java.io.Serializable;
 @AllArgsConstructor
 public class NotificationMessage implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     /**
      * 알림을 받을 사용자 ID
      */

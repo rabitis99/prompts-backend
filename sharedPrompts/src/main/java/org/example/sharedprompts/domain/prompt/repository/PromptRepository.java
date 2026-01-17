@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface PromptRepository extends JpaRepository<Prompt, Long>,CustomPromptRepository {
@@ -32,4 +33,22 @@ public interface PromptRepository extends JpaRepository<Prompt, Long>,CustomProm
             nativeQuery = true
     )
     void incrementUsageCount(@Param("id") Long id);
+
+    /**
+     * 특정 기간 내 생성된 프롬프트 수 조회
+     */
+    @Query("SELECT COUNT(p) FROM Prompt p WHERE p.createdAt >= :startDate AND p.createdAt < :endDate")
+    Long countCreatedPromptsBetween(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * 전체 조회 수 합계
+     */
+    @Query("SELECT SUM(p.viewCount) FROM Prompt p")
+    Long sumTotalViewCount();
+
+    /**
+     * 전체 좋아요 수 합계
+     */
+    @Query("SELECT SUM(p.likeCount) FROM Prompt p")
+    Long sumTotalLikeCount();
 }

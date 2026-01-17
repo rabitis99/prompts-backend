@@ -1,9 +1,11 @@
 package org.example.sharedprompts.dto.notification.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.example.sharedprompts.domain.notification.Notification;
 import org.example.sharedprompts.domain.notification.enums.NotificationType;
 import org.example.sharedprompts.domain.notification.enums.RelatedEntityType;
@@ -12,6 +14,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class NotificationResponseDto {
 

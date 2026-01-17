@@ -54,9 +54,13 @@ public class NotificationCleanupScheduler {
         log.info("NotificationCleanupScheduler started: retentionDays={}", retentionDays);
 
         LocalDateTime cutoffDate = LocalDateTime.now().minusDays(retentionDays);
-        int deletedCount = notificationRepository.deleteAllOldReadNotifications(cutoffDate);
-
-        log.info("NotificationCleanupScheduler finished: deleted {} old read notifications", deletedCount);
+        try {
+            int deletedCount = notificationRepository.deleteAllOldReadNotifications(cutoffDate);
+            log.info("NotificationCleanupScheduler finished: deleted {} old read notifications", deletedCount);
+        } catch (Exception e) {
+            log.error("NotificationCleanupScheduler failed: cutoffDate={}", cutoffDate, e);
+            throw e;
+        }
     }
 }
 
