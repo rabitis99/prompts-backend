@@ -214,6 +214,13 @@ notification:
     unread-count-ttl: ${NOTIFICATION_UNREAD_COUNT_TTL:60} # 읽지 않은 알림 개수 캐시 TTL (초)
 
 # =========================
+# 통계 설정
+# =========================
+statistics:
+  cache:
+    ttl: ${STATISTICS_CACHE_TTL:300} # 통계 데이터 캐시 TTL (초, 기본값: 5분)
+
+# =========================
 # 로깅
 # =========================
 logging:

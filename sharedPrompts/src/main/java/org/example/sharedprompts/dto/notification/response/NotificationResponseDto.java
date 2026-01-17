@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.example.sharedprompts.domain.notification.Notification;
 import org.example.sharedprompts.domain.notification.enums.NotificationType;
 
@@ -11,6 +12,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Builder
+@NoArgsConstructor
 @AllArgsConstructor
 public class NotificationResponseDto {
 
