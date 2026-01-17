@@ -46,6 +46,11 @@ public class NotificationCleanupScheduler {
             return;
         }
 
+        if (retentionDays <= 0) {
+            log.warn("Notification cleanup skipped due to invalid retentionDays={}", retentionDays);
+            return;
+        }
+
         log.info("NotificationCleanupScheduler started: retentionDays={}", retentionDays);
 
         LocalDateTime cutoffDate = LocalDateTime.now().minusDays(retentionDays);

@@ -21,6 +21,11 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     Page<Notification> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
 
     /**
+     * 사용자의 읽지 않은 알림 목록 조회 (페이징, 최신순)
+     */
+    Page<Notification> findByUserAndIsReadFalseOrderByCreatedAtDesc(User user, Pageable pageable);
+
+    /**
      * 사용자의 읽지 않은 알림 개수 조회
      */
     long countByUserAndIsReadFalse(User user);

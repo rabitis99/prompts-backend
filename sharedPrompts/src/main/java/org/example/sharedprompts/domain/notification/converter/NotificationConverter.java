@@ -22,6 +22,7 @@ public class NotificationConverter {
         return Notification.builder()
                 .user(user)
                 .type(message.getType())
+                .relatedEntityType(message.getRelatedEntityType())
                 .relatedEntityId(message.getRelatedEntityId())
                 .actorId(message.getActorId())
                 .message(message.getMessage())

@@ -1,7 +1,7 @@
 package org.example.sharedprompts.global.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Qualifier;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
@@ -37,11 +37,16 @@ public class CacheConfig {
     private long statisticsTtl;
 
     @Bean
-    public CacheManager cacheManager(RedisConnectionFactory connectionFactory,
-                                      @Qualifier("redisObjectMapper") ObjectMapper redisObjectMapper) {
-        // BasicPolymorphicTypeValidator를 사용한 안전한 직렬화기 사용
-        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(redisObjectMapper);
-        
+    public CacheManager cacheManager(RedisConnectionFactory connectionFactory, ObjectMapper objectMapper) {
+        // RedisConfig와 동일하게 objectMapper를 사용하되, 타입 정보를 포함하도록 설정
+        ObjectMapper cacheObjectMapper = objectMapper.copy();
+        cacheObjectMapper.activateDefaultTyping(
+                LaissezFaireSubTypeValidator.instance,
+                ObjectMapper.DefaultTyping.NON_FINAL
+        );
+
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(cacheObjectMapper);
+
         // 기본 캐시 설정 (알림용)
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofSeconds(unreadCountTtl))
