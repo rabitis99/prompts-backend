@@ -94,6 +94,8 @@ spring:
     properties:
       hibernate:
         dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.MySQL8Dialect}
+        jdbc:
+          batch_size: ${HIBERNATE_BATCH_SIZE:50} # 배치 처리 사이즈
 
   # =========================
   # Redis
@@ -102,6 +104,25 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+
+  # =========================
+  # RabbitMQ
+  # =========================
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        acknowledge-mode: auto
+        prefetch: ${RABBITMQ_PREFETCH:10} # Consumer가 한 번에 가져올 메시지 수
+        default-requeue-rejected: false # 실패한 메시지 재큐잉 방지
+        retry:
+          enabled: true
+          initial-interval: 1000
+          max-attempts: 3
+          multiplier: 2
 
   # =========================
   # OpenAI AI 설정
@@ -175,6 +196,22 @@ resilience4j:
         waitDurationInOpenState: 30s
         permittedNumberOfCallsInHalfOpenState: 3
         minimumNumberOfCalls: 10
+
+# =========================
+# 알림 설정
+# =========================
+notification:
+  sse:
+    timeout: ${NOTIFICATION_SSE_TIMEOUT:1800000} # 30분 (밀리초)
+    cleanup-interval: ${NOTIFICATION_SSE_CLEANUP_INTERVAL:300000} # 5분 (밀리초)
+  duplicate:
+    check-window-minutes: ${NOTIFICATION_DUPLICATE_CHECK_WINDOW:5} # 중복 체크 시간 윈도우 (분)
+  cleanup:
+    enabled: ${NOTIFICATION_CLEANUP_ENABLED:true}
+    retention-days: ${NOTIFICATION_RETENTION_DAYS:90} # 읽은 알림 보관 기간 (일)
+    schedule: ${NOTIFICATION_CLEANUP_SCHEDULE:0 0 2 * * ?} # 매일 새벽 2시
+  cache:
+    unread-count-ttl: ${NOTIFICATION_UNREAD_COUNT_TTL:60} # 읽지 않은 알림 개수 캐시 TTL (초)
 
 # =========================
 # 로깅
