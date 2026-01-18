@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
+import org.example.sharedprompts.global.jwt.util.JwtErrorResponseWriter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -18,6 +19,10 @@ import java.time.format.DateTimeFormatter;
 @Configuration
 public class JacksonConfig {
 
+    /**
+     * JwtErrorResponseWriter에 Spring 관리 ObjectMapper 주입
+     * 설정 드리프트를 방지하기 위해 Spring 관리 ObjectMapper를 사용합니다.
+     */
     @Bean
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
@@ -34,6 +39,9 @@ public class JacksonConfig {
         mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
+
+        // JwtErrorResponseWriter에 Spring 관리 ObjectMapper 주입
+        JwtErrorResponseWriter.setObjectMapper(mapper);
 
         return mapper;
     }

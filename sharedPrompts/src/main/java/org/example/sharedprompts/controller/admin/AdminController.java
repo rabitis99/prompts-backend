@@ -50,8 +50,9 @@ public class AdminController {
             @RequestParam(required = false) String keyword,
             @PageableDefault(size = 20) Pageable pageable
     ) {
-        Page<AdminUserResponseDto> page = (keyword != null)
-                ? adminService.searchUsers(keyword, pageable)
+        String trimmedKeyword = (keyword != null) ? keyword.trim() : null;
+        Page<AdminUserResponseDto> page = (trimmedKeyword != null && !trimmedKeyword.isEmpty())
+                ? adminService.searchUsers(trimmedKeyword, pageable)
                 : adminService.getUsers(pageable);
         return CustomResponseHelper.ok(PageResponse.of(page));
     }
@@ -103,8 +104,9 @@ public class AdminController {
             @RequestParam(required = false) String keyword,
             @PageableDefault(size = 20) Pageable pageable
     ) {
-        Page<AdminPromptResponseDto> page = (keyword != null)
-                ? adminService.searchPrompts(keyword, pageable)
+        String trimmedKeyword = (keyword != null) ? keyword.trim() : null;
+        Page<AdminPromptResponseDto> page = (trimmedKeyword != null && !trimmedKeyword.isEmpty())
+                ? adminService.searchPrompts(trimmedKeyword, pageable)
                 : adminService.getPrompts(pageable);
         return CustomResponseHelper.ok(PageResponse.of(page));
     }

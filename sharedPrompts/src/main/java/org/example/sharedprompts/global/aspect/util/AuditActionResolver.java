@@ -21,7 +21,10 @@ public final class AuditActionResolver {
         // action이 BLOCK이고 afterState가 UserBlockRequestDto인 경우
         if (defaultAction == AuditAction.BLOCK && afterState instanceof UserBlockRequestDto requestDto) {
             Boolean blocked = requestDto.getBlocked();
-            return Boolean.TRUE.equals(blocked) ? AuditAction.BLOCK : AuditAction.UNBLOCK;
+            if (blocked == null) {
+                return defaultAction; // null인 경우 기본 액션 유지
+            }
+            return blocked ? AuditAction.BLOCK : AuditAction.UNBLOCK;
         }
 
         return defaultAction;

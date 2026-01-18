@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.admin.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.domain.admin.util.AdminAuditLogger;
 import org.example.sharedprompts.domain.admin.util.AdminEntityFinder;
 import org.example.sharedprompts.domain.admin.validator.AdminValidator;
 import org.example.sharedprompts.domain.audit.AuditLog;
@@ -44,6 +45,7 @@ public class AdminServiceImpl implements AdminService {
     private final ReportService reportService;
     private final AdminValidator adminValidator;
     private final AdminEntityFinder entityFinder;
+    private final AdminAuditLogger adminAuditLogger;
     private final AuditLogService auditLogService;
     private final UserTokenInvalidationService tokenInvalidationService;
 
@@ -82,6 +84,7 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public AdminUserResponseDto blockUser(Long userId, Long adminId, UserBlockRequestDto requestDto) {
         User user = entityFinder.findUserById(userId);
+        User admin = entityFinder.findUserById(adminId);
         
         adminValidator.validateNotSelf(adminId, userId, ErrorCode.CANNOT_MODIFY_SELF);
         adminValidator.validateNotAdmin(user, ErrorCode.CANNOT_BLOCK_ADMIN);
@@ -95,6 +98,8 @@ public class AdminServiceImpl implements AdminService {
             log.info("사용자 차단 해제: userId={}, adminId={}", userId, adminId);
             tokenInvalidationService.invalidateTokensOnUnblock(userId);
         }
+
+        adminAuditLogger.logUserBlock(admin, userId, Boolean.TRUE.equals(requestDto.getBlocked()));
 
         return AdminUserResponseDto.from(user);
     }
@@ -135,6 +140,9 @@ public class AdminServiceImpl implements AdminService {
                 userId, oldRole, requestDto.getRole(), adminId);
 
         tokenInvalidationService.invalidateTokensOnRoleChange(userId);
+
+        User admin = entityFinder.findUserById(adminId);
+        adminAuditLogger.logUserRoleChange(admin, userId, oldRole.name(), requestDto.getRole().name());
 
         return AdminUserResponseDto.from(user);
     }
@@ -178,6 +186,9 @@ public class AdminServiceImpl implements AdminService {
         
         promptRepository.delete(prompt);
         log.info("프롬프트 삭제: promptId={}, adminId={}", promptId, adminId);
+
+        User admin = entityFinder.findUserById(adminId);
+        adminAuditLogger.logPromptDelete(admin, promptId);
     }
 
     @Override
@@ -192,6 +203,9 @@ public class AdminServiceImpl implements AdminService {
         
         log.info("프롬프트 공개 상태 변경: promptId={}, oldVisibility={}, newVisibility={}, adminId={}", 
                 promptId, oldVisibility, requestDto.getIsPublic(), adminId);
+
+        User admin = entityFinder.findUserById(adminId);
+        adminAuditLogger.logPromptVisibilityChange(admin, promptId, requestDto.getIsPublic());
         
         return AdminPromptResponseDto.from(prompt);
     }

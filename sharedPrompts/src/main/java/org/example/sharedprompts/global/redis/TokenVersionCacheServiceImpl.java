@@ -65,7 +65,7 @@ public class TokenVersionCacheServiceImpl implements TokenVersionCacheService {
             redisTemplate.expire(key, Duration.ofDays(DEFAULT_TTL_DAYS));
         }
         
-        log.info("토큰 버전 증가: userId={}, newVersion={}", userId, newVersion);
+        log.debug("토큰 버전 증가: userId={}, newVersion={}", userId, newVersion);
     }
 
     @Override

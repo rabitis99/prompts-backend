@@ -98,7 +98,7 @@ public class AdminAuditLogger {
         if (admin == null) {
             return null;
         }
-        if (admin.getEmail() != null && !admin.getEmail().isEmpty()) {
+        if (admin.getEmail() != null && !admin.getEmail().isBlank()) {
             return admin.getEmail();
         }
         return admin.getNickname();

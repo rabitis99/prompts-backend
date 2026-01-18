@@ -14,6 +14,7 @@ import org.example.sharedprompts.global.response.CustomResponse;
 import org.springframework.http.HttpStatus;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -27,10 +28,28 @@ import java.time.format.DateTimeFormatter;
  */
 public class JwtErrorResponseWriter {
 
-    private static final ObjectMapper objectMapper = createObjectMapper();
+    private static volatile ObjectMapper objectMapper;
 
     private JwtErrorResponseWriter() {
         // 유틸리티 클래스이므로 인스턴스화 방지
+    }
+
+    /**
+     * Spring 관리 ObjectMapper 설정
+     * 별도 설정 클래스에서 이 메서드를 호출하여 Spring 관리 ObjectMapper를 주입할 수 있습니다.
+     * 
+     * @param mapper Spring 관리 ObjectMapper
+     */
+    public static void setObjectMapper(ObjectMapper mapper) {
+        objectMapper = mapper;
+    }
+
+    /**
+     * ObjectMapper 조회
+     * Spring 관리 ObjectMapper가 설정되어 있으면 사용하고, 없으면 기본 ObjectMapper를 생성합니다.
+     */
+    private static ObjectMapper getObjectMapper() {
+        return objectMapper != null ? objectMapper : createObjectMapper();
     }
 
     /**
@@ -85,10 +104,12 @@ public class JwtErrorResponseWriter {
         HttpStatus httpStatus = apiException.getErrorCode().getHttpStatus();
         response.setStatus(httpStatus.value());
         response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write(
-                objectMapper.writeValueAsString(CustomResponse.fail(apiException))
+        response.setCharacterEncoding("UTF-8");
+        PrintWriter writer = response.getWriter();
+        writer.write(
+                getObjectMapper().writeValueAsString(CustomResponse.fail(apiException))
         );
-        response.getWriter().flush();
+        writer.flush();
     }
 }
 
