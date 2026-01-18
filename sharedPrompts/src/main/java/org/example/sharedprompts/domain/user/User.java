@@ -6,6 +6,8 @@ import org.example.sharedprompts.global.entity.BaseEntity;
 import org.example.sharedprompts.domain.user.enums.Provider;
 import org.example.sharedprompts.domain.user.enums.Role;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @Builder
@@ -59,7 +61,7 @@ public class User extends BaseEntity {
     private boolean blocked = false;
 
     @Column(name = "deleted_at")
-    private java.time.LocalDateTime deletedAt;
+    private LocalDateTime deletedAt;
 
     public void changeNickname(String nickname) {
         this.nickname = nickname;
@@ -102,7 +104,7 @@ public class User extends BaseEntity {
     }
 
     public void softDelete() {
-        this.deletedAt = java.time.LocalDateTime.now();
+        this.deletedAt = LocalDateTime.now();
     }
 
     public boolean isDeleted() {

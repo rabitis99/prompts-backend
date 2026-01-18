@@ -85,6 +85,16 @@ public enum ErrorCode {
     PROMPT_FAVORITE_NOT_FOUND("FV00701", HttpStatus.NOT_FOUND, "즐겨찾기 기록이 없습니다."),
 
     // ==========================
+    // 🔹 FOLLOW
+    // ==========================
+    FOLLOW_IDS_REQUIRED("FW00401", HttpStatus.BAD_REQUEST, "팔로워 ID와 팔로잉 ID는 필수입니다."),
+    FOLLOW_ALREADY_EXISTS("FW00402", HttpStatus.BAD_REQUEST, "이미 팔로우 관계가 존재합니다."),
+    CANNOT_FOLLOW_SELF("FW00403", HttpStatus.BAD_REQUEST, "자기 자신을 팔로우할 수 없습니다."),
+    FOLLOW_NOT_BLOCKED("FW00404", HttpStatus.BAD_REQUEST, "차단 상태가 아닌 관계는 차단 해제할 수 없습니다."),
+    FOLLOW_NOT_PENDING("FW00405", HttpStatus.BAD_REQUEST, "대기 상태가 아닌 관계는 거부할 수 없습니다."),
+    FOLLOW_NOT_FOUND("FW00701", HttpStatus.NOT_FOUND, "팔로우 관계를 찾을 수 없습니다."),
+
+    // ==========================
     // 🔹 TAG
     // ==========================
     TAG_CREATION_FAILED("TG01001", HttpStatus.INTERNAL_SERVER_ERROR, "태그 생성 중 내부 오류가 발생했습니다."),
