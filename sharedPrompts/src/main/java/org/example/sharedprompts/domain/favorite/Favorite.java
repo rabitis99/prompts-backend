@@ -1,8 +1,8 @@
-package org.example.sharedprompts.domain.like;
+package org.example.sharedprompts.domain.favorite;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.example.sharedprompts.domain.comment.Comment;
+import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.global.entity.BaseEntity;
 
@@ -11,20 +11,20 @@ import org.example.sharedprompts.global.entity.BaseEntity;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "comment_likes")
-public class CommentLike extends BaseEntity {
+@Table(name = "favorites")
+public class Favorite extends BaseEntity {
 
     @EmbeddedId
-    private CommentLikeId id;
+    private FavoriteId id;
 
-    @MapsId("commentId")
+    @MapsId("promptId")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "comment_id")
-    private Comment comment;
+    @JoinColumn(name = "prompt_id")
+    private Prompt prompt;
 
     @MapsId("userId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
-
 }
+

@@ -79,6 +79,12 @@ public enum ErrorCode {
     COMMENT_LIKE_NOT_FOUND("LK00702", HttpStatus.NOT_FOUND, "댓글 좋아요 기록이 없습니다."),
 
     // ==========================
+    // 🔹 FAVORITE
+    // ==========================
+    PROMPT_ALREADY_FAVORITED("FV00401", HttpStatus.BAD_REQUEST, "이미 즐겨찾기에 추가한 프롬프트입니다."),
+    PROMPT_FAVORITE_NOT_FOUND("FV00701", HttpStatus.NOT_FOUND, "즐겨찾기 기록이 없습니다."),
+
+    // ==========================
     // 🔹 TAG
     // ==========================
     TAG_CREATION_FAILED("TG01001", HttpStatus.INTERNAL_SERVER_ERROR, "태그 생성 중 내부 오류가 발생했습니다."),

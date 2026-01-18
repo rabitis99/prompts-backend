@@ -19,6 +19,7 @@ import org.example.sharedprompts.dto.like.response.PromptLikeResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,16 +38,10 @@ public class LikeServiceImpl implements LikeService {
     @Override
     @Transactional
     public void likePrompt(Long userId, Long promptId) {
-
-        if (!promptRepository.existsById(promptId)) {
-            throw new ApiException(ErrorCode.PROMPT_NOT_FOUND);
-        }
+        validateUserExists(userId);
+        validatePromptExists(promptId);
 
         PromptLikeId id = new PromptLikeId(userId, promptId);
-
-        if (likeRepository.existsById(id)) {
-            throw new ApiException(ErrorCode.PROMPT_ALREADY_LIKED);
-        }
 
         User user = userRepository.getReferenceById(userId);
         Prompt prompt = promptRepository.getReferenceById(promptId);
@@ -57,7 +52,11 @@ public class LikeServiceImpl implements LikeService {
                 .prompt(prompt)
                 .build();
 
-        likeRepository.save(promptLike);
+        try {
+            likeRepository.save(promptLike);
+        } catch (DataIntegrityViolationException e) {
+            throw new ApiException(ErrorCode.PROMPT_ALREADY_LIKED);
+        }
 
         eventPublisher.publishEvent(new LikeEvent.PromptLiked(userId, promptId));
     }
@@ -80,17 +79,10 @@ public class LikeServiceImpl implements LikeService {
     @Override
     @Transactional
     public void likeComment(Long userId, Long commentId) {
-
-        // 댓글 존재 체크
-        if (!commentRepository.existsById(commentId)) {
-            throw new ApiException(ErrorCode.COMMENT_NOT_FOUND);
-        }
+        validateUserExists(userId);
+        validateCommentExists(commentId);
 
         CommentLikeId id = new CommentLikeId(userId, commentId);
-
-        if (commentLikeRepository.existsById(id)) {
-            throw new ApiException(ErrorCode.COMMENT_ALREADY_LIKED);
-        }
 
         User user = userRepository.getReferenceById(userId);
         Comment comment = commentRepository.getReferenceById(commentId);
@@ -101,7 +93,11 @@ public class LikeServiceImpl implements LikeService {
                 .comment(comment)
                 .build();
 
-        commentLikeRepository.save(commentLike);
+        try {
+            commentLikeRepository.save(commentLike);
+        } catch (DataIntegrityViolationException e) {
+            throw new ApiException(ErrorCode.COMMENT_ALREADY_LIKED);
+        }
 
         eventPublisher.publishEvent(new LikeEvent.CommentLiked(userId, commentId));
     }
@@ -135,5 +131,23 @@ public class LikeServiceImpl implements LikeService {
         CommentLikeId id = new CommentLikeId(userId, commentId);
         boolean isLiked = commentLikeRepository.existsById(id);
         return CommentLikeResponseDto.from(isLiked);
+    }
+
+    private void validateUserExists(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new ApiException(ErrorCode.USER_NOT_FOUND);
+        }
+    }
+
+    private void validatePromptExists(Long promptId) {
+        if (!promptRepository.existsById(promptId)) {
+            throw new ApiException(ErrorCode.PROMPT_NOT_FOUND);
+        }
+    }
+
+    private void validateCommentExists(Long commentId) {
+        if (!commentRepository.existsById(commentId)) {
+            throw new ApiException(ErrorCode.COMMENT_NOT_FOUND);
+        }
     }
 }

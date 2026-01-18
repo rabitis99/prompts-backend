@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.like;
+package org.example.sharedprompts.domain.favorite;
 
 import jakarta.persistence.Embeddable;
 import lombok.AllArgsConstructor;
@@ -13,10 +13,11 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode
-public class PromptLikeId implements Serializable{
+public class FavoriteId implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private Long promptId;
     private Long userId;
+    private Long promptId;
 }
+
