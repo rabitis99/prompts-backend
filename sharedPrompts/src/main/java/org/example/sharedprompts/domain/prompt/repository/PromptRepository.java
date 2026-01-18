@@ -55,13 +55,13 @@ public interface PromptRepository extends JpaRepository<Prompt, Long>,CustomProm
     /**
      * 특정 사용자가 작성한 프롬프트 수
      */
-    @Query("SELECT COUNT(p) FROM Prompt p WHERE p.user.id = :userId")
+    @Query("SELECT COUNT(p) FROM Prompt p WHERE p.author.id = :userId")
     Long countByUserId(@Param("userId") Long userId);
 
     /**
      * 특정 사용자의 프롬프트들에 받은 총 좋아요 수
      */
-    @Query("SELECT SUM(p.likeCount) FROM Prompt p WHERE p.user.id = :userId")
+    @Query("SELECT SUM(p.likeCount) FROM Prompt p WHERE p.author.id = :userId")
     Long sumLikeCountByUserId(@Param("userId") Long userId);
 
     /**
@@ -76,7 +76,7 @@ public interface PromptRepository extends JpaRepository<Prompt, Long>,CustomProm
             COUNT(p) as promptCount,
             SUM(p.likeCount) as totalLikeCount
         FROM Prompt p 
-        WHERE p.user.id = :userId
+        WHERE p.author.id = :userId
         """)
     UserStatisticsProjection getUserStatisticsByUserId(@Param("userId") Long userId);
 
