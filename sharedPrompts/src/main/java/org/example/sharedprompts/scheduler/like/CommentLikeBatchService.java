@@ -27,13 +27,13 @@ public class CommentLikeBatchService {
 
         List<Object[]> batchArgs = ids.stream()
                 .filter(counts::containsKey)
-                .map(id -> new Object[]{counts.getOrDefault(id, 0L), id})
+                .map(id -> new Object[]{counts.get(id), id})
                 .collect(Collectors.toList());
 
         String sql = "UPDATE comments SET like_count = ? WHERE id = ?";
 
         jdbcTemplate.batchUpdate(sql, batchArgs);
 
-        log.debug("Processed batch size={}, sampleUpdated={}", ids.size(), Math.min(5, ids.size()));
+        log.debug("Processed comment-like batch: requested={}, updated={}", ids.size(), batchArgs.size());
     }
 }

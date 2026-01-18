@@ -2,6 +2,8 @@ package org.example.sharedprompts.domain.favorite.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.shared.service.BaseCountService;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,6 +16,9 @@ public class FavoriteCountServiceImpl implements FavoriteCountService {
     private final BaseCountService baseCountService;
 
     private String promptFavoriteKey(Long promptId) {
+        if (promptId == null) {
+            throw new ApiException(ErrorCode.PROMPT_NOT_FOUND);
+        }
         return "favorite:prompt:" + promptId;
     }
 

@@ -31,6 +31,8 @@ public class CommentLikeCountSyncScheduler {
 
         Long lastId = 0L;
         List<Long> ids;
+        int totalBatches = 0;
+        int failedBatches = 0;
 
         do {
             // 커서 기반 페이징 (offset 제거)
@@ -39,14 +41,16 @@ public class CommentLikeCountSyncScheduler {
             if (!ids.isEmpty()) {
                 try {
                     commentLikeBatchService.processBatch(ids);
+                    totalBatches++;
                 } catch (Exception e) {
                     log.error("Failed to process comment like batch, ids={}", ids, e);
+                    failedBatches++;
                 }
 
                 lastId = ids.get(ids.size() - 1);
             }
         } while (!ids.isEmpty());
 
-        log.info("CommentLikeCountSyncScheduler finished");
+        log.info("CommentLikeCountSyncScheduler finished: totalBatches={}, failedBatches={}", totalBatches, failedBatches);
     }
 }

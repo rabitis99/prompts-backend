@@ -31,6 +31,8 @@ public class PromptFavoriteCountSyncScheduler {
 
         Long lastId = 0L;
         List<Long> ids;
+        int totalBatches = 0;
+        int failedBatches = 0;
 
         do {
             ids = promptRepository.findAllIds(lastId, BATCH_SIZE);
@@ -38,15 +40,17 @@ public class PromptFavoriteCountSyncScheduler {
             if (!ids.isEmpty()) {
                 try {
                     promptFavoriteBatchService.processBatch(ids);
+                    totalBatches++;
                 } catch (Exception e) {
                     log.error("Failed to process favorite batch, ids={}", ids, e);
+                    failedBatches++;
                 }
 
                 lastId = ids.get(ids.size() - 1);
             }
         } while (!ids.isEmpty());
 
-        log.info("PromptFavoriteCountSyncScheduler finished");
+        log.info("PromptFavoriteCountSyncScheduler finished: totalBatches={}, failedBatches={}", totalBatches, failedBatches);
     }
 }
 

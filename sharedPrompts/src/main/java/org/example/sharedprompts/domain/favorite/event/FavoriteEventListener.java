@@ -20,7 +20,11 @@ public class FavoriteEventListener {
     /** 프롬프트 즐겨찾기 추가 */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPromptFavorited(PromptFavorited event) {
-        favoriteCountService.incrementPromptFavoriteCount(event.promptId());
+        try {
+            favoriteCountService.incrementPromptFavoriteCount(event.promptId());
+        } catch (Exception e) {
+            log.error("Failed to increment favorite count: {}", event, e);
+        }
         
         // 알림 발행
         try {
@@ -33,7 +37,11 @@ public class FavoriteEventListener {
     /** 프롬프트 즐겨찾기 취소 */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPromptUnfavorited(PromptUnfavorited event) {
-        favoriteCountService.decrementPromptFavoriteCount(event.promptId());
+        try {
+            favoriteCountService.decrementPromptFavoriteCount(event.promptId());
+        } catch (Exception e) {
+            log.error("Failed to decrement favorite count: {}", event, e);
+        }
     }
 }
 

@@ -31,6 +31,8 @@ public class PromptLikeCountSyncScheduler {
 
         Long lastId = 0L;
         List<Long> ids;
+        int totalBatches = 0;
+        int failedBatches = 0;
 
         do {
             ids = promptRepository.findAllIds(lastId, BATCH_SIZE);
@@ -38,14 +40,16 @@ public class PromptLikeCountSyncScheduler {
             if (!ids.isEmpty()) {
                 try {
                     promptLikeBatchService.processBatch(ids);
+                    totalBatches++;
                 } catch (Exception e) {
                     log.error("Failed to process like batch, ids={}", ids, e);
+                    failedBatches++;
                 }
 
                 lastId = ids.get(ids.size() - 1);
             }
         } while (!ids.isEmpty());
 
-        log.info("PromptLikeCountSyncScheduler finished");
+        log.info("PromptLikeCountSyncScheduler finished: totalBatches={}, failedBatches={}", totalBatches, failedBatches);
     }
 }

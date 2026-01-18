@@ -2,6 +2,8 @@ package org.example.sharedprompts.domain.like.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.shared.service.BaseCountService;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,10 +16,16 @@ public class LikeCountServiceImpl implements LikeCountService {
     private final BaseCountService baseCountService;
 
     private String commentLikeKey(Long commentId) {
+        if (commentId == null) {
+            throw new ApiException(ErrorCode.COMMENT_NOT_FOUND);
+        }
         return "like:comment:" + commentId;
     }
 
     private String promptLikeKey(Long promptId) {
+        if (promptId == null) {
+            throw new ApiException(ErrorCode.PROMPT_NOT_FOUND);
+        }
         return "like:prompt:" + promptId;
     }
 

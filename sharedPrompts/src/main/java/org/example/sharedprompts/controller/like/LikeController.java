@@ -23,7 +23,7 @@ public class LikeController {
             @CurrentUser AuthUser authUser
     ) {
         likeService.likePrompt(authUser.getId(), promptId);
-        return CustomResponseHelper.ok(null);
+        return CustomResponseHelper.created(null);
     }
 
     @GetMapping("/prompts/{promptId}/likes")
@@ -36,12 +36,12 @@ public class LikeController {
     }
 
     @DeleteMapping("/prompts/{promptId}/likes")
-    public ResponseEntity<CustomResponse<Void>> unlikePrompt(
+    public ResponseEntity<Void> unlikePrompt(
             @PathVariable Long promptId,
             @CurrentUser AuthUser authUser
     ) {
         likeService.unlikePrompt(authUser.getId(), promptId);
-        return CustomResponseHelper.ok(null);
+        return CustomResponseHelper.noContent();
     }
 
     // Comment Like
@@ -51,7 +51,7 @@ public class LikeController {
             @CurrentUser AuthUser authUser
     ) {
         likeService.likeComment(authUser.getId(), commentId);
-        return CustomResponseHelper.ok(null);
+        return CustomResponseHelper.created(null);
     }
 
     @GetMapping("/comments/{commentId}/likes")
@@ -64,11 +64,11 @@ public class LikeController {
     }
 
     @DeleteMapping("/comments/{commentId}/likes")
-    public ResponseEntity<CustomResponse<Void>> unlikeComment(
+    public ResponseEntity<Void> unlikeComment(
             @PathVariable Long commentId,
             @CurrentUser AuthUser authUser
     ) {
         likeService.unlikeComment(authUser.getId(), commentId);
-        return CustomResponseHelper.ok(null);
+        return CustomResponseHelper.noContent();
     }
 }

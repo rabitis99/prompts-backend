@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.user.User;
+import org.example.sharedprompts.global.entity.BaseEntity;
 
 @Entity
 @Getter
@@ -11,7 +12,7 @@ import org.example.sharedprompts.domain.user.User;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Table(name = "favorites")
-public class Favorite {
+public class Favorite extends BaseEntity {
 
     @EmbeddedId
     private FavoriteId id;

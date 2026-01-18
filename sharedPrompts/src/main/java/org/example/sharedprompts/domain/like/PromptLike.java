@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.user.User;
+import org.example.sharedprompts.global.entity.BaseEntity;
 
 @Entity
 @Getter
@@ -11,7 +12,7 @@ import org.example.sharedprompts.domain.user.User;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Table(name = "prompt_likes")
-public class PromptLike {
+public class PromptLike extends BaseEntity {
 
     @EmbeddedId
     private PromptLikeId id;

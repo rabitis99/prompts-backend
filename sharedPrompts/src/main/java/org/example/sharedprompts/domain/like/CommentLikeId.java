@@ -12,6 +12,8 @@ import java.io.Serializable;
 @EqualsAndHashCode
 public class CommentLikeId implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     private Long commentId;
     private Long userId;
 }

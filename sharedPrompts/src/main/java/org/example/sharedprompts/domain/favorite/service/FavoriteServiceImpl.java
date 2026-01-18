@@ -16,6 +16,7 @@ import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.response.PageResponse;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -33,13 +34,17 @@ public class FavoriteServiceImpl implements FavoriteService {
     @Override
     @Transactional
     public void addFavorite(Long userId, Long promptId) {
+        validateUserExists(userId);
         validatePromptExists(promptId);
 
         FavoriteId id = createFavoriteId(userId, promptId);
-        validateFavoriteNotExists(id);
-
         Favorite favorite = createFavorite(userId, promptId, id);
-        favoriteRepository.save(favorite);
+        
+        try {
+            favoriteRepository.save(favorite);
+        } catch (DataIntegrityViolationException e) {
+            throw new ApiException(ErrorCode.PROMPT_ALREADY_FAVORITED);
+        }
 
         eventPublisher.publishEvent(new FavoriteEvent.PromptFavorited(userId, promptId));
     }
@@ -70,6 +75,12 @@ public class FavoriteServiceImpl implements FavoriteService {
         return PageResponse.of(page.map(this::toPromptResponseDto));
     }
 
+    private void validateUserExists(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new ApiException(ErrorCode.USER_NOT_FOUND);
+        }
+    }
+
     private void validatePromptExists(Long promptId) {
         if (!promptRepository.existsById(promptId)) {
             throw new ApiException(ErrorCode.PROMPT_NOT_FOUND);
@@ -78,12 +89,6 @@ public class FavoriteServiceImpl implements FavoriteService {
 
     private FavoriteId createFavoriteId(Long userId, Long promptId) {
         return new FavoriteId(userId, promptId);
-    }
-
-    private void validateFavoriteNotExists(FavoriteId id) {
-        if (favoriteRepository.existsById(id)) {
-            throw new ApiException(ErrorCode.PROMPT_ALREADY_FAVORITED);
-        }
     }
 
     private void validateFavoriteExists(FavoriteId id) {

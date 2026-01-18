@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class FavoriteResponseDto {
 
-    @JsonProperty("isFavorite")
+    @JsonProperty("is_favorite")
     private Boolean isFavorite;
 
     public static FavoriteResponseDto from(boolean isFavorite) {

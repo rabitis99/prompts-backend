@@ -26,16 +26,16 @@ public class FavoriteController {
             @CurrentUser AuthUser authUser
     ) {
         favoriteService.addFavorite(authUser.getId(), promptId);
-        return CustomResponseHelper.ok(null);
+        return CustomResponseHelper.created(null);
     }
 
     @DeleteMapping("/prompts/{promptId}/favorites")
-    public ResponseEntity<CustomResponse<Void>> removeFavorite(
+    public ResponseEntity<Void> removeFavorite(
             @PathVariable Long promptId,
             @CurrentUser AuthUser authUser
     ) {
         favoriteService.removeFavorite(authUser.getId(), promptId);
-        return CustomResponseHelper.ok(null);
+        return CustomResponseHelper.noContent();
     }
 
     @GetMapping("/prompts/{promptId}/favorites")
