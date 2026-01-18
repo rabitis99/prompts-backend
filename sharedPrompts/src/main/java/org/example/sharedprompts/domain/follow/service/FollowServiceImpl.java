@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.follow.service;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.follow.Follow;
 import org.example.sharedprompts.domain.follow.FollowStatus;
+import org.example.sharedprompts.domain.follow.event.FollowEvent;
 import org.example.sharedprompts.domain.follow.repository.FollowRepository;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
@@ -12,6 +13,7 @@ import org.example.sharedprompts.dto.user.response.UserResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.response.PageResponse;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +26,7 @@ public class FollowServiceImpl implements FollowService {
 
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -40,6 +43,8 @@ public class FollowServiceImpl implements FollowService {
         Follow follow = new Follow(followerId, followingId);
         try {
             followRepository.save(follow);
+            // 팔로우 요청 이벤트 발행
+            eventPublisher.publishEvent(new FollowEvent.Requested(followerId, followingId));
         } catch (DataIntegrityViolationException e) {
             throw new ApiException(ErrorCode.FOLLOW_ALREADY_EXISTS);
         }
