@@ -41,6 +41,7 @@ public enum ErrorCode {
     UNAUTHORIZED_TOKEN_ACCESS("AU00503", HttpStatus.UNAUTHORIZED, "해당 토큰은 요청한 사용자의 것이 아닙니다."),
     INVALID_ACCESS_TOKEN("AU00504", HttpStatus.UNAUTHORIZED, "유효하지 않은 액세스 토큰입니다."),
     INVALID_REFRESH_TOKEN("AU00505", HttpStatus.UNAUTHORIZED, "유효하지 않은 리프레시 토큰입니다."),
+    TOKEN_VERSION_INCREMENT_FAILED("AU01001", HttpStatus.INTERNAL_SERVER_ERROR, "토큰 버전 증가에 실패했습니다."),
 
     // ==========================
     // 🔹 OAuth2

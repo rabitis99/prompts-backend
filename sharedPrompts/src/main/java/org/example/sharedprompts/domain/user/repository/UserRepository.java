@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.user.repository;
 
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.enums.Provider;
+import org.example.sharedprompts.domain.user.enums.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -52,8 +53,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     /**
      * 관리자 계정 수 조회 (삭제되지 않은 계정만)
      */
-    @Query("SELECT COUNT(u) FROM User u WHERE u.role = 'ROLE_ADMIN' AND u.deletedAt IS NULL")
-    long countActiveAdmins();
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role AND u.deletedAt IS NULL")
+    long countActiveAdmins(@Param("role") Role role);
 
     /**
      * 닉네임 또는 이메일로 사용자 검색 (관리자용 - 삭제된 사용자 포함)

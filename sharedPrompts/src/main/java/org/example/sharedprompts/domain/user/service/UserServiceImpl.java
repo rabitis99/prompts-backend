@@ -86,12 +86,8 @@ public class UserServiceImpl implements UserService {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
-        // 이미 삭제된 사용자인지 확인
-        if (targetUser.isDeleted()) {
-            throw new ApiException(ErrorCode.USER_NOT_FOUND);
-        }
-
         // Soft delete 수행
+        // findByIdAndDeletedAtIsNull로 이미 삭제되지 않은 사용자만 조회되므로 추가 검증 불필요
         targetUser.softDelete();
         tokenInvalidationService.invalidateTokensOnDelete(targetUserId);
     }

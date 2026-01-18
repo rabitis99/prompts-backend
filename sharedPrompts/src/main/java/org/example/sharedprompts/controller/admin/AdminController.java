@@ -21,6 +21,7 @@ import org.example.sharedprompts.global.annotation.AdminOnly;
 import org.example.sharedprompts.global.response.CustomResponse;
 import org.example.sharedprompts.global.response.CustomResponseHelper;
 import org.example.sharedprompts.global.response.PageResponse;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -49,7 +50,7 @@ public class AdminController {
             @RequestParam(required = false) String keyword,
             @PageableDefault(size = 20) Pageable pageable
     ) {
-        var page = (keyword != null && !keyword.trim().isEmpty())
+        Page<AdminUserResponseDto> page = (keyword != null && !keyword.trim().isEmpty())
                 ? adminService.searchUsers(keyword, pageable)
                 : adminService.getUsers(pageable);
         return CustomResponseHelper.ok(PageResponse.of(page));
@@ -102,7 +103,7 @@ public class AdminController {
             @RequestParam(required = false) String keyword,
             @PageableDefault(size = 20) Pageable pageable
     ) {
-        var page = (keyword != null && !keyword.trim().isEmpty())
+        Page<AdminPromptResponseDto> page = (keyword != null && !keyword.trim().isEmpty())
                 ? adminService.searchPrompts(keyword, pageable)
                 : adminService.getPrompts(pageable);
         return CustomResponseHelper.ok(PageResponse.of(page));
@@ -154,7 +155,7 @@ public class AdminController {
             @RequestParam(required = false) ReportStatus status,
             @PageableDefault(size = 20) Pageable pageable
     ) {
-        var page = adminService.getReports(status, pageable);
+        Page<ReportResponseDto> page = adminService.getReports(status, pageable);
         return CustomResponseHelper.ok(PageResponse.of(page));
     }
 
@@ -196,7 +197,7 @@ public class AdminController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @PageableDefault(size = 50) Pageable pageable
     ) {
-        var page = adminService.getAuditLogs(actorId, entityType, action, startDate, endDate, pageable);
+        Page<AuditLogResponseDto> page = adminService.getAuditLogs(actorId, entityType, action, startDate, endDate, pageable);
         return CustomResponseHelper.ok(PageResponse.of(page));
     }
 }

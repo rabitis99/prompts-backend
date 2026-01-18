@@ -63,49 +63,45 @@ public class NotificationEventProcessor {
         List<NotificationMessage> notifications = new ArrayList<>();
 
         // 프롬프트 작성자에게 알림 (본인이 댓글 단 경우 제외)
-        if (!commentAuthor.getId().equals(promptAuthor.getId())) {
-            // 알림 설정 확인
-            if (isNotificationEnabled(promptAuthor, NotificationType.COMMENT)) {
-                // 중복 알림 방지 체크
-                if (!isDuplicateNotification(promptAuthor.getId(), NotificationType.COMMENT, event.promptId())) {
-                    String message = messageFormatter.formatCommentMessage(commentAuthor);
-                    notifications.add(createNotification(
-                            promptAuthor.getId(),
-                            NotificationType.COMMENT,
-                            RelatedEntityType.PROMPT,
-                            event.promptId(),
-                            event.userId(),
-                            message
-                    ));
-                }
-            }
+        boolean isNotSelf = !commentAuthor.getId().equals(promptAuthor.getId());
+        boolean isEnabled = isNotificationEnabled(promptAuthor, NotificationType.COMMENT);
+        boolean isNotDuplicate = !isDuplicateNotification(promptAuthor.getId(), NotificationType.COMMENT, event.promptId());
+        
+        if (isNotSelf && isEnabled && isNotDuplicate) {
+            String message = messageFormatter.formatCommentMessage(commentAuthor);
+            notifications.add(createNotification(
+                    promptAuthor.getId(),
+                    NotificationType.COMMENT,
+                    RelatedEntityType.PROMPT,
+                    event.promptId(),
+                    event.userId(),
+                    message
+            ));
         }
 
         // 대댓글인 경우 부모 댓글 작성자에게도 알림
         if (event.parentId() != null) {
             Comment parentComment = commentRepository.findById(event.parentId()).orElse(null);
-
             if (parentComment != null) {
                 User parentCommentAuthor = parentComment.getUser();
 
                 // 부모 댓글 작성자에게 알림 (본인이 댓글 단 경우 및 프롬프트 작성자와 동일한 경우 제외)
-                if (!commentAuthor.getId().equals(parentCommentAuthor.getId())
-                        && !parentCommentAuthor.getId().equals(promptAuthor.getId())) {
-                    // 알림 설정 확인
-                    if (isNotificationEnabled(parentCommentAuthor, NotificationType.COMMENT)) {
-                        // 중복 알림 방지 체크
-                        if (!isDuplicateNotification(parentCommentAuthor.getId(), NotificationType.COMMENT, event.promptId())) {
-                            String replyMessage = messageFormatter.formatReplyMessage(commentAuthor);
-                            notifications.add(createNotification(
-                                    parentCommentAuthor.getId(),
-                                    NotificationType.COMMENT,
-                                    RelatedEntityType.PROMPT,
-                                    event.promptId(),
-                                    event.userId(),
-                                    replyMessage
-                            ));
-                        }
-                    }
+                boolean isSelfComment = commentAuthor.getId().equals(parentCommentAuthor.getId());
+                boolean isPromptAuthor = parentCommentAuthor.getId().equals(promptAuthor.getId());
+                boolean isNotSelfOrPromptAuthor = !isSelfComment && !isPromptAuthor;
+                boolean isParentNotificationEnabled = isNotificationEnabled(parentCommentAuthor, NotificationType.COMMENT);
+                boolean isParentNotDuplicate = !isDuplicateNotification(parentCommentAuthor.getId(), NotificationType.COMMENT, event.promptId());
+                
+                if (isNotSelfOrPromptAuthor && isParentNotificationEnabled && isParentNotDuplicate) {
+                    String replyMessage = messageFormatter.formatReplyMessage(commentAuthor);
+                    notifications.add(createNotification(
+                            parentCommentAuthor.getId(),
+                            NotificationType.COMMENT,
+                            RelatedEntityType.PROMPT,
+                            event.promptId(),
+                            event.userId(),
+                            replyMessage
+                    ));
                 }
             }
         }
@@ -124,24 +120,28 @@ public class NotificationEventProcessor {
         User likeUser = getUser(event.userId());
 
         // 프롬프트 작성자에게 알림 (본인이 좋아요 누른 경우 제외)
-        if (!event.userId().equals(promptAuthor.getId())) {
-            // 알림 설정 확인
-            if (isNotificationEnabled(promptAuthor, NotificationType.LIKE)) {
-                // 중복 알림 방지 체크
-                if (!isDuplicateNotification(promptAuthor.getId(), NotificationType.LIKE, event.promptId())) {
-                    String message = messageFormatter.formatPromptLikeMessage(likeUser);
-                    NotificationMessage notification = createNotification(
-                            promptAuthor.getId(),
-                            NotificationType.LIKE,
-                            RelatedEntityType.PROMPT,
-                            event.promptId(),
-                            event.userId(),
-                            message
-                    );
-                    publishNotification(notification);
-                }
-            }
+        if (event.userId().equals(promptAuthor.getId())) {
+            return; // 본인이 좋아요 누른 경우 알림 제외
         }
+        
+        if (!isNotificationEnabled(promptAuthor, NotificationType.LIKE)) {
+            return; // 알림 설정이 꺼져 있는 경우
+        }
+        
+        if (isDuplicateNotification(promptAuthor.getId(), NotificationType.LIKE, event.promptId())) {
+            return; // 중복 알림인 경우
+        }
+        
+        String message = messageFormatter.formatPromptLikeMessage(likeUser);
+        NotificationMessage notification = createNotification(
+                promptAuthor.getId(),
+                NotificationType.LIKE,
+                RelatedEntityType.PROMPT,
+                event.promptId(),
+                event.userId(),
+                message
+        );
+        publishNotification(notification);
     }
 
     /**
@@ -154,26 +154,31 @@ public class NotificationEventProcessor {
         User likeUser = getUser(event.userId());
 
         // 댓글 작성자에게 알림 (본인이 좋아요 누른 경우 제외)
-        if (!event.userId().equals(commentAuthor.getId())) {
-            // 알림 설정 확인
-            if (isNotificationEnabled(commentAuthor, NotificationType.LIKE)) {
-                // relatedEntityId는 댓글 ID로 설정하여 댓글 좋아요임을 명확히 함
-                Long commentId = comment.getId();
-                // 중복 알림 방지 체크
-                if (!isDuplicateNotification(commentAuthor.getId(), NotificationType.LIKE, commentId)) {
-                    String message = messageFormatter.formatCommentLikeMessage(likeUser);
-                    NotificationMessage notification = createNotification(
-                            commentAuthor.getId(),
-                            NotificationType.LIKE,
-                            RelatedEntityType.COMMENT,
-                            commentId,
-                            event.userId(),
-                            message
-                    );
-                    publishNotification(notification);
-                }
-            }
+        if (event.userId().equals(commentAuthor.getId())) {
+            return; // 본인이 좋아요 누른 경우 알림 제외
         }
+        
+        if (!isNotificationEnabled(commentAuthor, NotificationType.LIKE)) {
+            return; // 알림 설정이 꺼져 있는 경우
+        }
+        
+        // relatedEntityId는 댓글 ID로 설정하여 댓글 좋아요임을 명확히 함
+        Long commentId = comment.getId();
+        
+        if (isDuplicateNotification(commentAuthor.getId(), NotificationType.LIKE, commentId)) {
+            return; // 중복 알림인 경우
+        }
+        
+        String message = messageFormatter.formatCommentLikeMessage(likeUser);
+        NotificationMessage notification = createNotification(
+                commentAuthor.getId(),
+                NotificationType.LIKE,
+                RelatedEntityType.COMMENT,
+                commentId,
+                event.userId(),
+                message
+        );
+        publishNotification(notification);
     }
 
     // ======================

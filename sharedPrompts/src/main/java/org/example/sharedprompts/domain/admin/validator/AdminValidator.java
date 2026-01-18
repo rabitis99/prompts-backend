@@ -40,6 +40,9 @@ public class AdminValidator {
      * @throws ApiException 자기 자신에 대한 작업인 경우
      */
     public void validateNotSelf(Long adminId, Long targetUserId, ErrorCode errorCode) {
+        if (adminId == null || targetUserId == null) {
+            throw new ApiException(ErrorCode.BAD_REQUEST);
+        }
         if (adminId.equals(targetUserId)) {
             throw new ApiException(errorCode);
         }
@@ -51,7 +54,7 @@ public class AdminValidator {
      * @throws ApiException 마지막 관리자 계정인 경우
      */
     public void validateNotLastAdmin() {
-        long adminCount = userRepository.countActiveAdmins();
+        long adminCount = userRepository.countActiveAdmins(Role.ROLE_ADMIN);
         if (adminCount <= 1) {
             throw new ApiException(ErrorCode.LAST_ADMIN_CANNOT_BE_MODIFIED);
         }

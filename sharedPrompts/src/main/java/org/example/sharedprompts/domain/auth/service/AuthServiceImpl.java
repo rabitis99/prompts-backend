@@ -15,6 +15,7 @@ import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.jwt.JwtProvider;
 import org.example.sharedprompts.global.redis.TokenRedisService;
+import org.example.sharedprompts.global.redis.TokenVersionCacheService;
 import org.example.sharedprompts.global.util.RandomGenerator;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,7 +31,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final TokenRedisService tokenRedisService;
-    private final org.example.sharedprompts.global.redis.TokenVersionCacheService tokenVersionCacheService;
+    private final TokenVersionCacheService tokenVersionCacheService;
 
     @Override
     @Transactional

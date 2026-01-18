@@ -81,8 +81,9 @@ public class AuditLog extends BaseEntity {
 
     /**
      * User Agent 정보
+     * 일반적인 User-Agent는 100-300자이지만, 일부 특수한 경우(긴 브라우저 확장 목록 등)를 고려하여 1000자로 설정
      */
-    @Column(name = "user_agent", length = 500)
+    @Column(name = "user_agent", length = 1000)
     private String userAgent;
 }
 

@@ -11,12 +11,27 @@ import org.springframework.stereotype.Component;
 /**
  * 관리자 활동 감사 로그를 기록하는 헬퍼 클래스
  * IP 주소와 User-Agent를 자동으로 추출하여 감사 로그를 생성합니다.
+ * 
+ * User 엔티티를 받지만, 이벤트에는 스냅샷 값(actorId, actorIdentifier)만 전달합니다.
  */
 @Component
 @RequiredArgsConstructor
 public class AdminAuditLogger {
 
     private final AuditLogPublisher auditLogPublisher;
+
+    /**
+     * 액터 식별자 추출 (email 우선, 없으면 nickname)
+     */
+    private String extractActorIdentifier(User admin) {
+        if (admin == null) {
+            return null;
+        }
+        if (admin.getEmail() != null && !admin.getEmail().isEmpty()) {
+            return admin.getEmail();
+        }
+        return admin.getNickname();
+    }
 
     /**
      * 사용자 차단/해제 감사 로그 기록
@@ -27,7 +42,8 @@ public class AdminAuditLogger {
                 : String.format("사용자 차단 해제: userId=%d", targetUserId);
         
         auditLogPublisher.publish(
-                admin,
+                admin != null ? admin.getId() : null,
+                extractActorIdentifier(admin),
                 AuditEntityType.USER,
                 targetUserId,
                 blocked ? AuditAction.BLOCK : AuditAction.UNBLOCK,
@@ -44,7 +60,8 @@ public class AdminAuditLogger {
      */
     public void logUserRoleChange(User admin, Long targetUserId, String oldRole, String newRole) {
         auditLogPublisher.publish(
-                admin,
+                admin != null ? admin.getId() : null,
+                extractActorIdentifier(admin),
                 AuditEntityType.USER,
                 targetUserId,
                 AuditAction.ROLE_CHANGE,
@@ -61,7 +78,8 @@ public class AdminAuditLogger {
      */
     public void logPromptDelete(User admin, Long promptId) {
         auditLogPublisher.publish(
-                admin,
+                admin != null ? admin.getId() : null,
+                extractActorIdentifier(admin),
                 AuditEntityType.PROMPT,
                 promptId,
                 AuditAction.DELETE,
@@ -78,7 +96,8 @@ public class AdminAuditLogger {
      */
     public void logPromptVisibilityChange(User admin, Long promptId, boolean isPublic) {
         auditLogPublisher.publish(
-                admin,
+                admin != null ? admin.getId() : null,
+                extractActorIdentifier(admin),
                 AuditEntityType.PROMPT,
                 promptId,
                 AuditAction.PUBLIC_TOGGLE,
@@ -95,7 +114,8 @@ public class AdminAuditLogger {
      */
     public void logReportProcess(User admin, Long reportId, String status, String processComment) {
         auditLogPublisher.publish(
-                admin,
+                admin != null ? admin.getId() : null,
+                extractActorIdentifier(admin),
                 AuditEntityType.REPORT,
                 reportId,
                 AuditAction.REPORT_PROCESS,

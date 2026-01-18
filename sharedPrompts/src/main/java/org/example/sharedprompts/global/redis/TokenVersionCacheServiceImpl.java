@@ -2,6 +2,8 @@ package org.example.sharedprompts.global.redis;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -48,7 +50,7 @@ public class TokenVersionCacheServiceImpl implements TokenVersionCacheService {
         
         if (newVersion == null) {
             log.error("토큰 버전 증가 실패: userId={}", userId);
-            return;
+            throw new ApiException(ErrorCode.TOKEN_VERSION_INCREMENT_FAILED);
         }
         
         // 새로 생성된 경우(버전이 1) TTL 설정

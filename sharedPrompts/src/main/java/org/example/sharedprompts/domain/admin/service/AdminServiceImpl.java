@@ -2,7 +2,6 @@ package org.example.sharedprompts.domain.admin.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.admin.util.AdminAuditLogger;
 import org.example.sharedprompts.domain.admin.util.AdminEntityFinder;
 import org.example.sharedprompts.domain.admin.validator.AdminValidator;
 import org.example.sharedprompts.domain.audit.AuditLog;
@@ -44,7 +43,6 @@ public class AdminServiceImpl implements AdminService {
     private final ReportService reportService;
     private final AdminValidator adminValidator;
     private final AdminEntityFinder entityFinder;
-    private final AdminAuditLogger auditLogger;
     private final AuditLogService auditLogService;
     private final UserTokenInvalidationService tokenInvalidationService;
 
@@ -79,7 +77,6 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public AdminUserResponseDto blockUser(Long userId, Long adminId, UserBlockRequestDto requestDto) {
         User user = entityFinder.findUserById(userId);
-        User admin = entityFinder.findUserById(adminId);
         
         adminValidator.validateNotSelf(adminId, userId, ErrorCode.CANNOT_MODIFY_SELF);
         adminValidator.validateNotAdmin(user, ErrorCode.CANNOT_BLOCK_ADMIN);
@@ -87,12 +84,10 @@ public class AdminServiceImpl implements AdminService {
         if (Boolean.TRUE.equals(requestDto.getBlocked())) {
             user.block();
             log.info("사용자 차단: userId={}, adminId={}", userId, adminId);
-            auditLogger.logUserBlock(admin, userId, true);
             tokenInvalidationService.invalidateTokensOnBlock(userId);
         } else {
             user.unblock();
             log.info("사용자 차단 해제: userId={}, adminId={}", userId, adminId);
-            auditLogger.logUserBlock(admin, userId, false);
             tokenInvalidationService.invalidateTokensOnUnblock(userId);
         }
 
@@ -103,7 +98,6 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public AdminUserResponseDto changeUserRole(Long userId, Long adminId, UserRoleChangeRequestDto requestDto) {
         User user = entityFinder.findUserById(userId);
-        User admin = entityFinder.findUserById(adminId);
         
         adminValidator.validateNotSelf(adminId, userId, ErrorCode.CANNOT_MODIFY_SELF);
         adminValidator.validateNotAdmin(user, ErrorCode.CANNOT_CHANGE_ADMIN_ROLE);
@@ -116,7 +110,6 @@ public class AdminServiceImpl implements AdminService {
         log.info("사용자 권한 변경: userId={}, oldRole={}, newRole={}, adminId={}", 
                 userId, oldRole, requestDto.getRole(), adminId);
 
-        auditLogger.logUserRoleChange(admin, userId, oldRole.toString(), requestDto.getRole().toString());
         tokenInvalidationService.invalidateTokensOnRoleChange(userId);
 
         return AdminUserResponseDto.from(user);
@@ -157,18 +150,15 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public void deletePrompt(Long promptId, Long adminId) {
         Prompt prompt = entityFinder.findPromptById(promptId);
-        User admin = entityFinder.findUserById(adminId);
         
         promptRepository.delete(prompt);
         log.info("프롬프트 삭제: promptId={}, adminId={}", promptId, adminId);
-        auditLogger.logPromptDelete(admin, promptId);
     }
 
     @Override
     @Transactional
     public AdminPromptResponseDto togglePromptVisibility(Long promptId, Long adminId, PromptVisibilityRequestDto requestDto) {
         Prompt prompt = entityFinder.findPromptById(promptId);
-        User admin = entityFinder.findUserById(adminId);
         
         boolean oldVisibility = prompt.isPublic();
         adminValidator.validateNotSameVisibility(oldVisibility, requestDto.getIsPublic());
@@ -177,8 +167,6 @@ public class AdminServiceImpl implements AdminService {
         
         log.info("프롬프트 공개 상태 변경: promptId={}, oldVisibility={}, newVisibility={}, adminId={}", 
                 promptId, oldVisibility, requestDto.getIsPublic(), adminId);
-        
-        auditLogger.logPromptVisibilityChange(admin, promptId, requestDto.getIsPublic());
         
         return AdminPromptResponseDto.from(prompt);
     }
@@ -206,17 +194,8 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public ReportDetailResponseDto processReport(Long reportId, Long adminId, ReportProcessRequestDto requestDto) {
-        User admin = entityFinder.findUserById(adminId);
-        ReportDetailResponseDto result = reportService.processReport(reportId, adminId, requestDto);
-        
-        auditLogger.logReportProcess(
-                admin,
-                reportId,
-                requestDto.getStatus().name(),
-                requestDto.getProcessComment()
-        );
-        
-        return result;
+
+        return reportService.processReport(reportId, adminId, requestDto);
     }
 
     // ======================

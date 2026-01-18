@@ -50,16 +50,7 @@ public class CustomOAuth2UserServiceImpl extends DefaultOAuth2UserService implem
         Optional<User> existingUser = userRepository.findByProviderAndProviderId(provider, userInfo.getId());
         User user;
         
-        if (existingUser.isPresent()) {
-            user = existingUser.get();
-            // 차단된 사용자는 로그인 불가 (tokenVersion 검증으로도 처리되지만 명시적 체크)
-            if (user.isBlocked()) {
-                throw new ApiException(
-                        ErrorCode.UNAUTHORIZED,
-                        "차단된 사용자입니다."
-                );
-            }
-        } else {
+        if (existingUser.isEmpty()) {
             // 신규 사용자 생성
             user = userRepository.save(
                     User.builder()
@@ -74,6 +65,23 @@ public class CustomOAuth2UserServiceImpl extends DefaultOAuth2UserService implem
             );
             // 신규 사용자 tokenVersion 초기화
             tokenVersionCacheService.initializeTokenVersion(user.getId());
+            return new PrincipalDetails(
+                    user.getId(),
+                    user.getNickname(),
+                    user.getRole(),
+                    provider,
+                    user.getProviderId(),
+                    attributes
+            );
+        }
+        
+        user = existingUser.get();
+        // 차단된 사용자는 로그인 불가 (tokenVersion 검증으로도 처리되지만 명시적 체크)
+        if (user.isBlocked()) {
+            throw new ApiException(
+                    ErrorCode.UNAUTHORIZED,
+                    "차단된 사용자입니다."
+            );
         }
         
         return new PrincipalDetails(

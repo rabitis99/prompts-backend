@@ -35,6 +35,8 @@ public class AuditLogServiceImpl implements AuditLogService {
             String ipAddress,
             String userAgent
     ) {
+        Long actorId = actor != null ? actor.getId() : null;
+        
         try {
             AuditLog auditLog = AuditLog.builder()
                     .actor(actor)
@@ -50,13 +52,13 @@ public class AuditLogServiceImpl implements AuditLogService {
 
             AuditLog saved = auditLogRepository.save(auditLog);
             log.debug("감사 로그 생성: action={}, entityType={}, entityId={}, actorId={}",
-                    action, entityType, entityId, actor.getId());
+                    action, entityType, entityId, actorId);
 
             return saved;
         } catch (Exception e) {
             // 감사 로그 기록 실패는 메인 트랜잭션에 영향을 주지 않도록 처리
             log.error("감사 로그 생성 실패: action={}, entityType={}, entityId={}, actorId={}",
-                    action, entityType, entityId, actor != null ? actor.getId() : null, e);
+                    action, entityType, entityId, actorId, e);
             return null;
         }
     }

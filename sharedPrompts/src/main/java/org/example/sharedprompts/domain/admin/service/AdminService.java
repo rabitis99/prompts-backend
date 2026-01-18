@@ -1,16 +1,21 @@
 package org.example.sharedprompts.domain.admin.service;
 
+import org.example.sharedprompts.domain.audit.enums.AuditAction;
+import org.example.sharedprompts.domain.audit.enums.AuditEntityType;
 import org.example.sharedprompts.domain.report.enums.ReportStatus;
 import org.example.sharedprompts.dto.admin.request.PromptVisibilityRequestDto;
 import org.example.sharedprompts.dto.admin.request.UserBlockRequestDto;
 import org.example.sharedprompts.dto.admin.request.UserRoleChangeRequestDto;
 import org.example.sharedprompts.dto.admin.response.AdminPromptResponseDto;
 import org.example.sharedprompts.dto.admin.response.AdminUserResponseDto;
+import org.example.sharedprompts.dto.audit.response.AuditLogResponseDto;
 import org.example.sharedprompts.dto.report.request.ReportProcessRequestDto;
 import org.example.sharedprompts.dto.report.response.ReportDetailResponseDto;
 import org.example.sharedprompts.dto.report.response.ReportResponseDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
+import java.time.LocalDateTime;
 
 public interface AdminService {
 
@@ -98,12 +103,12 @@ public interface AdminService {
     /**
      * 관리자 활동 감사 로그 조회
      */
-    Page<org.example.sharedprompts.dto.audit.response.AuditLogResponseDto> getAuditLogs(
+    Page<AuditLogResponseDto> getAuditLogs(
             Long actorId,
-            org.example.sharedprompts.domain.audit.enums.AuditEntityType entityType,
-            org.example.sharedprompts.domain.audit.enums.AuditAction action,
-            java.time.LocalDateTime startDate,
-            java.time.LocalDateTime endDate,
+            AuditEntityType entityType,
+            AuditAction action,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
             Pageable pageable
     );
 }

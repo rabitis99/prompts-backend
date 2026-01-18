@@ -40,6 +40,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         Long tokenVersion = tokenVersionCacheService.getTokenVersion(principal.getId());
         if (tokenVersion == 0) {
             tokenVersionCacheService.initializeTokenVersion(principal.getId());
+            tokenVersion = tokenVersionCacheService.getTokenVersion(principal.getId());
         }
 
         // JWT 생성 (email 제거)

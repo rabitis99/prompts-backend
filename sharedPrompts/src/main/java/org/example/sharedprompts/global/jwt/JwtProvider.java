@@ -71,7 +71,8 @@ public class JwtProvider {
      * @return tokenVersion
      */
     private Long getTokenVersion(Long userId) {
-        return tokenVersionCacheService.getTokenVersion(userId);
+        Long version = tokenVersionCacheService.getTokenVersion(userId);
+        return version != null ? version : 0L;
     }
 
     public Claims getClaims(String token) {

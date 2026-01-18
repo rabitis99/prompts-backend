@@ -9,6 +9,7 @@ import org.example.sharedprompts.global.annotation.AdminOnly;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.jwt.PrincipalDetails;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -25,19 +26,19 @@ public class AdminAuthAspect {
     public void checkAdminRole(JoinPoint joinPoint, AdminOnly adminOnly) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated() 
+                || authentication instanceof AnonymousAuthenticationToken) {
             log.warn("관리자 권한 검증 실패: 인증되지 않은 사용자");
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
         Object principal = authentication.getPrincipal();
 
-        if (!(principal instanceof PrincipalDetails)) {
+        if (!(principal instanceof PrincipalDetails principalDetails)) {
             log.warn("관리자 권한 검증 실패: PrincipalDetails 타입이 아님");
             throw new ApiException(ErrorCode.FORBIDDEN);
         }
 
-        PrincipalDetails principalDetails = (PrincipalDetails) principal;
         Role userRole = principalDetails.getRole();
 
         if (userRole != Role.ROLE_ADMIN) {

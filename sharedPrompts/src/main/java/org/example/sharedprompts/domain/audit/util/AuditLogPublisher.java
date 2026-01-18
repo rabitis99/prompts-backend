@@ -6,12 +6,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.audit.enums.AuditAction;
 import org.example.sharedprompts.domain.audit.enums.AuditEntityType;
 import org.example.sharedprompts.domain.audit.event.AuditEvent;
-import org.example.sharedprompts.domain.user.User;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 /**
  * 감사 로그 이벤트를 발행하는 유틸리티 클래스
+ * 
+ * JPA Entity를 이벤트에 포함하지 않고 스냅샷 값(actorId, actorIdentifier)만 전달합니다.
  */
 @Slf4j
 @Component
@@ -23,9 +24,13 @@ public class AuditLogPublisher {
 
     /**
      * 감사 로그 이벤트 발행
+     * 
+     * @param actorId 액터 사용자 ID
+     * @param actorIdentifier 액터 식별자 (email 또는 nickname)
      */
     public void publish(
-            User actor,
+            Long actorId,
+            String actorIdentifier,
             AuditEntityType entityType,
             Long entityId,
             AuditAction action,
@@ -40,7 +45,8 @@ public class AuditLogPublisher {
             String afterStateJson = afterState != null ? objectMapper.writeValueAsString(afterState) : null;
 
             AuditEvent event = AuditEvent.builder()
-                    .actor(actor)
+                    .actorId(actorId)
+                    .actorIdentifier(actorIdentifier)
                     .entityType(entityType)
                     .entityId(entityId)
                     .action(action)
@@ -53,8 +59,8 @@ public class AuditLogPublisher {
 
             eventPublisher.publishEvent(event);
         } catch (Exception e) {
-            log.error("감사 로그 이벤트 발행 실패: action={}, entityType={}, entityId={}",
-                    action, entityType, entityId, e);
+            log.error("감사 로그 이벤트 발행 실패: action={}, entityType={}, entityId={}, actorId={}",
+                    action, entityType, entityId, actorId, e);
         }
     }
 }

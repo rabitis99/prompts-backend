@@ -72,9 +72,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String provider = jwtProvider.getProviderFromClaims(claims);
             String providerId = jwtProvider.getProviderIdFromClaims(claims);
 
-            if (userId == null || role == null) {
+            // 필수 필드 검증 (PrincipalDetails.fromJwtClaims에서 예외 발생 전에 조기 감지)
+            if (userId == null || role == null || provider == null || 
+                providerId == null || providerId.isBlank()) {
+                log.warn("JWT 필수 클레임 누락: userId={}, role={}, provider={}, providerId={}", 
+                        userId, role, provider, providerId);
                 tokenRedisService.deleteAccessToken(token);
-                filterChain.doFilter(request, response);
+                JwtErrorResponseWriter.writeErrorResponse(response, ErrorCode.UNAUTHORIZED);
                 return;
             }
 
@@ -109,11 +113,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     );
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
+            filterChain.doFilter(request, response);
         } catch (Exception e) {
             log.warn("JWT 처리 중 오류 발생: {}", e.getMessage());
             tokenRedisService.deleteAccessToken(token);
+            JwtErrorResponseWriter.writeErrorResponse(response, ErrorCode.UNAUTHORIZED);
         }
-
-        filterChain.doFilter(request, response);
     }
 }

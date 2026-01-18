@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.example.sharedprompts.domain.audit.AuditLog;
 import org.example.sharedprompts.domain.audit.enums.AuditAction;
 import org.example.sharedprompts.domain.audit.enums.AuditEntityType;
+import org.example.sharedprompts.domain.user.User;
 
 import java.time.LocalDateTime;
 
@@ -42,10 +43,11 @@ public class AuditLogResponseDto {
     private LocalDateTime createdAt;
 
     public static AuditLogResponseDto from(AuditLog auditLog) {
+        User actor = auditLog.getActor();
         return AuditLogResponseDto.builder()
                 .id(auditLog.getId())
-                .actorId(auditLog.getActor().getId())
-                .actorNickname(auditLog.getActor().getNickname())
+                .actorId(actor != null ? actor.getId() : null)
+                .actorNickname(actor != null ? actor.getNickname() : null)
                 .entityType(auditLog.getEntityType())
                 .entityId(auditLog.getEntityId())
                 .action(auditLog.getAction())
