@@ -81,7 +81,11 @@ public class ActorExtractor {
      */
     private AuthUser extractAuthUserParameter(Object[] args, Parameter[] parameters) {
         try {
-            for (int i = 0; i < parameters.length; i++) {
+            if (args == null || parameters == null) {
+                return null;
+            }
+            int len = Math.min(args.length, parameters.length);
+            for (int i = 0; i < len; i++) {
                 Parameter param = parameters[i];
                 if (param.isAnnotationPresent(CurrentUser.class) && args[i] instanceof AuthUser) {
                     return (AuthUser) args[i];

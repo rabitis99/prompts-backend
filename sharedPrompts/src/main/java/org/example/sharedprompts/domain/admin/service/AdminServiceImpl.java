@@ -166,7 +166,7 @@ public class AdminServiceImpl implements AdminService {
             return getPrompts(pageable);
         }
 
-        return promptRepository.searchPrompts(trimmedKeyword, pageable)
+        return promptRepository.searchPromptsForAdmin(trimmedKeyword, pageable)
                 .map(AdminPromptResponseDto::from);
     }
 
@@ -194,16 +194,21 @@ public class AdminServiceImpl implements AdminService {
     public AdminPromptResponseDto togglePromptVisibility(Long promptId, Long adminId, PromptVisibilityRequestDto requestDto) {
         Prompt prompt = entityFinder.findPromptById(promptId);
         
-        boolean oldVisibility = prompt.isPublic();
-        adminValidator.validateNotSameVisibility(oldVisibility, requestDto.getIsPublic());
+        Boolean isPublic = requestDto.getIsPublic();
+        if (isPublic == null) {
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE);
+        }
         
-        prompt.updateIsPublic(requestDto.getIsPublic());
+        boolean oldVisibility = prompt.isPublic();
+        adminValidator.validateNotSameVisibility(oldVisibility, isPublic);
+        
+        prompt.updateIsPublic(isPublic);
         
         log.info("프롬프트 공개 상태 변경: promptId={}, oldVisibility={}, newVisibility={}, adminId={}", 
-                promptId, oldVisibility, requestDto.getIsPublic(), adminId);
+                promptId, oldVisibility, isPublic, adminId);
 
         User admin = entityFinder.findUserById(adminId);
-        adminAuditLogger.logPromptVisibilityChange(admin, promptId, requestDto.getIsPublic());
+        adminAuditLogger.logPromptVisibilityChange(admin, promptId, isPublic);
         
         return AdminPromptResponseDto.from(prompt);
     }
