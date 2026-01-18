@@ -234,8 +234,8 @@ public class NotificationEventProcessor {
             return; // 알림 설정이 꺼져 있는 경우
         }
         
-        // relatedEntityId는 팔로우 대상자(followingId)로 설정
-        if (isDuplicateNotification(followingUser.getId(), NotificationType.FOLLOW, event.followingId())) {
+        // relatedEntityId는 팔로워 ID(followerId)로 설정하여 누가 팔로우했는지 명확히 함
+        if (isDuplicateNotification(followingUser.getId(), NotificationType.FOLLOW, event.followerId())) {
             return; // 중복 알림인 경우
         }
         
@@ -244,7 +244,7 @@ public class NotificationEventProcessor {
                 followingUser.getId(),
                 NotificationType.FOLLOW,
                 RelatedEntityType.USER,
-                event.followingId(),
+                event.followerId(),
                 event.followerId(),
                 message
         );
