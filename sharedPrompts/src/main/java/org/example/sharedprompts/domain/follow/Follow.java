@@ -30,18 +30,16 @@ public class Follow {
     private FollowStatus status;
 
     public Follow(Long followerId, Long followingId) {
-        this.followerId = (followerId != null) ? followerId : -1L;
-        this.followingId = (followingId != null) ? followingId : -1L;
+        this.followerId = followerId;
+        this.followingId = followingId;
         this.status = FollowStatus.PENDING;
     }
 
     public void markFollowing() {
-        if (followerId <= 0 || followingId <= 0) return;
         this.status = FollowStatus.FOLLOWING;
     }
 
     public void markBlocked() {
-        if (followerId <= 0 || followingId <= 0) return;
         this.status = FollowStatus.BLOCKED;
     }
 }

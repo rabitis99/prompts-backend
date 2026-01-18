@@ -28,25 +28,27 @@ public class FollowServiceImpl implements FollowService {
     @Override
     @Transactional
     public void requestFollow(Long followerId, Long followingId) {
+        validateIds(followerId, followingId);
         validateUserExists(followerId);
         validateUserExists(followingId);
         validateNotSelfFollow(followerId, followingId);
 
         if (followRepository.existsByFollowerIdAndFollowingId(followerId, followingId)) {
-            throw new ApiException(ErrorCode.DATA_INTEGRITY_VIOLATION);
+            throw new ApiException(ErrorCode.FOLLOW_ALREADY_EXISTS);
         }
 
         Follow follow = new Follow(followerId, followingId);
         try {
             followRepository.save(follow);
         } catch (DataIntegrityViolationException e) {
-            throw new ApiException(ErrorCode.DATA_INTEGRITY_VIOLATION);
+            throw new ApiException(ErrorCode.FOLLOW_ALREADY_EXISTS);
         }
     }
 
     @Override
     @Transactional
     public void acceptFollow(Long followerId, Long followingId) {
+        validateIds(followerId, followingId);
         Follow follow = findFollow(followerId, followingId);
         follow.markFollowing();
         followRepository.save(follow);
@@ -55,6 +57,7 @@ public class FollowServiceImpl implements FollowService {
     @Override
     @Transactional
     public void rejectFollow(Long followerId, Long followingId) {
+        validateIds(followerId, followingId);
         Follow follow = findFollow(followerId, followingId);
         followRepository.delete(follow);
     }
@@ -62,6 +65,7 @@ public class FollowServiceImpl implements FollowService {
     @Override
     @Transactional
     public void blockFollow(Long followerId, Long followingId) {
+        validateIds(followerId, followingId);
         validateUserExists(followerId);
         validateUserExists(followingId);
         validateNotSelfFollow(followerId, followingId);
@@ -77,10 +81,11 @@ public class FollowServiceImpl implements FollowService {
     @Override
     @Transactional
     public void unblockFollow(Long followerId, Long followingId) {
+        validateIds(followerId, followingId);
         Follow follow = findFollow(followerId, followingId);
         
         if (follow.getStatus() != FollowStatus.BLOCKED) {
-            throw new ApiException(ErrorCode.BAD_REQUEST);
+            throw new ApiException(ErrorCode.FOLLOW_NOT_BLOCKED);
         }
 
         followRepository.delete(follow);
@@ -89,6 +94,7 @@ public class FollowServiceImpl implements FollowService {
     @Override
     @Transactional
     public void unfollow(Long followerId, Long followingId) {
+        validateIds(followerId, followingId);
         Follow follow = findFollow(followerId, followingId);
         followRepository.delete(follow);
     }
@@ -96,6 +102,7 @@ public class FollowServiceImpl implements FollowService {
     @Override
     @Transactional(readOnly = true)
     public FollowResponseDto getFollowStatus(Long followerId, Long followingId) {
+        validateIds(followerId, followingId);
         return followRepository
                 .findByFollowerIdAndFollowingId(followerId, followingId)
                 .map(follow -> FollowResponseDto.from(follow.getStatus()))
@@ -128,6 +135,12 @@ public class FollowServiceImpl implements FollowService {
                 .build();
     }
 
+    private void validateIds(Long followerId, Long followingId) {
+        if (followerId == null || followingId == null) {
+            throw new ApiException(ErrorCode.FOLLOW_IDS_REQUIRED);
+        }
+    }
+
     private void validateUserExists(Long userId) {
         if (!userRepository.existsById(userId)) {
             throw new ApiException(ErrorCode.USER_NOT_FOUND);
@@ -136,14 +149,14 @@ public class FollowServiceImpl implements FollowService {
 
     private void validateNotSelfFollow(Long followerId, Long followingId) {
         if (followerId.equals(followingId)) {
-            throw new ApiException(ErrorCode.BAD_REQUEST);
+            throw new ApiException(ErrorCode.CANNOT_FOLLOW_SELF);
         }
     }
 
     private Follow findFollow(Long followerId, Long followingId) {
         return followRepository
                 .findByFollowerIdAndFollowingId(followerId, followingId)
-                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+                .orElseThrow(() -> new ApiException(ErrorCode.FOLLOW_NOT_FOUND));
     }
 }
 

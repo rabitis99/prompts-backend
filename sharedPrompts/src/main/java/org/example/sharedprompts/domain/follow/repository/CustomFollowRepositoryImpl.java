@@ -1,8 +1,10 @@
 package org.example.sharedprompts.domain.follow.repository;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.NumberPath;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.follow.FollowStatus;
 import org.example.sharedprompts.domain.user.User;
 import org.springframework.data.domain.Page;
@@ -11,10 +13,13 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static org.example.sharedprompts.domain.follow.QFollow.follow;
 import static org.example.sharedprompts.domain.user.QUser.user;
 
+@Slf4j
 @RequiredArgsConstructor
 public class CustomFollowRepositoryImpl implements CustomFollowRepository {
 
@@ -27,46 +32,7 @@ public class CustomFollowRepositoryImpl implements CustomFollowRepository {
     @Override
     public Page<User> findFollowersByUserIdAndStatus(Long userId, FollowStatus status, Pageable pageable) {
         BooleanExpression whereCondition = buildWhereCondition(null, userId, status);
-        
-        // 1) 페이징 가능한 followerId 조회
-        List<Long> followerIds = queryFactory
-                .select(follow.followerId)
-                .from(follow)
-                .where(whereCondition)
-                .orderBy(follow.id.desc())
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .fetch();
-
-        // 2) 전체 개수 조회
-        Long totalCount = queryFactory
-                .select(follow.count())
-                .from(follow)
-                .where(whereCondition)
-                .fetchOne();
-
-        long total = totalCount != null ? totalCount : 0L;
-
-        if (followerIds.isEmpty()) {
-            return new PageImpl<>(List.of(), pageable, total);
-        }
-
-        // 3) User 조회
-        List<User> users = queryFactory
-                .selectFrom(user)
-                .where(user.id.in(followerIds))
-                .fetch();
-
-        // followerIds 순서대로 정렬
-        Map<Long, User> userMap = users.stream()
-                .collect(java.util.stream.Collectors.toMap(User::getId, u -> u));
-
-        List<User> content = followerIds.stream()
-                .map(userMap::get)
-                .filter(java.util.Objects::nonNull)
-                .toList();
-
-        return new PageImpl<>(content, pageable, total);
+        return findUsersByCondition(whereCondition, follow.followerId, pageable);
     }
 
     /**
@@ -76,10 +42,20 @@ public class CustomFollowRepositoryImpl implements CustomFollowRepository {
     @Override
     public Page<User> findFollowingByUserIdAndStatus(Long userId, FollowStatus status, Pageable pageable) {
         BooleanExpression whereCondition = buildWhereCondition(userId, null, status);
-        
-        // 1) 페이징 가능한 followingId 조회
-        List<Long> followingIds = queryFactory
-                .select(follow.followingId)
+        return findUsersByCondition(whereCondition, follow.followingId, pageable);
+    }
+
+    /**
+     * 공통 로직: where 조건과 id 경로를 기반으로 User 목록 조회
+     */
+    private Page<User> findUsersByCondition(
+            BooleanExpression whereCondition,
+            NumberPath<Long> idPath,
+            Pageable pageable
+    ) {
+        // 1) 팔로우 ID 페이징 조회
+        List<Long> userIds = queryFactory
+                .select(idPath)
                 .from(follow)
                 .where(whereCondition)
                 .orderBy(follow.id.desc())
@@ -87,45 +63,52 @@ public class CustomFollowRepositoryImpl implements CustomFollowRepository {
                 .limit(pageable.getPageSize())
                 .fetch();
 
-        // 2) 전체 개수 조회
-        Long totalCount = queryFactory
-                .select(follow.count())
-                .from(follow)
-                .where(whereCondition)
-                .fetchOne();
-
-        long total = totalCount != null ? totalCount : 0L;
-
-        if (followingIds.isEmpty()) {
-            return new PageImpl<>(List.of(), pageable, total);
+        if (userIds.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, 0);
         }
 
-        // 3) User 조회
+        // 2) User 조회 + soft delete, blocked 제외
         List<User> users = queryFactory
                 .selectFrom(user)
-                .where(user.id.in(followingIds))
+                .where(user.id.in(userIds)
+                        .and(user.deletedAt.isNull())   // soft delete 제외
+                        .and(user.blocked.isFalse()))   // 차단 유저 제외
                 .fetch();
 
-        // followingIds 순서대로 정렬
+        // 3) UserIds 순서대로 정렬
         Map<Long, User> userMap = users.stream()
-                .collect(java.util.stream.Collectors.toMap(User::getId, u -> u));
+                .collect(Collectors.toMap(User::getId, u -> u));
 
-        List<User> content = followingIds.stream()
+        List<User> content = userIds.stream()
                 .map(userMap::get)
-                .filter(java.util.Objects::nonNull)
-                .toList();
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
 
-        return new PageImpl<>(content, pageable, total);
+        // 4) 전체 count 조회 (Follow + User 조건)
+        BooleanExpression joinCondition = idPath.eq(user.id);
+        Long total = queryFactory
+                .select(follow.count())
+                .from(follow)
+                .join(user).on(joinCondition)
+                .where(whereCondition
+                        .and(user.deletedAt.isNull())
+                        .and(user.blocked.isFalse()))
+                .fetchOne();
+
+        return new PageImpl<>(content, pageable, total != null ? total : 0);
     }
 
     @Override
     public Long countFollowersByUserIdAndStatus(Long userId, FollowStatus status) {
         BooleanExpression whereCondition = buildWhereCondition(null, userId, status);
-        
+
         Long count = queryFactory
                 .select(follow.count())
                 .from(follow)
-                .where(whereCondition)
+                .join(user).on(user.id.eq(follow.followerId))
+                .where(whereCondition
+                        .and(user.deletedAt.isNull())
+                        .and(user.blocked.isFalse()))
                 .fetchOne();
 
         return count != null ? count : 0L;
@@ -134,11 +117,14 @@ public class CustomFollowRepositoryImpl implements CustomFollowRepository {
     @Override
     public Long countFollowingByUserIdAndStatus(Long userId, FollowStatus status) {
         BooleanExpression whereCondition = buildWhereCondition(userId, null, status);
-        
+
         Long count = queryFactory
                 .select(follow.count())
                 .from(follow)
-                .where(whereCondition)
+                .join(user).on(user.id.eq(follow.followingId))
+                .where(whereCondition
+                        .and(user.deletedAt.isNull())
+                        .and(user.blocked.isFalse()))
                 .fetchOne();
 
         return count != null ? count : 0L;
@@ -149,6 +135,12 @@ public class CustomFollowRepositoryImpl implements CustomFollowRepository {
      * QueryDSL의 null 안전 조합 활용
      */
     private BooleanExpression buildWhereCondition(Long followerId, Long followingId, FollowStatus status) {
+        // 모든 파라미터가 null이면 false 조건
+        if (followerId == null && followingId == null && status == null) {
+            log.warn("buildWhereCondition: 모든 파라미터가 null입니다. 전체 테이블 조회를 방지하기 위해 항상 false 조건을 반환합니다.");
+            return follow.id.eq(-1L);
+        }
+
         BooleanExpression condition = null;
 
         if (followerId != null) {

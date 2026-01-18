@@ -18,11 +18,12 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/users")
 public class FollowController {
 
     private final FollowService followService;
 
-    @PostMapping("/users/{followingId}/follow")
+    @PostMapping("/{followingId}/follow")
     public ResponseEntity<CustomResponse<Void>> requestFollow(
             @PathVariable Long followingId,
             @CurrentUser AuthUser authUser
@@ -31,7 +32,7 @@ public class FollowController {
         return CustomResponseHelper.created(null);
     }
 
-    @PostMapping("/users/{followerId}/follow/accept")
+    @PostMapping("/{followerId}/follow/accept")
     public ResponseEntity<CustomResponse<Void>> acceptFollow(
             @PathVariable Long followerId,
             @CurrentUser AuthUser authUser
@@ -40,7 +41,7 @@ public class FollowController {
         return CustomResponseHelper.ok(null);
     }
 
-    @PostMapping("/users/{followerId}/follow/reject")
+    @PostMapping("/{followerId}/follow/reject")
     public ResponseEntity<Void> rejectFollow(
             @PathVariable Long followerId,
             @CurrentUser AuthUser authUser
@@ -49,16 +50,16 @@ public class FollowController {
         return CustomResponseHelper.noContent();
     }
 
-    @PostMapping("/users/{followingId}/follow/block")
+    @PostMapping("/{blockUserId}/follow/block")
     public ResponseEntity<CustomResponse<Void>> blockFollow(
-            @PathVariable Long followingId,
+            @PathVariable("blockUserId") Long blockUserId,
             @CurrentUser AuthUser authUser
     ) {
-        followService.blockFollow(authUser.getId(), followingId);
+        followService.blockFollow(authUser.getId(), blockUserId);
         return CustomResponseHelper.ok(null);
     }
 
-    @DeleteMapping("/users/{followingId}/follow/block")
+    @DeleteMapping("/{followingId}/follow/block")
     public ResponseEntity<Void> unblockFollow(
             @PathVariable Long followingId,
             @CurrentUser AuthUser authUser
@@ -67,7 +68,7 @@ public class FollowController {
         return CustomResponseHelper.noContent();
     }
 
-    @DeleteMapping("/users/{followingId}/follow")
+    @DeleteMapping("/{followingId}/follow")
     public ResponseEntity<Void> unfollow(
             @PathVariable Long followingId,
             @CurrentUser AuthUser authUser
@@ -76,7 +77,7 @@ public class FollowController {
         return CustomResponseHelper.noContent();
     }
 
-    @GetMapping("/users/{followingId}/follow")
+    @GetMapping("/{followingId}/follow")
     public ResponseEntity<CustomResponse<FollowResponseDto>> getFollowStatus(
             @PathVariable Long followingId,
             @CurrentUser AuthUser authUser
@@ -85,35 +86,32 @@ public class FollowController {
         return CustomResponseHelper.ok(response);
     }
 
-    @GetMapping("/users/{userId}/followers")
+    @GetMapping("/me/followers")
     public ResponseEntity<CustomResponse<PageResponse<UserResponseDto>>> getFollowers(
-            @PathVariable Long userId,
             @RequestParam(required = false) FollowStatus status,
             @CurrentUser AuthUser authUser,
             @PageableDefault(size = 20) Pageable pageable
     ) {
-        PageResponse<UserResponseDto> response = followService.getFollowers(userId, status, pageable);
+        PageResponse<UserResponseDto> response = followService.getFollowers(authUser.getId(), status, pageable);
         return CustomResponseHelper.ok(response);
     }
 
-    @GetMapping("/users/{userId}/following")
+    @GetMapping("/me/following")
     public ResponseEntity<CustomResponse<PageResponse<UserResponseDto>>> getFollowing(
-            @PathVariable Long userId,
             @RequestParam(required = false) FollowStatus status,
             @CurrentUser AuthUser authUser,
             @PageableDefault(size = 20) Pageable pageable
     ) {
-        PageResponse<UserResponseDto> response = followService.getFollowing(userId, status, pageable);
+        PageResponse<UserResponseDto> response = followService.getFollowing(authUser.getId(), status, pageable);
         return CustomResponseHelper.ok(response);
     }
 
-    @GetMapping("/users/{userId}/follow/count")
+    @GetMapping("/me/follow/count")
     public ResponseEntity<CustomResponse<FollowCountResponseDto>> getFollowCount(
-            @PathVariable Long userId,
             @RequestParam(required = false) FollowStatus status,
             @CurrentUser AuthUser authUser
     ) {
-        FollowCountResponseDto response = followService.getFollowCount(userId, status);
+        FollowCountResponseDto response = followService.getFollowCount(authUser.getId(), status);
         return CustomResponseHelper.ok(response);
     }
 }
