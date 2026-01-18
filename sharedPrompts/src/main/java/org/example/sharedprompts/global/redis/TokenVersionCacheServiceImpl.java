@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -52,7 +53,14 @@ public class TokenVersionCacheServiceImpl implements TokenVersionCacheService {
             throw new IllegalArgumentException("userId must not be null");
         }
         String key = PREFIX + userId;
-        Long newVersion = redisTemplate.opsForValue().increment(key);
+        Long newVersion;
+        try {
+            newVersion = redisTemplate.opsForValue().increment(key);
+        } catch (DataAccessException e) {
+            log.warn("토큰 버전 형식 오류로 초기화: userId={}", userId, e);
+            redisTemplate.opsForValue().set(key, "1", Duration.ofDays(DEFAULT_TTL_DAYS));
+            return;
+        }
         
         if (newVersion == null) {
             log.error("토큰 버전 증가 실패: userId={}", userId);
@@ -74,8 +82,14 @@ public class TokenVersionCacheServiceImpl implements TokenVersionCacheService {
             throw new IllegalArgumentException("userId must not be null");
         }
         String key = PREFIX + userId;
-        redisTemplate.opsForValue().set(key, "0", Duration.ofDays(DEFAULT_TTL_DAYS));
-        log.debug("토큰 버전 초기화: userId={}", userId);
+        Boolean set = redisTemplate.opsForValue().setIfAbsent(
+                key, "0", Duration.ofDays(DEFAULT_TTL_DAYS)
+        );
+        if (Boolean.FALSE.equals(set)) {
+            log.debug("토큰 버전 초기화 스킵(이미 존재): userId={}", userId);
+        } else {
+            log.debug("토큰 버전 초기화: userId={}", userId);
+        }
     }
 
     @Override

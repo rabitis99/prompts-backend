@@ -110,7 +110,6 @@ public class AdminServiceImpl implements AdminService {
         User user = entityFinder.findUserById(userId);
         
         adminValidator.validateNotSelf(adminId, userId, ErrorCode.CANNOT_MODIFY_SELF);
-        adminValidator.validateNotAdmin(user, ErrorCode.CANNOT_CHANGE_ADMIN_ROLE);
 
         Role oldRole = user.getRole();
         adminValidator.validateNotSameRole(oldRole, requestDto.getRole());
@@ -119,13 +118,7 @@ public class AdminServiceImpl implements AdminService {
         if (oldRole == Role.ROLE_ADMIN && requestDto.getRole() != Role.ROLE_ADMIN) {
             int updatedRows = userRepository.changeRoleFromAdminIfNotLast(userId, Role.ROLE_ADMIN, requestDto.getRole());
             if (updatedRows == 0) {
-                // 조건부 업데이트 실패 = 마지막 관리자이거나 다른 이유로 업데이트 실패
-                long adminCount = userRepository.countActiveAdmins(Role.ROLE_ADMIN);
-                if (adminCount <= 1) {
-                    throw new ApiException(ErrorCode.LAST_ADMIN_CANNOT_BE_MODIFIED);
-                }
-                // 기타 이유로 실패한 경우 기존 방식으로 재시도
-                user.changeRole(requestDto.getRole());
+                throw new ApiException(ErrorCode.LAST_ADMIN_CANNOT_BE_MODIFIED);
             } else {
                 // 조건부 업데이트 성공 - 엔티티 새로고침 필요
                 userRepository.flush();
