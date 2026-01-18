@@ -40,6 +40,7 @@ public class AuditEventListener {
 
             auditLogService.createLog(
                     actor,
+                    event.getActorIdentifier(),
                     event.getEntityType(),
                     event.getEntityId(),
                     event.getAction(),

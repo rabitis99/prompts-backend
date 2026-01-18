@@ -88,6 +88,7 @@ public class JwtErrorResponseWriter {
         response.getWriter().write(
                 objectMapper.writeValueAsString(CustomResponse.fail(apiException))
         );
+        response.getWriter().flush();
     }
 }
 

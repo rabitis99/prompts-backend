@@ -13,9 +13,20 @@ public interface AuditLogService {
 
     /**
      * 감사 로그 생성
+     * @param actor 액터 User 엔티티 (null 가능)
+     * @param actorIdentifier 액터 식별자 스냅샷 (email 또는 nickname)
+     * @param entityType 엔티티 타입
+     * @param entityId 엔티티 ID
+     * @param action 작업 타입
+     * @param description 작업 상세 설명
+     * @param beforeState 변경 전 상태 (JSON)
+     * @param afterState 변경 후 상태 (JSON)
+     * @param ipAddress IP 주소
+     * @param userAgent User-Agent 정보
      */
     AuditLog createLog(
             User actor,
+            String actorIdentifier,
             AuditEntityType entityType,
             Long entityId,
             AuditAction action,

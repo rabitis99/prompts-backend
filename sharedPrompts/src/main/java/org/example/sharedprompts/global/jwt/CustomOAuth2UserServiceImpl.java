@@ -65,25 +65,22 @@ public class CustomOAuth2UserServiceImpl extends DefaultOAuth2UserService implem
             );
             // 신규 사용자 tokenVersion 초기화
             tokenVersionCacheService.initializeTokenVersion(user.getId());
-            return new PrincipalDetails(
-                    user.getId(),
-                    user.getNickname(),
-                    user.getRole(),
-                    provider,
-                    user.getProviderId(),
-                    attributes
-            );
+            return createPrincipalDetails(user, provider, attributes);
         }
         
         user = existingUser.get();
         // 차단된 사용자는 로그인 불가 (tokenVersion 검증으로도 처리되지만 명시적 체크)
         if (user.isBlocked()) {
             throw new ApiException(
-                    ErrorCode.UNAUTHORIZED,
+                    ErrorCode.FORBIDDEN,
                     "차단된 사용자입니다."
             );
         }
         
+        return createPrincipalDetails(user, provider, attributes);
+    }
+
+    private PrincipalDetails createPrincipalDetails(User user, Provider provider, Map<String, Object> attributes) {
         return new PrincipalDetails(
                 user.getId(),
                 user.getNickname(),

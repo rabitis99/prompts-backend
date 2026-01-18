@@ -27,6 +27,9 @@ public class TokenVersionCacheServiceImpl implements TokenVersionCacheService {
 
     @Override
     public Long getTokenVersion(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("userId must not be null");
+        }
         String key = PREFIX + userId;
         String value = redisTemplate.opsForValue().get(key);
         
@@ -45,6 +48,9 @@ public class TokenVersionCacheServiceImpl implements TokenVersionCacheService {
 
     @Override
     public void incrementTokenVersion(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("userId must not be null");
+        }
         String key = PREFIX + userId;
         Long newVersion = redisTemplate.opsForValue().increment(key);
         
@@ -64,6 +70,9 @@ public class TokenVersionCacheServiceImpl implements TokenVersionCacheService {
 
     @Override
     public void initializeTokenVersion(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("userId must not be null");
+        }
         String key = PREFIX + userId;
         redisTemplate.opsForValue().set(key, "0", Duration.ofDays(DEFAULT_TTL_DAYS));
         log.debug("토큰 버전 초기화: userId={}", userId);
@@ -71,6 +80,9 @@ public class TokenVersionCacheServiceImpl implements TokenVersionCacheService {
 
     @Override
     public void deleteTokenVersion(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("userId must not be null");
+        }
         String key = PREFIX + userId;
         redisTemplate.delete(key);
         log.info("토큰 버전 삭제: userId={}", userId);

@@ -15,6 +15,10 @@ public class ParameterExtractor {
      */
     public static Long extractLongByName(String paramName, Object[] args, Parameter[] parameters) {
         try {
+            if (parameters.length > 0 && !parameters[0].isNamePresent()) {
+                log.warn("파라미터 이름이 유지되지 않아 이름 기반 추출을 사용할 수 없습니다. -parameters 옵션을 확인하세요.");
+                return null;
+            }
             for (int i = 0; i < parameters.length; i++) {
                 if (parameters[i].getName().equals(paramName)) {
                     return toLong(args[i]);
@@ -53,6 +57,10 @@ public class ParameterExtractor {
     public static Object extractByName(String paramName, Object[] args, Parameter[] parameters) {
         try {
             if (paramName == null || paramName.isEmpty()) {
+                return null;
+            }
+            if (parameters.length > 0 && !parameters[0].isNamePresent()) {
+                log.warn("파라미터 이름이 유지되지 않아 이름 기반 추출을 사용할 수 없습니다. -parameters 옵션을 확인하세요.");
                 return null;
             }
 

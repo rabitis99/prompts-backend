@@ -41,8 +41,8 @@ public class AuditLogPublisher {
             String userAgent
     ) {
         try {
-            String beforeStateJson = beforeState != null ? objectMapper.writeValueAsString(beforeState) : null;
-            String afterStateJson = afterState != null ? objectMapper.writeValueAsString(afterState) : null;
+            String beforeStateJson = safeSerialize(beforeState, "beforeState");
+            String afterStateJson = safeSerialize(afterState, "afterState");
 
             AuditEvent event = AuditEvent.builder()
                     .actorId(actorId)
@@ -61,6 +61,21 @@ public class AuditLogPublisher {
         } catch (Exception e) {
             log.error("감사 로그 이벤트 발행 실패: action={}, entityType={}, entityId={}, actorId={}",
                     action, entityType, entityId, actorId, e);
+        }
+    }
+
+    /**
+     * 안전한 직렬화: 실패 시 null 반환하여 이벤트 발행은 계속 진행
+     */
+    private String safeSerialize(Object value, String label) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception e) {
+            log.warn("감사 로그 {} 직렬화 실패: {}", label, e.getMessage());
+            return null;
         }
     }
 }

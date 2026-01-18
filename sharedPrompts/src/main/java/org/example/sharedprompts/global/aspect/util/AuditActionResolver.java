@@ -1,12 +1,15 @@
 package org.example.sharedprompts.global.aspect.util;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.example.sharedprompts.domain.audit.enums.AuditAction;
 import org.example.sharedprompts.dto.admin.request.UserBlockRequestDto;
 
 /**
  * AuditAction을 동적으로 결정하는 유틸리티 클래스
  */
-public class AuditActionResolver {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class AuditActionResolver {
 
     /**
      * 기본 Action과 afterState를 기반으로 최종 Action 결정

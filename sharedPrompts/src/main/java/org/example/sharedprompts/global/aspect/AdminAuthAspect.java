@@ -9,6 +9,7 @@ import org.example.sharedprompts.global.annotation.AdminOnly;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.jwt.PrincipalDetails;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
 @Aspect
 @Component
 @Slf4j
+@Order(0) // AuditLogAspect보다 먼저 실행되어 권한 검증 후 감사 로그 기록
 public class AdminAuthAspect {
 
     @Before("@annotation(adminOnly) || @within(adminOnly)")

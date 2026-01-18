@@ -23,6 +23,8 @@ public class AuditLogResponseDto {
     private Long id;
     @JsonProperty("actor_id")
     private Long actorId;
+    @JsonProperty("actor_identifier")
+    private String actorIdentifier;
     @JsonProperty("actor_nickname")
     private String actorNickname;
     @JsonProperty("entity_type")
@@ -47,6 +49,7 @@ public class AuditLogResponseDto {
         return AuditLogResponseDto.builder()
                 .id(auditLog.getId())
                 .actorId(actor != null ? actor.getId() : null)
+                .actorIdentifier(auditLog.getActorIdentifier())
                 .actorNickname(actor != null ? actor.getNickname() : null)
                 .entityType(auditLog.getEntityType())
                 .entityId(auditLog.getEntityId())

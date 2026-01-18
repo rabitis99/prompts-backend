@@ -26,6 +26,7 @@ public class AuditLogServiceImpl implements AuditLogService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public AuditLog createLog(
             User actor,
+            String actorIdentifier,
             AuditEntityType entityType,
             Long entityId,
             AuditAction action,
@@ -40,6 +41,7 @@ public class AuditLogServiceImpl implements AuditLogService {
         try {
             AuditLog auditLog = AuditLog.builder()
                     .actor(actor)
+                    .actorIdentifier(actorIdentifier)
                     .entityType(entityType)
                     .entityId(entityId)
                     .action(action)

@@ -30,10 +30,18 @@ public class AuditLog extends BaseEntity {
 
     /**
      * 작업을 수행한 사용자 (관리자 또는 일반 사용자)
+     * 사용자가 삭제된 경우 null이 될 수 있습니다.
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "actor_id", nullable = false)
+    @JoinColumn(name = "actor_id", nullable = true)
     private User actor;
+
+    /**
+     * 액터 식별자 스냅샷 (email 또는 nickname)
+     * User 엔티티가 삭제되어도 식별자 정보를 보존하기 위해 스냅샷으로 저장합니다.
+     */
+    @Column(name = "actor_identifier", length = 150)
+    private String actorIdentifier;
 
     /**
      * 작업이 수행된 엔티티 타입 (USER, PROMPT, COMMENT, REPORT 등)

@@ -21,6 +21,77 @@ public class AdminAuditLogger {
     private final AuditLogPublisher auditLogPublisher;
 
     /**
+     * 사용자 차단/해제 감사 로그 기록
+     */
+    public void logUserBlock(User admin, Long targetUserId, boolean blocked) {
+        String actionDescription = blocked 
+                ? String.format("사용자 차단: userId=%d", targetUserId)
+                : String.format("사용자 차단 해제: userId=%d", targetUserId);
+        publish(admin, AuditEntityType.USER, targetUserId,
+                blocked ? AuditAction.BLOCK : AuditAction.UNBLOCK,
+                actionDescription, null, null);
+    }
+
+    /**
+     * 사용자 권한 변경 감사 로그 기록
+     */
+    public void logUserRoleChange(User admin, Long targetUserId, String oldRole, String newRole) {
+        publish(admin, AuditEntityType.USER, targetUserId,
+                AuditAction.ROLE_CHANGE,
+                String.format("사용자 권한 변경: oldRole=%s, newRole=%s", oldRole, newRole),
+                oldRole, newRole);
+    }
+
+    /**
+     * 프롬프트 삭제 감사 로그 기록
+     */
+    public void logPromptDelete(User admin, Long promptId) {
+        publish(admin, AuditEntityType.PROMPT, promptId,
+                AuditAction.DELETE,
+                String.format("프롬프트 삭제: promptId=%d", promptId),
+                null, null);
+    }
+
+    /**
+     * 프롬프트 공개 상태 변경 감사 로그 기록
+     */
+    public void logPromptVisibilityChange(User admin, Long promptId, boolean isPublic) {
+        publish(admin, AuditEntityType.PROMPT, promptId,
+                AuditAction.PUBLIC_TOGGLE,
+                String.format("프롬프트 공개 상태 변경: promptId=%d, isPublic=%s", promptId, isPublic),
+                String.valueOf(!isPublic), String.valueOf(isPublic));
+    }
+
+    /**
+     * 신고 처리 감사 로그 기록
+     */
+    public void logReportProcess(User admin, Long reportId, String status, String processComment) {
+        publish(admin, AuditEntityType.REPORT, reportId,
+                AuditAction.REPORT_PROCESS,
+                String.format("신고 처리: reportId=%d, status=%s", reportId, status),
+                null, status + (processComment != null ? ": " + processComment : ""));
+    }
+
+    /**
+     * 감사 로그 이벤트 발행 헬퍼 메서드
+     */
+    private void publish(User admin, AuditEntityType entityType, Long entityId, AuditAction action,
+                         String description, Object beforeState, Object afterState) {
+        auditLogPublisher.publish(
+                admin != null ? admin.getId() : null,
+                extractActorIdentifier(admin),
+                entityType,
+                entityId,
+                action,
+                description,
+                beforeState,
+                afterState,
+                HttpRequestUtils.getClientIpAddress(),
+                HttpRequestUtils.getUserAgent()
+        );
+    }
+
+    /**
      * 액터 식별자 추출 (email 우선, 없으면 nickname)
      */
     private String extractActorIdentifier(User admin) {
@@ -31,100 +102,6 @@ public class AdminAuditLogger {
             return admin.getEmail();
         }
         return admin.getNickname();
-    }
-
-    /**
-     * 사용자 차단/해제 감사 로그 기록
-     */
-    public void logUserBlock(User admin, Long targetUserId, boolean blocked) {
-        String actionDescription = blocked 
-                ? String.format("사용자 차단: userId=%d", targetUserId)
-                : String.format("사용자 차단 해제: userId=%d", targetUserId);
-        
-        auditLogPublisher.publish(
-                admin != null ? admin.getId() : null,
-                extractActorIdentifier(admin),
-                AuditEntityType.USER,
-                targetUserId,
-                blocked ? AuditAction.BLOCK : AuditAction.UNBLOCK,
-                actionDescription,
-                null,
-                null,
-                HttpRequestUtils.getClientIpAddress(),
-                HttpRequestUtils.getUserAgent()
-        );
-    }
-
-    /**
-     * 사용자 권한 변경 감사 로그 기록
-     */
-    public void logUserRoleChange(User admin, Long targetUserId, String oldRole, String newRole) {
-        auditLogPublisher.publish(
-                admin != null ? admin.getId() : null,
-                extractActorIdentifier(admin),
-                AuditEntityType.USER,
-                targetUserId,
-                AuditAction.ROLE_CHANGE,
-                String.format("사용자 권한 변경: oldRole=%s, newRole=%s", oldRole, newRole),
-                oldRole,
-                newRole,
-                HttpRequestUtils.getClientIpAddress(),
-                HttpRequestUtils.getUserAgent()
-        );
-    }
-
-    /**
-     * 프롬프트 삭제 감사 로그 기록
-     */
-    public void logPromptDelete(User admin, Long promptId) {
-        auditLogPublisher.publish(
-                admin != null ? admin.getId() : null,
-                extractActorIdentifier(admin),
-                AuditEntityType.PROMPT,
-                promptId,
-                AuditAction.DELETE,
-                String.format("프롬프트 삭제: promptId=%d", promptId),
-                null,
-                null,
-                HttpRequestUtils.getClientIpAddress(),
-                HttpRequestUtils.getUserAgent()
-        );
-    }
-
-    /**
-     * 프롬프트 공개 상태 변경 감사 로그 기록
-     */
-    public void logPromptVisibilityChange(User admin, Long promptId, boolean isPublic) {
-        auditLogPublisher.publish(
-                admin != null ? admin.getId() : null,
-                extractActorIdentifier(admin),
-                AuditEntityType.PROMPT,
-                promptId,
-                AuditAction.PUBLIC_TOGGLE,
-                String.format("프롬프트 공개 상태 변경: promptId=%d, isPublic=%s", promptId, isPublic),
-                String.valueOf(!isPublic),
-                String.valueOf(isPublic),
-                HttpRequestUtils.getClientIpAddress(),
-                HttpRequestUtils.getUserAgent()
-        );
-    }
-
-    /**
-     * 신고 처리 감사 로그 기록
-     */
-    public void logReportProcess(User admin, Long reportId, String status, String processComment) {
-        auditLogPublisher.publish(
-                admin != null ? admin.getId() : null,
-                extractActorIdentifier(admin),
-                AuditEntityType.REPORT,
-                reportId,
-                AuditAction.REPORT_PROCESS,
-                String.format("신고 처리: reportId=%d, status=%s", reportId, status),
-                null,
-                status + (processComment != null ? ": " + processComment : ""),
-                HttpRequestUtils.getClientIpAddress(),
-                HttpRequestUtils.getUserAgent()
-        );
     }
 }
 

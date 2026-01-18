@@ -52,14 +52,16 @@ public class AuditLogAspect {
         Object beforeState = ParameterExtractor.extractByName(
                 auditLogging.beforeStateParam(), args, parameters);
 
-        // 메서드 실행
-        Object returnValue = joinPoint.proceed();
-
-        // 메서드 실행 후 감사 로그 이벤트 발행 (예외 발생 여부와 관계없이)
-        publishAuditEvent(auditLogging, args, parameters, actorId, actorIdentifier,
-                entityId, beforeState, returnValue);
-
-        return returnValue;
+        Object returnValue = null;
+        try {
+            // 메서드 실행
+            returnValue = joinPoint.proceed();
+            return returnValue;
+        } finally {
+            // 메서드 실행 후 감사 로그 이벤트 발행 (예외 발생 여부와 관계없이)
+            publishAuditEvent(auditLogging, args, parameters, actorId, actorIdentifier,
+                    entityId, beforeState, returnValue);
+        }
     }
 
     /**

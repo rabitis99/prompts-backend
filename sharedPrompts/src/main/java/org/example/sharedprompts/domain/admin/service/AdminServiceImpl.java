@@ -30,6 +30,7 @@ import org.example.sharedprompts.dto.admin.response.AdminUserResponseDto;
 import org.example.sharedprompts.dto.report.request.ReportProcessRequestDto;
 import org.example.sharedprompts.dto.report.response.ReportDetailResponseDto;
 import org.example.sharedprompts.dto.report.response.ReportResponseDto;
+import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.jwt.service.UserTokenInvalidationService;
 
@@ -62,7 +63,11 @@ public class AdminServiceImpl implements AdminService {
     @Transactional(readOnly = true)
     public Page<AdminUserResponseDto> searchUsers(String keyword, Pageable pageable) {
         adminValidator.validatePageSize(pageable, 100);
-        return userRepository.searchUsers(keyword, pageable)
+        String trimmedKeyword = normalizeKeyword(keyword);
+        if (trimmedKeyword == null || trimmedKeyword.isEmpty()) {
+            return getUsers(pageable);
+        }
+        return userRepository.searchUsers(trimmedKeyword, pageable)
                 .map(AdminUserResponseDto::from);
     }
 
@@ -104,9 +109,28 @@ public class AdminServiceImpl implements AdminService {
 
         Role oldRole = user.getRole();
         adminValidator.validateNotSameRole(oldRole, requestDto.getRole());
-        adminValidator.validateRoleChange(oldRole, requestDto.getRole());
 
-        user.changeRole(requestDto.getRole());
+        // 관리자에서 일반 사용자로 변경하는 경우 조건부 업데이트로 원자성 보장
+        if (oldRole == Role.ROLE_ADMIN && requestDto.getRole() != Role.ROLE_ADMIN) {
+            int updatedRows = userRepository.changeRoleFromAdminIfNotLast(userId, Role.ROLE_ADMIN, requestDto.getRole());
+            if (updatedRows == 0) {
+                // 조건부 업데이트 실패 = 마지막 관리자이거나 다른 이유로 업데이트 실패
+                long adminCount = userRepository.countActiveAdmins(Role.ROLE_ADMIN);
+                if (adminCount <= 1) {
+                    throw new ApiException(ErrorCode.LAST_ADMIN_CANNOT_BE_MODIFIED);
+                }
+                // 기타 이유로 실패한 경우 기존 방식으로 재시도
+                user.changeRole(requestDto.getRole());
+            } else {
+                // 조건부 업데이트 성공 - 엔티티 새로고침 필요
+                userRepository.flush();
+                user = entityFinder.findUserById(userId);
+            }
+        } else {
+            // 일반 사용자 권한 변경 또는 관리자로 승격은 기존 방식 사용
+            user.changeRole(requestDto.getRole());
+        }
+
         log.info("사용자 권한 변경: userId={}, oldRole={}, newRole={}, adminId={}", 
                 userId, oldRole, requestDto.getRole(), adminId);
 
@@ -131,11 +155,12 @@ public class AdminServiceImpl implements AdminService {
     @Transactional(readOnly = true)
     public Page<AdminPromptResponseDto> searchPrompts(String keyword, Pageable pageable) {
         adminValidator.validatePageSize(pageable, 100);
-        if (keyword == null || keyword.trim().isEmpty()) {
+        String trimmedKeyword = normalizeKeyword(keyword);
+        if (trimmedKeyword == null || trimmedKeyword.isEmpty()) {
             return getPrompts(pageable);
         }
 
-        return promptRepository.searchPrompts(keyword, pageable)
+        return promptRepository.searchPrompts(trimmedKeyword, pageable)
                 .map(AdminPromptResponseDto::from);
     }
 
@@ -221,5 +246,11 @@ public class AdminServiceImpl implements AdminService {
         return logs.map(AuditLogResponseDto::from);
     }
 
+    /**
+     * 검색 키워드 정규화 (trim 및 null 처리)
+     */
+    private String normalizeKeyword(String keyword) {
+        return keyword == null ? null : keyword.trim();
+    }
 }
 

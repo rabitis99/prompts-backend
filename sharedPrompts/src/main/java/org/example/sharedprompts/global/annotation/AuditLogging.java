@@ -51,9 +51,10 @@ public @interface AuditLogging {
     String entityIdParam() default "";
 
     /**
-     * 로그 설명 (SpEL 표현식 지원)
-     * 메서드 파라미터를 참조할 수 있습니다.
-     * 예: "사용자 차단: userId={userId}", "프롬프트 삭제: promptId={promptId}"
+     * 로그 설명 템플릿
+     * {paramName} 형식의 플레이스홀더를 사용하여 메서드 파라미터 값을 참조할 수 있습니다.
+     * {entityId}는 자동으로 엔티티 ID 값으로 치환됩니다.
+     * 예: "사용자 차단: userId={userId}", "프롬프트 삭제: promptId={promptId}, entityId={entityId}"
      */
     String description() default "";
 
