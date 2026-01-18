@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.comment.Comment;
 import org.example.sharedprompts.domain.comment.event.CommentEvent;
 import org.example.sharedprompts.domain.comment.repository.CommentRepository;
+import org.example.sharedprompts.domain.favorite.event.FavoriteEvent;
 import org.example.sharedprompts.domain.like.event.LikeEvent;
 import org.example.sharedprompts.domain.notification.enums.NotificationType;
 import org.example.sharedprompts.domain.notification.enums.RelatedEntityType;
@@ -175,6 +176,40 @@ public class NotificationEventProcessor {
                 NotificationType.LIKE,
                 RelatedEntityType.COMMENT,
                 commentId,
+                event.userId(),
+                message
+        );
+        publishNotification(notification);
+    }
+
+    /**
+     * 프롬프트 즐겨찾기 이벤트 처리
+     * - 프롬프트 작성자에게 알림 (본인이 즐겨찾기 추가한 경우 제외)
+     */
+    public void processPromptFavorited(FavoriteEvent.PromptFavorited event) {
+        Prompt prompt = getPrompt(event.promptId());
+        User promptAuthor = prompt.getAuthor();
+        User favoriteUser = getUser(event.userId());
+
+        // 프롬프트 작성자에게 알림 (본인이 즐겨찾기 추가한 경우 제외)
+        if (event.userId().equals(promptAuthor.getId())) {
+            return; // 본인이 즐겨찾기 추가한 경우 알림 제외
+        }
+        
+        if (!isNotificationEnabled(promptAuthor, NotificationType.FAVORITE)) {
+            return; // 알림 설정이 꺼져 있는 경우
+        }
+        
+        if (isDuplicateNotification(promptAuthor.getId(), NotificationType.FAVORITE, event.promptId())) {
+            return; // 중복 알림인 경우
+        }
+        
+        String message = messageFormatter.formatPromptFavoriteMessage(favoriteUser);
+        NotificationMessage notification = createNotification(
+                promptAuthor.getId(),
+                NotificationType.FAVORITE,
+                RelatedEntityType.PROMPT,
+                event.promptId(),
                 event.userId(),
                 message
         );

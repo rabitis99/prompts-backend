@@ -55,6 +55,10 @@ public class Prompt extends BaseEntity {
     @Builder.Default
     private long likeCount = 0L;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private long favoriteCount = 0L;
+
     @OneToMany(mappedBy = "prompt", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<PromptTag> promptTags = new ArrayList<>();

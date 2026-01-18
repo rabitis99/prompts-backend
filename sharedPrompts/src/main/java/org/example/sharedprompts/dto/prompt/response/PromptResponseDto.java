@@ -35,6 +35,8 @@ public class PromptResponseDto {
     private Long commentCount;
     @JsonProperty("like_count")
     private Long likeCount;
+    @JsonProperty("favorite_count")
+    private Long favoriteCount;
 
 
     public static PromptResponseDto from(Prompt prompt, List<Tag> tags) {
@@ -55,6 +57,7 @@ public class PromptResponseDto {
                 .viewCount(prompt.getViewCount())
                 .commentCount(prompt.getCommentCount())
                 .likeCount(prompt.getLikeCount())
+                .favoriteCount(prompt.getFavoriteCount())
                 .build();
     }
 }

@@ -32,6 +32,7 @@ public class NotificationMessageFormatter {
         registerTemplate("reply", this::formatReplyMessage);
         registerTemplate("prompt_like", this::formatPromptLikeMessage);
         registerTemplate("comment_like", this::formatCommentLikeMessage);
+        registerTemplate("prompt_favorite", this::formatPromptFavoriteMessage);
     }
 
     /**
@@ -71,6 +72,13 @@ public class NotificationMessageFormatter {
      */
     public String formatCommentLikeMessage(User likeUser) {
         return String.format("%s님이 당신의 댓글을 좋아합니다.", likeUser.getNickname());
+    }
+
+    /**
+     * 프롬프트 즐겨찾기 알림 메시지 생성
+     */
+    public String formatPromptFavoriteMessage(User favoriteUser) {
+        return String.format("%s님이 당신의 프롬프트를 즐겨찾기에 추가했습니다.", favoriteUser.getNickname());
     }
 
     /**
