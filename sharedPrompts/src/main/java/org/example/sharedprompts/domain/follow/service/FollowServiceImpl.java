@@ -50,6 +50,11 @@ public class FollowServiceImpl implements FollowService {
     public void acceptFollow(Long followerId, Long followingId) {
         validateIds(followerId, followingId);
         Follow follow = findFollow(followerId, followingId);
+        
+        if (follow.getStatus() != FollowStatus.PENDING) {
+            throw new ApiException(ErrorCode.FOLLOW_NOT_PENDING);
+        }
+
         follow.markFollowing();
         followRepository.save(follow);
     }
@@ -59,6 +64,11 @@ public class FollowServiceImpl implements FollowService {
     public void rejectFollow(Long followerId, Long followingId) {
         validateIds(followerId, followingId);
         Follow follow = findFollow(followerId, followingId);
+        
+        if (follow.getStatus() != FollowStatus.PENDING) {
+            throw new ApiException(ErrorCode.FOLLOW_NOT_PENDING);
+        }
+
         followRepository.delete(follow);
     }
 

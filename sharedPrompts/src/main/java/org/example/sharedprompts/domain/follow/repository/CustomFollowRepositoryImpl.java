@@ -53,11 +53,14 @@ public class CustomFollowRepositoryImpl implements CustomFollowRepository {
             NumberPath<Long> idPath,
             Pageable pageable
     ) {
-        // 1) 팔로우 ID 페이징 조회
+        // 1) 팔로우 ID 페이징 조회 (deleted/blocked 유저 제외)
         List<Long> userIds = queryFactory
                 .select(idPath)
                 .from(follow)
-                .where(whereCondition)
+                .join(user).on(idPath.eq(user.id))
+                .where(whereCondition
+                        .and(user.deletedAt.isNull())
+                        .and(user.blocked.isFalse()))
                 .orderBy(follow.id.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -67,12 +70,10 @@ public class CustomFollowRepositoryImpl implements CustomFollowRepository {
             return new PageImpl<>(List.of(), pageable, 0);
         }
 
-        // 2) User 조회 + soft delete, blocked 제외
+        // 2) User 조회 (이미 필터링된 ID들만 조회)
         List<User> users = queryFactory
                 .selectFrom(user)
-                .where(user.id.in(userIds)
-                        .and(user.deletedAt.isNull())   // soft delete 제외
-                        .and(user.blocked.isFalse()))   // 차단 유저 제외
+                .where(user.id.in(userIds))
                 .fetch();
 
         // 3) UserIds 순서대로 정렬

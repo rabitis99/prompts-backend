@@ -91,6 +91,7 @@ public enum ErrorCode {
     FOLLOW_ALREADY_EXISTS("FW00402", HttpStatus.BAD_REQUEST, "이미 팔로우 관계가 존재합니다."),
     CANNOT_FOLLOW_SELF("FW00403", HttpStatus.BAD_REQUEST, "자기 자신을 팔로우할 수 없습니다."),
     FOLLOW_NOT_BLOCKED("FW00404", HttpStatus.BAD_REQUEST, "차단 상태가 아닌 관계는 차단 해제할 수 없습니다."),
+    FOLLOW_NOT_PENDING("FW00405", HttpStatus.BAD_REQUEST, "대기 상태가 아닌 관계는 거부할 수 없습니다."),
     FOLLOW_NOT_FOUND("FW00701", HttpStatus.NOT_FOUND, "팔로우 관계를 찾을 수 없습니다."),
 
     // ==========================
