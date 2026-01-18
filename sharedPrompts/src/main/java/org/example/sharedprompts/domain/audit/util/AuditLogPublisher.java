@@ -43,10 +43,17 @@ public class AuditLogPublisher {
 
     /**
      * ObjectMapper 조회
-     * Spring 관리 ObjectMapper가 설정되어 있으면 사용하고, 없으면 기본 ObjectMapper를 생성합니다.
+     * Spring 관리 ObjectMapper가 설정되어 있으면 사용하고, 없으면 기본 ObjectMapper를 한 번만 생성하여 캐싱합니다.
      */
     private static ObjectMapper getObjectMapper() {
-        return objectMapper != null ? objectMapper : createObjectMapper();
+        if (objectMapper == null) {
+            synchronized (AuditLogPublisher.class) {
+                if (objectMapper == null) {
+                    objectMapper = createObjectMapper();
+                }
+            }
+        }
+        return objectMapper;
     }
 
     /**

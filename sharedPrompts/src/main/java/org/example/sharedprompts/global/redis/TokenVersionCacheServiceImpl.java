@@ -42,8 +42,8 @@ public class TokenVersionCacheServiceImpl implements TokenVersionCacheService {
         try {
             return Long.valueOf(value);
         } catch (NumberFormatException e) {
-            log.warn("토큰 버전 형식 오류: userId={}, value={}", userId, value);
-            return 0L;
+            log.error("토큰 버전 형식 오류: userId={}, value={}", userId, value, e);
+            throw new ApiException(ErrorCode.TOKEN_VERSION_INCREMENT_FAILED);
         }
     }
 
@@ -57,9 +57,8 @@ public class TokenVersionCacheServiceImpl implements TokenVersionCacheService {
         try {
             newVersion = redisTemplate.opsForValue().increment(key);
         } catch (DataAccessException e) {
-            log.warn("토큰 버전 형식 오류로 초기화: userId={}", userId, e);
-            redisTemplate.opsForValue().set(key, "1", Duration.ofDays(DEFAULT_TTL_DAYS));
-            return;
+            log.error("토큰 버전 증가 실패: userId={}", userId, e);
+            throw new ApiException(ErrorCode.TOKEN_VERSION_INCREMENT_FAILED);
         }
         
         if (newVersion == null) {

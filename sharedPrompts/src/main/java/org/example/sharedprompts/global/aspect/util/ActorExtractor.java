@@ -56,7 +56,7 @@ public class ActorExtractor {
     }
 
     /**
-     * Actor 식별자 추출 (email 또는 nickname)
+     * Actor 식별자 추출 (nickname)
      */
     public String extractActorIdentifier(Object[] args, Parameter[] parameters) {
         try {

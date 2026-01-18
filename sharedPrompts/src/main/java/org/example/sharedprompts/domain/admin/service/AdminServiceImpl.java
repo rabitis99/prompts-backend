@@ -89,7 +89,12 @@ public class AdminServiceImpl implements AdminService {
         adminValidator.validateNotSelf(adminId, userId, ErrorCode.CANNOT_MODIFY_SELF);
         adminValidator.validateNotAdmin(user, ErrorCode.CANNOT_BLOCK_ADMIN);
 
-        if (Boolean.TRUE.equals(requestDto.getBlocked())) {
+        Boolean blocked = requestDto.getBlocked();
+        if (blocked == null) {
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        
+        if (blocked) {
             user.block();
             log.info("사용자 차단: userId={}, adminId={}", userId, adminId);
             tokenInvalidationService.invalidateTokensOnBlock(userId);
@@ -99,7 +104,7 @@ public class AdminServiceImpl implements AdminService {
             tokenInvalidationService.invalidateTokensOnUnblock(userId);
         }
 
-        adminAuditLogger.logUserBlock(admin, userId, Boolean.TRUE.equals(requestDto.getBlocked()));
+        adminAuditLogger.logUserBlock(admin, userId, blocked);
 
         return AdminUserResponseDto.from(user);
     }
