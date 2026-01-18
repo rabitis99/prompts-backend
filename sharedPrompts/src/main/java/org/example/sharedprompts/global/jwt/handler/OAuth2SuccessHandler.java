@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.global.jwt.JwtUtil;
 import org.example.sharedprompts.global.jwt.PrincipalDetails;
 import org.example.sharedprompts.global.redis.TokenRedisService;
+import org.example.sharedprompts.global.redis.TokenVersionCacheService;
 import org.example.sharedprompts.global.util.RandomGenerator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -23,6 +24,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private final JwtUtil jwtUtil;
     private final TokenRedisService tokenRedisService;
+    private final TokenVersionCacheService tokenVersionCacheService;
 
     @Value("${oauth2.redirect.front-url}")
     private String frontRedirectUrl;
@@ -34,13 +36,21 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         PrincipalDetails principal = (PrincipalDetails) authentication.getPrincipal();
 
+        // tokenVersion 조회 및 초기화 (없으면 0)
+        Long tokenVersion = tokenVersionCacheService.getTokenVersion(principal.getId());
+        if (tokenVersion.equals(0L)) {
+            tokenVersionCacheService.initializeTokenVersion(principal.getId());
+            tokenVersion = 0L; // initializeTokenVersion은 0으로 초기화하므로 재조회 불필요
+        }
+
         // JWT 생성 (email 제거)
         String accessToken = jwtUtil.generateAccessToken(
                 principal.getId(),
                 principal.getRole(),
                 principal.getNickname(),
                 principal.getProvider(),
-                principal.getProviderId()
+                principal.getProviderId(),
+                tokenVersion
         );
 
         String refreshToken = jwtUtil.generateRefreshToken(
@@ -48,7 +58,8 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                 principal.getRole(),
                 principal.getNickname(),
                 principal.getProvider(),
-                principal.getProviderId()
+                principal.getProviderId(),
+                tokenVersion
         );
 
         // SecureRandom 기반 임시 key + state 생성

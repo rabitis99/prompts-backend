@@ -104,6 +104,9 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+    web:
+      pageable:
+        max-page-size: 100 # 페이지 크기 상한 (클라이언트가 과도한 size 요청 방지)
 
   # =========================
   # RabbitMQ

@@ -29,7 +29,8 @@ public class JwtUtil {
             Role role,
             String nickname,
             Provider provider,
-            String providerId
+            String providerId,
+            Long tokenVersion
     ) {
         return generateToken(
                 userId,
@@ -37,6 +38,7 @@ public class JwtUtil {
                 nickname,
                 provider,
                 providerId,
+                tokenVersion,
                 ttlConfig.getAccessTokenValidity()
         );
     }
@@ -47,7 +49,8 @@ public class JwtUtil {
             Role role,
             String nickname,
             Provider provider,
-            String providerId
+            String providerId,
+            Long tokenVersion
     ) {
         return generateToken(
                 userId,
@@ -55,6 +58,7 @@ public class JwtUtil {
                 nickname,
                 provider,
                 providerId,
+                tokenVersion,
                 ttlConfig.getRefreshTokenValidity()
         );
     }
@@ -66,6 +70,7 @@ public class JwtUtil {
             String nickname,
             Provider provider,
             String providerId,
+            Long tokenVersion,
             long validityMinutes
     ) {
         long expirationMillis = TimeUnit.MINUTES.toMillis(validityMinutes);
@@ -79,6 +84,7 @@ public class JwtUtil {
                 .claim("nickname", nickname)
                 .claim("provider", provider.name())
                 .claim("providerId", providerId)
+                .claim("tokenVersion", tokenVersion != null ? tokenVersion : 0L)
 
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationMillis))

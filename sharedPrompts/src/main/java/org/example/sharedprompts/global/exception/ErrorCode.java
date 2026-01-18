@@ -41,6 +41,7 @@ public enum ErrorCode {
     UNAUTHORIZED_TOKEN_ACCESS("AU00503", HttpStatus.UNAUTHORIZED, "해당 토큰은 요청한 사용자의 것이 아닙니다."),
     INVALID_ACCESS_TOKEN("AU00504", HttpStatus.UNAUTHORIZED, "유효하지 않은 액세스 토큰입니다."),
     INVALID_REFRESH_TOKEN("AU00505", HttpStatus.UNAUTHORIZED, "유효하지 않은 리프레시 토큰입니다."),
+    TOKEN_VERSION_INCREMENT_FAILED("AU01001", HttpStatus.INTERNAL_SERVER_ERROR, "토큰 버전 증가에 실패했습니다."),
 
     // ==========================
     // 🔹 OAuth2
@@ -100,6 +101,20 @@ public enum ErrorCode {
     // ==========================
     NOTIFICATION_NOT_FOUND("NT00701", HttpStatus.NOT_FOUND, "알림을 찾을 수 없습니다."),
     NOTIFICATION_PUBLISH_FAILED("NT01001", HttpStatus.INTERNAL_SERVER_ERROR, "알림 발행에 실패했습니다."),
+
+    // ==========================
+    // 🔹 ADMIN
+    // ==========================
+    ADMIN_ONLY("AD00601", HttpStatus.FORBIDDEN, "관리자만 접근할 수 있습니다."),
+    CANNOT_BLOCK_ADMIN("AD00401", HttpStatus.BAD_REQUEST, "관리자는 차단할 수 없습니다."),
+    CANNOT_CHANGE_ADMIN_ROLE("AD00402", HttpStatus.BAD_REQUEST, "관리자 권한은 변경할 수 없습니다."),
+    CANNOT_DELETE_ADMIN("AD00403", HttpStatus.BAD_REQUEST, "관리자 계정은 삭제할 수 없습니다."),
+    CANNOT_MODIFY_SELF("AD00404", HttpStatus.BAD_REQUEST, "자기 자신은 수정할 수 없습니다."),
+    LAST_ADMIN_CANNOT_BE_MODIFIED("AD00405", HttpStatus.BAD_REQUEST, "마지막 관리자 계정은 수정할 수 없습니다."),
+    INVALID_DATE_RANGE("AD00406", HttpStatus.BAD_REQUEST, "시작일은 종료일보다 이전이어야 합니다."),
+    PAGE_SIZE_EXCEEDED("AD00407", HttpStatus.BAD_REQUEST, "페이징 사이즈는 최대 100까지 가능합니다."),
+    SAME_ROLE("AD00408", HttpStatus.BAD_REQUEST, "현재 권한과 동일한 권한으로 변경할 수 없습니다."),
+    SAME_VISIBILITY("AD00409", HttpStatus.BAD_REQUEST, "현재 공개 상태와 동일한 상태로 변경할 수 없습니다."),
 
     ;
     private final String code;

@@ -54,6 +54,13 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private boolean signupCompleted = false;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean blocked = false;
+
+    @Column(name = "deleted_at")
+    private java.time.LocalDateTime deletedAt;
+
     public void changeNickname(String nickname) {
         this.nickname = nickname;
     }
@@ -80,6 +87,26 @@ public class User extends BaseEntity {
 
     public void changeSignupCompleted(boolean signupCompleted) {
         this.signupCompleted = signupCompleted;
+    }
+
+    public void block() {
+        this.blocked = true;
+    }
+
+    public void unblock() {
+        this.blocked = false;
+    }
+
+    public void changeRole(Role role) {
+        this.role = role;
+    }
+
+    public void softDelete() {
+        this.deletedAt = java.time.LocalDateTime.now();
+    }
+
+    public boolean isDeleted() {
+        return this.deletedAt != null;
     }
 
 }

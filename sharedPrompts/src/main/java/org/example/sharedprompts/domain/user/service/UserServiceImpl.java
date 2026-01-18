@@ -10,6 +10,7 @@ import org.example.sharedprompts.dto.user.request.UserUpdateRequestDto;
 import org.example.sharedprompts.dto.user.response.UserResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.global.jwt.service.UserTokenInvalidationService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,11 +21,12 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserTokenInvalidationService tokenInvalidationService;
 
     @Override
     @Transactional(readOnly = true)
     public UserResponseDto getMyInfo(Long userId) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
         return UserResponseDto.from(user);
@@ -33,7 +35,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponseDto updateMyInfo(Long userId, UserUpdateRequestDto requestDto) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
         requestDto.applyTo(user);
@@ -44,7 +46,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponseDto changePassword(Long userId, PasswordChangeRequestDto requestDto) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
         if (user.getProvider() != Provider.LOCAL) {
@@ -68,12 +70,12 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteUser(Long targetUserId, Long requesterId) {
-        User targetUser = userRepository.findById(targetUserId)
+        User targetUser = userRepository.findByIdAndDeletedAtIsNull(targetUserId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
         User requester = targetUserId.equals(requesterId)
                 ? targetUser
-                : userRepository.findById(requesterId)
+                : userRepository.findByIdAndDeletedAtIsNull(requesterId)
                     .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
         // 관리자 또는 본인만 삭제 가능
@@ -84,7 +86,10 @@ public class UserServiceImpl implements UserService {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
-        userRepository.delete(targetUser);
+        // Soft delete 수행
+        // findByIdAndDeletedAtIsNull로 이미 삭제되지 않은 사용자만 조회되므로 추가 검증 불필요
+        targetUser.softDelete();
+        tokenInvalidationService.invalidateTokensOnDelete(targetUserId);
     }
 }
 

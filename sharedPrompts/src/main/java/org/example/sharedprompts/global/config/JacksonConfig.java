@@ -9,6 +9,8 @@ import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
+import org.example.sharedprompts.domain.audit.util.AuditLogPublisher;
+import org.example.sharedprompts.global.jwt.util.JwtErrorResponseWriter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -18,6 +20,10 @@ import java.time.format.DateTimeFormatter;
 @Configuration
 public class JacksonConfig {
 
+    /**
+     * JwtErrorResponseWriter에 Spring 관리 ObjectMapper 주입
+     * 설정 드리프트를 방지하기 위해 Spring 관리 ObjectMapper를 사용합니다.
+     */
     @Bean
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
@@ -34,6 +40,11 @@ public class JacksonConfig {
         mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
+
+        // JwtErrorResponseWriter에 Spring 관리 ObjectMapper 주입
+        JwtErrorResponseWriter.setObjectMapper(mapper);
+        // AuditLogPublisher에 Spring 관리 ObjectMapper 주입
+        AuditLogPublisher.setObjectMapper(mapper);
 
         return mapper;
     }
@@ -66,9 +77,11 @@ public class JacksonConfig {
                 new LocalDateTimeDeserializer(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         mapper.registerModule(javaTimeModule);
 
-        // 기본 설정
+        // 기본 설정 (objectMapper()와 동일한 네이밍 전략 적용)
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // INDENT_OUTPUT은 Redis 저장 공간을 위해 비활성화 유지
 
         return mapper;
     }

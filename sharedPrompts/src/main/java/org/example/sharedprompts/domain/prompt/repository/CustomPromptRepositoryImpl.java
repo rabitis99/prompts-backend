@@ -9,12 +9,14 @@ import org.example.sharedprompts.dto.prompt.request.PromptSearchCondition;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
 import static org.example.sharedprompts.domain.tag.QPromptTag.promptTag;
 import static org.example.sharedprompts.domain.tag.QTag.tag;
 import static org.example.sharedprompts.domain.prompt.QPrompt.prompt;
+import static org.example.sharedprompts.domain.user.QUser.user;
 
 @RequiredArgsConstructor
 public class CustomPromptRepositoryImpl implements CustomPromptRepository {
@@ -73,6 +75,65 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
                 .fetch();
 
         return new PageImpl<>(content, pageable, total);
+    }
+
+    @Override
+    public Page<Prompt> searchPromptsForAdmin(String keyword, Pageable pageable) {
+        BooleanExpression where = buildKeywordCondition(keyword);
+        return searchInternalForAdmin(where, pageable);
+    }
+
+    /**
+     * 관리자용 2-step 페이징 + fetchJoin
+     * 제목 또는 작성자 닉네임으로 검색
+     */
+    private Page<Prompt> searchInternalForAdmin(BooleanExpression where, Pageable pageable) {
+        // 1) 페이징 가능한 id 조회
+        List<Long> ids = queryFactory
+                .select(prompt.id)
+                .from(prompt)
+                .leftJoin(prompt.author, user)
+                .where(where)
+                .orderBy(prompt.createdAt.desc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        // 2) 전체 개수 조회
+        Long totalCount = queryFactory
+                .select(prompt.countDistinct())
+                .from(prompt)
+                .leftJoin(prompt.author, user)
+                .where(where)
+                .fetchOne();
+
+        long total = totalCount != null ? totalCount : 0L;
+
+        if (ids.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, total);
+        }
+
+        // 3) fetch join으로 데이터 조회 (author fetch join 포함)
+        List<Prompt> content = queryFactory
+                .selectFrom(prompt)
+                .leftJoin(prompt.author, user).fetchJoin()
+                .where(prompt.id.in(ids))
+                .orderBy(prompt.createdAt.desc())
+                .fetch();
+
+        return new PageImpl<>(content, pageable, total);
+    }
+
+    /**
+     * 키워드 검색 조건 생성 (제목 또는 작성자 닉네임)
+     */
+    private BooleanExpression buildKeywordCondition(String keyword) {
+        if (keyword == null || keyword.isEmpty()) {
+            return null;
+        }
+        String lowerKeyword = keyword.toLowerCase();
+        return prompt.title.lower().contains(lowerKeyword)
+                .or(prompt.author.nickname.lower().contains(lowerKeyword));
     }
 
     private BooleanExpression applyCategory(PromptCategory category) {
