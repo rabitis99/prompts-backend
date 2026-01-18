@@ -66,26 +66,8 @@ public class CustomFollowRepositoryImpl implements CustomFollowRepository {
                 .limit(pageable.getPageSize())
                 .fetch();
 
-        if (userIds.isEmpty()) {
-            return new PageImpl<>(List.of(), pageable, 0);
-        }
-
-        // 2) User 조회 (이미 필터링된 ID들만 조회)
-        List<User> users = queryFactory
-                .selectFrom(user)
-                .where(user.id.in(userIds))
-                .fetch();
-
-        // 3) UserIds 순서대로 정렬
-        Map<Long, User> userMap = users.stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
-
-        List<User> content = userIds.stream()
-                .map(userMap::get)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-
-        // 4) 전체 count 조회 (Follow + User 조건)
+        // 2) 전체 count 조회 (Follow + User 조건)
+        // userIds가 비어도 offset이 뒤쪽인 경우가 있어 total은 실제 전체 건수여야 함
         BooleanExpression joinCondition = idPath.eq(user.id);
         Long total = queryFactory
                 .select(follow.count())
@@ -95,6 +77,27 @@ public class CustomFollowRepositoryImpl implements CustomFollowRepository {
                         .and(user.deletedAt.isNull())
                         .and(user.blocked.isFalse()))
                 .fetchOne();
+
+        if (userIds.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, total != null ? total : 0);
+        }
+
+        // 3) User 조회 (이미 필터링된 ID들만 조회, 일관성을 위해 필터 재적용)
+        List<User> users = queryFactory
+                .selectFrom(user)
+                .where(user.id.in(userIds)
+                        .and(user.deletedAt.isNull())
+                        .and(user.blocked.isFalse()))
+                .fetch();
+
+        // 4) UserIds 순서대로 정렬
+        Map<Long, User> userMap = users.stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        List<User> content = userIds.stream()
+                .map(userMap::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
 
         return new PageImpl<>(content, pageable, total != null ? total : 0);
     }
