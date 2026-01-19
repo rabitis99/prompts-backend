@@ -128,12 +128,17 @@ public class FollowServiceImpl implements FollowService {
         Follow follow = findFollow(followerId, followingId);
         
         FollowStatus currentStatus = follow.getStatus();
+        // BLOCKED 상태는 unfollow로 제거할 수 없음
+        if (currentStatus == FollowStatus.BLOCKED) {
+            throw new ApiException(ErrorCode.CANNOT_UNFOLLOW_BLOCKED);
+        }
+        
         // PENDING 또는 FOLLOWING 상태에서 취소하면 CANCELLED로 변경 (재요청 가능하도록 기록 유지)
         if (currentStatus == FollowStatus.PENDING || currentStatus == FollowStatus.FOLLOWING) {
             follow.markCancelled();
             followRepository.save(follow);
         } else {
-            // REJECTED, CANCELLED, BLOCKED 등의 다른 상태에서는 삭제
+            // REJECTED, CANCELLED 상태에서는 삭제
             followRepository.delete(follow);
         }
     }
