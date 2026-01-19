@@ -36,7 +36,20 @@ public class FollowServiceImpl implements FollowService {
         validateUserExists(followingId);
         validateNotSelfFollow(followerId, followingId);
 
-        if (followRepository.existsByFollowerIdAndFollowingId(followerId, followingId)) {
+        Follow existingFollow = followRepository
+                .findByFollowerIdAndFollowingId(followerId, followingId)
+                .orElse(null);
+
+        if (existingFollow != null) {
+            FollowStatus currentStatus = existingFollow.getStatus();
+            // REJECTED, CANCELLED 상태면 PENDING으로 재요청 가능
+            if (currentStatus == FollowStatus.REJECTED || currentStatus == FollowStatus.CANCELLED) {
+                existingFollow.markPending();
+                followRepository.save(existingFollow);
+                eventPublisher.publishEvent(new FollowEvent.Requested(followerId, followingId));
+                return;
+            }
+            // 다른 상태면 이미 존재하는 것으로 처리
             throw new ApiException(ErrorCode.FOLLOW_ALREADY_EXISTS);
         }
 
@@ -74,7 +87,8 @@ public class FollowServiceImpl implements FollowService {
             throw new ApiException(ErrorCode.FOLLOW_NOT_PENDING);
         }
 
-        followRepository.delete(follow);
+        follow.markRejected();
+        followRepository.save(follow);
     }
 
     @Override
@@ -103,7 +117,8 @@ public class FollowServiceImpl implements FollowService {
             throw new ApiException(ErrorCode.FOLLOW_NOT_BLOCKED);
         }
 
-        followRepository.delete(follow);
+        follow.markPending();
+        followRepository.save(follow);
     }
 
     @Override
@@ -111,7 +126,16 @@ public class FollowServiceImpl implements FollowService {
     public void unfollow(Long followerId, Long followingId) {
         validateIds(followerId, followingId);
         Follow follow = findFollow(followerId, followingId);
-        followRepository.delete(follow);
+        
+        FollowStatus currentStatus = follow.getStatus();
+        // PENDING 또는 FOLLOWING 상태에서 취소하면 CANCELLED로 변경 (재요청 가능하도록 기록 유지)
+        if (currentStatus == FollowStatus.PENDING || currentStatus == FollowStatus.FOLLOWING) {
+            follow.markCancelled();
+            followRepository.save(follow);
+        } else {
+            // REJECTED, CANCELLED, BLOCKED 등의 다른 상태에서는 삭제
+            followRepository.delete(follow);
+        }
     }
 
     @Override

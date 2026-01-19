@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.follow;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.sharedprompts.global.entity.BaseEntity;
 
 @Entity
 @Table(
@@ -13,7 +14,7 @@ import lombok.NoArgsConstructor;
 )
 @Getter
 @NoArgsConstructor
-public class Follow {
+public class Follow extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,6 +42,18 @@ public class Follow {
 
     public void markBlocked() {
         this.status = FollowStatus.BLOCKED;
+    }
+
+    public void markRejected() {
+        this.status = FollowStatus.REJECTED;
+    }
+
+    public void markCancelled() {
+        this.status = FollowStatus.CANCELLED;
+    }
+
+    public void markPending() {
+        this.status = FollowStatus.PENDING;
     }
 }
 
