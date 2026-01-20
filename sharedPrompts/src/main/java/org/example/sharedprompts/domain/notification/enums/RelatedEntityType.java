@@ -11,7 +11,8 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum RelatedEntityType {
     PROMPT("프롬프트"),
-    COMMENT("댓글");
+    COMMENT("댓글"),
+    USER("사용자");
 
     private final String displayName;
 }

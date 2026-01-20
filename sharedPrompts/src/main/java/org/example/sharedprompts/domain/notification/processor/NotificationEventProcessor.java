@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.comment.Comment;
 import org.example.sharedprompts.domain.comment.event.CommentEvent;
 import org.example.sharedprompts.domain.comment.repository.CommentRepository;
 import org.example.sharedprompts.domain.favorite.event.FavoriteEvent;
+import org.example.sharedprompts.domain.follow.event.FollowEvent;
 import org.example.sharedprompts.domain.like.event.LikeEvent;
 import org.example.sharedprompts.domain.notification.enums.NotificationType;
 import org.example.sharedprompts.domain.notification.enums.RelatedEntityType;
@@ -211,6 +212,40 @@ public class NotificationEventProcessor {
                 RelatedEntityType.PROMPT,
                 event.promptId(),
                 event.userId(),
+                message
+        );
+        publishNotification(notification);
+    }
+
+    /**
+     * 팔로우 요청 이벤트 처리
+     * - 팔로우 대상자(followingId)에게 알림 (본인이 팔로우 요청한 경우 제외)
+     */
+    public void processFollowRequested(FollowEvent.Requested event) {
+        User followingUser = getUser(event.followingId());
+        User followerUser = getUser(event.followerId());
+
+        // 팔로우 대상자에게 알림 (본인이 팔로우 요청한 경우 제외)
+        if (event.followerId().equals(event.followingId())) {
+            return; // 본인이 자신을 팔로우 요청한 경우 알림 제외
+        }
+        
+        if (!isNotificationEnabled(followingUser, NotificationType.FOLLOW)) {
+            return; // 알림 설정이 꺼져 있는 경우
+        }
+        
+        // relatedEntityId는 팔로워 ID(followerId)로 설정하여 누가 팔로우했는지 명확히 함
+        if (isDuplicateNotification(followingUser.getId(), NotificationType.FOLLOW, event.followerId())) {
+            return; // 중복 알림인 경우
+        }
+        
+        String message = messageFormatter.formatFollowMessage(followerUser);
+        NotificationMessage notification = createNotification(
+                followingUser.getId(),
+                NotificationType.FOLLOW,
+                RelatedEntityType.USER,
+                event.followerId(),
+                event.followerId(),
                 message
         );
         publishNotification(notification);

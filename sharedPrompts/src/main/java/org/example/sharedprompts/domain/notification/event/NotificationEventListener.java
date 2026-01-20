@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.notification.event;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.comment.event.CommentEvent;
+import org.example.sharedprompts.domain.follow.event.FollowEvent;
 import org.example.sharedprompts.domain.like.event.LikeEvent;
 import org.example.sharedprompts.domain.notification.processor.NotificationEventProcessor;
 import org.springframework.stereotype.Component;
@@ -55,6 +56,18 @@ public class NotificationEventListener {
             notificationEventProcessor.processCommentLiked(event);
         } catch (Exception e) {
             log.error("Failed to handle comment liked event: {}", event, e);
+        }
+    }
+
+    /**
+     * 팔로우 요청 이벤트 처리
+     */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleFollowRequested(FollowEvent.Requested event) {
+        try {
+            notificationEventProcessor.processFollowRequested(event);
+        } catch (Exception e) {
+            log.error("Failed to handle follow requested event: {}", event, e);
         }
     }
 }
