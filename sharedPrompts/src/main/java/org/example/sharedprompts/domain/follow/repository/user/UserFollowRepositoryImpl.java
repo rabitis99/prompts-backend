@@ -27,7 +27,8 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
      */
     private static final List<FollowStatus> EXCLUDED_STATUSES = List.of(
             FollowStatus.REJECTED,
-            FollowStatus.CANCELLED
+            FollowStatus.CANCELLED,
+            FollowStatus.BLOCKED
     );
 
     /**
@@ -126,7 +127,7 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
      * 팔로워/팔로잉 조회 공통 헬퍼 메서드
      * 
      * @param userId 사용자 ID
-     * @param status 팔로우 상태 (null이면 REJECTED, CANCELLED 제외)
+     * @param status 팔로우 상태 (null이면 REJECTED, CANCELLED, BLOCKED 제외)
      * @param pageable 페이징 정보
      * @param direction 조회 방향 (FOLLOWERS 또는 FOLLOWING)
      * @return User 페이지
@@ -179,7 +180,7 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
      * 팔로워/팔로잉 카운트 공통 헬퍼 메서드
      * 
      * @param userId 사용자 ID
-     * @param status 팔로우 상태 (null이면 REJECTED, CANCELLED 제외)
+     * @param status 팔로우 상태 (null이면 REJECTED, CANCELLED, BLOCKED 제외)
      * @param direction 조회 방향 (FOLLOWERS 또는 FOLLOWING)
      * @return 카운트
      */
@@ -224,7 +225,7 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
      * 
      * @param userId 대상 사용자 ID
      * @param viewerId 조회하는 사용자 ID (양방향 관계 확인용)
-     * @param status 필터링할 상태 (null이면 REJECTED, CANCELLED 제외)
+     * @param status 필터링할 상태 (null이면 REJECTED, CANCELLED, BLOCKED 제외)
      * @param pageable 페이지 정보
      * @param direction 조회 방향 (FOLLOWERS 또는 FOLLOWING)
      * @return User와 양방향 Follow 정보를 포함한 페이지
@@ -290,11 +291,13 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
             SELECT f FROM Follow f
             WHERE f.followerId = :viewerId
             AND f.followingId IN :targetIds
+            AND f.status NOT IN (:excludedStatuses)
             """;
         
         List<Follow> forwardFollows = entityManager.createQuery(forwardJpql, Follow.class)
                 .setParameter("viewerId", viewerId)
                 .setParameter("targetIds", targetIds)
+                .setParameter("excludedStatuses", EXCLUDED_STATUSES)
                 .getResultList();
         
         // reverse: target → viewer
@@ -302,11 +305,13 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
             SELECT f FROM Follow f
             WHERE f.followerId IN :targetIds
             AND f.followingId = :viewerId
+            AND f.status NOT IN (:excludedStatuses)
             """;
         
         List<Follow> reverseFollows = entityManager.createQuery(reverseJpql, Follow.class)
                 .setParameter("viewerId", viewerId)
                 .setParameter("targetIds", targetIds)
+                .setParameter("excludedStatuses", EXCLUDED_STATUSES)
                 .getResultList();
         
         // Map으로 변환하여 조회 빠르게
