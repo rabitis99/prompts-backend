@@ -169,7 +169,7 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
         long total = countQ.getSingleResult();
         
         List<User> content = query
-                .setFirstResult((int) pageable.getOffset())
+                .setFirstResult(Math.toIntExact(pageable.getOffset()))
                 .setMaxResults(pageable.getPageSize())
                 .getResultList();
         
@@ -238,9 +238,7 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
             FollowDirection direction
     ) {
         // 먼저 User 목록을 가져옴
-        Page<User> userPage = direction == FollowDirection.FOLLOWERS
-                ? findFollowersByUserIdAndStatus(userId, status, pageable)
-                : findFollowingByUserIdAndStatus(userId, status, pageable);
+        Page<User> userPage = findUsersByFollowDirection(userId, status, pageable, direction);
         
         // User 목록에서 ID 추출
         List<Long> targetIds = userPage.getContent().stream()

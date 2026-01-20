@@ -133,6 +133,7 @@ public enum ErrorCode {
     PAGE_SIZE_EXCEEDED("AD00407", HttpStatus.BAD_REQUEST, "페이징 사이즈는 최대 100까지 가능합니다."),
     SAME_ROLE("AD00408", HttpStatus.BAD_REQUEST, "현재 권한과 동일한 권한으로 변경할 수 없습니다."),
     SAME_VISIBILITY("AD00409", HttpStatus.BAD_REQUEST, "현재 공개 상태와 동일한 상태로 변경할 수 없습니다."),
+    FOLLOW_STATUS_REQUIRED("AD00410", HttpStatus.BAD_REQUEST, "팔로우 상태는 필수입니다."),
 
     ;
     private final String code;

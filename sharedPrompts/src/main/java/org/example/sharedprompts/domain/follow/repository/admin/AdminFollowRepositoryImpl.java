@@ -112,7 +112,7 @@ public class AdminFollowRepositoryImpl implements AdminFollowRepository {
         long total = countQ.getSingleResult();
         
         List<User> content = query
-                .setFirstResult((int) pageable.getOffset())
+                .setFirstResult(Math.toIntExact(pageable.getOffset()))
                 .setMaxResults(pageable.getPageSize())
                 .getResultList();
         

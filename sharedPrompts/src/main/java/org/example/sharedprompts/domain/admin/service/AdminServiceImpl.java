@@ -280,8 +280,9 @@ public class AdminServiceImpl implements AdminService {
             Pageable pageable
     ) {
         adminValidator.validatePageSize(pageable, 100);
+        // AdminFollowRepository 계약: status는 필수 (null 전달 시 전체 스캔 방지)
         if (status == null) {
-            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE);
+            throw new ApiException(ErrorCode.FOLLOW_STATUS_REQUIRED);
         }
 
         Page<User> page = adminFollowRepository.findUsersByCondition(

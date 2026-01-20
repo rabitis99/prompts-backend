@@ -101,20 +101,11 @@ public class FollowUserResponseDto {
             pendingDirection = "target_to_me"; // 상대가 요청한 경우
         }
 
-        // UserResponseDto 생성
+        // UserResponseDto 생성 및 필드 복사
         UserResponseDto userDto = UserResponseDto.from(user);
+        FollowUserResponseDto.FollowUserResponseDtoBuilder builder = fromUserResponseDto(userDto);
 
-        return FollowUserResponseDto.builder()
-                // UserResponseDto 필드들 복사
-                .id(userDto.getId())
-                .email(userDto.getEmail())
-                .provider(userDto.getProvider())
-                .nickname(userDto.getNickname())
-                .age(userDto.getAge())
-                .job(userDto.getJob())
-                .thumbnail(userDto.getThumbnail())
-                .isSignupCompleted(userDto.isSignupCompleted())
-                .userTerms(userDto.getUserTerms())
+        return builder
                 // Follow 관련 필드들
                 .followStatus(followStatus)
                 .reverseFollowStatus(reverseFollowStatus)
@@ -124,6 +115,23 @@ public class FollowUserResponseDto {
                 .followedAt(followedAt)
                 .requestedAt(requestedAt)
                 .build();
+    }
+
+    /**
+     * UserResponseDto의 모든 필드를 FollowUserResponseDto 빌더에 복사
+     * UserResponseDto의 매핑 로직 변경 시 이 메서드만 수정하면 일관성 유지 가능
+     */
+    private static FollowUserResponseDto.FollowUserResponseDtoBuilder fromUserResponseDto(UserResponseDto userDto) {
+        return FollowUserResponseDto.builder()
+                .id(userDto.getId())
+                .email(userDto.getEmail())
+                .provider(userDto.getProvider())
+                .nickname(userDto.getNickname())
+                .age(userDto.getAge())
+                .job(userDto.getJob())
+                .thumbnail(userDto.getThumbnail())
+                .isSignupCompleted(userDto.isSignupCompleted())
+                .userTerms(userDto.getUserTerms());
     }
 }
 
