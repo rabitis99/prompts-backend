@@ -351,6 +351,41 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
         
         return result;
     }
+
+    @Override
+    public boolean existsBlockedBetween(Long userId1, Long userId2) {
+        String jpql = """
+            SELECT COUNT(f) FROM Follow f
+            WHERE f.status = :blockedStatus
+            AND (
+                (f.followerId = :userId1 AND f.followingId = :userId2)
+                OR (f.followerId = :userId2 AND f.followingId = :userId1)
+            )
+            """;
+
+        Long count = entityManager.createQuery(jpql, Long.class)
+                .setParameter("blockedStatus", FollowStatus.BLOCKED)
+                .setParameter("userId1", userId1)
+                .setParameter("userId2", userId2)
+                .getSingleResult();
+
+        return count != null && count > 0;
+    }
+
+    @Override
+    public List<Long> findFollowerIdsByFollowingIdAndStatus(Long followingId, FollowStatus status) {
+        String jpql = """
+            SELECT f.followerId
+            FROM Follow f
+            WHERE f.followingId = :followingId
+            AND f.status = :status
+            """;
+
+        return entityManager.createQuery(jpql, Long.class)
+                .setParameter("followingId", followingId)
+                .setParameter("status", status)
+                .getResultList();
+    }
 }
 
 

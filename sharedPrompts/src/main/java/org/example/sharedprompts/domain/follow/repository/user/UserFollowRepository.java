@@ -53,6 +53,18 @@ public interface UserFollowRepository {
      */
     List<UserWithFollowInfo> findBidirectionalFollowInfo(Long viewerId, List<Long> targetIds);
 
+    /**
+     * 두 사용자 사이에 BLOCKED 상태의 Follow 관계가 존재하는지 여부
+     * - 방향에 상관없이 (viewer → target, target → viewer) 모두 검사
+     */
+    boolean existsBlockedBetween(Long userId1, Long userId2);
+
+    /**
+     * 특정 사용자를 FOLLOWING 상태로 팔로우 중인 사용자 ID 목록 조회
+     * - BLOCKED 여부는 포함하지 않으며, 순수 관계만 조회한다.
+     */
+    List<Long> findFollowerIdsByFollowingIdAndStatus(Long followingId, FollowStatus status);
+
     Long countFollowersByUserIdAndStatus(Long userId, FollowStatus status);
 
     Long countFollowingByUserIdAndStatus(Long userId, FollowStatus status);
