@@ -6,7 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface CustomPromptRepository {
-    Page<Prompt> searchPrompts(PromptSearchCondition condition);
+    Page<Prompt> searchPrompts(PromptSearchContext context);
     Page<Prompt> searchMyPrompts(Long userId, PromptSearchCondition condition);
     Page<Prompt> searchPromptsForAdmin(String keyword, Pageable pageable);
 }

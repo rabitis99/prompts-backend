@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.prompt.repository;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.domain.follow.repository.FollowPredicates;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
 import org.example.sharedprompts.dto.prompt.request.PromptSearchCondition;
@@ -13,9 +14,9 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
+import static org.example.sharedprompts.domain.prompt.QPrompt.prompt;
 import static org.example.sharedprompts.domain.tag.QPromptTag.promptTag;
 import static org.example.sharedprompts.domain.tag.QTag.tag;
-import static org.example.sharedprompts.domain.prompt.QPrompt.prompt;
 import static org.example.sharedprompts.domain.user.QUser.user;
 
 @RequiredArgsConstructor
@@ -24,8 +25,9 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Page<Prompt> searchPrompts(PromptSearchCondition condition) {
-        return searchInternal(applyCategory(condition.getPromptCategory()), condition);
+    public Page<Prompt> searchPrompts(PromptSearchContext context) {
+        PromptSearchCondition condition = context.getCondition();
+        return searchInternal(applyCategory(condition.getPromptCategory()), context);
     }
 
     @Override
@@ -35,14 +37,29 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
                 ? prompt.author.id.eq(userId).and(categoryExpr)
                 : prompt.author.id.eq(userId);
 
-        return searchInternal(where, condition);
+        // 내 프롬프트 조회는 viewer 컨텍스트가 필요 없으므로 기존 condition만 사용
+        PromptSearchContext context = PromptSearchContext.of(condition, null);
+
+        return searchInternal(where, context);
     }
 
     /**
      * 공통 2-step 페이징 + fetchJoin
      */
-    private Page<Prompt> searchInternal(BooleanExpression where, PromptSearchCondition condition) {
+    private Page<Prompt> searchInternal(BooleanExpression where, PromptSearchContext context) {
+        PromptSearchCondition condition = context.getCondition();
         PageRequest pageable = PageRequest.of(condition.getPage(), condition.getSize());
+
+        // viewer(요청자)와 author 간 BLOCKED 관계가 존재하는 프롬프트는 제외
+        Long viewerId = context.getViewerId();
+        if (viewerId != null) {
+            BooleanExpression notBlocked =
+                    FollowPredicates.notBlockedBetween(viewerId, prompt.author.id);
+
+            if (notBlocked != null) {
+                where = (where != null) ? where.and(notBlocked) : notBlocked;
+            }
+        }
 
         // 1) 페이징 가능한 id 조회
         List<Long> ids = queryFactory
