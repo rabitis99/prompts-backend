@@ -7,7 +7,7 @@ import org.example.sharedprompts.domain.follow.FollowStatus;
 import org.example.sharedprompts.domain.follow.service.FollowService;
 import org.example.sharedprompts.dto.follow.response.FollowCountResponseDto;
 import org.example.sharedprompts.dto.follow.response.FollowResponseDto;
-import org.example.sharedprompts.dto.user.response.UserResponseDto;
+import org.example.sharedprompts.dto.follow.response.FollowUserResponseDto;
 import org.example.sharedprompts.global.response.CustomResponse;
 import org.example.sharedprompts.global.response.CustomResponseHelper;
 import org.example.sharedprompts.global.response.PageResponse;
@@ -87,22 +87,24 @@ public class FollowController {
     }
 
     @GetMapping("/me/followers")
-    public ResponseEntity<CustomResponse<PageResponse<UserResponseDto>>> getFollowers(
+    public ResponseEntity<CustomResponse<PageResponse<FollowUserResponseDto>>> getFollowers(
             @RequestParam(required = false) FollowStatus status,
             @CurrentUser AuthUser authUser,
             @PageableDefault(size = 20) Pageable pageable
     ) {
-        PageResponse<UserResponseDto> response = followService.getFollowers(authUser.getId(), status, pageable);
+        PageResponse<FollowUserResponseDto> response = followService.getFollowers(
+                authUser.getId(), authUser.getId(), status, pageable);
         return CustomResponseHelper.ok(response);
     }
 
     @GetMapping("/me/following")
-    public ResponseEntity<CustomResponse<PageResponse<UserResponseDto>>> getFollowing(
+    public ResponseEntity<CustomResponse<PageResponse<FollowUserResponseDto>>> getFollowing(
             @RequestParam(required = false) FollowStatus status,
             @CurrentUser AuthUser authUser,
             @PageableDefault(size = 20) Pageable pageable
     ) {
-        PageResponse<UserResponseDto> response = followService.getFollowing(authUser.getId(), status, pageable);
+        PageResponse<FollowUserResponseDto> response = followService.getFollowing(
+                authUser.getId(), authUser.getId(), status, pageable);
         return CustomResponseHelper.ok(response);
     }
 

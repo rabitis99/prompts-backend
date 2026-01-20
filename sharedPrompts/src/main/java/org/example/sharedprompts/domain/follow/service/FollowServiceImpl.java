@@ -5,11 +5,11 @@ import org.example.sharedprompts.domain.follow.Follow;
 import org.example.sharedprompts.domain.follow.FollowStatus;
 import org.example.sharedprompts.domain.follow.event.FollowEvent;
 import org.example.sharedprompts.domain.follow.repository.FollowRepository;
-import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.dto.follow.response.FollowCountResponseDto;
 import org.example.sharedprompts.dto.follow.response.FollowResponseDto;
-import org.example.sharedprompts.dto.user.response.UserResponseDto;
+import org.example.sharedprompts.dto.follow.response.FollowUserResponseDto;
+import org.example.sharedprompts.dto.follow.response.UserWithFollowInfo;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.response.PageResponse;
@@ -18,6 +18,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -139,32 +142,41 @@ public class FollowServiceImpl implements FollowService {
     public FollowResponseDto getFollowStatus(Long followerId, Long followingId) {
         validateIds(followerId, followingId);
 
-        return followRepository
-                .findByFollowerIdAndFollowingId(followerId, followingId)
-                .map(follow -> FollowResponseDto.from(follow.getStatus()))
-                .orElse(FollowResponseDto.from(null));
+        // viewer → target 방향 Follow 조회
+        Optional<Follow> forwardFollow = followRepository
+                .findByFollowerIdAndFollowingId(followerId, followingId);
+        
+        // target → viewer 방향 Follow 조회 (양방향 정보)
+        Optional<Follow> reverseFollow = followRepository
+                .findByFollowerIdAndFollowingId(followingId, followerId);
+
+        return FollowResponseDto.from(
+                forwardFollow.orElse(null),
+                reverseFollow.orElse(null),
+                followerId
+        );
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<UserResponseDto> getFollowers(
-            Long userId, FollowStatus status, Pageable pageable) {
+    public PageResponse<FollowUserResponseDto> getFollowers(
+            Long userId, Long viewerId, FollowStatus status, Pageable pageable) {
 
-        Page<User> page =
-                followRepository.findFollowersByUserIdAndStatus(userId, status, pageable);
+        Page<UserWithFollowInfo> page =
+                followRepository.findFollowersWithFollowInfo(userId, viewerId, status, pageable);
 
-        return PageResponse.of(page.map(UserResponseDto::from));
+        return PageResponse.of(page.map(this::toFollowUserResponseDto));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<UserResponseDto> getFollowing(
-            Long userId, FollowStatus status, Pageable pageable) {
+    public PageResponse<FollowUserResponseDto> getFollowing(
+            Long userId, Long viewerId, FollowStatus status, Pageable pageable) {
 
-        Page<User> page =
-                followRepository.findFollowingByUserIdAndStatus(userId, status, pageable);
+        Page<UserWithFollowInfo> page =
+                followRepository.findFollowingWithFollowInfo(userId, viewerId, status, pageable);
 
-        return PageResponse.of(page.map(UserResponseDto::from));
+        return PageResponse.of(page.map(this::toFollowUserResponseDto));
     }
 
     @Override
@@ -203,6 +215,46 @@ public class FollowServiceImpl implements FollowService {
         return followRepository
                 .findByFollowerIdAndFollowingId(followerId, followingId)
                 .orElseThrow(() -> new ApiException(ErrorCode.FOLLOW_NOT_FOUND));
+    }
+
+    /**
+     * UserWithFollowInfo를 FollowUserResponseDto로 변환
+     */
+    private FollowUserResponseDto toFollowUserResponseDto(UserWithFollowInfo info) {
+        Follow forwardFollow = info.getForwardFollow();
+        Follow reverseFollow = info.getReverseFollow();
+
+        // 상태 추출
+        FollowStatus followStatus = forwardFollow != null ? forwardFollow.getStatus() : null;
+        FollowStatus reverseFollowStatus = reverseFollow != null ? reverseFollow.getStatus() : null;
+
+        // 블록 상태 확인
+        Boolean isBlockedByMe = followStatus != null && followStatus == FollowStatus.BLOCKED;
+        Boolean isBlockedByTarget = reverseFollowStatus != null && reverseFollowStatus == FollowStatus.BLOCKED;
+
+        // 팔로우/요청 일시 추출
+        LocalDateTime followedAt = null;
+        LocalDateTime requestedAt = null;
+        if (forwardFollow != null) {
+            if (forwardFollow.getStatus() == FollowStatus.FOLLOWING) {
+                followedAt = forwardFollow.getCreatedAt();
+            } else if (forwardFollow.getStatus() == FollowStatus.PENDING) {
+                requestedAt = forwardFollow.getCreatedAt();
+            }
+        }
+        if (reverseFollow != null && reverseFollow.getStatus() == FollowStatus.PENDING) {
+            requestedAt = reverseFollow.getCreatedAt();
+        }
+
+        return FollowUserResponseDto.from(
+                info.getUser(),
+                followStatus,
+                reverseFollowStatus,
+                isBlockedByMe,
+                isBlockedByTarget,
+                followedAt,
+                requestedAt
+        );
     }
 }
 
