@@ -113,25 +113,52 @@ public class FollowServiceImpl implements FollowService {
 
     @Override
     public void blockFollow(Long followerId, Long followingId) {
-        validateRequest(followerId, followingId);
+        validateBlock(followerId, followingId);
 
-        Follow follow = followRepository
-                .findByFollowerIdAndFollowingId(followerId, followingId)
-                .orElseGet(() -> new Follow(followerId, followingId));
+        // 팔로워 차단 = "상대 → 나" 방향을 BLOCKED로 만듦
+        // 따라서 (followingId → followerId) 방향의 Follow를 찾아야 함
+        Follow reverseFollow = followRepository
+                .findByFollowerIdAndFollowingId(followingId, followerId)
+                .orElse(null);
 
-        follow.markBlocked();
-        followRepository.save(follow);
+        // ① 상대 → 나 방향: BLOCKED 처리 (idempotent)
+        if (reverseFollow == null) {
+            reverseFollow = new Follow(followingId, followerId);
+            reverseFollow.markBlocked();
+            followRepository.save(reverseFollow);
+        } else if (reverseFollow.getStatus() != FollowStatus.BLOCKED) {
+            reverseFollow.markBlocked();
+            followRepository.save(reverseFollow);
+        }
+
+        // ② 나 → 상대 방향: CANCELLED 처리 (양방향 FOLLOWING 상태 방지)
+        Optional<Follow> forwardFollow = followRepository
+                .findByFollowerIdAndFollowingId(followerId, followingId);
+
+        if (forwardFollow.isPresent()) {
+            Follow follow = forwardFollow.get();
+            FollowStatus status = follow.getStatus();
+            if (status == FollowStatus.FOLLOWING || status == FollowStatus.PENDING) {
+                follow.markCancelled();
+                followRepository.save(follow);
+            }
+            // REJECTED, CANCELLED는 유지, 없으면 무시
+        }
     }
 
     @Override
     public void unblockFollow(Long followerId, Long followingId) {
-        Follow follow = findFollow(followerId, followingId);
+        // 차단 해제도 "상대 → 나" 방향을 처리해야 함
+        Follow follow = followRepository
+                .findByFollowerIdAndFollowingId(followingId, followerId)
+                .orElseThrow(() -> new ApiException(ErrorCode.FOLLOW_NOT_FOUND));
 
         if (follow.getStatus() != FollowStatus.BLOCKED) {
             throw new ApiException(ErrorCode.FOLLOW_NOT_BLOCKED);
         }
 
-        follow.markPending();
+        // 차단 해제는 BLOCKED → CANCELLED만 허용 (PENDING 금지)
+        follow.markCancelled();
         followRepository.save(follow);
     }
 
@@ -200,6 +227,23 @@ public class FollowServiceImpl implements FollowService {
 
         if (!userRepository.existsById(followerId)
                 || !userRepository.existsById(followingId)) {
+            throw new ApiException(ErrorCode.USER_NOT_FOUND);
+        }
+    }
+
+    /**
+     * 차단 전용 검증 메서드
+     * - 차단은 "방어 행위"이므로 팔로우 관계 존재 여부는 검증하지 않음
+     * - meId != targetId, target 사용자 존재 확인만 수행
+     */
+    private void validateBlock(Long meId, Long targetId) {
+        validateIds(meId, targetId);
+
+        if (meId.equals(targetId)) {
+            throw new ApiException(ErrorCode.CANNOT_BLOCK_SELF);
+        }
+
+        if (!userRepository.existsById(targetId)) {
             throw new ApiException(ErrorCode.USER_NOT_FOUND);
         }
     }
