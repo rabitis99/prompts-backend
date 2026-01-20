@@ -9,6 +9,8 @@ import org.example.sharedprompts.domain.audit.AuditLog;
 import org.example.sharedprompts.domain.audit.enums.AuditAction;
 import org.example.sharedprompts.domain.audit.enums.AuditEntityType;
 import org.example.sharedprompts.domain.audit.service.AuditLogService;
+import org.example.sharedprompts.domain.follow.FollowStatus;
+import org.example.sharedprompts.domain.follow.repository.admin.AdminFollowRepository;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.dto.audit.response.AuditLogResponseDto;
 import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
@@ -31,6 +33,7 @@ import org.example.sharedprompts.dto.admin.response.AdminUserResponseDto;
 import org.example.sharedprompts.dto.report.request.ReportProcessRequestDto;
 import org.example.sharedprompts.dto.report.response.ReportDetailResponseDto;
 import org.example.sharedprompts.dto.report.response.ReportResponseDto;
+import org.example.sharedprompts.dto.user.response.UserResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.jwt.service.UserTokenInvalidationService;
@@ -48,6 +51,7 @@ public class AdminServiceImpl implements AdminService {
     private final AdminAuditLogger adminAuditLogger;
     private final AuditLogService auditLogService;
     private final UserTokenInvalidationService tokenInvalidationService;
+    private final AdminFollowRepository adminFollowRepository;
 
     // ======================
     //      사용자 관리
@@ -261,6 +265,34 @@ public class AdminServiceImpl implements AdminService {
                 actorId, entityType, action, startDate, endDate, pageable
         );
         return logs.map(AuditLogResponseDto::from);
+    }
+
+    // ======================
+    //      팔로우 관리
+    // ======================
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<UserResponseDto> getFollows(
+            Long followerId,
+            Long followingId,
+            FollowStatus status,
+            Pageable pageable
+    ) {
+        adminValidator.validatePageSize(pageable, 100);
+        // AdminFollowRepository 계약: status는 필수 (null 전달 시 전체 스캔 방지)
+        if (status == null) {
+            throw new ApiException(ErrorCode.FOLLOW_STATUS_REQUIRED);
+        }
+
+        Page<User> page = adminFollowRepository.findUsersByCondition(
+                followerId,
+                followingId,
+                status,
+                pageable
+        );
+
+        return page.map(UserResponseDto::from);
     }
 
     /**

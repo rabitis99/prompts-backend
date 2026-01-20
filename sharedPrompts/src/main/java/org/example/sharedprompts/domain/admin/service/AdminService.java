@@ -2,7 +2,9 @@ package org.example.sharedprompts.domain.admin.service;
 
 import org.example.sharedprompts.domain.audit.enums.AuditAction;
 import org.example.sharedprompts.domain.audit.enums.AuditEntityType;
+import org.example.sharedprompts.domain.follow.FollowStatus;
 import org.example.sharedprompts.domain.report.enums.ReportStatus;
+import org.example.sharedprompts.dto.user.response.UserResponseDto;
 import org.example.sharedprompts.dto.admin.request.PromptVisibilityRequestDto;
 import org.example.sharedprompts.dto.admin.request.UserBlockRequestDto;
 import org.example.sharedprompts.dto.admin.request.UserRoleChangeRequestDto;
@@ -109,6 +111,23 @@ public interface AdminService {
             AuditAction action,
             LocalDateTime startDate,
             LocalDateTime endDate,
+            Pageable pageable
+    );
+
+    // ======================
+    //      팔로우 관리
+    // ======================
+
+    /**
+     * 팔로우 관계 조회 (관리자용)
+     *
+     * - followerId, followingId는 선택적으로 전달 가능
+     * - status는 필수 (상태별 필터링)
+     */
+    Page<UserResponseDto> getFollows(
+            Long followerId,
+            Long followingId,
+            FollowStatus status,
             Pageable pageable
     );
 }

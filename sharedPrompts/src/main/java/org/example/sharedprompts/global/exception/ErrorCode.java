@@ -90,6 +90,7 @@ public enum ErrorCode {
     FOLLOW_IDS_REQUIRED("FW00401", HttpStatus.BAD_REQUEST, "팔로워 ID와 팔로잉 ID는 필수입니다."),
     FOLLOW_ALREADY_EXISTS("FW00402", HttpStatus.BAD_REQUEST, "이미 팔로우 관계가 존재합니다."),
     CANNOT_FOLLOW_SELF("FW00403", HttpStatus.BAD_REQUEST, "자기 자신을 팔로우할 수 없습니다."),
+    CANNOT_BLOCK_SELF("FW00407", HttpStatus.BAD_REQUEST, "자기 자신을 차단할 수 없습니다."),
     FOLLOW_NOT_BLOCKED("FW00404", HttpStatus.BAD_REQUEST, "차단 상태가 아닌 관계는 차단 해제할 수 없습니다."),
     FOLLOW_NOT_PENDING("FW00405", HttpStatus.BAD_REQUEST, "대기 상태가 아닌 관계는 거부할 수 없습니다."),
     FOLLOW_BLOCKED("FW00406", HttpStatus.FORBIDDEN, "차단된 관계는 작업할 수 없습니다."),
@@ -132,6 +133,7 @@ public enum ErrorCode {
     PAGE_SIZE_EXCEEDED("AD00407", HttpStatus.BAD_REQUEST, "페이징 사이즈는 최대 100까지 가능합니다."),
     SAME_ROLE("AD00408", HttpStatus.BAD_REQUEST, "현재 권한과 동일한 권한으로 변경할 수 없습니다."),
     SAME_VISIBILITY("AD00409", HttpStatus.BAD_REQUEST, "현재 공개 상태와 동일한 상태로 변경할 수 없습니다."),
+    FOLLOW_STATUS_REQUIRED("AD00410", HttpStatus.BAD_REQUEST, "팔로우 상태는 필수입니다."),
 
     ;
     private final String code;

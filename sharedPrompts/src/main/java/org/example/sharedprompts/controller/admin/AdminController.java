@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.admin.service.AdminService;
 import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
+import org.example.sharedprompts.domain.follow.FollowStatus;
 import org.example.sharedprompts.domain.report.enums.ReportStatus;
 import org.example.sharedprompts.dto.admin.request.PromptVisibilityRequestDto;
 import org.example.sharedprompts.dto.admin.request.UserBlockRequestDto;
@@ -17,6 +18,7 @@ import org.example.sharedprompts.dto.audit.response.AuditLogResponseDto;
 import org.example.sharedprompts.dto.report.request.ReportProcessRequestDto;
 import org.example.sharedprompts.dto.report.response.ReportDetailResponseDto;
 import org.example.sharedprompts.dto.report.response.ReportResponseDto;
+import org.example.sharedprompts.dto.user.response.UserResponseDto;
 import org.example.sharedprompts.global.annotation.AdminOnly;
 import org.example.sharedprompts.global.response.CustomResponse;
 import org.example.sharedprompts.global.response.CustomResponseHelper;
@@ -90,6 +92,29 @@ public class AdminController {
     ) {
         AdminUserResponseDto response = adminService.changeUserRole(id, authUser.getId(), requestDto);
         return CustomResponseHelper.ok(response);
+    }
+
+    /**
+     * 팔로우 관계 조회 (관리자용)
+     *
+     * - followerId, followingId는 선택적으로 전달할 수 있다.
+     * - status는 필수이며, 해당 상태의 팔로우 관계만 조회한다.
+     */
+    @GetMapping("/follows")
+    public ResponseEntity<CustomResponse<PageResponse<UserResponseDto>>> getFollows(
+            @RequestParam(required = false) Long followerId,
+            @RequestParam(required = false) Long followingId,
+            @RequestParam FollowStatus status,
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        Page<UserResponseDto> page = adminService.getFollows(
+                followerId,
+                followingId,
+                status,
+                pageable
+        );
+
+        return CustomResponseHelper.ok(PageResponse.of(page));
     }
 
     // ======================
