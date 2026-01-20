@@ -86,7 +86,7 @@ public class AdminFollowRepositoryImpl implements AdminFollowRepository {
                 SELECT DISTINCT u FROM User u
                 INNER JOIN Follow f ON u.id = f.followingId
                 WHERE f.status = :status
-                ORDER BY f.id DESC
+                ORDER BY u.id DESC
                 """;
             countQuery = """
                 SELECT COUNT(DISTINCT u) FROM User u

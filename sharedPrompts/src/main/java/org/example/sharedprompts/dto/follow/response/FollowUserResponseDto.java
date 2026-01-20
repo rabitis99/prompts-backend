@@ -106,14 +106,14 @@ public class FollowUserResponseDto {
 
         return FollowUserResponseDto.builder()
                 // UserResponseDto 필드들 복사
-                .id(user.getId())
-                .email(user.getEmail())
-                .provider(user.getProvider())
-                .nickname(user.getNickname())
-                .age(user.getAge())
-                .job(user.getJob())
-                .thumbnail(user.getThumbnail())
-                .isSignupCompleted(user.isSignupCompleted())
+                .id(userDto.getId())
+                .email(userDto.getEmail())
+                .provider(userDto.getProvider())
+                .nickname(userDto.getNickname())
+                .age(userDto.getAge())
+                .job(userDto.getJob())
+                .thumbnail(userDto.getThumbnail())
+                .isSignupCompleted(userDto.isSignupCompleted())
                 .userTerms(userDto.getUserTerms())
                 // Follow 관련 필드들
                 .followStatus(followStatus)

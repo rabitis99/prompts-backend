@@ -70,8 +70,7 @@ public class FollowResponseDto {
 
     public static FollowResponseDto from(
             Follow follow,
-            Follow reverseFollow,
-            Long viewerId
+            Follow reverseFollow
     ) {
         FollowStatus followStatus = follow != null ? follow.getStatus() : null;
         FollowStatus reverseStatus = reverseFollow != null ? reverseFollow.getStatus() : null;

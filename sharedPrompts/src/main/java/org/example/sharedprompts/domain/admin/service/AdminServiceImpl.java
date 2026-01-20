@@ -280,6 +280,9 @@ public class AdminServiceImpl implements AdminService {
             Pageable pageable
     ) {
         adminValidator.validatePageSize(pageable, 100);
+        if (status == null) {
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE);
+        }
 
         Page<User> page = adminFollowRepository.findUsersByCondition(
                 followerId,

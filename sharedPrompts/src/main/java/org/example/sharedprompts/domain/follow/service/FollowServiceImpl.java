@@ -152,8 +152,7 @@ public class FollowServiceImpl implements FollowService {
 
         return FollowResponseDto.from(
                 forwardFollow.orElse(null),
-                reverseFollow.orElse(null),
-                followerId
+                reverseFollow.orElse(null)
         );
     }
 
