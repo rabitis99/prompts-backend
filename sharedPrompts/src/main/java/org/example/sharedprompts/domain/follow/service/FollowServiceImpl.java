@@ -162,6 +162,54 @@ public class FollowServiceImpl implements FollowService {
         followRepository.save(follow);
     }
 
+    /* ================= 팔로워 삭제 (Remove) ================= */
+
+    /**
+     * 팔로워 삭제 (Remove)
+     * 
+     * "상대가 나를 팔로우하고 있는 관계를 강제로 종료시키는 행위"
+     * - 주체: 팔로우 당한 사람 (me)
+     * - 대상: 나를 팔로우 중인 사용자 (follower)
+     * 
+     * 상태 전이 규칙:
+     * - PENDING → CANCELLED
+     * - FOLLOWING → CANCELLED
+     * - REJECTED → CANCELLED
+     * - CANCELLED → CANCELLED (idempotent)
+     * - BLOCKED → 에러 (차단 우선)
+     * - 없으면 no-op
+     */
+    @Override
+    public void removeFollower(Long meId, Long followerId) {
+        validateIds(meId, followerId);
+
+        // (followerId → meId) 방향 Follow 조회
+        Follow follow = followRepository
+                .findByFollowerIdAndFollowingId(followerId, meId)
+                .orElse(null);
+
+        if (follow == null) {
+            // 관계가 없으면 no-op
+            return;
+        }
+
+        FollowStatus status = follow.getStatus();
+
+        // BLOCKED 상태면 에러 (차단 우선)
+        if (status == FollowStatus.BLOCKED) {
+            throw new ApiException(ErrorCode.FOLLOW_BLOCKED);
+        }
+
+        // CANCELLED 상태면 idempotent (그대로 유지)
+        if (status == FollowStatus.CANCELLED) {
+            return;
+        }
+
+        // PENDING, FOLLOWING, REJECTED → CANCELLED
+        follow.markCancelled();
+        followRepository.save(follow);
+    }
+
     /* ================= 조회 ================= */
 
     @Override

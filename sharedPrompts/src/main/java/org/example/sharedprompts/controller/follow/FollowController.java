@@ -77,6 +77,21 @@ public class FollowController {
         return CustomResponseHelper.noContent();
     }
 
+    /**
+     * 팔로워 삭제 (Remove)
+     * 
+     * 상대가 나를 팔로우하고 있는 관계를 강제로 종료시키는 행위
+     * DELETE /users/me/followers/{followerId}
+     */
+    @DeleteMapping("/me/followers/{followerId}")
+    public ResponseEntity<Void> removeFollower(
+            @PathVariable Long followerId,
+            @CurrentUser AuthUser authUser
+    ) {
+        followService.removeFollower(authUser.getId(), followerId);
+        return CustomResponseHelper.noContent();
+    }
+
     @GetMapping("/{followingId}/follow")
     public ResponseEntity<CustomResponse<FollowResponseDto>> getFollowStatus(
             @PathVariable Long followingId,
