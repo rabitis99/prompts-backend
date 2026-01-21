@@ -37,6 +37,21 @@ public class RabbitMQConfig {
     // Publish Failure Exchange 이름
     public static final String NOTIFICATION_PUBLISH_FAILURE_EXCHANGE = "notification.publish.failure.exchange";
 
+    // SSE Exchange 이름
+    public static final String SSE_EXCHANGE = "sse.exchange";
+
+    // SSE Queue 이름 (프롬프트 생성 SSE 알림용)
+    public static final String SSE_PROMPT_CREATED_QUEUE = "sse.prompt.created.queue";
+
+    // SSE Routing Key (프롬프트 생성)
+    public static final String SSE_PROMPT_CREATED_ROUTING_KEY = "sse.prompt.created";
+
+    // SSE Dead Letter Exchange 이름
+    public static final String SSE_DLX = "sse.dlx";
+
+    // SSE Dead Letter Queue 이름
+    public static final String SSE_DLQ = "sse.dlq";
+
     /**
      * Topic Exchange 생성
      * - 알림 메시지를 라우팅하기 위한 Exchange
@@ -44,6 +59,66 @@ public class RabbitMQConfig {
     @Bean
     public TopicExchange notificationExchange() {
         return new TopicExchange(NOTIFICATION_EXCHANGE, true, false);
+    }
+
+    /**
+     * SSE Topic Exchange 생성
+     * - SSE 알림 메시지를 라우팅하기 위한 Exchange
+     */
+    @Bean
+    public TopicExchange sseExchange() {
+        return new TopicExchange(SSE_EXCHANGE, true, false);
+    }
+
+    /**
+     * SSE Dead Letter Exchange 생성
+     */
+    @Bean
+    public DirectExchange sseDlx() {
+        return new DirectExchange(SSE_DLX, true, false);
+    }
+
+    /**
+     * SSE Dead Letter Queue 생성
+     */
+    @Bean
+    public Queue sseDlq() {
+        return QueueBuilder.durable(SSE_DLQ).build();
+    }
+
+    /**
+     * SSE Dead Letter Queue Binding
+     */
+    @Bean
+    public Binding sseDlqBinding() {
+        return BindingBuilder
+                .bind(sseDlq())
+                .to(sseDlx())
+                .with(SSE_DLQ);
+    }
+
+    /**
+     * SSE 프롬프트 생성 Queue 생성
+     * - 프롬프트 생성 시 팔로워들에게 SSE 알림을 전송하기 위한 Queue
+     */
+    @Bean
+    public Queue ssePromptCreatedQueue() {
+        return QueueBuilder.durable(SSE_PROMPT_CREATED_QUEUE)
+                .withArgument("x-dead-letter-exchange", SSE_DLX)
+                .withArgument("x-dead-letter-routing-key", SSE_DLQ)
+                .withArgument("x-message-ttl", 86400000L) // 24시간
+                .build();
+    }
+
+    /**
+     * SSE 프롬프트 생성 Binding
+     */
+    @Bean
+    public Binding ssePromptCreatedBinding() {
+        return BindingBuilder
+                .bind(ssePromptCreatedQueue())
+                .to(sseExchange())
+                .with(SSE_PROMPT_CREATED_ROUTING_KEY);
     }
 
     /**

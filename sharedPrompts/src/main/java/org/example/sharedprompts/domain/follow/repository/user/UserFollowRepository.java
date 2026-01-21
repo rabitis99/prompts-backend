@@ -60,6 +60,17 @@ public interface UserFollowRepository {
     boolean existsBlockedBetween(Long userId1, Long userId2);
 
     /**
+     * 여러 사용자와 특정 사용자 사이에 BLOCKED 관계가 있는 사용자 ID 목록을 배치로 조회
+     * - N+1 쿼리 문제를 해결하기 위한 배치 조회 메서드
+     * - 방향에 상관없이 (followerIds → authorId, authorId → followerIds) 모두 검사
+     *
+     * @param followerIds 검사할 팔로워 ID 목록
+     * @param authorId 작성자 ID (BLOCKED 관계의 기준점)
+     * @return BLOCKED 관계가 있는 팔로워 ID 목록
+     */
+    List<Long> findBlockedUserIds(List<Long> followerIds, Long authorId);
+
+    /**
      * 특정 사용자를 FOLLOWING 상태로 팔로우 중인 사용자 ID 목록 조회
      * - BLOCKED 여부는 포함하지 않으며, 순수 관계만 조회한다.
      */

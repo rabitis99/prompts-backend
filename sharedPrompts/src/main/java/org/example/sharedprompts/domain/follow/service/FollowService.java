@@ -21,5 +21,15 @@ public interface FollowService {
     PageResponse<FollowUserResponseDto> getFollowers(Long userId, Long viewerId, FollowStatus status, Pageable pageable);
     PageResponse<FollowUserResponseDto> getFollowing(Long userId, Long viewerId, FollowStatus status, Pageable pageable);
     FollowCountResponseDto getFollowCount(Long userId, FollowStatus status);
+    
+    /**
+     * viewer → target 방향의 PublicFollowState를 반환합니다.
+     * 공개 프로필 조회 시 사용됩니다.
+     *
+     * @param viewerId 조회하는 사용자 ID (null 가능)
+     * @param targetUserId 조회 대상 사용자 ID
+     * @return PublicFollowState
+     */
+    PublicFollowState getPublicFollowState(Long viewerId, Long targetUserId);
 }
 

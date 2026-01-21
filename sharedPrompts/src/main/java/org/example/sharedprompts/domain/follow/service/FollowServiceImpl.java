@@ -280,6 +280,31 @@ public class FollowServiceImpl implements FollowService {
                 .build();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PublicFollowState getPublicFollowState(Long viewerId, Long targetUserId) {
+        // targetUserId가 null이면 조회 불가
+        if (targetUserId == null) {
+            return PublicFollowState.NONE;
+        }
+        
+        // 비로그인 사용자 또는 본인 프로필 조회 시
+        if (viewerId == null) {
+            return PublicFollowState.NONE;
+        }
+        
+        if (viewerId.equals(targetUserId)) {
+            return PublicFollowState.FOLLOWING;
+        }
+
+        // viewer → target 방향 Follow 조회
+        Optional<Follow> follow = followRepository
+                .findByFollowerIdAndFollowingId(viewerId, targetUserId);
+
+        FollowStatus status = follow.map(Follow::getStatus).orElse(null);
+        return PublicFollowState.from(status);
+    }
+
     /* ================= 검증 / 헬퍼 ================= */
 
     private void validateRequest(Long followerId, Long followingId) {

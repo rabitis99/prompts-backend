@@ -19,6 +19,7 @@ public class NotificationMetrics {
     private static final String NOTIFICATION_PUBLISHED = "notification.published";
     private static final String NOTIFICATION_SSE_SENT = "notification.sse.sent";
     private static final String NOTIFICATION_SSE_FAILED = "notification.sse.failed";
+    private static final String NOTIFICATION_DLQ = "notification.dlq";
 
     private final MeterRegistry meterRegistry;
 
@@ -86,6 +87,16 @@ public class NotificationMetrics {
      */
     public void recordSseFailed(String type) {
         Counter.builder(NOTIFICATION_SSE_FAILED)
+                .tag("type", type)
+                .register(meterRegistry)
+                .increment();
+    }
+
+    /**
+     * DLQ 메시지 메트릭 기록
+     */
+    public void recordDlqMessage(String type) {
+        Counter.builder(NOTIFICATION_DLQ)
                 .tag("type", type)
                 .register(meterRegistry)
                 .increment();

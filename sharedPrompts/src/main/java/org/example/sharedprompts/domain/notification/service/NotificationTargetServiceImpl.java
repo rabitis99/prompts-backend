@@ -8,12 +8,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 알림 대상 결정 기본 구현체.
  *
  * - Repository: FOLLOWING 관계만 조회
  * - Service   : BLOCKED 정책 등을 포함한 비즈니스 규칙을 조합
+ * - 배치 조회를 통한 N+1 쿼리 문제 해결
  */
 @Service
 @RequiredArgsConstructor
@@ -29,11 +32,27 @@ public class NotificationTargetServiceImpl implements NotificationTargetService 
         List<Long> followerIds = followRepository
                 .findFollowerIdsByFollowingIdAndStatus(authorId, FollowStatus.FOLLOWING);
 
-        // BLOCKED 관계가 아닌 사용자만 필터링
-        return followerIds.stream()
-                // 자기 자신에게는 알림 전송하지 않음 (방어적 체크)
+        if (followerIds.isEmpty()) {
+            return List.of();
+        }
+
+        // 자기 자신 제외
+        List<Long> filteredFollowerIds = followerIds.stream()
                 .filter(followerId -> !authorId.equals(followerId))
-                .filter(followerId -> !followBlockPolicy.isBlocked(followerId, authorId))
+                .toList();
+
+        if (filteredFollowerIds.isEmpty()) {
+            return List.of();
+        }
+
+        // 배치 조회로 BLOCKED 관계가 있는 사용자 ID 목록 조회 (N+1 쿼리 방지)
+        Set<Long> blockedUserIds = followBlockPolicy.findBlockedUserIds(filteredFollowerIds, authorId)
+                .stream()
+                .collect(Collectors.toSet());
+
+        // BLOCKED 관계가 아닌 사용자만 필터링
+        return filteredFollowerIds.stream()
+                .filter(followerId -> !blockedUserIds.contains(followerId))
                 .toList();
     }
 }
