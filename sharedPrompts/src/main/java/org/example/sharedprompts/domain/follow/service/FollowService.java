@@ -17,11 +17,6 @@ public interface FollowService {
     void unfollow(Long followerId, Long followingId);
     void removeFollower(Long meId, Long followerId);
     FollowResponseDto getFollowStatus(Long followerId, Long followingId);
-    PublicFollowState getPublicFollowState(Long viewerId, Long targetUserId);
-    PageResponse<FollowUserResponseDto> getFollowers(Long userId, Long viewerId, FollowStatus status, Pageable pageable);
-    PageResponse<FollowUserResponseDto> getFollowing(Long userId, Long viewerId, FollowStatus status, Pageable pageable);
-    FollowCountResponseDto getFollowCount(Long userId, FollowStatus status);
-    
     /**
      * viewer → target 방향의 PublicFollowState를 반환합니다.
      * 공개 프로필 조회 시 사용됩니다.
@@ -31,5 +26,8 @@ public interface FollowService {
      * @return PublicFollowState
      */
     PublicFollowState getPublicFollowState(Long viewerId, Long targetUserId);
+    PageResponse<FollowUserResponseDto> getFollowers(Long userId, Long viewerId, FollowStatus status, Pageable pageable);
+    PageResponse<FollowUserResponseDto> getFollowing(Long userId, Long viewerId, FollowStatus status, Pageable pageable);
+    FollowCountResponseDto getFollowCount(Long userId, FollowStatus status);
 }
 
