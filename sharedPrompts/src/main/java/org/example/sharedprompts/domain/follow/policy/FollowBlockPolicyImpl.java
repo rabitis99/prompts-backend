@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.follow.repository.FollowRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 /**
  * FollowBlockPolicy 기본 구현체.
  *
@@ -22,6 +24,14 @@ public class FollowBlockPolicyImpl implements FollowBlockPolicy {
             return false;
         }
         return followRepository.existsBlockedBetween(userA, userB);
+    }
+
+    @Override
+    public List<Long> findBlockedUserIds(List<Long> userIds, Long blockedById) {
+        if (userIds == null || userIds.isEmpty() || blockedById == null) {
+            return List.of();
+        }
+        return followRepository.findBlockedUserIds(userIds, blockedById);
     }
 }
 

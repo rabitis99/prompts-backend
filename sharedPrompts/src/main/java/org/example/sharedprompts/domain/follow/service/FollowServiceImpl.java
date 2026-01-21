@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.follow.service;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.follow.Follow;
 import org.example.sharedprompts.domain.follow.FollowStatus;
+import org.example.sharedprompts.domain.follow.PublicFollowState;
 import org.example.sharedprompts.domain.follow.event.FollowEvent;
 import org.example.sharedprompts.domain.follow.repository.FollowRepository;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
@@ -262,6 +263,26 @@ public class FollowServiceImpl implements FollowService {
                 .followingCount(
                         followRepository.countFollowingByUserIdAndStatus(userId, status))
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PublicFollowState getPublicFollowState(Long viewerId, Long targetUserId) {
+        // 비로그인 사용자 또는 본인 프로필 조회 시
+        if (viewerId == null) {
+            return PublicFollowState.NONE;
+        }
+        
+        if (viewerId.equals(targetUserId)) {
+            return PublicFollowState.FOLLOWING;
+        }
+
+        // viewer → target 방향 Follow 조회
+        Optional<Follow> follow = followRepository
+                .findByFollowerIdAndFollowingId(viewerId, targetUserId);
+
+        FollowStatus status = follow.map(Follow::getStatus).orElse(null);
+        return PublicFollowState.from(status);
     }
 
     /* ================= 검증 / 헬퍼 ================= */
