@@ -1,6 +1,7 @@
 package org.example.sharedprompts.domain.follow.service;
 
 import org.example.sharedprompts.domain.follow.FollowStatus;
+import org.example.sharedprompts.domain.follow.PublicFollowState;
 import org.example.sharedprompts.dto.follow.response.FollowCountResponseDto;
 import org.example.sharedprompts.dto.follow.response.FollowResponseDto;
 import org.example.sharedprompts.dto.follow.response.FollowUserResponseDto;
@@ -16,6 +17,7 @@ public interface FollowService {
     void unfollow(Long followerId, Long followingId);
     void removeFollower(Long meId, Long followerId);
     FollowResponseDto getFollowStatus(Long followerId, Long followingId);
+    PublicFollowState getPublicFollowState(Long viewerId, Long targetUserId);
     PageResponse<FollowUserResponseDto> getFollowers(Long userId, Long viewerId, FollowStatus status, Pageable pageable);
     PageResponse<FollowUserResponseDto> getFollowing(Long userId, Long viewerId, FollowStatus status, Pageable pageable);
     FollowCountResponseDto getFollowCount(Long userId, FollowStatus status);
