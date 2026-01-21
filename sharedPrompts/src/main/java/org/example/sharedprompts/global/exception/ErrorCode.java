@@ -30,6 +30,8 @@ public enum ErrorCode {
     // 🔹 USER
     // ==========================
     USER_NOT_FOUND("US00701", HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
+    USER_PROFILE_NOT_FOUND("US00702", HttpStatus.NOT_FOUND, "사용자 프로필을 찾을 수 없습니다."),
+    USER_PROFILE_NOT_ACCESSIBLE("US00602", HttpStatus.FORBIDDEN, "접근할 수 없는 사용자 프로필입니다."),
     INVALID_PASSWORD("US00401", HttpStatus.BAD_REQUEST, "비밀번호가 일치하지 않습니다."),
     NOT_LOCAL_USER("US00601", HttpStatus.FORBIDDEN, "자체 회원가입만 가능한 서비스입니다."),
     SAME_AS_CURRENT_PASSWORD("US00402", HttpStatus.BAD_REQUEST, "현재 비밀번호와 동일합니다."),
@@ -56,6 +58,7 @@ public enum ErrorCode {
     // ==========================
     PROMPT_NOT_FOUND("PR00701", HttpStatus.NOT_FOUND, "프롬프트를 찾을 수 없습니다."),
     PROMPT_FORBIDDEN("PR00601", HttpStatus.FORBIDDEN, "해당 프롬프트에 대한 접근 권한이 없습니다."),
+    PROMPT_SEARCH_CONDITION_REQUIRED("PR00402", HttpStatus.BAD_REQUEST, "프롬프트 검색 조건은 필수입니다."),
     AI_GENERATION_FAILED("PR00401", HttpStatus.BAD_REQUEST, "프롬프트 생성에 실패하였습니다."),
     AI_RESPONSE_NO_CANDIDATES("PR01001", HttpStatus.INTERNAL_SERVER_ERROR, "AI 응답에 후보가 없습니다."),
     AI_RESPONSE_CANDIDATE_NULL("PR01002", HttpStatus.INTERNAL_SERVER_ERROR, "AI 응답의 후보가 null입니다."),

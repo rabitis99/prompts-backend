@@ -79,4 +79,18 @@ public class PromptController {
         PageResponse<PromptResponseDto> response = promptService.getMyPrompts(authUser.getId(), condition);
         return CustomResponseHelper.ok(response);
     }
+
+    /**
+     * 다른 사용자의 프롬프트 목록 조회
+     */
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<CustomResponse<PageResponse<PromptResponseDto>>> getUserPrompts(
+            @PathVariable Long userId,
+            @ModelAttribute("condition") PromptSearchCondition condition,
+            @CurrentUser AuthUser authUser
+    ) {
+        Long viewerId = authUser != null ? authUser.getId() : null;
+        PageResponse<PromptResponseDto> response = promptService.getUserPrompts(userId, condition, viewerId);
+        return CustomResponseHelper.ok(response);
+    }
 }
