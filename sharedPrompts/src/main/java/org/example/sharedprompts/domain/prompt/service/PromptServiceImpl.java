@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.follow.policy.FollowBlockPolicy;
 import org.example.sharedprompts.domain.prompt.Prompt;
+import org.example.sharedprompts.domain.like.service.LikeCountService;
 import org.example.sharedprompts.domain.notification.service.PromptCreatedEventPublisher;
 import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
 import org.example.sharedprompts.domain.prompt.service.guideline.GuidelineBuilderFactory;
@@ -46,6 +47,7 @@ public class PromptServiceImpl implements PromptService {
     private final GuidelineBuilderFactory guidelineBuilderFactory;
     private final TransactionTemplate transactionTemplate;
     private final PromptCreatedEventPublisher promptCreatedEventPublisher;
+    private final LikeCountService likeCountService;
 
     @Override
     public Mono<PromptResponseDto> createPrompt(PromptRequestDto request, Long userId) {
@@ -112,7 +114,10 @@ public class PromptServiceImpl implements PromptService {
         promptRepository.incrementUsageCount(promptId);
 
         List<Tag> tags = promptTagService.getTags(prompt);
-        return PromptResponseDto.from(prompt, tags);
+        Long likeCount = likeCountService
+                .getPromptLikeCounts(List.of(promptId))
+                .getOrDefault(promptId, prompt.getLikeCount());
+        return PromptResponseDto.from(prompt, tags, likeCount);
     }
 
     // ============ 수정 ===============

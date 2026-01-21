@@ -40,6 +40,10 @@ public class PromptResponseDto {
 
 
     public static PromptResponseDto from(Prompt prompt, List<Tag> tags) {
+        return from(prompt, tags, prompt.getLikeCount());
+    }
+
+    public static PromptResponseDto from(Prompt prompt, List<Tag> tags, Long likeCount) {
 
         List<String> tagNames = tags == null
                 ? List.of()
@@ -56,7 +60,7 @@ public class PromptResponseDto {
                 .userResponseDto(prompt.getAuthor() != null ? UserResponseDto.from(prompt.getAuthor()) : null)
                 .viewCount(prompt.getViewCount())
                 .commentCount(prompt.getCommentCount())
-                .likeCount(prompt.getLikeCount())
+                .likeCount(likeCount)
                 .favoriteCount(prompt.getFavoriteCount())
                 .build();
     }
