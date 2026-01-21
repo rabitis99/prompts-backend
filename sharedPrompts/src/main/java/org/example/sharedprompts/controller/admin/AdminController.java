@@ -3,7 +3,6 @@ package org.example.sharedprompts.controller.admin;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.admin.service.AdminService;
-import org.example.sharedprompts.domain.admin.service.AdminMaintenanceService;
 import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.follow.FollowStatus;
@@ -16,7 +15,6 @@ import org.example.sharedprompts.domain.audit.enums.AuditEntityType;
 import org.example.sharedprompts.dto.admin.response.AdminPromptResponseDto;
 import org.example.sharedprompts.dto.admin.response.AdminUserResponseDto;
 import org.example.sharedprompts.dto.audit.response.AuditLogResponseDto;
-import org.example.sharedprompts.dto.admin.response.RebuildLikeCountsStatusResponseDto;
 import org.example.sharedprompts.dto.report.request.ReportProcessRequestDto;
 import org.example.sharedprompts.dto.report.response.ReportDetailResponseDto;
 import org.example.sharedprompts.dto.report.response.ReportResponseDto;
@@ -41,7 +39,6 @@ import java.time.LocalDateTime;
 public class AdminController {
 
     private final AdminService adminService;
-    private final AdminMaintenanceService adminMaintenanceService;
 
     // ======================
     //      사용자 관리
@@ -231,31 +228,4 @@ public class AdminController {
         return CustomResponseHelper.ok(PageResponse.of(page));
     }
 
-    // ======================
-    //      운영/복구 기능
-    // ======================
-
-    /**
-     * DB에 저장된 like_count(프롬프트/댓글)를 기준으로
-     * Redis의 좋아요 카운트를 재설정한다.
-     *
-     * - Redis 장애/초기화 이후, 관리자가 수동으로 호출하는 용도
-     * - 대량 데이터를 스캔하므로 빈번하게 호출하지 않도록 주의
-     */
-    @PostMapping("/maintenance/likes/rebuild")
-    public ResponseEntity<CustomResponse<Void>> rebuildLikeCountsFromDb() {
-        adminMaintenanceService.rebuildLikeCountsFromDbAsync();
-        // 즉시 응답을 반환하여 HTTP 타임아웃을 방지한다.
-        return CustomResponseHelper.ok(null);
-    }
-
-    /**
-     * 좋아요 카운트 재빌드 작업 상태 조회
-     */
-    @GetMapping("/maintenance/likes/rebuild/status")
-    public ResponseEntity<CustomResponse<RebuildLikeCountsStatusResponseDto>> getRebuildLikeCountsStatus() {
-        RebuildLikeCountsStatusResponseDto status = adminMaintenanceService.getRebuildLikeCountsStatus();
-        return CustomResponseHelper.ok(status);
-    }
 }
-

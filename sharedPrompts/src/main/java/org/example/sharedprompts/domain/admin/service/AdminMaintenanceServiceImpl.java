@@ -8,6 +8,7 @@ import org.example.sharedprompts.domain.admin.enums.MaintenanceJobStatus;
 import org.example.sharedprompts.domain.comment.Comment;
 import org.example.sharedprompts.domain.comment.repository.CommentRepository;
 import org.example.sharedprompts.domain.like.service.LikeCountService;
+import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
 import org.example.sharedprompts.dto.admin.response.RebuildLikeCountsStatusResponseDto;
 import org.springframework.data.domain.Page;
@@ -37,13 +38,13 @@ public class AdminMaintenanceServiceImpl implements AdminMaintenanceService {
         // 프롬프트 like_count 기준으로 Redis 재설정 (페이징 처리로 메모리 사용량 제한)
         int page = 0;
         int size = 1_000;
-        Page<?> promptPage;
+        Page<Prompt> promptPage;
         do {
             promptPage = promptRepository.findAll(PageRequest.of(page, size));
             promptPage.forEach(prompt -> {
-                long likeCount = ((org.example.sharedprompts.domain.prompt.Prompt) prompt).getLikeCount();
+                long likeCount = prompt.getLikeCount();
                 if (likeCount > 0) {
-                    likeCountService.setPromptLikeCount(((org.example.sharedprompts.domain.prompt.Prompt) prompt).getId(), likeCount);
+                    likeCountService.setPromptLikeCount(prompt.getId(), likeCount);
                 }
             });
             page++;
@@ -51,14 +52,13 @@ public class AdminMaintenanceServiceImpl implements AdminMaintenanceService {
 
         // 댓글 like_count 기준으로 Redis 재설정 (페이징 처리로 메모리 사용량 제한)
         page = 0;
-        Page<?> commentPage;
+        Page<Comment> commentPage;
         do {
             commentPage = commentRepository.findAll(PageRequest.of(page, size));
             commentPage.forEach(comment -> {
-                Comment c = (Comment) comment;
-                long likeCount = c.getLikeCount();
+                long likeCount = comment.getLikeCount();
                 if (likeCount > 0) {
-                    likeCountService.setCommentLikeCount(c.getId(), likeCount);
+                    likeCountService.setCommentLikeCount(comment.getId(), likeCount);
                 }
             });
             page++;
@@ -68,16 +68,18 @@ public class AdminMaintenanceServiceImpl implements AdminMaintenanceService {
     @Override
     @Async
     public void rebuildLikeCountsFromDbAsync() {
-        // 이미 실행 중이면 중복 실행 방지
-        if (rebuildStatus == MaintenanceJobStatus.RUNNING) {
-            log.warn("좋아요 카운트 재빌드 작업이 이미 실행 중입니다.");
-            return;
-        }
+        // 이미 실행 중이면 중복 실행 방지 (스레드 안전하게 check-then-act 보장)
+        synchronized (this) {
+            if (rebuildStatus == MaintenanceJobStatus.RUNNING) {
+                log.warn("좋아요 카운트 재빌드 작업이 이미 실행 중입니다.");
+                return;
+            }
 
-        rebuildStatus = MaintenanceJobStatus.RUNNING;
-        rebuildStartedAt = LocalDateTime.now();
-        rebuildFinishedAt = null;
-        rebuildErrorMessage = null;
+            rebuildStatus = MaintenanceJobStatus.RUNNING;
+            rebuildStartedAt = LocalDateTime.now();
+            rebuildFinishedAt = null;
+            rebuildErrorMessage = null;
+        }
 
         try {
             rebuildLikeCountsFromDb();
