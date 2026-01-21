@@ -51,6 +51,28 @@ public class BaseCountServiceImpl implements BaseCountService {
     }
 
     @Override
+    public long incrementAndGet(String key) {
+        try {
+            Long val = redisTemplate.opsForValue().increment(key);
+            return val != null ? val : 0L;
+        } catch (Exception e) {
+            log.error("Redis incrementAndGet operation failed for key: {}", key, e);
+            throw e;
+        }
+    }
+
+    @Override
+    public long decrementAndGet(String key) {
+        try {
+            Long val = redisTemplate.execute(safeDecrScript, List.of(key));
+            return val != null ? val : 0L;
+        } catch (Exception e) {
+            log.error("Redis decrementAndGet operation failed for key: {}", key, e);
+            throw e;
+        }
+    }
+
+    @Override
     public Map<Long, Long> getCounts(List<Long> ids, Function<Long, String> keyMapper) {
         if (ids == null || ids.isEmpty()) {
             return Map.of();

@@ -11,7 +11,15 @@ import org.example.sharedprompts.global.entity.BaseEntity;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "prompt_likes")
+@Table(
+        name = "prompt_likes",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_prompt_like_prompt_user",
+                        columnNames = {"prompt_id", "user_id"}
+                )
+        }
+)
 public class PromptLike extends BaseEntity {
 
     @EmbeddedId

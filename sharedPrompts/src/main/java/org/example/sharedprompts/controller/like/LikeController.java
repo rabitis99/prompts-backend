@@ -18,12 +18,12 @@ public class LikeController {
     private final LikeService likeService;
 
     @PostMapping("/prompts/{promptId}/likes")
-    public ResponseEntity<CustomResponse<Void>> likePrompt(
+    public ResponseEntity<CustomResponse<PromptLikeResponseDto>> likePrompt(
             @PathVariable Long promptId,
             @CurrentUser AuthUser authUser
     ) {
-        likeService.likePrompt(authUser.getId(), promptId);
-        return CustomResponseHelper.created(null);
+        PromptLikeResponseDto response = likeService.likePrompt(authUser.getId(), promptId);
+        return CustomResponseHelper.created(response);
     }
 
     @GetMapping("/prompts/{promptId}/likes")
@@ -36,22 +36,22 @@ public class LikeController {
     }
 
     @DeleteMapping("/prompts/{promptId}/likes")
-    public ResponseEntity<Void> unlikePrompt(
+    public ResponseEntity<CustomResponse<PromptLikeResponseDto>> unlikePrompt(
             @PathVariable Long promptId,
             @CurrentUser AuthUser authUser
     ) {
-        likeService.unlikePrompt(authUser.getId(), promptId);
-        return CustomResponseHelper.noContent();
+        PromptLikeResponseDto response = likeService.unlikePrompt(authUser.getId(), promptId);
+        return CustomResponseHelper.ok(response);
     }
 
     // Comment Like
     @PostMapping("/comments/{commentId}/likes")
-    public ResponseEntity<CustomResponse<Void>> likeComment(
+    public ResponseEntity<CustomResponse<CommentLikeResponseDto>> likeComment(
             @PathVariable Long commentId,
             @CurrentUser AuthUser authUser
     ) {
-        likeService.likeComment(authUser.getId(), commentId);
-        return CustomResponseHelper.created(null);
+        CommentLikeResponseDto response = likeService.likeComment(authUser.getId(), commentId);
+        return CustomResponseHelper.created(response);
     }
 
     @GetMapping("/comments/{commentId}/likes")
@@ -64,11 +64,11 @@ public class LikeController {
     }
 
     @DeleteMapping("/comments/{commentId}/likes")
-    public ResponseEntity<Void> unlikeComment(
+    public ResponseEntity<CustomResponse<CommentLikeResponseDto>> unlikeComment(
             @PathVariable Long commentId,
             @CurrentUser AuthUser authUser
     ) {
-        likeService.unlikeComment(authUser.getId(), commentId);
-        return CustomResponseHelper.noContent();
+        CommentLikeResponseDto response = likeService.unlikeComment(authUser.getId(), commentId);
+        return CustomResponseHelper.ok(response);
     }
 }

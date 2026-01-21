@@ -11,7 +11,15 @@ import org.example.sharedprompts.global.entity.BaseEntity;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "comment_likes")
+@Table(
+        name = "comment_likes",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_comment_like_comment_user",
+                        columnNames = {"comment_id", "user_id"}
+                )
+        }
+)
 public class CommentLike extends BaseEntity {
 
     @EmbeddedId

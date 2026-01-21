@@ -11,6 +11,12 @@ public interface LikeCountService {
     void decrementCommentLikeCount(Long commentId);
     void decrementPromptLikeCount(Long promptId);
 
+    long incrementAndGetCommentLikeCount(Long commentId);
+    long incrementAndGetPromptLikeCount(Long promptId);
+
+    long decrementAndGetCommentLikeCount(Long commentId);
+    long decrementAndGetPromptLikeCount(Long promptId);
+
     Map<Long, Long> getCommentLikeCounts(List<Long> commentIds);
     Map<Long, Long> getPromptLikeCounts(List<Long> promptIds);
 
