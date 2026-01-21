@@ -92,6 +92,16 @@ public class GlobalExceptionHandler {
      * 제약 조건 이름을 기준으로 도메인별 ErrorCode로 매핑 (권장 방식)
      */
     private ErrorCode mapToDomainErrorCodeByConstraint(String constraintName) {
+        // 좋아요 중복 제약 조건 위반 (프롬프트)
+        if ("uk_prompt_like_prompt_user".equalsIgnoreCase(constraintName)) {
+            return ErrorCode.PROMPT_ALREADY_LIKED;
+        }
+
+        // 좋아요 중복 제약 조건 위반 (댓글)
+        if ("uk_comment_like_comment_user".equalsIgnoreCase(constraintName)) {
+            return ErrorCode.COMMENT_ALREADY_LIKED;
+        }
+
         // 신고 중복 제약 조건 위반
         if ("uk_report_prompt_reporter".equalsIgnoreCase(constraintName) || 
             "uk_report_comment_reporter".equalsIgnoreCase(constraintName)) {

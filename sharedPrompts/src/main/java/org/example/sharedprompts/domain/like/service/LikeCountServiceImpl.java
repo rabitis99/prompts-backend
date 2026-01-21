@@ -70,6 +70,16 @@ public class LikeCountServiceImpl implements LikeCountService {
     }
 
     @Override
+    public void setCommentLikeCount(Long commentId, long count) {
+        baseCountService.set(commentLikeKey(commentId), count);
+    }
+
+    @Override
+    public void setPromptLikeCount(Long promptId, long count) {
+        baseCountService.set(promptLikeKey(promptId), count);
+    }
+
+    @Override
     public Map<Long, Long> getCommentLikeCounts(List<Long> commentIds) {
         return baseCountService.getCounts(commentIds, this::commentLikeKey);
     }

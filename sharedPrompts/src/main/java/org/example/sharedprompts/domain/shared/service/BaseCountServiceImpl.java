@@ -19,6 +19,8 @@ import java.util.function.Function;
 public class BaseCountServiceImpl implements BaseCountService {
 
     private static final Logger log = LoggerFactory.getLogger(BaseCountServiceImpl.class);
+    // Hot data TTL (e.g. 1 day) - 활성 데이터만 Redis에 유지하기 위한 만료 시간
+    private static final long HOT_TTL_SECONDS = 24 * 60 * 60L;
 
     private final StringRedisTemplate redisTemplate;
     private DefaultRedisScript<Long> safeDecrScript;
@@ -34,6 +36,7 @@ public class BaseCountServiceImpl implements BaseCountService {
     public void increment(String key) {
         try {
             redisTemplate.opsForValue().increment(key);
+            redisTemplate.expire(key, java.time.Duration.ofSeconds(HOT_TTL_SECONDS));
         } catch (Exception e) {
             log.error("Redis increment operation failed for key: {}", key, e);
             throw e;
@@ -44,6 +47,7 @@ public class BaseCountServiceImpl implements BaseCountService {
     public void decrement(String key) {
         try {
             redisTemplate.execute(safeDecrScript, List.of(key));
+            redisTemplate.expire(key, java.time.Duration.ofSeconds(HOT_TTL_SECONDS));
         } catch (Exception e) {
             log.error("Redis decrement operation failed for key: {}", key, e);
             throw e;
@@ -54,6 +58,7 @@ public class BaseCountServiceImpl implements BaseCountService {
     public long incrementAndGet(String key) {
         try {
             Long val = redisTemplate.opsForValue().increment(key);
+            redisTemplate.expire(key, java.time.Duration.ofSeconds(HOT_TTL_SECONDS));
             return val != null ? val : 0L;
         } catch (Exception e) {
             log.error("Redis incrementAndGet operation failed for key: {}", key, e);
@@ -65,9 +70,21 @@ public class BaseCountServiceImpl implements BaseCountService {
     public long decrementAndGet(String key) {
         try {
             Long val = redisTemplate.execute(safeDecrScript, List.of(key));
+            redisTemplate.expire(key, java.time.Duration.ofSeconds(HOT_TTL_SECONDS));
             return val != null ? val : 0L;
         } catch (Exception e) {
             log.error("Redis decrementAndGet operation failed for key: {}", key, e);
+            throw e;
+        }
+    }
+
+    @Override
+    public void set(String key, long value) {
+        try {
+            redisTemplate.opsForValue().set(key, Long.toString(value));
+            redisTemplate.expire(key, java.time.Duration.ofSeconds(HOT_TTL_SECONDS));
+        } catch (Exception e) {
+            log.error("Redis set operation failed for key: {}", key, e);
             throw e;
         }
     }

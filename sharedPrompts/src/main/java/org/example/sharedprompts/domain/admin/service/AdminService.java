@@ -130,5 +130,16 @@ public interface AdminService {
             FollowStatus status,
             Pageable pageable
     );
+
+    // ======================
+    //      운영/복구 기능
+    // ======================
+
+    /**
+     * DB에 저장된 like_count(프롬프트/댓글)를 기준으로
+     * Redis의 좋아요 카운트를 재설정한다.
+     * - Redis 초기화 이후 관리자에 의해 수동으로 호출되는 것을 전제로 한다.
+     */
+    void rebuildLikeCountsFromDb();
 }
 

@@ -227,5 +227,22 @@ public class AdminController {
         Page<AuditLogResponseDto> page = adminService.getAuditLogs(actorId, entityType, action, startDate, endDate, pageable);
         return CustomResponseHelper.ok(PageResponse.of(page));
     }
+
+    // ======================
+    //      운영/복구 기능
+    // ======================
+
+    /**
+     * DB에 저장된 like_count(프롬프트/댓글)를 기준으로
+     * Redis의 좋아요 카운트를 재설정한다.
+     *
+     * - Redis 장애/초기화 이후, 관리자가 수동으로 호출하는 용도
+     * - 대량 데이터를 스캔하므로 빈번하게 호출하지 않도록 주의
+     */
+    @PostMapping("/maintenance/likes/rebuild")
+    public ResponseEntity<CustomResponse<Void>> rebuildLikeCountsFromDb() {
+        adminService.rebuildLikeCountsFromDb();
+        return CustomResponseHelper.ok(null);
+    }
 }
 

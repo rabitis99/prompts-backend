@@ -10,7 +10,6 @@ import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,11 +64,9 @@ public class PromptLikeDomainService {
     }
 
     private PromptLike savePromptLikeOrThrow(PromptLike promptLike) {
-        try {
-            return promptLikeRepository.save(promptLike);
-        } catch (DataIntegrityViolationException e) {
-            throw new ApiException(ErrorCode.PROMPT_ALREADY_LIKED);
-        }
+        // 중복 좋아요 등 DB 제약 조건 위반은 GlobalExceptionHandler에서
+        // DataIntegrityViolationException과 제약 조건 이름을 기준으로 매핑한다.
+        return promptLikeRepository.save(promptLike);
     }
 }
 

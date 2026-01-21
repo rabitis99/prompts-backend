@@ -12,6 +12,8 @@ import org.example.sharedprompts.domain.audit.service.AuditLogService;
 import org.example.sharedprompts.domain.follow.FollowStatus;
 import org.example.sharedprompts.domain.follow.repository.admin.AdminFollowRepository;
 import org.example.sharedprompts.domain.prompt.Prompt;
+import org.example.sharedprompts.domain.comment.repository.CommentRepository;
+import org.example.sharedprompts.domain.like.service.LikeCountService;
 import org.example.sharedprompts.dto.audit.response.AuditLogResponseDto;
 import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
 import org.example.sharedprompts.domain.report.enums.ReportStatus;
@@ -52,6 +54,8 @@ public class AdminServiceImpl implements AdminService {
     private final AuditLogService auditLogService;
     private final UserTokenInvalidationService tokenInvalidationService;
     private final AdminFollowRepository adminFollowRepository;
+    private final CommentRepository commentRepository;
+    private final LikeCountService likeCountService;
 
     // ======================
     //      사용자 관리
@@ -293,6 +297,30 @@ public class AdminServiceImpl implements AdminService {
         );
 
         return page.map(UserResponseDto::from);
+    }
+
+    // ======================
+    //      운영/복구 기능
+    // ======================
+
+    @Override
+    @Transactional(readOnly = true)
+    public void rebuildLikeCountsFromDb() {
+        // 프롬프트 like_count 기준으로 Redis 재설정
+        promptRepository.findAll().forEach(prompt -> {
+            long likeCount = prompt.getLikeCount();
+            if (likeCount > 0) {
+                likeCountService.setPromptLikeCount(prompt.getId(), likeCount);
+            }
+        });
+
+        // 댓글 like_count 기준으로 Redis 재설정
+        commentRepository.findAll().forEach(comment -> {
+            long likeCount = comment.getLikeCount();
+            if (likeCount > 0) {
+                likeCountService.setCommentLikeCount(comment.getId(), likeCount);
+            }
+        });
     }
 
     /**
