@@ -40,16 +40,17 @@ public class PromptCreatedSseConsumer {
      */
     @RabbitListener(queues = RabbitMQConfig.SSE_PROMPT_CREATED_QUEUE)
     public void handlePromptCreated(@Valid PromptCreatedMessage message) {
-        log.debug("Received prompt created SSE message from RabbitMQ: promptId={}, authorId={}, followerCount={}", 
-                message.getPromptId(), message.getAuthorId(), 
-                message.getFollowerIds() != null ? message.getFollowerIds().size() : 0);
-
-        // 메시지 검증
+        // 메시지 검증 (null 체크 포함)
         if (!messageValidator.shouldSend(message)) {
             log.debug("Message validation failed or no followers to notify: promptId={}", 
                     message != null ? message.getPromptId() : null);
             return;
         }
+
+        // 검증 통과 후 로깅 (null 안전성 보장됨)
+        log.debug("Received prompt created SSE message from RabbitMQ: promptId={}, authorId={}, followerCount={}", 
+                message.getPromptId(), message.getAuthorId(), 
+                message.getFollowerIds() != null ? message.getFollowerIds().size() : 0);
 
         // SSE 페이로드 생성
         var payload = payloadFactory.createPayload(message);

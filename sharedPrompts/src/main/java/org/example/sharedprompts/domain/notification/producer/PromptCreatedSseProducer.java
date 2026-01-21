@@ -12,7 +12,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * 프롬프트 생성 SSE 알림 메시지를 RabbitMQ로 발행하는 Producer
  * - 재시도 로직 포함
- * - 실패 시 예외를 던져서 Dead Letter Queue로 전달되도록 함
+ * - 모든 재시도 실패 시 failure queue로 메시지 전송 (예외를 던지지 않음)
+ * - 프롬프트 생성 트랜잭션에 영향을 주지 않도록 설계됨
  */
 @Slf4j
 @Component
@@ -27,10 +28,10 @@ public class PromptCreatedSseProducer {
     /**
      * 프롬프트 생성 SSE 알림 메시지를 RabbitMQ로 발행
      * - 재시도 로직 포함 (최대 3회)
-     * - 모든 재시도 실패 시 예외를 던져서 Dead Letter Queue로 전달
+     * - 모든 재시도 실패 시 예외를 던지지 않고 failure queue로 메시지 전송
+     * - 프롬프트 생성 트랜잭션에 영향을 주지 않도록 설계됨
      *
      * @param message 프롬프트 생성 SSE 알림 메시지
-     * @throws ApiException 모든 재시도 실패 시
      */
     public void publishPromptCreated(PromptCreatedMessage message) {
         int attempt = 0;

@@ -30,12 +30,8 @@ public class PromptCreatedMessageFactory {
      * @return 프롬프트 생성 SSE 알림 메시지 (팔로워가 없으면 null)
      */
     public PromptCreatedMessage createMessage(Prompt prompt, User author) {
-        // 알림 대상 조회
-        List<Long> followerIds = notificationTargetService.getPromptCreatedTargets(author.getId());
-
-        if (followerIds.isEmpty()) {
-            log.debug("No followers to notify for prompt: promptId={}, authorId={}", 
-                    prompt.getId(), author.getId());
+        List<Long> followerIds = getFollowerIdsIfNotEmpty(author.getId(), prompt.getId());
+        if (followerIds == null) {
             return null;
         }
 
@@ -59,12 +55,8 @@ public class PromptCreatedMessageFactory {
      */
     public PromptCreatedMessage createMessage(Long promptId, Long authorId, 
                                                String authorNickname, String promptSummary) {
-        // 알림 대상 조회
-        List<Long> followerIds = notificationTargetService.getPromptCreatedTargets(authorId);
-
-        if (followerIds.isEmpty()) {
-            log.debug("No followers to notify for prompt: promptId={}, authorId={}", 
-                    promptId, authorId);
+        List<Long> followerIds = getFollowerIdsIfNotEmpty(authorId, promptId);
+        if (followerIds == null) {
             return null;
         }
 
@@ -75,6 +67,25 @@ public class PromptCreatedMessageFactory {
                 .promptSummary(promptSummary)
                 .followerIds(followerIds)
                 .build();
+    }
+
+    /**
+     * 팔로워 ID 목록 조회 및 빈 목록 체크
+     * 
+     * @param authorId 작성자 ID
+     * @param promptId 프롬프트 ID (로깅용)
+     * @return 팔로워 ID 목록 (비어있으면 null)
+     */
+    private List<Long> getFollowerIdsIfNotEmpty(Long authorId, Long promptId) {
+        List<Long> followerIds = notificationTargetService.getPromptCreatedTargets(authorId);
+        
+        if (followerIds.isEmpty()) {
+            log.debug("No followers to notify for prompt: promptId={}, authorId={}", 
+                    promptId, authorId);
+            return null;
+        }
+        
+        return followerIds;
     }
 }
 

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
@@ -46,7 +47,7 @@ public class SseBatchSender {
 
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger failureCount = new AtomicInteger(0);
-        Exception[] lastException = new Exception[1];
+        AtomicReference<Exception> lastException = new AtomicReference<>();
 
         // 각 SSE 전송을 비동기로 실행
         List<CompletableFuture<Void>> futures = userIds.stream()
@@ -56,7 +57,7 @@ public class SseBatchSender {
                         successCount.incrementAndGet();
                     } catch (Exception e) {
                         failureCount.incrementAndGet();
-                        lastException[0] = e;
+                        lastException.set(e);
                         log.warn("Failed to send SSE to user {}: {}", userId, e.getMessage());
                     }
                 }, sseTaskExecutor))
@@ -65,7 +66,7 @@ public class SseBatchSender {
         // 모든 전송 완료 대기
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
-        return new SseSendResult(successCount.get(), failureCount.get(), lastException[0]);
+        return new SseSendResult(successCount.get(), failureCount.get(), lastException.get());
     }
 
     /**

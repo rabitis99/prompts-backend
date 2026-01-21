@@ -18,13 +18,14 @@ public final class TransactionUtils {
 
     /**
      * 트랜잭션 커밋 후 실행할 작업을 등록
-     * - 활성 트랜잭션이 있을 때만 동작
-     * - 트랜잭션이 없으면 즉시 실행
+     * - 활성 트랜잭션과 동기화가 모두 활성화되어 있을 때만 등록
+     * - 그렇지 않으면 즉시 실행
      *
      * @param runnable 트랜잭션 커밋 후 실행할 작업
      */
     public static void executeAfterCommit(Runnable runnable) {
-        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+        if (TransactionSynchronizationManager.isActualTransactionActive() 
+                && TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(
                     new TransactionSynchronization() {
                         @Override
@@ -34,7 +35,7 @@ public final class TransactionUtils {
                     }
             );
         } else {
-            // 트랜잭션이 없으면 즉시 실행
+            // 트랜잭션이 없거나 동기화가 비활성이면 즉시 실행
             executeSafely(runnable);
         }
     }

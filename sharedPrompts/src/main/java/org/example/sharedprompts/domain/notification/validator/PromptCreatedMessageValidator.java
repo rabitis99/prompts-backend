@@ -49,9 +49,7 @@ public class PromptCreatedMessageValidator {
      * @return 전송이 필요한 경우 true
      */
     public boolean shouldSend(PromptCreatedMessage message) {
-        return isValid(message) && 
-               message.getFollowerIds() != null && 
-               !message.getFollowerIds().isEmpty();
+        return isValid(message);
     }
 }
 
