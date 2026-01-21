@@ -17,6 +17,7 @@ public interface FollowService {
     void unfollow(Long followerId, Long followingId);
     void removeFollower(Long meId, Long followerId);
     FollowResponseDto getFollowStatus(Long followerId, Long followingId);
+    PublicFollowState getPublicFollowState(Long viewerId, Long targetUserId);
     PageResponse<FollowUserResponseDto> getFollowers(Long userId, Long viewerId, FollowStatus status, Pageable pageable);
     PageResponse<FollowUserResponseDto> getFollowing(Long userId, Long viewerId, FollowStatus status, Pageable pageable);
     FollowCountResponseDto getFollowCount(Long userId, FollowStatus status);

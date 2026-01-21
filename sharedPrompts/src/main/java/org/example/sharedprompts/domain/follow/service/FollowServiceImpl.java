@@ -234,6 +234,21 @@ public class FollowServiceImpl implements FollowService {
 
     @Override
     @Transactional(readOnly = true)
+    public PublicFollowState getPublicFollowState(Long viewerId, Long targetUserId) {
+        validateIds(viewerId, targetUserId);
+
+        // viewer → target 방향 Follow 조회
+        Optional<Follow> follow = followRepository
+                .findByFollowerIdAndFollowingId(viewerId, targetUserId);
+
+        // FollowStatus를 PublicFollowState로 변환
+        // null이거나 FOLLOWING/PENDING 이외의 상태는 NONE으로 반환
+        FollowStatus status = follow.map(Follow::getStatus).orElse(null);
+        return PublicFollowState.from(status);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PageResponse<FollowUserResponseDto> getFollowers(
             Long userId, Long viewerId, FollowStatus status, Pageable pageable) {
 
