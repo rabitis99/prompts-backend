@@ -20,4 +20,6 @@ public interface PromptService {
     void deletePrompt(Long promptId, Long userId);
 
     PageResponse<PromptResponseDto> getMyPrompts(Long userId, PromptSearchCondition condition);
+
+    PageResponse<PromptResponseDto> getUserPrompts(Long userId, PromptSearchCondition condition, Long viewerId);
 }

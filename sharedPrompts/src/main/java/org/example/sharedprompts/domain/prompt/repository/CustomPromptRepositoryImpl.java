@@ -32,13 +32,27 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
 
     @Override
     public Page<Prompt> searchMyPrompts(Long userId, PromptSearchCondition condition) {
+        // 내 프롬프트 조회는 viewer 컨텍스트가 필요 없으므로 기존 condition만 사용
+        // PromptSearchContext.of()에서 condition null 검증 수행
+        PromptSearchContext context = PromptSearchContext.of(condition, null);
+        
         BooleanExpression categoryExpr = applyCategory(condition.getPromptCategory());
         BooleanExpression where = (categoryExpr != null)
                 ? prompt.author.id.eq(userId).and(categoryExpr)
                 : prompt.author.id.eq(userId);
 
-        // 내 프롬프트 조회는 viewer 컨텍스트가 필요 없으므로 기존 condition만 사용
-        PromptSearchContext context = PromptSearchContext.of(condition, null);
+        return searchInternal(where, context);
+    }
+
+    @Override
+    public Page<Prompt> searchUserPrompts(Long userId, PromptSearchCondition condition, Long viewerId) {
+        BooleanExpression categoryExpr = applyCategory(condition.getPromptCategory());
+        BooleanExpression where = (categoryExpr != null)
+                ? prompt.author.id.eq(userId).and(categoryExpr)
+                : prompt.author.id.eq(userId);
+
+        // 다른 사용자의 프롬프트 조회는 viewer 컨텍스트를 고려해야 함
+        PromptSearchContext context = PromptSearchContext.of(condition, viewerId);
 
         return searchInternal(where, context);
     }

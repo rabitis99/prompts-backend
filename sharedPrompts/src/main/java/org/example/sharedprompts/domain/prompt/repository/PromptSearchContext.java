@@ -1,7 +1,6 @@
 package org.example.sharedprompts.domain.prompt.repository;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.dto.prompt.request.PromptSearchCondition;
 
 /**
@@ -9,9 +8,9 @@ import org.example.sharedprompts.dto.prompt.request.PromptSearchCondition;
  *
  * - 검색 조건(PromptSearchCondition)과 viewerId(보안/차단 컨텍스트)를 분리한다.
  * - Repository 계층에서는 이 컨텍스트만을 받아 필요한 정보를 사용한다.
+ * - 생성자는 private으로 제한하여 of() 팩토리 메서드를 통해서만 생성 가능합니다.
  */
 @Getter
-@RequiredArgsConstructor
 public class PromptSearchContext {
 
     /**
@@ -25,6 +24,28 @@ public class PromptSearchContext {
      */
     private final Long viewerId;
 
+    /**
+     * Private 생성자 - of() 팩토리 메서드를 통해서만 인스턴스 생성 가능
+     * 
+     * @param condition 검색 조건 (null이면 안 됨)
+     * @param viewerId 조회자 ID (null 가능)
+     */
+    private PromptSearchContext(PromptSearchCondition condition, Long viewerId) {
+        if (condition == null) {
+            throw new IllegalArgumentException("PromptSearchCondition cannot be null");
+        }
+        this.condition = condition;
+        this.viewerId = viewerId;
+    }
+
+    /**
+     * PromptSearchContext 팩토리 메서드
+     * 
+     * @param condition 검색 조건 (null이면 안 됨)
+     * @param viewerId 조회자 ID (null 가능)
+     * @return PromptSearchContext 인스턴스
+     * @throws IllegalArgumentException condition이 null인 경우
+     */
     public static PromptSearchContext of(PromptSearchCondition condition, Long viewerId) {
         return new PromptSearchContext(condition, viewerId);
     }
