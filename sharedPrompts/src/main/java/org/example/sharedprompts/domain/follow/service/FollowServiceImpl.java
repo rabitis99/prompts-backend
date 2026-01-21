@@ -268,6 +268,11 @@ public class FollowServiceImpl implements FollowService {
     @Override
     @Transactional(readOnly = true)
     public PublicFollowState getPublicFollowState(Long viewerId, Long targetUserId) {
+        // targetUserId가 null이면 조회 불가
+        if (targetUserId == null) {
+            return PublicFollowState.NONE;
+        }
+        
         // 비로그인 사용자 또는 본인 프로필 조회 시
         if (viewerId == null) {
             return PublicFollowState.NONE;

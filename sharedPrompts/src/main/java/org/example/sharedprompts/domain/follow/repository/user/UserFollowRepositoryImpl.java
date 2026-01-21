@@ -220,7 +220,7 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
                 .map(User::getId)
                 .toList();
         Map<Long, User> userMap = userPage.getContent().stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
+                .collect(Collectors.toMap(User::getId, u -> u, (existing, replacement) -> existing));
         
         // 양방향 Follow 정보만 조회 (User는 이미 조회했으므로 재사용)
         Map<Long, Follow> forwardMap = findForwardFollows(viewerId, targetIds);
@@ -264,7 +264,7 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
                 .fetch();
         
         return forwardFollows.stream()
-                .collect(Collectors.toMap(Follow::getFollowingId, f -> f));
+                .collect(Collectors.toMap(Follow::getFollowingId, f -> f, (existing, replacement) -> existing));
     }
 
     /**
@@ -281,7 +281,7 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
                 .fetch();
         
         return reverseFollows.stream()
-                .collect(Collectors.toMap(Follow::getFollowerId, f -> f));
+                .collect(Collectors.toMap(Follow::getFollowerId, f -> f, (existing, replacement) -> existing));
     }
 
     /**
@@ -296,9 +296,9 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
                                 .and(user.blocked.eq(false))
                 )
                 .fetch();
-        
+
         return users.stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
+                .collect(Collectors.toMap(User::getId, u -> u, (existing, replacement) -> existing));
     }
 
     /**
