@@ -23,6 +23,7 @@ public class PromptLikeDomainService {
 
     @Transactional
     public PromptLike like(Long userId, Long promptId) {
+        validateIdsNotNull(userId, promptId);
         validateUserExists(userId);
         validatePromptExists(promptId);
 
@@ -42,6 +43,7 @@ public class PromptLikeDomainService {
 
     @Transactional
     public void unlike(Long userId, Long promptId) {
+        validateIdsNotNull(userId, promptId);
         PromptLikeId id = new PromptLikeId(promptId, userId);
 
         if (!promptLikeRepository.existsById(id)) {
@@ -49,6 +51,12 @@ public class PromptLikeDomainService {
         }
 
         promptLikeRepository.deleteById(id);
+    }
+
+    private void validateIdsNotNull(Long userId, Long promptId) {
+        if (userId == null || promptId == null) {
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE);
+        }
     }
 
     private void validateUserExists(Long userId) {

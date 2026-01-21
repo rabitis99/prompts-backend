@@ -3,6 +3,7 @@ package org.example.sharedprompts.controller.admin;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.admin.service.AdminService;
+import org.example.sharedprompts.domain.admin.service.AdminMaintenanceService;
 import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.follow.FollowStatus;
@@ -15,6 +16,7 @@ import org.example.sharedprompts.domain.audit.enums.AuditEntityType;
 import org.example.sharedprompts.dto.admin.response.AdminPromptResponseDto;
 import org.example.sharedprompts.dto.admin.response.AdminUserResponseDto;
 import org.example.sharedprompts.dto.audit.response.AuditLogResponseDto;
+import org.example.sharedprompts.dto.admin.response.RebuildLikeCountsStatusResponseDto;
 import org.example.sharedprompts.dto.report.request.ReportProcessRequestDto;
 import org.example.sharedprompts.dto.report.response.ReportDetailResponseDto;
 import org.example.sharedprompts.dto.report.response.ReportResponseDto;
@@ -39,6 +41,7 @@ import java.time.LocalDateTime;
 public class AdminController {
 
     private final AdminService adminService;
+    private final AdminMaintenanceService adminMaintenanceService;
 
     // ======================
     //      사용자 관리
@@ -241,8 +244,18 @@ public class AdminController {
      */
     @PostMapping("/maintenance/likes/rebuild")
     public ResponseEntity<CustomResponse<Void>> rebuildLikeCountsFromDb() {
-        adminService.rebuildLikeCountsFromDb();
+        adminMaintenanceService.rebuildLikeCountsFromDbAsync();
+        // 즉시 응답을 반환하여 HTTP 타임아웃을 방지한다.
         return CustomResponseHelper.ok(null);
+    }
+
+    /**
+     * 좋아요 카운트 재빌드 작업 상태 조회
+     */
+    @GetMapping("/maintenance/likes/rebuild/status")
+    public ResponseEntity<CustomResponse<RebuildLikeCountsStatusResponseDto>> getRebuildLikeCountsStatus() {
+        RebuildLikeCountsStatusResponseDto status = adminMaintenanceService.getRebuildLikeCountsStatus();
+        return CustomResponseHelper.ok(status);
     }
 }
 
