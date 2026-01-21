@@ -1,16 +1,16 @@
 package org.example.sharedprompts.domain.admin.service;
 
-import org.example.sharedprompts.domain.audit.enums.AuditAction;
-import org.example.sharedprompts.domain.audit.enums.AuditEntityType;
-import org.example.sharedprompts.domain.follow.FollowStatus;
-import org.example.sharedprompts.domain.report.enums.ReportStatus;
-import org.example.sharedprompts.dto.user.response.UserResponseDto;
 import org.example.sharedprompts.dto.admin.request.PromptVisibilityRequestDto;
 import org.example.sharedprompts.dto.admin.request.UserBlockRequestDto;
 import org.example.sharedprompts.dto.admin.request.UserRoleChangeRequestDto;
 import org.example.sharedprompts.dto.admin.response.AdminPromptResponseDto;
 import org.example.sharedprompts.dto.admin.response.AdminUserResponseDto;
 import org.example.sharedprompts.dto.audit.response.AuditLogResponseDto;
+import org.example.sharedprompts.domain.audit.enums.AuditAction;
+import org.example.sharedprompts.domain.audit.enums.AuditEntityType;
+import org.example.sharedprompts.domain.follow.FollowStatus;
+import org.example.sharedprompts.domain.report.enums.ReportStatus;
+import org.example.sharedprompts.dto.user.response.UserResponseDto;
 import org.example.sharedprompts.dto.report.request.ReportProcessRequestDto;
 import org.example.sharedprompts.dto.report.response.ReportDetailResponseDto;
 import org.example.sharedprompts.dto.report.response.ReportResponseDto;
@@ -130,5 +130,6 @@ public interface AdminService {
             FollowStatus status,
             Pageable pageable
     );
+
 }
 

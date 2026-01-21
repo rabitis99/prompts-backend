@@ -50,6 +50,36 @@ public class LikeCountServiceImpl implements LikeCountService {
     }
 
     @Override
+    public long incrementAndGetCommentLikeCount(Long commentId) {
+        return baseCountService.incrementAndGet(commentLikeKey(commentId));
+    }
+
+    @Override
+    public long incrementAndGetPromptLikeCount(Long promptId) {
+        return baseCountService.incrementAndGet(promptLikeKey(promptId));
+    }
+
+    @Override
+    public long decrementAndGetCommentLikeCount(Long commentId) {
+        return baseCountService.decrementAndGet(commentLikeKey(commentId));
+    }
+
+    @Override
+    public long decrementAndGetPromptLikeCount(Long promptId) {
+        return baseCountService.decrementAndGet(promptLikeKey(promptId));
+    }
+
+    @Override
+    public void setCommentLikeCount(Long commentId, long count) {
+        baseCountService.set(commentLikeKey(commentId), count);
+    }
+
+    @Override
+    public void setPromptLikeCount(Long promptId, long count) {
+        baseCountService.set(promptLikeKey(promptId), count);
+    }
+
+    @Override
     public Map<Long, Long> getCommentLikeCounts(List<Long> commentIds) {
         return baseCountService.getCounts(commentIds, this::commentLikeKey);
     }

@@ -15,9 +15,19 @@ public class CommentLikeResponseDto {
     @JsonProperty("isLiked")
     private Boolean isLiked;
 
+    @JsonProperty("like_count")
+    private Long likeCount;
+
     public static CommentLikeResponseDto from(boolean isLiked) {
         return CommentLikeResponseDto.builder()
                 .isLiked(isLiked)
+                .build();
+    }
+
+    public static CommentLikeResponseDto of(boolean isLiked, Long likeCount) {
+        return CommentLikeResponseDto.builder()
+                .isLiked(isLiked)
+                .likeCount(likeCount)
                 .build();
     }
 }

@@ -227,5 +227,5 @@ public class AdminController {
         Page<AuditLogResponseDto> page = adminService.getAuditLogs(actorId, entityType, action, startDate, endDate, pageable);
         return CustomResponseHelper.ok(PageResponse.of(page));
     }
-}
 
+}
