@@ -207,6 +207,15 @@ public class NotificationSseService {
                     log.warn("Failed to complete emitter with error: {}", ex.getMessage());
                 }
             }
+        } else {
+            // 로컬에 연결이 없으면 Redis에서 다른 서버 인스턴스 연결 확인
+            String connectionKey = SSE_CONNECTION_PREFIX + userId;
+            if (Boolean.TRUE.equals(redisTemplate.hasKey(connectionKey))) {
+                log.debug("SSE connection exists on another server instance for user: {}", userId);
+                // 향후 Redis Pub/Sub을 통한 분산 환경 지원 가능
+            } else {
+                log.debug("No active SSE connection for user: {}", userId);
+            }
         }
     }
 
