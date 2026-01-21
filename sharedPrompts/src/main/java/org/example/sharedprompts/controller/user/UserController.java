@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.user.service.UserService;
 import org.example.sharedprompts.dto.user.request.PasswordChangeRequestDto;
 import org.example.sharedprompts.dto.user.request.UserUpdateRequestDto;
+import org.example.sharedprompts.dto.user.response.UserPublicProfileDto;
 import org.example.sharedprompts.dto.user.response.UserResponseDto;
 import org.example.sharedprompts.global.response.CustomResponse;
 import org.example.sharedprompts.global.response.CustomResponseHelper;
@@ -20,12 +21,22 @@ public class UserController {
 
     private final UserService userService;
 
+    /* =========================
+       자신의 정보 관리 (My Info)
+       ========================= */
+
+    /**
+     * 내 정보 조회
+     */
     @GetMapping("/me")
     public ResponseEntity<CustomResponse<UserResponseDto>> getMyInfo(@CurrentUser AuthUser authUser) {
         UserResponseDto response = userService.getMyInfo(authUser.getId());
         return CustomResponseHelper.ok(response);
     }
 
+    /**
+     * 내 정보 수정
+     */
     @PatchMapping("/me")
     public ResponseEntity<CustomResponse<UserResponseDto>> updateMyInfo(
             @CurrentUser AuthUser authUser,
@@ -35,6 +46,9 @@ public class UserController {
         return CustomResponseHelper.ok(response);
     }
 
+    /**
+     * 비밀번호 변경
+     */
     @PatchMapping("/me/password")
     public ResponseEntity<CustomResponse<UserResponseDto>> changePassword(
             @CurrentUser AuthUser authUser,
@@ -44,12 +58,31 @@ public class UserController {
         return CustomResponseHelper.ok(response);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(
-            @PathVariable Long id,
+    /* =========================
+       다른 사용자 정보 (Public Profile)
+       ========================= */
+
+    /**
+     * 다른 사용자의 공개 프로필 조회
+     */
+    @GetMapping("/{userId}")
+    public ResponseEntity<CustomResponse<UserPublicProfileDto>> getPublicProfile(
+            @PathVariable Long userId,
             @CurrentUser AuthUser authUser
     ) {
-        userService.deleteUser(id, authUser.getId());
+        UserPublicProfileDto response = userService.getPublicProfile(userId, authUser.getId());
+        return CustomResponseHelper.ok(response);
+    }
+
+    /**
+     * 사용자 삭제 (탈퇴)
+     */
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<Void> deleteUser(
+            @PathVariable Long userId,
+            @CurrentUser AuthUser authUser
+    ) {
+        userService.deleteUser(userId, authUser.getId());
         return CustomResponseHelper.noContent();
     }
 }
