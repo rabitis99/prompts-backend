@@ -183,6 +183,34 @@ public class NotificationSseService {
     }
 
     /**
+     * 프롬프트 생성 SSE 알림 전송
+     * 
+     * @param userId 알림 대상 사용자 ID
+     * @param payload 프롬프트 생성 알림 페이로드
+     */
+    public void sendPromptCreated(Long userId, Object payload) {
+        SseEmitter emitter = emitters.get(userId);
+        if (emitter != null) {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("prompt-created")
+                        .data(payload));
+                log.debug("Prompt-created SSE sent to user {}", userId);
+            } catch (IOException e) {
+                log.error("Failed to send prompt-created SSE to user {}: {}", userId, e.getMessage(), e);
+                if (emitters.remove(userId, emitter)) {
+                    redisTemplate.delete(SSE_CONNECTION_PREFIX + userId);
+                }
+                try {
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                    log.warn("Failed to complete emitter with error: {}", ex.getMessage());
+                }
+            }
+        }
+    }
+
+    /**
      * 특정 사용자의 SSE 연결 종료
      * 
      * @param userId 사용자 ID

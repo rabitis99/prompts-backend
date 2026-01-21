@@ -11,9 +11,9 @@ public interface PromptService {
 
     Mono<PromptResponseDto> createPrompt(PromptRequestDto request, Long userId);
 
-    PageResponse<PromptResponseDto> getPrompts(PromptSearchCondition condition);
+    PageResponse<PromptResponseDto> getPrompts(PromptSearchCondition condition, Long viewerId);
 
-    PromptResponseDto getPromptDetail(Long promptId);
+    PromptResponseDto getPromptDetail(Long promptId, Long viewerId);
 
     PromptResponseDto updatePrompt(Long promptId, PromptUpdateDto promptUpdateDto, Long userId);
 

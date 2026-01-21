@@ -36,15 +36,21 @@ public class PromptController {
 
     @GetMapping
     public ResponseEntity<CustomResponse<PageResponse<PromptResponseDto>>> getPrompts(
-            @ModelAttribute("condition") PromptSearchCondition condition
+            @ModelAttribute("condition") PromptSearchCondition condition,
+            @CurrentUser AuthUser authUser
     ) {
-        PageResponse<PromptResponseDto> response = promptService.getPrompts(condition);
+        Long viewerId = authUser != null ? authUser.getId() : null;
+        PageResponse<PromptResponseDto> response = promptService.getPrompts(condition, viewerId);
         return CustomResponseHelper.ok(response);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CustomResponse<PromptResponseDto>> getPromptDetail(@PathVariable Long id) {
-        return CustomResponseHelper.ok(promptService.getPromptDetail(id));
+    public ResponseEntity<CustomResponse<PromptResponseDto>> getPromptDetail(
+            @PathVariable Long id,
+            @CurrentUser AuthUser authUser
+    ) {
+        Long viewerId = authUser != null ? authUser.getId() : null;
+        return CustomResponseHelper.ok(promptService.getPromptDetail(id, viewerId));
     }
 
     @PatchMapping("/{id}")
