@@ -58,6 +58,7 @@ public enum ErrorCode {
     // ==========================
     PROMPT_NOT_FOUND("PR00701", HttpStatus.NOT_FOUND, "프롬프트를 찾을 수 없습니다."),
     PROMPT_FORBIDDEN("PR00601", HttpStatus.FORBIDDEN, "해당 프롬프트에 대한 접근 권한이 없습니다."),
+    PROMPT_SEARCH_CONDITION_REQUIRED("PR00402", HttpStatus.BAD_REQUEST, "프롬프트 검색 조건은 필수입니다."),
     AI_GENERATION_FAILED("PR00401", HttpStatus.BAD_REQUEST, "프롬프트 생성에 실패하였습니다."),
     AI_RESPONSE_NO_CANDIDATES("PR01001", HttpStatus.INTERNAL_SERVER_ERROR, "AI 응답에 후보가 없습니다."),
     AI_RESPONSE_CANDIDATE_NULL("PR01002", HttpStatus.INTERNAL_SERVER_ERROR, "AI 응답의 후보가 null입니다."),

@@ -2,6 +2,8 @@ package org.example.sharedprompts.domain.prompt.repository;
 
 import lombok.Getter;
 import org.example.sharedprompts.dto.prompt.request.PromptSearchCondition;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 
 /**
  * 프롬프트 검색 시 사용되는 컨텍스트 래퍼.
@@ -29,10 +31,11 @@ public class PromptSearchContext {
      * 
      * @param condition 검색 조건 (null이면 안 됨)
      * @param viewerId 조회자 ID (null 가능)
+     * @throws ApiException condition이 null인 경우
      */
     private PromptSearchContext(PromptSearchCondition condition, Long viewerId) {
         if (condition == null) {
-            throw new IllegalArgumentException("PromptSearchCondition cannot be null");
+            throw new ApiException(ErrorCode.PROMPT_SEARCH_CONDITION_REQUIRED);
         }
         this.condition = condition;
         this.viewerId = viewerId;
@@ -44,7 +47,7 @@ public class PromptSearchContext {
      * @param condition 검색 조건 (null이면 안 됨)
      * @param viewerId 조회자 ID (null 가능)
      * @return PromptSearchContext 인스턴스
-     * @throws IllegalArgumentException condition이 null인 경우
+     * @throws ApiException condition이 null인 경우
      */
     public static PromptSearchContext of(PromptSearchCondition condition, Long viewerId) {
         return new PromptSearchContext(condition, viewerId);
