@@ -105,12 +105,14 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
         BooleanExpression whereCondition = buildWhereCondition(userId, status, direction);
         
         // Count query
-        long total = queryFactory
+        Long countResult = queryFactory
                 .select(user.count())
                 .from(user)
                 .innerJoin(follow).on(buildJoinCondition(direction))
                 .where(whereCondition)
                 .fetchOne();
+        
+        long total = countResult != null ? countResult : 0L;
 
         if (total == 0) {
             return new PageImpl<>(new ArrayList<>(), pageable, 0);
@@ -162,7 +164,7 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
      * @param userId 사용자 ID
      * @param status 팔로우 상태 (null이면 REJECTED, CANCELLED, BLOCKED 제외)
      * @param direction 조회 방향 (FOLLOWERS 또는 FOLLOWING)
-     * @return 카운트
+     * @return 카운트 (결과가 없으면 0)
      */
     private Long countUsersByFollowDirection(
             Long userId,
@@ -171,12 +173,14 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
     ) {
         BooleanExpression whereCondition = buildWhereCondition(userId, status, direction);
         
-        return queryFactory
+        Long count = queryFactory
                 .select(user.count())
                 .from(user)
                 .innerJoin(follow).on(buildJoinCondition(direction))
                 .where(whereCondition)
                 .fetchOne();
+        
+        return count != null ? count : 0L;
     }
 
     @Override
@@ -312,14 +316,14 @@ public class UserFollowRepositoryImpl implements UserFollowRepository {
         
         List<UserWithFollowInfo> result = new ArrayList<>();
         for (Long targetId : targetIds) {
-            User user = userMap.get(targetId);
-            if (user == null) continue;
+            User targetUser = userMap.get(targetId);
+            if (targetUser == null) continue;
             
             Follow forwardFollow = forwardMap.get(targetId);
             Follow reverseFollow = reverseMap.get(targetId);
             
             result.add(UserWithFollowInfo.builder()
-                    .user(user)
+                    .user(targetUser)
                     .forwardFollow(forwardFollow)
                     .reverseFollow(reverseFollow)
                     .build());
