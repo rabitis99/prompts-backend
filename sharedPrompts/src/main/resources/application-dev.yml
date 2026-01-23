@@ -20,5 +20,9 @@ logging:
     root: INFO
     org.springframework.web: DEBUG
     org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    # ⚠️ 보안 주의: BasicBinder TRACE 로깅은 SQL 쿼리의 바인딩된 파라미터 값을 로그에 출력합니다.
+    # 비밀번호, 토큰, 개인정보(PII) 등 민감한 데이터가 로그에 노출될 수 있습니다.
+    # 로그가 공유되거나 저장되는 경우 보안 위험이 될 수 있으므로 주의가 필요합니다.
+    # 필요시에만 임시로 활성화하고, 사용 후 즉시 비활성화하세요.
+    # org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 

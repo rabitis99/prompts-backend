@@ -7,7 +7,7 @@ import org.example.sharedprompts.auth.jwt.util.JwtTokenGenerator;
 import org.example.sharedprompts.auth.jwt.util.JwtTokenParser;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.enums.Role;
-import org.example.sharedprompts.auth.redis.TokenVersionStore;
+import org.example.sharedprompts.auth.storage.TokenVersionStore;
 import org.example.sharedprompts.dto.auth.response.TokenResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
@@ -37,10 +37,6 @@ public class JwtTokenService {
      * @throws ApiException user가 null인 경우
      */
     public TokenResponseDto getToken(@NonNull User user) {
-        if (user == null) {
-            throw new ApiException(ErrorCode.USER_NOT_FOUND);
-        }
-        
         Long tokenVersion = getTokenVersion(user.getId());
         
         String accessToken = tokenGenerator.generateAccessToken(
@@ -61,28 +57,20 @@ public class JwtTokenService {
     /**
      * Access Token 생성 (User 객체 기반)
      * 
-     * @param user 사용자 (null이 아니어야 함)
+     * @param user 사용자 (null이 아니어야 함, @NonNull로 자동 검증)
      * @return Access Token
-     * @throws ApiException user가 null인 경우
      */
     public String generateAccessToken(@NonNull User user) {
-        if (user == null) {
-            throw new ApiException(ErrorCode.USER_NOT_FOUND);
-        }
         return generateAccessToken(user.getId(), user.getRole());
     }
 
     /**
      * Refresh Token 생성 (User 객체 기반)
      * 
-     * @param user 사용자 (null이 아니어야 함)
+     * @param user 사용자 (null이 아니어야 함, @NonNull로 자동 검증)
      * @return Refresh Token
-     * @throws ApiException user가 null인 경우
      */
     public String generateRefreshToken(@NonNull User user) {
-        if (user == null) {
-            throw new ApiException(ErrorCode.USER_NOT_FOUND);
-        }
         return generateRefreshToken(user.getId(), user.getRole());
     }
 

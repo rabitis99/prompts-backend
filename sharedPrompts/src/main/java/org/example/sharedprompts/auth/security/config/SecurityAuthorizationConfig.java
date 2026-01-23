@@ -3,8 +3,8 @@ package org.example.sharedprompts.auth.security.config;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.stereotype.Component;
 
-import static org.example.sharedprompts.auth.security.config.SecurityPathConstants.ADMIN_PATHS;
-import static org.example.sharedprompts.auth.security.config.SecurityPathConstants.PUBLIC_PATHS;
+import static org.example.sharedprompts.auth.security.config.constants.SecurityPathConstants.ADMIN_PATHS;
+import static org.example.sharedprompts.auth.security.config.constants.SecurityPathConstants.PUBLIC_PATHS;
 
 /**
  * Spring Security 인가(Authorization) 규칙 설정
@@ -50,4 +50,5 @@ public class SecurityAuthorizationConfig {
         );
     }
 }
+
 

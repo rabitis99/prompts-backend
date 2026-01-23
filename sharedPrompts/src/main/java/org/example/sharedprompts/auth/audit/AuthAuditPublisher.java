@@ -28,6 +28,7 @@ import org.springframework.stereotype.Component;
 public class AuthAuditPublisher {
 
     private final ApplicationEventPublisher eventPublisher;
+    private final AuthHashUtil authHashUtil;
 
     // ===== 로그인 =====
 
@@ -160,7 +161,7 @@ public class AuthAuditPublisher {
                 ? HttpRequestUtils.getUserAgent(request)
                 : HttpRequestUtils.getUserAgent();
 
-        String providerIdHash = providerId != null ? AuthHashUtil.hash(providerId) : null;
+        String providerIdHash = providerId != null ? authHashUtil.hash(providerId) : null;
 
         try {
             AuthEvent event = AuthEvent.builder()

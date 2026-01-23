@@ -8,8 +8,8 @@ import org.example.sharedprompts.auth.audit.AuthAuditPublisher;
 import org.example.sharedprompts.auth.jwt.model.PrincipalDetails;
 import org.example.sharedprompts.auth.jwt.service.JwtTokenService;
 import org.example.sharedprompts.auth.oauth.state.OAuth2StateService;
-import org.example.sharedprompts.global.exception.ApiException;
-import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.auth.oauth.util.OAuth2RedirectUrlBuilder;
+import org.example.sharedprompts.auth.oauth.util.PrincipalDetailsExtractor;
 import org.example.sharedprompts.global.redis.TokenRedisService;
 import org.example.sharedprompts.global.util.RandomGenerator;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,8 +18,6 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 /**
@@ -52,7 +50,8 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                                         HttpServletResponse response,
                                         Authentication authentication) throws IOException {
 
-        PrincipalDetails principal = (PrincipalDetails) authentication.getPrincipal();
+        // PrincipalDetails 추출 및 OAuth2 필수 필드 검증
+        PrincipalDetails principal = PrincipalDetailsExtractor.extractForOAuth2(authentication);
 
         // JWT 토큰 생성 (PrincipalDetails의 정보 사용 - 중복 DB 조회 불필요)
         String accessToken = jwtTokenService.generateAccessToken(
@@ -67,17 +66,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         // OAuth2 State 및 임시 키 생성
         String state = oAuth2StateService.generateState();
         String tempKey = RandomGenerator.randomKey();
-        
-        // provider와 providerId null 검증 (OAuth2 인증 성공 시점에서는 필수)
-        if (principal.getProvider() == null) {
-            log.error("OAuth2 인증 성공 핸들러에서 provider가 null입니다. userId={}", principal.getId());
-            throw new ApiException(ErrorCode.OAUTH2_PROVIDER_REQUIRED);
-        }
-        if (principal.getProviderId() == null || principal.getProviderId().isBlank()) {
-            log.error("OAuth2 인증 성공 핸들러에서 providerId가 null이거나 비어있습니다. userId={}, provider={}", 
-                    principal.getId(), principal.getProvider().name());
-            throw new ApiException(ErrorCode.OAUTH2_PROVIDER_ID_MISSING);
-        }
         
         String provider = principal.getProvider().name();
         String providerId = principal.getProviderId();
@@ -101,10 +89,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         );
 
         // 프론트엔드로 리다이렉트
-        String redirectUrl = frontRedirectUrl
-                + "?key=" + URLEncoder.encode(tempKey, StandardCharsets.UTF_8)
-                + "&state=" + URLEncoder.encode(state, StandardCharsets.UTF_8);
-
+        String redirectUrl = OAuth2RedirectUrlBuilder.buildCallbackUrl(frontRedirectUrl, tempKey, state);
         response.sendRedirect(redirectUrl);
     }
 }

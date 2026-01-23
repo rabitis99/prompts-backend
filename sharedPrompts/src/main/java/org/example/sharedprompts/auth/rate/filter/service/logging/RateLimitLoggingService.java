@@ -70,4 +70,13 @@ public class RateLimitLoggingService {
     public void logRateLimitCheckFailed(String key, String error, Exception exception) {
         fileLogService.logRateLimitCheckFailed(key, error, exception);
     }
+
+    /**
+     * 유효하지 않은 HTTP 메서드 로그를 기록합니다.
+     * 
+     * @param method HTTP 메서드
+     */
+    public void logInvalidHttpMethod(String method) {
+        fileLogService.logInvalidHttpMethod(method);
+    }
 }

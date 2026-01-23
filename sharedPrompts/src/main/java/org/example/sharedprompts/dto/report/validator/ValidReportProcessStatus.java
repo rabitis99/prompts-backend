@@ -1,4 +1,4 @@
-package org.example.sharedprompts.dto.report.request;
+package org.example.sharedprompts.dto.report.validator;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.ConstraintValidator;

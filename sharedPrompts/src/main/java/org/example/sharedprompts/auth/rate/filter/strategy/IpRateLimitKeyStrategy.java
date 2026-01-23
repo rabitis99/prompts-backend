@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitFilterContext;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitKey;
 import org.example.sharedprompts.auth.rate.policy.RateLimitRule;
-import org.example.sharedprompts.auth.redis.RedisKeyFactory;
+import org.example.sharedprompts.auth.storage.RedisKeyFactory;
 import org.example.sharedprompts.global.util.HttpRequestUtils;
 import org.springframework.stereotype.Component;
 

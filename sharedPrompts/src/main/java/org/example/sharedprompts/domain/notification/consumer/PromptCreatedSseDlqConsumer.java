@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 public class PromptCreatedSseDlqConsumer {
 
     private final NotificationMetrics metrics;
+    private final AuthHashUtil authHashUtil;
 
     /**
      * DLQ에서 실패한 메시지를 수신하여 처리
@@ -48,10 +49,8 @@ public class PromptCreatedSseDlqConsumer {
             // 메시지 본문 정보 추출 (개인정보 보호를 위해 본문 전체는 로그에 남기지 않음)
             byte[] messageBody = message.getBody();
             int messageSize = messageBody != null ? messageBody.length : 0;
-            // AuthHashUtil을 사용하여 해시 계산 (String으로 변환 후 해시)
-            String messageHash = messageBody != null 
-                    ? AuthHashUtil.hash(new String(messageBody, java.nio.charset.StandardCharsets.UTF_8))
-                    : null;
+            // AuthHashUtil을 사용하여 해시 계산 (byte[] 직접 해시 - 비UTF-8 payload 안전, 메모리 효율적)
+            String messageHash = authHashUtil.hash(messageBody);
             if (messageHash == null) {
                 messageHash = "empty_or_invalid_message";
             }

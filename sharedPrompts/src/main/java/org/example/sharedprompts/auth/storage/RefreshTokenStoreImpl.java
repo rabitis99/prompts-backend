@@ -1,5 +1,6 @@
 package org.example.sharedprompts.auth.storage;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.auth.jwt.config.TokenTtlProperties;
@@ -31,32 +32,32 @@ public class RefreshTokenStoreImpl implements RefreshTokenStore {
     private final StringRedisTemplate redisTemplate;
     private final TokenTtlProperties ttlProperties;
     
-    private final DefaultRedisScript<List<String>> getAndDeleteScript = createGetAndDeleteScript();
-    private final DefaultRedisScript<Long> deleteScript = createDeleteScript();
-    private final DefaultRedisScript<Long> deleteAllByUserScript = createDeleteAllByUserScript();
+    private DefaultRedisScript<List<String>> getAndDeleteScript;
+    private DefaultRedisScript<Long> deleteScript;
+    private DefaultRedisScript<Long> deleteAllByUserScript;
     
-    private static DefaultRedisScript<List<String>> createGetAndDeleteScript() {
-        DefaultRedisScript<List<String>> script = new DefaultRedisScript<>();
-        script.setScriptText(LuaScripts.GET_AND_DELETE_REFRESH_TOKEN);
+    @PostConstruct
+    public void init() {
+        // GET_AND_DELETE 스크립트 초기화
+        DefaultRedisScript<List<String>> getAndDelete = new DefaultRedisScript<>();
+        getAndDelete.setScriptText(LuaScripts.GET_AND_DELETE_REFRESH_TOKEN);
         // Spring Data Redis는 런타임에 제네릭 타입 정보를 잃어버리므로 raw type을 사용
         @SuppressWarnings("unchecked")
         Class<List<String>> resultType = (Class<List<String>>) (Class<?>) List.class;
-        script.setResultType(resultType);
-        return script;
-    }
-    
-    private static DefaultRedisScript<Long> createDeleteScript() {
-        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
-        script.setScriptText(LuaScripts.DELETE_REFRESH_TOKEN);
-        script.setResultType(Long.class);
-        return script;
-    }
-    
-    private static DefaultRedisScript<Long> createDeleteAllByUserScript() {
-        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
-        script.setScriptText(LuaScripts.DELETE_ALL_REFRESH_TOKENS_BY_USER);
-        script.setResultType(Long.class);
-        return script;
+        getAndDelete.setResultType(resultType);
+        this.getAndDeleteScript = getAndDelete;
+        
+        // DELETE 스크립트 초기화
+        DefaultRedisScript<Long> delete = new DefaultRedisScript<>();
+        delete.setScriptText(LuaScripts.DELETE_REFRESH_TOKEN);
+        delete.setResultType(Long.class);
+        this.deleteScript = delete;
+        
+        // DELETE_ALL_BY_USER 스크립트 초기화
+        DefaultRedisScript<Long> deleteAll = new DefaultRedisScript<>();
+        deleteAll.setScriptText(LuaScripts.DELETE_ALL_REFRESH_TOKENS_BY_USER);
+        deleteAll.setResultType(Long.class);
+        this.deleteAllByUserScript = deleteAll;
     }
 
     @Override

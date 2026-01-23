@@ -37,11 +37,12 @@ public class RandomGenerator {
         return UUID.randomUUID().toString();
     }
 
+    /**
+     * 랜덤 키 생성 (UUID 기반)
+     * 
+     * @return UUID 문자열
+     */
     public static String randomKey() {
-        return randomUUID();
-    }
-
-    public static String randomState() {
         return randomUUID();
     }
 }

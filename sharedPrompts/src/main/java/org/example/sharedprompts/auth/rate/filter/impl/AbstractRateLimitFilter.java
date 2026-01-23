@@ -55,8 +55,8 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
         try {
             // 필터 적용 전 검증 (하위 클래스에서 구현)
             if (!shouldApplyFilter(request, response, filterChain)) {
-                filterChain.doFilter(request, response);
                 responseHandled.set(true);
+                filterChain.doFilter(request, response);
                 return;
             }
 
@@ -66,8 +66,8 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             // 요청 검증 및 규칙 결정
             Optional<RateLimitRule> ruleOpt = facade.getRuleResolutionService().resolveRule(request);
             if (ruleOpt.isEmpty()) {
-                filterChain.doFilter(request, response);
                 responseHandled.set(true);
+                filterChain.doFilter(request, response);
                 return;
             }
 
@@ -84,8 +84,8 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
 
             // 키 생성 실패 시 요청 허용
             if (resultOpt.isEmpty()) {
-                filterChain.doFilter(request, response);
                 responseHandled.set(true);
+                filterChain.doFilter(request, response);
                 return;
             }
 
@@ -106,8 +106,9 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
                 }
             }
             // 응답이 처리되지 않은 경우에만 filterChain 호출
-            filterChain.doFilter(request, response);
+            // 플래그를 먼저 설정하여 중복 호출 방지
             responseHandled.set(true);
+            filterChain.doFilter(request, response);
         } finally {
             // ThreadLocal 메모리 누수 방지를 위해 정리
             responseHandled.remove();
@@ -142,6 +143,8 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             logRateLimitExceeded(rule, key, rateLimitResult, context, request);
 
             // HTTP 응답 작성
+            // 플래그를 먼저 설정하여 예외 발생 시 중복 처리 방지
+            responseHandled.set(true);
             facade.getExceededFacade().handle(
                     rule,
                     key,
@@ -149,11 +152,11 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
                     response,
                     (k, r) -> {} // 로그는 이미 기록됨
             );
-            responseHandled.set(true);
         } else {
             // Rate Limit 통과
-            filterChain.doFilter(request, response);
+            // 플래그를 먼저 설정하여 예외 발생 시 중복 호출 방지
             responseHandled.set(true);
+            filterChain.doFilter(request, response);
         }
     }
 

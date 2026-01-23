@@ -3,7 +3,7 @@ package org.example.sharedprompts.auth.rate.filter.strategy;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitFilterContext;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitKey;
 import org.example.sharedprompts.auth.rate.policy.RateLimitRule;
-import org.example.sharedprompts.auth.redis.RedisKeyFactory;
+import org.example.sharedprompts.auth.storage.RedisKeyFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;

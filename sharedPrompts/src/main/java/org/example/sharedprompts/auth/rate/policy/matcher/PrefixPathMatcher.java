@@ -1,10 +1,10 @@
 package org.example.sharedprompts.auth.rate.policy.matcher;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import org.example.sharedprompts.auth.rate.policy.RateLimitMatcher;
 import org.example.sharedprompts.auth.rate.policy.RateLimitRule;
 import org.springframework.http.HttpMethod;
+
+import java.util.Objects;
 
 /**
  * 접두사 경로와 HTTP Method를 매칭하는 Matcher
@@ -22,36 +22,37 @@ import org.springframework.http.HttpMethod;
  *   </li>
  * </ul>
  */
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class PrefixPathMatcher implements RateLimitMatcher {
     
-    private String prefix;
-    private HttpMethod method;
-    private RateLimitRule rule;
+    private final String prefix;
+    private final HttpMethod method;
+    private final RateLimitRule rule;
     
     /**
      * PrefixPathMatcher 생성자 (모든 HTTP 메서드 허용)
      * 
-     * @param prefix 경로 접두사
-     * @param rule Rate Limit 규칙
+     * @param prefix 경로 접두사 (null이 아니어야 함)
+     * @param rule Rate Limit 규칙 (null이 아니어야 함)
+     * @throws NullPointerException prefix 또는 rule이 null인 경우
      */
     public PrefixPathMatcher(String prefix, RateLimitRule rule) {
-        this.prefix = prefix;
+        this.prefix = Objects.requireNonNull(prefix, "prefix must not be null");
         this.method = null; // null이면 모든 HTTP 메서드 허용
-        this.rule = rule;
+        this.rule = Objects.requireNonNull(rule, "rule must not be null");
     }
     
     /**
      * PrefixPathMatcher 생성자 (특정 HTTP 메서드만 허용)
      * 
-     * @param prefix 경로 접두사
+     * @param prefix 경로 접두사 (null이 아니어야 함)
      * @param method 허용할 HTTP 메서드 (null이면 모든 메서드 허용)
-     * @param rule Rate Limit 규칙
+     * @param rule Rate Limit 규칙 (null이 아니어야 함)
+     * @throws NullPointerException prefix 또는 rule이 null인 경우
      */
     public PrefixPathMatcher(String prefix, HttpMethod method, RateLimitRule rule) {
-        this.prefix = prefix;
-        this.method = method;
-        this.rule = rule;
+        this.prefix = Objects.requireNonNull(prefix, "prefix must not be null");
+        this.method = method; // null이면 모든 HTTP 메서드 허용
+        this.rule = Objects.requireNonNull(rule, "rule must not be null");
     }
     
     @Override
