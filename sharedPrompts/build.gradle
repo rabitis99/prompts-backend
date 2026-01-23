@@ -81,6 +81,8 @@ dependencies {
 
 	// Utilities
 	implementation 'org.modelmapper:modelmapper:3.1.1'
+	// OWASP Java HTML Sanitizer (XSS 방지)
+	implementation 'com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer:20240325.1'
 
 	// Testing
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'

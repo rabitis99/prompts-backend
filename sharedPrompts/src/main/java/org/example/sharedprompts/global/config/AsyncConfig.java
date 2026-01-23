@@ -40,6 +40,24 @@ public class AsyncConfig {
     }
 
     /**
+     * Rate Limit 로그 저장용 TaskExecutor
+     * - Rate Limit 로그를 비동기로 저장하여 요청 응답 시간에 영향 없도록 함
+     */
+    @Bean(name = "rateLimitLogTaskExecutor")
+    public Executor rateLimitLogTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(3);
+        executor.setMaxPoolSize(10);
+        executor.setQueueCapacity(500);
+        executor.setThreadNamePrefix("rate-limit-log-async-");
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executor.initialize();
+        return executor;
+    }
+
+    /**
      * 스레드 풀 포화 시 거부 정책 생성
      * - 로깅 후 호출 스레드에서 실행하여 알림 유실 방지
      * 
