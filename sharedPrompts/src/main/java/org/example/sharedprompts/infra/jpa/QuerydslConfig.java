@@ -1,4 +1,4 @@
-package org.example.sharedprompts.global.config;
+package org.example.sharedprompts.infra.jpa;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
@@ -17,3 +17,4 @@ public class QuerydslConfig {
         return new JPAQueryFactory(entityManager);
     }
 }
+

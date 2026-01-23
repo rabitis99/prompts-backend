@@ -1,4 +1,4 @@
-package org.example.sharedprompts.global.config;
+package org.example.sharedprompts.infra.messaging;
 
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
