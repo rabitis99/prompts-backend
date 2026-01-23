@@ -13,7 +13,7 @@ import org.example.sharedprompts.dto.follow.response.FollowUserResponseDto;
 import org.example.sharedprompts.dto.follow.response.UserWithFollowInfo;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
-import org.example.sharedprompts.global.response.PageResponse;
+import org.example.sharedprompts.dto.common.PageResponse;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
