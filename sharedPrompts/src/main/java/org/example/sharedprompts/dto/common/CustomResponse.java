@@ -1,4 +1,4 @@
-package org.example.sharedprompts.global.response;
+package org.example.sharedprompts.dto.common;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -30,3 +30,4 @@ public record CustomResponse<T>(
         return new CustomResponse<>(e.getErrorCode().getHttpStatus(), false, null, dto);
     }
 }
+

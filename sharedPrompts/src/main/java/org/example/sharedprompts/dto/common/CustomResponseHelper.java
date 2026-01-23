@@ -1,4 +1,4 @@
-package org.example.sharedprompts.global.response;
+package org.example.sharedprompts.dto.common;
 
 import org.example.sharedprompts.global.exception.ApiException;
 import org.springframework.http.HttpStatus;
@@ -29,3 +29,4 @@ public class CustomResponseHelper {
                 .body(CustomResponse.fail(e));
     }
 }
+
