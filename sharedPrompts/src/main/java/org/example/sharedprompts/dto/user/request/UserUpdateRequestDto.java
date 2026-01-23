@@ -10,6 +10,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.sharedprompts.domain.user.User;
+import org.example.sharedprompts.global.util.HtmlSanitizer;
 
 @Getter
 @Builder
@@ -32,6 +33,15 @@ public class UserUpdateRequestDto {
 
     @JsonProperty("user_terms")
     private UserTermsRequestDto userTerms;
+
+    public void sanitize(HtmlSanitizer sanitizer) {
+        if (nickname != null) {
+            nickname = sanitizer.sanitize(nickname);
+        }
+        if (job != null) {
+            job = sanitizer.sanitize(job);
+        }
+    }
 
     public void applyTo (User user) {
         if (nickname != null) user.changeNickname(nickname);

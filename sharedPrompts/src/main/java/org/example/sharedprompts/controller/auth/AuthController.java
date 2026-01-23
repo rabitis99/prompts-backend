@@ -1,5 +1,6 @@
 package org.example.sharedprompts.controller.auth;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.auth.AuthUser;
@@ -13,8 +14,8 @@ import org.example.sharedprompts.dto.auth.request.SignUpRequestDto;
 import org.example.sharedprompts.dto.auth.response.AuthResponseDto;
 import org.example.sharedprompts.dto.auth.response.TokenResponseDto;
 import org.example.sharedprompts.dto.user.response.UserResponseDto;
-import org.example.sharedprompts.global.response.CustomResponse;
-import org.example.sharedprompts.global.response.CustomResponseHelper;
+import org.example.sharedprompts.dto.common.CustomResponse;
+import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import org.example.sharedprompts.global.util.JwtTokenExtractor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -36,24 +37,27 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<CustomResponse<TokenResponseDto>> login(
-            @Valid @RequestBody LoginRequestDto dto
+            @Valid @RequestBody LoginRequestDto dto,
+            HttpServletRequest request
     ){
-        return CustomResponseHelper.ok(authService.login(dto));
+        return CustomResponseHelper.ok(authService.login(dto, request));
     }
 
     @GetMapping("/callback")
     public ResponseEntity<CustomResponse<TokenResponseDto>> callback(
             @RequestParam("key") String key,
-            @RequestParam("state") String state
+            @RequestParam("state") String state,
+            HttpServletRequest request
     ) {
-        return CustomResponseHelper.ok(authService.callback(key, state));
+        return CustomResponseHelper.ok(authService.callback(key, state, request));
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<CustomResponse<TokenResponseDto>> refresh(
-            @Valid @RequestBody RefreshRequestDto dto
+            @Valid @RequestBody RefreshRequestDto dto,
+            HttpServletRequest request
     ){
-        return CustomResponseHelper.ok(authService.refresh(dto));
+        return CustomResponseHelper.ok(authService.refresh(dto, request));
     }
 
     @PostMapping("/logout")

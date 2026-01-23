@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.global.annotation.AuditLogging;
-import org.example.sharedprompts.global.jwt.PrincipalDetails;
+import org.example.sharedprompts.auth.jwt.model.PrincipalDetails;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;

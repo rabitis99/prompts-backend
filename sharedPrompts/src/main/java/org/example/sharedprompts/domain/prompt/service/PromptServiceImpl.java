@@ -1,92 +1,42 @@
 package org.example.sharedprompts.domain.prompt.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.follow.policy.FollowBlockPolicy;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.like.service.LikeCountService;
-import org.example.sharedprompts.domain.notification.service.PromptCreatedEventPublisher;
 import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
-import org.example.sharedprompts.domain.prompt.service.guideline.GuidelineBuilderFactory;
-import org.example.sharedprompts.domain.prompt.service.guideline.PromptGuidelineBuilder;
 import org.example.sharedprompts.domain.tag.PromptTag;
 import org.example.sharedprompts.domain.tag.Tag;
 import org.example.sharedprompts.domain.tag.service.PromptTagService;
-import org.example.sharedprompts.domain.user.User;
-import org.example.sharedprompts.domain.user.repository.UserRepository;
-import org.example.sharedprompts.dto.prompt.request.InputRequestDto;
-import org.example.sharedprompts.dto.prompt.request.PromptRequestDto;
 import org.example.sharedprompts.dto.prompt.request.PromptSearchCondition;
 import org.example.sharedprompts.domain.prompt.repository.PromptSearchContext;
 import org.example.sharedprompts.dto.prompt.request.PromptUpdateDto;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
-import org.example.sharedprompts.global.google.gemini.GoogleGeminiService;
-import org.example.sharedprompts.global.response.PageResponse;
+import org.example.sharedprompts.dto.common.PageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
+/**
+ * 프롬프트 조회 / 수정 / 삭제를 담당하는 도메인 서비스 구현체입니다.
+ * <p>
+ * 프롬프트 생성(create) 플로우는 {@link org.example.sharedprompts.domain.prompt.facade.PromptFacade}
+ * 및 하위 서비스(PromptSanitizationService, PromptAIService, PromptPersistenceService)가 담당합니다.
+ * 이 구현체는 생성 이외의 CRUD 책임만 가집니다.
+ */
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class PromptServiceImpl implements PromptService {
 
-    private final UserRepository userRepository;
     private final PromptRepository promptRepository;
     private final FollowBlockPolicy followBlockPolicy;
-    private final GoogleGeminiService googleGeminiService;
-    private final PromptGenerator promptGenerator;
     private final PromptTagService promptTagService;
-    private final GuidelineBuilderFactory guidelineBuilderFactory;
-    private final TransactionTemplate transactionTemplate;
-    private final PromptCreatedEventPublisher promptCreatedEventPublisher;
     private final LikeCountService likeCountService;
-
-    @Override
-    public Mono<PromptResponseDto> createPrompt(PromptRequestDto request, Long userId) {
-        return Mono.fromCallable(() -> userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND)))
-            .subscribeOn(Schedulers.boundedElastic())
-            .flatMap(user -> {
-                InputRequestDto dto = request.toInputRequestDto();
-                String promptText = promptGenerator.generatePrompt(dto);
-                
-                return googleGeminiService.chat(promptText)
-                    .flatMap(aiGeneratedContent -> {
-                        PromptGuidelineBuilder builder = 
-                            guidelineBuilderFactory.getBuilder(dto.getLanguage());
-                        String prompt = builder.build(aiGeneratedContent, dto);
-                        // TransactionTemplate을 사용하여 명시적으로 트랜잭션 경계 설정
-                        // 같은 클래스 내부 메서드 호출 시 AOP 프록시 우회 문제 해결
-                        return Mono.fromCallable(() -> transactionTemplate.execute(status -> 
-                                savePrompt(request, user, prompt)))
-                            .subscribeOn(Schedulers.boundedElastic());
-                    });
-            });
-    }
-
-    @Transactional
-    protected PromptResponseDto savePrompt(PromptRequestDto request, User user, String aiGeneratedContent) {
-        Prompt promptEntity = request.toEntity(user, aiGeneratedContent);
-        promptEntity = promptRepository.save(promptEntity);
-
-        List<Tag> tags = (request.getTags() != null)
-                ? promptTagService.addTags(promptEntity, request.getTags())
-                : List.of();
-
-        // 트랜잭션 커밋 후 RabbitMQ로 SSE 알림 메시지 발행
-        // 이벤트 발행 책임을 PromptCreatedEventPublisher에 위임
-        promptCreatedEventPublisher.publishAfterCommit(promptEntity, user);
-
-        return PromptResponseDto.from(promptEntity, tags);
-    }
+    private final PromptSanitizationService promptSanitizationService;
 
     // ============ 조회 ===============
     @Override
@@ -131,10 +81,11 @@ public class PromptServiceImpl implements PromptService {
             throw new ApiException(ErrorCode.PROMPT_FORBIDDEN);
         }
 
-        promptUpdateDto.applyTo(prompt);
+        PromptUpdateDto sanitizedDto = promptSanitizationService.sanitize(promptUpdateDto);
+        sanitizedDto.applyTo(prompt);
 
-        if (promptUpdateDto.getTags() != null) {
-            promptTagService.updateTags(prompt, promptUpdateDto.getTags());
+        if (sanitizedDto.getTags() != null) {
+            promptTagService.updateTags(prompt, sanitizedDto.getTags());
         }
 
         List<Tag> tags = promptTagService.getTags(prompt);
@@ -185,4 +136,5 @@ public class PromptServiceImpl implements PromptService {
                 )
         ));
     }
+
 }

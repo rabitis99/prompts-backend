@@ -5,7 +5,7 @@ import org.example.sharedprompts.domain.follow.PublicFollowState;
 import org.example.sharedprompts.dto.follow.response.FollowCountResponseDto;
 import org.example.sharedprompts.dto.follow.response.FollowResponseDto;
 import org.example.sharedprompts.dto.follow.response.FollowUserResponseDto;
-import org.example.sharedprompts.global.response.PageResponse;
+import org.example.sharedprompts.dto.common.PageResponse;
 import org.springframework.data.domain.Pageable;
 
 public interface FollowService {

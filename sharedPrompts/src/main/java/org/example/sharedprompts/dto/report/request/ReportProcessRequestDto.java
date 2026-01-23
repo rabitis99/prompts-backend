@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import org.example.sharedprompts.domain.report.Report;
 import org.example.sharedprompts.domain.report.enums.ReportStatus;
 import org.example.sharedprompts.domain.user.User;
+import org.example.sharedprompts.dto.report.validator.ValidReportProcessStatus;
 
 @Getter
 @Builder
