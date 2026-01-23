@@ -5,13 +5,16 @@ import org.example.sharedprompts.global.constant.Constant;
 import org.example.sharedprompts.auth.jwt.config.TokenTtlProperties;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.global.Lua.LuaScripts;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +26,17 @@ public class TokenRedisServiceImpl implements TokenRedisService {
     private static final String ACCESS_PREFIX = "ACCESS:";
     private static final String REFRESH_PREFIX = "REFRESH:";
     private static final String REFRESH_SET_PREFIX = "USER_REFRESH:";
+
+    @SuppressWarnings("rawtypes")
+    private final DefaultRedisScript<List> getAndDeleteTempTokenScript = createGetAndDeleteTempTokenScript();
+
+    @SuppressWarnings("rawtypes")
+    private static DefaultRedisScript<List> createGetAndDeleteTempTokenScript() {
+        DefaultRedisScript<List> script = new DefaultRedisScript<>();
+        script.setScriptText(LuaScripts.GET_AND_DELETE_TEMP_TOKEN);
+        script.setResultType(List.class);
+        return script;
+    }
 
     // =========================
     // 🔹 Access Token 관리
@@ -66,31 +80,6 @@ public class TokenRedisServiceImpl implements TokenRedisService {
     // =========================
     // 🔹 Refresh Token 관리 (개별 키 + 사용자별 Set)
     // =========================
-
-    /**
-     * @deprecated 이 메서드는 더 이상 사용되지 않습니다.
-     * {@link org.example.sharedprompts.auth.redis.RefreshTokenStore#save(String, Long, String, String)}를 사용하세요.
-     */
-    @Override
-    @Deprecated(since = "1.0", forRemoval = true)
-    public void saveRefreshToken(String token, Long userId) {
-        String key = REFRESH_PREFIX + token;
-        redisTemplate.opsForValue().set(
-                key,
-                String.valueOf(userId),
-                Duration.ofMillis(ttlConfig.getRefreshTokenValidityMillis())
-        );
-
-        String userKey = REFRESH_SET_PREFIX + userId;
-        // Only set TTL if the Set doesn't exist yet (first token for this user)
-        // This avoids unnecessary TTL reset on every token save
-        // Individual tokens have their own TTL, so the Set TTL is mainly for cleanup
-        boolean setExists = Boolean.TRUE.equals(redisTemplate.hasKey(userKey));
-        redisTemplate.opsForSet().add(userKey, token);
-        if (!setExists) {
-            redisTemplate.expire(userKey, Duration.ofMillis(ttlConfig.getRefreshTokenValidityMillis()));
-        }
-    }
 
     @Override
     public boolean isRefreshTokenValid(String token, Long userId) {
@@ -147,30 +136,39 @@ public class TokenRedisServiceImpl implements TokenRedisService {
 
     @Override
     public Map<String, String> getAndDeleteTempToken(String key) {
-        Map<Object, Object> entries = redisTemplate.opsForHash().entries(key);
-        if (entries.isEmpty()) return null;
+        try {
+            // Lua 스크립트를 사용하여 원자적으로 조회 및 삭제
+            // TOCTOU 문제 방지: 조회와 삭제를 하나의 원자적 연산으로 처리
+            @SuppressWarnings("unchecked")
+            List<String> entries = redisTemplate.execute(
+                    getAndDeleteTempTokenScript,
+                    List.of(key)
+            );
 
-        Map<String, String> result = entries.entrySet()
-                .stream()
-                .collect(Collectors.toMap(
-                        e -> {
-                            if (!(e.getKey() instanceof String)) {
-                                throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, null, 
-                                        "Redis hash key is not a String: " + e.getKey());
-                            }
-                            return (String) e.getKey();
-                        },
-                        e -> {
-                            if (!(e.getValue() instanceof String)) {
-                                throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, null, 
-                                        "Redis hash value is not a String: " + e.getValue());
-                            }
-                            return (String) e.getValue();
-                        }
-                ));
+            if (entries == null || entries.isEmpty()) {
+                return null;
+            }
 
-        redisTemplate.delete(key);
-        return result;
+            // Lua 스크립트는 평탄화된 배열을 반환: [field1, value1, field2, value2, ...]
+            // 이를 Map으로 변환
+            Map<String, String> result = new java.util.HashMap<>();
+            for (int i = 0; i < entries.size(); i += 2) {
+                if (i + 1 < entries.size()) {
+                    String field = entries.get(i);
+                    String value = entries.get(i + 1);
+                    if (field != null && value != null) {
+                        result.put(field, value);
+                    }
+                }
+            }
+
+            return result.isEmpty() ? null : result;
+        } catch (Exception e) {
+            // 예외 발생 시 민감한 정보 노출 방지를 위해 키를 마스킹
+            String maskedKey = SensitiveDataMasker.mask(key);
+            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, null, 
+                    "Redis 임시 토큰 조회/삭제 실패: " + maskedKey, e);
+        }
     }
 
 }

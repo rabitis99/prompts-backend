@@ -4,10 +4,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.auth.audit.AuthAuditPublisher;
-import org.example.sharedprompts.auth.redis.RefreshTokenMetadata;
-import org.example.sharedprompts.auth.redis.RefreshTokenStore;
-import org.example.sharedprompts.auth.security.TokenSecurityCheckResult;
-import org.example.sharedprompts.auth.security.TokenSecurityValidator;
+import org.example.sharedprompts.auth.storage.RefreshTokenMetadata;
+import org.example.sharedprompts.auth.storage.RefreshTokenStore;
+import org.example.sharedprompts.auth.security.token.TokenSecurityCheckResult;
+import org.example.sharedprompts.auth.security.token.TokenSecurityValidator;
 import org.example.sharedprompts.domain.audit.auth.enums.AuthFailReason;
 import org.example.sharedprompts.domain.auth.service.OAuthLoginFlow.OAuthLoginPayload;
 import org.example.sharedprompts.domain.user.PasswordVerifier;
@@ -84,7 +84,7 @@ public class AuthServiceImpl implements AuthService {
         if (!user.verifyPassword(dto.getPassword(), passwordVerifier)) {
             log.warn("Login failed - reason=INVALID_PASSWORD, email={}", SensitiveDataMasker.maskEmail(email));
 
-            authAuditPublisher.loginFailByUser(user, AuthFailReason.INVALID_PASSWORD);
+            authAuditPublisher.loginFailByUser(user, AuthFailReason.INVALID_PASSWORD, request);
 
             throw new ApiException(ErrorCode.LOGIN_FAILED);
         }
@@ -94,7 +94,7 @@ public class AuthServiceImpl implements AuthService {
 
         TokenResponseDto tokenResponseDto = authTokenService.issue(user, request);
 
-        authAuditPublisher.loginSuccessByUser(user);
+        authAuditPublisher.loginSuccessByUser(user, request);
 
         return tokenResponseDto;
     }
@@ -108,7 +108,7 @@ public class AuthServiceImpl implements AuthService {
         // authTokenService.issue()는 Redis에 토큰을 저장하므로 쓰기 작업이 필요합니다.
         TokenResponseDto tokenResponseDto = authTokenService.issue(user, request);
 
-        authAuditPublisher.loginSuccessByUser(user);
+        authAuditPublisher.loginSuccessByUser(user, request);
 
         return tokenResponseDto;
     }
@@ -126,12 +126,12 @@ public class AuthServiceImpl implements AuthService {
         
         // 2. IP/User-Agent 보안 검증
         TokenSecurityCheckResult checkResult = tokenSecurityValidator.validate(metadata, request);
-        handleSecurityCheckResult(checkResult, metadata);
+        handleSecurityCheckResult(checkResult, metadata, request);
         
         // 3. 사용자 조회
         User user = userRepository.findById(metadata.getUserId())
                 .orElseThrow(() -> {
-                    authAuditPublisher.tokenRefreshFailByUserId(metadata.getUserId(), AuthFailReason.USER_NOT_FOUND);
+                    authAuditPublisher.tokenRefreshFailByUserId(metadata.getUserId(), AuthFailReason.USER_NOT_FOUND, request);
                     return new ApiException(ErrorCode.USER_NOT_FOUND);
                 });
 
@@ -141,7 +141,7 @@ public class AuthServiceImpl implements AuthService {
                 user, metadata, dto.getRefreshToken(), request
         );
 
-        authAuditPublisher.tokenRefreshSuccessByUser(user);
+        authAuditPublisher.tokenRefreshSuccessByUser(user, request);
 
         return tokenResponseDto;
     }
@@ -149,13 +149,13 @@ public class AuthServiceImpl implements AuthService {
     /**
      * 보안 검증 결과 처리
      */
-    private void handleSecurityCheckResult(TokenSecurityCheckResult checkResult, RefreshTokenMetadata metadata) {
+    private void handleSecurityCheckResult(TokenSecurityCheckResult checkResult, RefreshTokenMetadata metadata, HttpServletRequest request) {
         if (checkResult == TokenSecurityCheckResult.MISMATCH) {
             // 보안 로그 + 전체 세션 무효화
             log.warn("Token refresh security alert - userId={}, storedIp={}, storedUa={}",
                     metadata.getUserId(), metadata.getIp(), metadata.getUserAgent());
             refreshTokenStore.deleteAllByUser(metadata.getUserId());
-            authAuditPublisher.tokenRefreshFailByUserId(metadata.getUserId(), AuthFailReason.INVALID_REFRESH_TOKEN);
+            authAuditPublisher.tokenRefreshFailByUserId(metadata.getUserId(), AuthFailReason.INVALID_REFRESH_TOKEN, request);
             throw new ApiException(ErrorCode.REFRESH_TOKEN_SECURITY_MISMATCH);
         } else if (checkResult == TokenSecurityCheckResult.SUSPICIOUS) {
             // 경고 로그만

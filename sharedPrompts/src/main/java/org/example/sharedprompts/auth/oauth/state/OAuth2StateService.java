@@ -2,17 +2,14 @@ package org.example.sharedprompts.auth.oauth.state;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.auth.redis.RedisKeyFactory;
-import org.example.sharedprompts.global.exception.ApiException;
-import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.auth.storage.RedisKeyFactory;
+import org.example.sharedprompts.domain.audit.auth.util.AuthHashUtil;
 import org.example.sharedprompts.global.util.RandomGenerator;
 import org.example.sharedprompts.global.util.SecurityUtils;
 import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
@@ -29,7 +26,7 @@ public class OAuth2StateService {
 
     private final StringRedisTemplate redisTemplate;
     private final OAuth2StateProperties properties;
-    private static final String HMAC_ALGORITHM = "HmacSHA256";
+    private final AuthHashUtil authHashUtil;
 
     /**
      * OAuth2 State 생성
@@ -45,7 +42,7 @@ public class OAuth2StateService {
         String nonce = RandomGenerator.randomUUID();
         long timestamp = System.currentTimeMillis();
         String data = nonce + ":" + timestamp;
-        String hmac = calculateHmac(data);
+        String hmac = authHashUtil.hash(data);
         String state = Base64.getUrlEncoder().encodeToString(
                 (data + ":" + hmac).getBytes(StandardCharsets.UTF_8)
         );
@@ -107,7 +104,7 @@ public class OAuth2StateService {
 
             // 4. HMAC 검증 (타이밍 공격 방지를 위한 상수 시간 비교)
             String data = nonce + ":" + timestamp;
-            String expectedHmac = calculateHmac(data);
+            String expectedHmac = authHashUtil.hash(data);
             boolean isValid = SecurityUtils.constantTimeEquals(hmac, expectedHmac);
             
             if (!isValid) {
@@ -118,28 +115,6 @@ public class OAuth2StateService {
         } catch (Exception e) {
             log.debug("OAuth2 State 검증 중 예외 발생: state={}, error={}", SensitiveDataMasker.maskToken(state), e.getMessage());
             return false;
-        }
-    }
-
-    /**
-     * HMAC-SHA256 계산
-     * 
-     * @param data 원본 데이터
-     * @return Base64 인코딩된 HMAC 값
-     */
-    private String calculateHmac(String data) {
-        try {
-            Mac mac = Mac.getInstance(HMAC_ALGORITHM);
-            SecretKeySpec secretKeySpec = new SecretKeySpec(
-                    properties.getHmacSecret().getBytes(StandardCharsets.UTF_8),
-                    HMAC_ALGORITHM
-            );
-            mac.init(secretKeySpec);
-            byte[] hmacBytes = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            return Base64.getUrlEncoder().encodeToString(hmacBytes);
-        } catch (Exception e) {
-            log.error("HMAC 계산 실패", e);
-            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, "HMAC 계산 실패", e);
         }
     }
 
