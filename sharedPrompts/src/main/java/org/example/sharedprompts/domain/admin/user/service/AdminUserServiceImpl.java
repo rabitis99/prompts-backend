@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.admin.service;
+package org.example.sharedprompts.domain.admin.user.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +13,7 @@ import org.example.sharedprompts.dto.admin.request.UserRoleChangeRequestDto;
 import org.example.sharedprompts.dto.admin.response.AdminUserResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
-import org.example.sharedprompts.global.jwt.service.UserTokenInvalidationService;
+import org.example.sharedprompts.domain.user.service.UserSecurityEvents;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,7 +28,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final AdminValidator adminValidator;
     private final AdminEntityFinder entityFinder;
     private final AdminAuditLogger adminAuditLogger;
-    private final UserTokenInvalidationService tokenInvalidationService;
+    private final UserSecurityEvents userSecurityEvents;
 
     @Override
     @Transactional(readOnly = true)
@@ -74,11 +74,11 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (blocked) {
             user.block();
             log.info("사용자 차단: userId={}, adminId={}", userId, adminId);
-            tokenInvalidationService.invalidateTokensOnBlock(userId);
+            userSecurityEvents.onAccountBlocked(userId);
         } else {
             user.unblock();
             log.info("사용자 차단 해제: userId={}, adminId={}", userId, adminId);
-            tokenInvalidationService.invalidateTokensOnUnblock(userId);
+            userSecurityEvents.onAccountUnblocked(userId);
         }
 
         adminAuditLogger.logUserBlock(admin, userId, blocked);
@@ -114,7 +114,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         log.info("사용자 권한 변경: userId={}, oldRole={}, newRole={}, adminId={}",
                 userId, oldRole, requestDto.getRole(), adminId);
 
-        tokenInvalidationService.invalidateTokensOnRoleChange(userId);
+        userSecurityEvents.onRoleChanged(userId);
 
         User admin = entityFinder.findUserById(adminId);
         adminAuditLogger.logUserRoleChange(admin, userId, oldRole.name(), requestDto.getRole().name());
@@ -126,5 +126,4 @@ public class AdminUserServiceImpl implements AdminUserService {
         return keyword == null ? null : keyword.trim();
     }
 }
-
 

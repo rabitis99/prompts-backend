@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.admin.service;
+package org.example.sharedprompts.domain.admin.prompt.service;
 
 import org.example.sharedprompts.dto.admin.request.PromptVisibilityRequestDto;
 import org.example.sharedprompts.dto.admin.response.AdminPromptResponseDto;
@@ -17,5 +17,4 @@ public interface AdminPromptService {
 
     AdminPromptResponseDto togglePromptVisibility(Long promptId, Long adminId, PromptVisibilityRequestDto requestDto);
 }
-
 

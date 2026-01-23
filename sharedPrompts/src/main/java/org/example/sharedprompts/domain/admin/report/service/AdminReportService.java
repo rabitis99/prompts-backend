@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.admin.service;
+package org.example.sharedprompts.domain.admin.report.service;
 
 import org.example.sharedprompts.domain.report.enums.ReportStatus;
 import org.example.sharedprompts.dto.report.request.ReportProcessRequestDto;
@@ -15,5 +15,4 @@ public interface AdminReportService {
 
     ReportDetailResponseDto processReport(Long reportId, Long adminId, ReportProcessRequestDto requestDto);
 }
-
 

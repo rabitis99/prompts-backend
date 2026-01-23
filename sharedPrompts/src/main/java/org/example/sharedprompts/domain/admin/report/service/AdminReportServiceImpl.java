@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.admin.service;
+package org.example.sharedprompts.domain.admin.report.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.admin.validator.AdminValidator;
@@ -41,5 +41,4 @@ public class AdminReportServiceImpl implements AdminReportService {
         return reportService.processReport(reportId, adminId, requestDto);
     }
 }
-
 

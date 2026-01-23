@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.admin.service;
+package org.example.sharedprompts.domain.admin.audit.service;
 
 import java.time.LocalDateTime;
 import org.example.sharedprompts.domain.audit.enums.AuditAction;
@@ -18,5 +18,4 @@ public interface AdminAuditService {
             Pageable pageable
     );
 }
-
 

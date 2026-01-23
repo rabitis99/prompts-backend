@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.admin.service;
+package org.example.sharedprompts.domain.admin.audit.service;
 
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -39,5 +39,4 @@ public class AdminAuditServiceImpl implements AdminAuditService {
         return logs.map(AuditLogResponseDto::from);
     }
 }
-
 

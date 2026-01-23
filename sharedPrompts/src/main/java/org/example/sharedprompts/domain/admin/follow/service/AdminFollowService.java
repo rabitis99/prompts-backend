@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.admin.service;
+package org.example.sharedprompts.domain.admin.follow.service;
 
 import org.example.sharedprompts.domain.follow.FollowStatus;
 import org.example.sharedprompts.dto.user.response.UserResponseDto;
@@ -14,5 +14,4 @@ public interface AdminFollowService {
             Pageable pageable
     );
 }
-
 

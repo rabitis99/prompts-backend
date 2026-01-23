@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.admin.service;
+package org.example.sharedprompts.domain.admin.maintenance.service;
 
 import org.example.sharedprompts.dto.admin.response.RebuildLikeCountsStatusResponseDto;
 
@@ -22,6 +22,4 @@ public interface AdminMaintenanceService {
      */
     RebuildLikeCountsStatusResponseDto getRebuildLikeCountsStatus();
 }
-
-
 

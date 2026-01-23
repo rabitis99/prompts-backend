@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.admin.service;
+package org.example.sharedprompts.domain.admin.maintenance.service;
 
 import java.time.LocalDateTime;
 
@@ -103,6 +103,4 @@ public class AdminMaintenanceServiceImpl implements AdminMaintenanceService {
                 .build();
     }
 }
-
-
 

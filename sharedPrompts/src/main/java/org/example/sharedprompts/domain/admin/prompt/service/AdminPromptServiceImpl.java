@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.admin.service;
+package org.example.sharedprompts.domain.admin.prompt.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -95,5 +95,4 @@ public class AdminPromptServiceImpl implements AdminPromptService {
         return keyword == null ? null : keyword.trim();
     }
 }
-
 

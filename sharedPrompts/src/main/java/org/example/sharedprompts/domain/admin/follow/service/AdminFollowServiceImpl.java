@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.admin.service;
+package org.example.sharedprompts.domain.admin.follow.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.admin.validator.AdminValidator;
@@ -44,5 +44,4 @@ public class AdminFollowServiceImpl implements AdminFollowService {
         return page.map(UserResponseDto::from);
     }
 }
-
 

@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.admin.service;
+package org.example.sharedprompts.domain.admin.user.service;
 
 import org.example.sharedprompts.dto.admin.request.UserBlockRequestDto;
 import org.example.sharedprompts.dto.admin.request.UserRoleChangeRequestDto;
@@ -18,5 +18,4 @@ public interface AdminUserService {
 
     AdminUserResponseDto changeUserRole(Long userId, Long adminId, UserRoleChangeRequestDto requestDto);
 }
-
 
