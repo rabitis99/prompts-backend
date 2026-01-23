@@ -40,9 +40,6 @@ public class NotificationSseService {
     @Value("${notification.sse.timeout:1800000}")
     private long sseTimeout;
 
-    @Value("${notification.sse.cleanup-interval:300000}")
-    private long cleanupInterval;
-
     @PostConstruct
     public void init() {
         // Redis Pub/Sub은 필요시 구현

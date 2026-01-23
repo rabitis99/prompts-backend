@@ -10,7 +10,7 @@ import org.example.sharedprompts.domain.notification.repository.NotificationRepo
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.domain.notification.event.NotificationSavedEvent;
-import org.example.sharedprompts.global.config.RabbitMQConfig;
+import org.example.sharedprompts.infra.messaging.RabbitMQConfig;
 import org.example.sharedprompts.global.exception.ApiException;
 import io.micrometer.core.instrument.Timer;
 import jakarta.validation.Valid;

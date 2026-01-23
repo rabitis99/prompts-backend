@@ -10,6 +10,18 @@ import org.example.sharedprompts.global.entity.BaseEntity;
     name = "follows",
     uniqueConstraints = {
         @UniqueConstraint(columnNames = {"follower_id", "following_id"})
+    },
+    indexes = {
+        // 추가된 인덱스 목록 (우선순위: 필수)
+        // 팔로잉 목록 조회 최적화
+        @Index(name = "idx_follows_follower_status", columnList = "follower_id, status"),
+        // 팔로워 목록 조회 최적화
+        @Index(name = "idx_follows_following_status", columnList = "following_id, status"),
+        // 상태별 통계 조회 최적화
+        @Index(name = "idx_follows_status_created_at", columnList = "status, created_at"),
+        // 팔로워/팔로잉 목록 조회 시 정렬 최적화
+        @Index(name = "idx_follows_follower_status_created_at", columnList = "follower_id, status, created_at"),
+        @Index(name = "idx_follows_following_status_created_at", columnList = "following_id, status, created_at")
     }
 )
 @Getter

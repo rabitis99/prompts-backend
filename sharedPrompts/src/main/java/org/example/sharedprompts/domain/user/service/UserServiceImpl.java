@@ -8,6 +8,7 @@ import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.enums.Provider;
 import org.example.sharedprompts.domain.user.enums.Role;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
+import org.example.sharedprompts.domain.user.validator.PasswordStrengthValidator;
 import org.example.sharedprompts.dto.follow.response.FollowCountResponseDto;
 import org.example.sharedprompts.dto.user.request.PasswordChangeRequestDto;
 import org.example.sharedprompts.dto.user.request.UserUpdateRequestDto;
@@ -15,7 +16,7 @@ import org.example.sharedprompts.dto.user.response.UserPublicProfileDto;
 import org.example.sharedprompts.dto.user.response.UserResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
-import org.example.sharedprompts.global.jwt.service.UserTokenInvalidationService;
+import org.example.sharedprompts.global.util.HtmlSanitizer;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,8 +27,10 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final UserTokenInvalidationService tokenInvalidationService;
+    private final PasswordStrengthValidator passwordStrengthValidator;
+    private final UserSecurityEvents userSecurityEvents;
     private final FollowService followService;
+    private final HtmlSanitizer htmlSanitizer;
 
     @Override
     @Transactional(readOnly = true)
@@ -43,6 +46,9 @@ public class UserServiceImpl implements UserService {
     public UserResponseDto updateMyInfo(Long userId, UserUpdateRequestDto requestDto) {
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+
+        // 프로필 입력값 Sanitization
+        requestDto.sanitize(htmlSanitizer);
 
         requestDto.applyTo(user);
 
@@ -67,8 +73,14 @@ public class UserServiceImpl implements UserService {
             throw new ApiException(ErrorCode.SAME_AS_CURRENT_PASSWORD);
         }
 
+        // 비밀번호 강도 검증
+        passwordStrengthValidator.validate(requestDto.getNewPassword());
+
         String encodedPassword = passwordEncoder.encode(requestDto.getNewPassword());
         user.changePassword(encodedPassword);
+
+        // 비밀번호 변경 시 토큰 무효화
+        userSecurityEvents.onPasswordChanged(userId);
 
         return UserResponseDto.from(user);
     }
@@ -95,7 +107,7 @@ public class UserServiceImpl implements UserService {
         // Soft delete 수행
         // findByIdAndDeletedAtIsNull로 이미 삭제되지 않은 사용자만 조회되므로 추가 검증 불필요
         targetUser.softDelete();
-        tokenInvalidationService.invalidateTokensOnDelete(targetUserId);
+        userSecurityEvents.onAccountDeleted(targetUserId);
     }
 
     @Override

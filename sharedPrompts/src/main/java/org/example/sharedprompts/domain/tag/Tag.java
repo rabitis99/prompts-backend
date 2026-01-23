@@ -15,6 +15,11 @@ import org.example.sharedprompts.global.entity.BaseEntity;
                         name = "uk_tag_name",
                         columnNames = "name"
                 )
+        },
+        indexes = {
+                // 추가된 인덱스 목록 (우선순위: 선택)
+                // 인기 태그 조회 최적화
+                @Index(name = "idx_tags_count", columnList = "count DESC")
         }
 )
 public class Tag extends BaseEntity {

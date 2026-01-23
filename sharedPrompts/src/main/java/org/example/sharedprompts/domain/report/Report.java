@@ -26,6 +26,19 @@ import org.example.sharedprompts.global.entity.BaseEntity;
                         name = "uk_report_comment_reporter",
                         columnNames = {"comment_id", "reporter_id"}
                 )
+        },
+        indexes = {
+                // 추가된 인덱스 목록 (우선순위: 필수)
+                // 대기 중인 신고를 최신순으로 조회
+                @Index(name = "idx_reports_status_created_at", columnList = "status, created_at"),
+                // 타입별 상태 필터링
+                @Index(name = "idx_reports_type_status", columnList = "report_type, status"),
+                // 사용자별 신고 조회
+                @Index(name = "idx_reports_reporter", columnList = "reporter_id"),
+                // 관리자가 처리한 신고 조회
+                @Index(name = "idx_reports_processor", columnList = "processor_id"),
+                // 관리자 대시보드용 복합 인덱스
+                @Index(name = "idx_reports_type_status_created_at", columnList = "report_type, status, created_at")
         }
 )
 public class Report extends BaseEntity {

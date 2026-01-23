@@ -6,8 +6,8 @@ import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.like.service.LikeService;
 import org.example.sharedprompts.dto.like.response.CommentLikeResponseDto;
 import org.example.sharedprompts.dto.like.response.PromptLikeResponseDto;
-import org.example.sharedprompts.global.response.CustomResponse;
-import org.example.sharedprompts.global.response.CustomResponseHelper;
+import org.example.sharedprompts.dto.common.CustomResponse;
+import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
