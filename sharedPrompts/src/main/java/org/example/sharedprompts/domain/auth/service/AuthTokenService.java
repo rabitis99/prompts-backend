@@ -80,15 +80,20 @@ public class AuthTokenService {
         
         String newRefreshToken;
         if (remainingTtlMillis < thresholdMillis) {
-            // Access + Refresh 둘 다 재발급
+            // Access + Refresh 둘 다 재발급 (전체 TTL로 저장)
             newRefreshToken = jwtTokenService.generateRefreshToken(user);
+            refreshTokenStore.save(newRefreshToken, user.getId(), context.getIp(), context.getUserAgent());
         } else {
-            // 회전하지 않을 경우 기존 토큰 유지 (재저장)
+            // 회전하지 않을 경우 기존 토큰 유지 (남은 TTL로 재저장하여 수명 갱신 방지)
             newRefreshToken = currentRefreshToken;
+            refreshTokenStore.saveWithTtl(
+                    newRefreshToken, 
+                    user.getId(), 
+                    context.getIp(), 
+                    context.getUserAgent(), 
+                    remainingTtlMillis
+            );
         }
-        
-        // Refresh Token 저장 (회전 여부와 관계없이 항상 저장)
-        refreshTokenStore.save(newRefreshToken, user.getId(), context.getIp(), context.getUserAgent());
         
         tokenRedisService.saveAccessToken(newAccessToken, user.getId());
         

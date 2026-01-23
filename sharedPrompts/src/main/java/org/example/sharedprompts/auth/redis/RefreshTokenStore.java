@@ -11,7 +11,7 @@ import java.util.Set;
 public interface RefreshTokenStore {
     
     /**
-     * Refresh Token 저장
+     * Refresh Token 저장 (기본 TTL 사용)
      * 
      * @param token Refresh Token
      * @param userId 사용자 ID
@@ -19,6 +19,19 @@ public interface RefreshTokenStore {
      * @param userAgent User-Agent 헤더 값
      */
     void save(String token, Long userId, String ip, String userAgent);
+    
+    /**
+     * Refresh Token 저장 (지정된 TTL 사용)
+     * 
+     * <p>회전하지 않는 경우 남은 TTL을 유지하기 위해 사용합니다.
+     * 
+     * @param token Refresh Token
+     * @param userId 사용자 ID
+     * @param ip 클라이언트 IP 주소
+     * @param userAgent User-Agent 헤더 값
+     * @param ttlMillis TTL (밀리초)
+     */
+    void saveWithTtl(String token, Long userId, String ip, String userAgent, long ttlMillis);
     
     /**
      * Refresh Token 조회 및 삭제 (1회용 보장)

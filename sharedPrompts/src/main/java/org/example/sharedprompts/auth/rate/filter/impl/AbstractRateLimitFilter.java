@@ -32,11 +32,16 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
     protected final RateLimitKeyStrategy keyStrategy;
 
     /**
-     * filterChain.doFilter 이중 호출 방지를 위한 플래그
+     * 응답 처리 완료 여부를 나타내는 플래그 (스레드별로 독립적)
      * 
-     * 예외 발생 시 catch 블록에서 다시 호출되는 것을 방지합니다.
+     * filterChain.doFilter() 호출 또는 rate limit 초과 응답 작성 등
+     * 응답이 처리되었는지 여부를 추적합니다.
+     * 예외 발생 시 catch 블록에서 이중 처리 방지를 위해 사용됩니다.
+     * 
+     * ThreadLocal을 사용하여 각 요청 스레드별로 독립적인 값을 유지합니다.
+     * OncePerRequestFilter는 싱글톤이므로 인스턴스 필드는 모든 요청 간에 공유됩니다.
      */
-    private boolean filterChainInvoked = false;
+    private static final ThreadLocal<Boolean> responseHandled = ThreadLocal.withInitial(() -> false);
 
     @Override
     protected void doFilterInternal(
@@ -44,14 +49,14 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        // 플래그 초기화
-        filterChainInvoked = false;
+        // 플래그 초기화 (스레드별로 독립적)
+        responseHandled.set(false);
 
         try {
             // 필터 적용 전 검증 (하위 클래스에서 구현)
             if (!shouldApplyFilter(request, response, filterChain)) {
                 filterChain.doFilter(request, response);
-                filterChainInvoked = true;
+                responseHandled.set(true);
                 return;
             }
 
@@ -62,7 +67,7 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             Optional<RateLimitRule> ruleOpt = facade.getRuleResolutionService().resolveRule(request);
             if (ruleOpt.isEmpty()) {
                 filterChain.doFilter(request, response);
-                filterChainInvoked = true;
+                responseHandled.set(true);
                 return;
             }
 
@@ -80,7 +85,7 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             // 키 생성 실패 시 요청 허용
             if (resultOpt.isEmpty()) {
                 filterChain.doFilter(request, response);
-                filterChainInvoked = true;
+                responseHandled.set(true);
                 return;
             }
 
@@ -90,8 +95,8 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
 
         } catch (Exception e) {
             // 예외 발생 시 요청 허용 (Fail Open 정책)
-            // 이미 filterChain을 호출한 경우 예외를 재발생시켜 이중 호출 방지
-            if (filterChainInvoked) {
+            // 이미 응답이 처리된 경우 예외를 재발생시켜 이중 처리 방지
+            if (responseHandled.get()) {
                 if (e instanceof ServletException) {
                     throw (ServletException) e;
                 } else if (e instanceof IOException) {
@@ -100,9 +105,12 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
                     throw new ServletException(e);
                 }
             }
-            // filterChain을 호출하지 않은 경우에만 호출
+            // 응답이 처리되지 않은 경우에만 filterChain 호출
             filterChain.doFilter(request, response);
-            filterChainInvoked = true;
+            responseHandled.set(true);
+        } finally {
+            // ThreadLocal 메모리 누수 방지를 위해 정리
+            responseHandled.remove();
         }
     }
 
@@ -141,11 +149,11 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
                     response,
                     (k, r) -> {} // 로그는 이미 기록됨
             );
-            filterChainInvoked = true;
+            responseHandled.set(true);
         } else {
             // Rate Limit 통과
             filterChain.doFilter(request, response);
-            filterChainInvoked = true;
+            responseHandled.set(true);
         }
     }
 

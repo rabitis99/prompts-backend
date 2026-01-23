@@ -2,7 +2,9 @@ package org.example.sharedprompts.global.redis;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.global.constant.Constant;
-import org.example.sharedprompts.global.jwt.TokenTtlProperties;
+import org.example.sharedprompts.auth.jwt.config.TokenTtlProperties;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -31,7 +33,7 @@ public class TokenRedisServiceImpl implements TokenRedisService {
         redisTemplate.opsForValue().set(
                 ACCESS_PREFIX + token,
                 String.valueOf(userId),
-                Duration.ofMinutes(ttlConfig.getAccessTokenValidity())
+                Duration.ofMillis(ttlConfig.getAccessTokenValidityMillis())
         );
     }
 
@@ -65,13 +67,18 @@ public class TokenRedisServiceImpl implements TokenRedisService {
     // 🔹 Refresh Token 관리 (개별 키 + 사용자별 Set)
     // =========================
 
+    /**
+     * @deprecated 이 메서드는 더 이상 사용되지 않습니다.
+     * {@link org.example.sharedprompts.auth.redis.RefreshTokenStore#save(String, Long, String, String)}를 사용하세요.
+     */
     @Override
+    @Deprecated(since = "1.0", forRemoval = true)
     public void saveRefreshToken(String token, Long userId) {
         String key = REFRESH_PREFIX + token;
         redisTemplate.opsForValue().set(
                 key,
                 String.valueOf(userId),
-                Duration.ofMinutes(ttlConfig.getRefreshTokenValidity())
+                Duration.ofMillis(ttlConfig.getRefreshTokenValidityMillis())
         );
 
         String userKey = REFRESH_SET_PREFIX + userId;
@@ -81,7 +88,7 @@ public class TokenRedisServiceImpl implements TokenRedisService {
         boolean setExists = Boolean.TRUE.equals(redisTemplate.hasKey(userKey));
         redisTemplate.opsForSet().add(userKey, token);
         if (!setExists) {
-            redisTemplate.expire(userKey, Duration.ofMinutes(ttlConfig.getRefreshTokenValidity()));
+            redisTemplate.expire(userKey, Duration.ofMillis(ttlConfig.getRefreshTokenValidityMillis()));
         }
     }
 
@@ -148,13 +155,15 @@ public class TokenRedisServiceImpl implements TokenRedisService {
                 .collect(Collectors.toMap(
                         e -> {
                             if (!(e.getKey() instanceof String)) {
-                                throw new IllegalStateException("Redis hash key is not a String: " + e.getKey());
+                                throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, null, 
+                                        "Redis hash key is not a String: " + e.getKey());
                             }
                             return (String) e.getKey();
                         },
                         e -> {
                             if (!(e.getValue() instanceof String)) {
-                                throw new IllegalStateException("Redis hash value is not a String: " + e.getValue());
+                                throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, null, 
+                                        "Redis hash value is not a String: " + e.getValue());
                             }
                             return (String) e.getValue();
                         }

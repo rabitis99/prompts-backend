@@ -1,13 +1,17 @@
 package org.example.sharedprompts.auth.redis;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.global.Lua.LuaScripts;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.Collections;
 
 /**
  * Token Version 저장소 구현체
@@ -23,11 +27,21 @@ public class TokenVersionStoreImpl implements TokenVersionStore {
     private static final int DEFAULT_TTL_DAYS = 365;
 
     private final StringRedisTemplate redisTemplate;
+    
+    private DefaultRedisScript<Long> incrementWithTtlScript;
+    
+    @PostConstruct
+    public void init() {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptText(LuaScripts.INCREMENT_WITH_TTL);
+        script.setResultType(Long.class);
+        this.incrementWithTtlScript = script;
+    }
 
     @Override
     public Long get(Long userId) {
         if (userId == null) {
-            throw new IllegalArgumentException("userId는 null일 수 없습니다.");
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "userId", "userId는 null일 수 없습니다.");
         }
 
         try {
@@ -48,13 +62,19 @@ public class TokenVersionStoreImpl implements TokenVersionStore {
     @Override
     public void increment(Long userId) {
         if (userId == null) {
-            throw new IllegalArgumentException("userId는 null일 수 없습니다.");
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "userId", "userId는 null일 수 없습니다.");
         }
 
         try {
             String key = RedisKeyFactory.tokenVersion(userId);
-            redisTemplate.opsForValue().increment(key);
-            redisTemplate.expire(key, Duration.ofDays(DEFAULT_TTL_DAYS));
+            // Lua 스크립트를 사용하여 INCR + EXPIRE를 원자적으로 수행
+            // TTL은 초 단위로 전달 (365일 = 365 * 24 * 60 * 60 초)
+            long ttlSeconds = Duration.ofDays(DEFAULT_TTL_DAYS).getSeconds();
+            redisTemplate.execute(
+                    incrementWithTtlScript,
+                    Collections.singletonList(key),
+                    String.valueOf(ttlSeconds)
+            );
         } catch (Exception e) {
             log.error("Token Version 증가 실패: userId={}", userId, e);
             throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
@@ -64,7 +84,7 @@ public class TokenVersionStoreImpl implements TokenVersionStore {
     @Override
     public void initialize(Long userId) {
         if (userId == null) {
-            throw new IllegalArgumentException("userId는 null일 수 없습니다.");
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "userId", "userId는 null일 수 없습니다.");
         }
 
         try {
@@ -97,7 +117,7 @@ public class TokenVersionStoreImpl implements TokenVersionStore {
     @Override
     public void delete(Long userId) {
         if (userId == null) {
-            throw new IllegalArgumentException("userId는 null일 수 없습니다.");
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "userId", "userId는 null일 수 없습니다.");
         }
 
         try {

@@ -1,6 +1,7 @@
 package org.example.sharedprompts.auth.jwt.service;
 
 import io.jsonwebtoken.Claims;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.auth.jwt.util.JwtTokenGenerator;
 import org.example.sharedprompts.auth.jwt.util.JwtTokenParser;
@@ -28,7 +29,18 @@ public class JwtTokenService {
     private final JwtTokenParser tokenParser;
     private final TokenVersionStore tokenVersionStore;
 
-    public TokenResponseDto getToken(User user) {
+    /**
+     * Access Token과 Refresh Token을 모두 생성하여 반환
+     * 
+     * @param user 사용자 (null이 아니어야 함)
+     * @return TokenResponseDto
+     * @throws ApiException user가 null인 경우
+     */
+    public TokenResponseDto getToken(@NonNull User user) {
+        if (user == null) {
+            throw new ApiException(ErrorCode.USER_NOT_FOUND);
+        }
+        
         Long tokenVersion = getTokenVersion(user.getId());
         
         String accessToken = tokenGenerator.generateAccessToken(
@@ -46,11 +58,31 @@ public class JwtTokenService {
         return new TokenResponseDto(accessToken, refreshToken);
     }
 
-    public String generateAccessToken(User user) {
+    /**
+     * Access Token 생성 (User 객체 기반)
+     * 
+     * @param user 사용자 (null이 아니어야 함)
+     * @return Access Token
+     * @throws ApiException user가 null인 경우
+     */
+    public String generateAccessToken(@NonNull User user) {
+        if (user == null) {
+            throw new ApiException(ErrorCode.USER_NOT_FOUND);
+        }
         return generateAccessToken(user.getId(), user.getRole());
     }
 
-    public String generateRefreshToken(User user) {
+    /**
+     * Refresh Token 생성 (User 객체 기반)
+     * 
+     * @param user 사용자 (null이 아니어야 함)
+     * @return Refresh Token
+     * @throws ApiException user가 null인 경우
+     */
+    public String generateRefreshToken(@NonNull User user) {
+        if (user == null) {
+            throw new ApiException(ErrorCode.USER_NOT_FOUND);
+        }
         return generateRefreshToken(user.getId(), user.getRole());
     }
 
@@ -76,11 +108,10 @@ public class JwtTokenService {
      * 사용자의 tokenVersion 조회 (캐시에서 가져오거나 없으면 0 반환)
      * 
      * @param userId 사용자 ID
-     * @return tokenVersion
+     * @return tokenVersion (값이 없으면 0L 반환)
      */
     private Long getTokenVersion(Long userId) {
-        Long version = tokenVersionStore.get(userId);
-        return version != null ? version : 0L;
+        return tokenVersionStore.get(userId);
     }
 
     public Claims getClaims(String token) {

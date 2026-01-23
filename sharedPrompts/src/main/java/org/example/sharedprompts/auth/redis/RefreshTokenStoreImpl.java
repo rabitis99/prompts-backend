@@ -47,9 +47,14 @@ public class RefreshTokenStoreImpl implements RefreshTokenStore {
 
     @Override
     public void save(String token, Long userId, String ip, String userAgent) {
+        long ttlMillis = ttlProperties.getRefreshTokenValidityMillis();
+        saveWithTtl(token, userId, ip, userAgent, ttlMillis);
+    }
+    
+    @Override
+    public void saveWithTtl(String token, Long userId, String ip, String userAgent, long ttlMillis) {
         try {
             String key = RedisKeyFactory.refreshToken(token);
-            long ttlMillis = ttlProperties.getRefreshTokenValidityMillis();
             Duration ttl = Duration.ofMillis(ttlMillis);
             
             // 토큰 저장

@@ -7,6 +7,7 @@ import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.util.RandomGenerator;
 import org.example.sharedprompts.global.util.SecurityUtils;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -76,7 +77,7 @@ public class OAuth2StateService {
         // 1. Redis에서 조회 및 삭제 (1회용 보장)
         String value = redisTemplate.opsForValue().getAndDelete(key);
         if (value == null) {
-            log.debug("OAuth2 State 검증 실패: Redis에 없거나 이미 사용됨 - state={}", state);
+            log.debug("OAuth2 State 검증 실패: Redis에 없거나 이미 사용됨 - state={}", SensitiveDataMasker.maskToken(state));
             return false; // 이미 사용되었거나 만료됨
         }
 
@@ -88,7 +89,7 @@ public class OAuth2StateService {
             );
             String[] parts = decoded.split(":");
             if (parts.length != 3) {
-                log.debug("OAuth2 State 형식 오류: parts.length={}, state={}", parts.length, state);
+                log.debug("OAuth2 State 형식 오류: parts.length={}, state={}", parts.length, SensitiveDataMasker.maskToken(state));
                 return false;
             }
 
@@ -100,7 +101,7 @@ public class OAuth2StateService {
             long age = System.currentTimeMillis() - timestamp;
             if (age > properties.getStateValidityMillis()) {
                 log.debug("OAuth2 State 만료: age={}ms, validity={}ms, state={}", 
-                        age, properties.getStateValidityMillis(), state);
+                        age, properties.getStateValidityMillis(), SensitiveDataMasker.maskToken(state));
                 return false;
             }
 
@@ -110,12 +111,12 @@ public class OAuth2StateService {
             boolean isValid = SecurityUtils.constantTimeEquals(hmac, expectedHmac);
             
             if (!isValid) {
-                log.warn("OAuth2 State HMAC 검증 실패: state={}", state);
+                log.warn("OAuth2 State HMAC 검증 실패: state={}", SensitiveDataMasker.maskToken(state));
             }
             
             return isValid;
         } catch (Exception e) {
-            log.debug("OAuth2 State 검증 중 예외 발생: state={}, error={}", state, e.getMessage());
+            log.debug("OAuth2 State 검증 중 예외 발생: state={}, error={}", SensitiveDataMasker.maskToken(state), e.getMessage());
             return false;
         }
     }

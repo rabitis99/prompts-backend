@@ -1,6 +1,5 @@
 package org.example.sharedprompts.auth.security.config;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.auth.oauth.CustomOAuth2UserService;
 import org.example.sharedprompts.auth.oauth.handler.OAuth2FailureHandler;
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Component;
  * 기본 HttpSessionOAuth2AuthorizationRequestRepository는 STATELESS 모드에서 작동하지 않으므로
  * 쿠키 기반 저장소를 사용합니다.
  */
-@Getter
 @Component
 @RequiredArgsConstructor
 public class OAuth2Components {

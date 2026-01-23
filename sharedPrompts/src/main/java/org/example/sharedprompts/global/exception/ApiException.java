@@ -32,14 +32,18 @@ public class ApiException extends RuntimeException {
     }
 
     public ApiException(ErrorCode errorCode, String fieldName, String customMessage) {
-        super(customMessage != null && !customMessage.isEmpty() ? customMessage : errorCode.getMessage());
+        super(getMessage(customMessage, errorCode));
         this.errorCode = errorCode;
         this.fieldName = fieldName;
     }
 
     public ApiException(ErrorCode errorCode, String fieldName, String customMessage, Throwable cause) {
-        super(customMessage != null && !customMessage.isEmpty() ? customMessage : errorCode.getMessage(), cause);
+        super(getMessage(customMessage, errorCode), cause);
         this.errorCode = errorCode;
         this.fieldName = fieldName;
+    }
+
+    private static String getMessage(String customMessage, ErrorCode errorCode) {
+        return customMessage != null && !customMessage.isEmpty() ? customMessage : errorCode.getMessage();
     }
 }

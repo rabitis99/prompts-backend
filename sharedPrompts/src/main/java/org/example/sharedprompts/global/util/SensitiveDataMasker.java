@@ -18,6 +18,7 @@ public class SensitiveDataMasker {
     private static final int TOKEN_VISIBLE_PREFIX_LENGTH = 4;
     private static final int TOKEN_VISIBLE_SUFFIX_LENGTH = 4;
     private static final int MIN_TOKEN_LENGTH = 8;
+    private static final double MIN_MASKING_RATIO = 0.5; // 최소 50% 마스킹 보장
 
     /**
      * 이메일 주소를 마스킹합니다.
@@ -69,13 +70,15 @@ public class SensitiveDataMasker {
      * 
      * <p>마스킹 규칙:
      * <ul>
-     *   <li>앞 4자리와 뒤 4자리만 표시하고 나머지는 마스킹</li>
+     *   <li>앞 4자리와 뒤 4자리만 표시하고 나머지는 마스킹 (기본)</li>
+     *   <li>최소 50% 이상 마스킹을 보장 (짧은 토큰의 경우 더 많은 부분 마스킹)</li>
      *   <li>토큰이 너무 짧은 경우: 전체 마스킹</li>
      * </ul>
      * 
      * <p>예시:
      * <ul>
      *   <li>abcdefghijklmnopqrstuvwxyz -> abcd...wxyz</li>
+     *   <li>123456789 -> 12...89 (최소 마스킹 비율 보장)</li>
      *   <li>short -> ***</li>
      * </ul>
      * 
@@ -87,10 +90,22 @@ public class SensitiveDataMasker {
             return MASK;
         }
         
-        // 앞 4자리와 뒤 4자리만 표시, 나머지는 마스킹
-        return token.substring(0, TOKEN_VISIBLE_PREFIX_LENGTH) + 
+        int tokenLength = token.length();
+        int maxVisibleLength = (int) (tokenLength * (1 - MIN_MASKING_RATIO));
+        
+        // 최소 마스킹 비율을 보장하기 위해 표시할 수 있는 최대 길이 계산
+        int visiblePrefixLength = Math.min(TOKEN_VISIBLE_PREFIX_LENGTH, maxVisibleLength / 2);
+        int visibleSuffixLength = Math.min(TOKEN_VISIBLE_SUFFIX_LENGTH, maxVisibleLength / 2);
+        
+        // 표시할 부분의 총 길이가 토큰 길이보다 크거나 같으면 전체 마스킹
+        if (visiblePrefixLength + visibleSuffixLength >= tokenLength) {
+            return MASK;
+        }
+        
+        // 앞 부분과 뒤 부분만 표시, 나머지는 마스킹
+        return token.substring(0, visiblePrefixLength) + 
                "..." + 
-               token.substring(token.length() - TOKEN_VISIBLE_SUFFIX_LENGTH);
+               token.substring(tokenLength - visibleSuffixLength);
     }
 
     /**

@@ -16,6 +16,11 @@ public interface TokenRedisService {
     boolean isAccessTokenValidWithUserId(String accessToken, Long userId);
 
     // Refresh Token 관리
+    /**
+     * @deprecated 이 메서드는 더 이상 사용되지 않습니다.
+     * {@link org.example.sharedprompts.auth.redis.RefreshTokenStore#save(String, Long, String, String)}를 사용하세요.
+     */
+    @Deprecated(since = "1.0", forRemoval = true)
     void saveRefreshToken(String token, Long userId);
     
     boolean isRefreshTokenValid(String token, Long userId);

@@ -1,0 +1,24 @@
+# =========================
+# 개발 환경 설정
+# =========================
+# 개발 환경에서만 적용되는 설정입니다.
+# 로컬 개발 시 HTTPS를 사용하지 않는 경우 쿠키 Secure 플래그를 false로 설정합니다.
+
+spring:
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+auth:
+  cookie:
+    # 개발 환경에서는 HTTP를 사용하므로 Secure 플래그를 false로 설정
+    secure: false
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
