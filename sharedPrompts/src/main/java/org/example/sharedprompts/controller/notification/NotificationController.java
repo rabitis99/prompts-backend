@@ -7,8 +7,8 @@ import org.example.sharedprompts.domain.notification.service.NotificationService
 import org.example.sharedprompts.domain.notification.service.NotificationSseService;
 import org.example.sharedprompts.dto.notification.response.NotificationResponseDto;
 import org.example.sharedprompts.dto.notification.response.NotificationSummaryDto;
-import org.example.sharedprompts.global.response.CustomResponse;
-import org.example.sharedprompts.global.response.CustomResponseHelper;
+import org.example.sharedprompts.dto.common.CustomResponse;
+import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
