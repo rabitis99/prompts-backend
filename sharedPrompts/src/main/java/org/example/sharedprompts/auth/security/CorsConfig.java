@@ -48,7 +48,7 @@ public class CorsConfig {
      * <p>allowCredentials(true) 사용 시 "*" 단독 사용은 금지됩니다.
      *
      * @return 검증된 origin 목록
-     * @throws IllegalStateException "*" 단독 사용 시
+     * @throws ApiException "*" 단독 사용 시
      */
     private List<String> parseAndValidateOrigins() {
         List<String> origins = Arrays.stream(corsAllowedOrigins.split(","))
@@ -60,9 +60,8 @@ public class CorsConfig {
                 origins.size() == 1 && "*".equals(origins.get(0));
 
         if (isWildcardOnly) {
-            throw new IllegalStateException(
-                    "CORS 설정 오류: allowCredentials(true)에서는 '*' origin을 사용할 수 없습니다."
-            );
+            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR,
+                    "CORS 설정 오류: allowCredentials(true)에서는 '*' origin을 사용할 수 없습니다.");
         }
 
         return origins;
@@ -110,9 +109,13 @@ public class CorsConfig {
      *
      * <p>경로별로 다른 CORS 정책을 적용합니다:
      * <ul>
-     *   <li>/api/admin/**: 관리자 전용 CORS 정책</li>
+     *   <li>/admin/**: 관리자 전용 CORS 정책</li>
      *   <li>기타 경로: 기본 CORS 정책</li>
      * </ul>
+     *
+     * <p>주의: Spring Security의 필터 체인에서 CORS가 처리될 때,
+     * context-path(/api)는 이미 제거된 상태로 경로 매칭이 수행됩니다.
+     * 따라서 /admin/** 패턴을 사용해야 SecurityPathConstants.ADMIN_PATHS와 일치합니다.
      *
      * <p>Preflight(OPTIONS) 요청도 포함하여 처리합니다.
      *
@@ -126,8 +129,9 @@ public class CorsConfig {
                 new UrlBasedCorsConfigurationSource();
 
         // 관리자 API용 CORS 정책
+        // context-path(/api)가 제거된 상태이므로 /admin/** 패턴 사용
         CorsConfiguration adminConfig = createAdminCorsConfiguration(origins);
-        source.registerCorsConfiguration("/api/admin/**", adminConfig);
+        source.registerCorsConfiguration("/admin/**", adminConfig);
 
         // 기본 CORS 정책 (나머지 모든 경로)
         CorsConfiguration defaultConfig = createDefaultCorsConfiguration(origins);

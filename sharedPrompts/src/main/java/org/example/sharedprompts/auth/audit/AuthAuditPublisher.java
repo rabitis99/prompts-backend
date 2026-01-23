@@ -59,7 +59,12 @@ public class AuthAuditPublisher {
         if (user == null) {
             return;
         }
-        publish(AuthEventType.LOGIN_SUCCESS, user.getProvider(), user.getProviderId(), user.getId(), null);
+        loginSuccess(user.getProvider(), user.getProviderId(), user.getId());
+    }
+
+    /** provider, providerId, userId 직접 전달 로그인 성공 */
+    public void loginSuccess(Provider provider, String providerId, Long userId) {
+        publish(AuthEventType.LOGIN_SUCCESS, provider, providerId, userId, null);
     }
 
     // ===== 토큰 재발급 =====

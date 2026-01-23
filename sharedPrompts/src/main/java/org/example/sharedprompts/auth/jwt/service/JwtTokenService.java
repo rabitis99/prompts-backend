@@ -5,8 +5,11 @@ import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.auth.jwt.util.JwtTokenGenerator;
 import org.example.sharedprompts.auth.jwt.util.JwtTokenParser;
 import org.example.sharedprompts.domain.user.User;
+import org.example.sharedprompts.domain.user.enums.Role;
 import org.example.sharedprompts.auth.redis.TokenVersionStore;
 import org.example.sharedprompts.dto.auth.response.TokenResponseDto;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
 /**
@@ -44,21 +47,29 @@ public class JwtTokenService {
     }
 
     public String generateAccessToken(User user) {
-        Long tokenVersion = getTokenVersion(user.getId());
-        return tokenGenerator.generateAccessToken(
-                user.getId(),
-                user.getRole(),
-                tokenVersion
-        );
+        return generateAccessToken(user.getId(), user.getRole());
     }
 
     public String generateRefreshToken(User user) {
-        Long tokenVersion = getTokenVersion(user.getId());
-        return tokenGenerator.generateRefreshToken(
-                user.getId(),
-                user.getRole(),
-                tokenVersion
-        );
+        return generateRefreshToken(user.getId(), user.getRole());
+    }
+
+    /**
+     * Access Token 생성 (id, role 직접 전달)
+     * PrincipalDetails 등에서 직접 호출할 때 사용
+     */
+    public String generateAccessToken(Long userId, Role role) {
+        Long tokenVersion = getTokenVersion(userId);
+        return tokenGenerator.generateAccessToken(userId, role, tokenVersion);
+    }
+
+    /**
+     * Refresh Token 생성 (id, role 직접 전달)
+     * PrincipalDetails 등에서 직접 호출할 때 사용
+     */
+    public String generateRefreshToken(Long userId, Role role) {
+        Long tokenVersion = getTokenVersion(userId);
+        return tokenGenerator.generateRefreshToken(userId, role, tokenVersion);
     }
 
     /**
@@ -83,7 +94,9 @@ public class JwtTokenService {
         try {
             return Long.valueOf(sub);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("유효하지 않은 userId 형식: " + sub, e);
+            // JWT 토큰 파싱 중 발생하는 오류이므로 ApiException으로 처리
+            throw new ApiException(ErrorCode.UNAUTHORIZED, null, 
+                    "유효하지 않은 JWT 토큰 형식입니다.", e);
         }
     }
 

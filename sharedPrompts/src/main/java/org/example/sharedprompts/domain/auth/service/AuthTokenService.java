@@ -51,11 +51,17 @@ public class AuthTokenService {
      * 
      * @param user 사용자 (null이 아니어야 함)
      * @param metadata Refresh Token 메타데이터 (null이 아니어야 함, 이미 검증 및 조회 완료)
+     * @param currentRefreshToken 현재 Refresh Token (회전하지 않는 경우 재저장용)
      * @param request HTTP 요청 (IP/User-Agent 추출용)
      * @return 새로운 토큰 (Refresh Token은 조건부 재발급)
      * @throws ApiException user 또는 metadata가 null인 경우
      */
-    public TokenResponseDto reissue(User user, RefreshTokenMetadata metadata, HttpServletRequest request) {
+    public TokenResponseDto reissue(
+            User user,
+            RefreshTokenMetadata metadata,
+            String currentRefreshToken,
+            HttpServletRequest request
+    ) {
         // 방어적 프로그래밍: null 체크 (이미 AuthServiceImpl에서 검증되었지만 안전장치)
         if (user == null) {
             throw new ApiException(ErrorCode.USER_NOT_FOUND);
@@ -70,15 +76,19 @@ public class AuthTokenService {
         
         // 2. 재발급 전략 결정
         String newAccessToken = jwtTokenService.generateAccessToken(user);
+        RequestContext context = RequestContext.from(request);
         
-        String newRefreshToken = null;
+        String newRefreshToken;
         if (remainingTtlMillis < thresholdMillis) {
             // Access + Refresh 둘 다 재발급
             newRefreshToken = jwtTokenService.generateRefreshToken(user);
-            RequestContext context = RequestContext.from(request);
-            refreshTokenStore.save(newRefreshToken, user.getId(), context.getIp(), context.getUserAgent());
+        } else {
+            // 회전하지 않을 경우 기존 토큰 유지 (재저장)
+            newRefreshToken = currentRefreshToken;
         }
-        // else: Access만 재발급
+        
+        // Refresh Token 저장 (회전 여부와 관계없이 항상 저장)
+        refreshTokenStore.save(newRefreshToken, user.getId(), context.getIp(), context.getUserAgent());
         
         tokenRedisService.saveAccessToken(newAccessToken, user.getId());
         

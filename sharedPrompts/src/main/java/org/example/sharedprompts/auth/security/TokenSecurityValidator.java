@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.auth.redis.RefreshTokenMetadata;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.util.HttpRequestUtils;
 import org.springframework.stereotype.Service;
 
@@ -25,8 +27,14 @@ public class TokenSecurityValidator {
      * @param metadata 저장된 Refresh Token 메타데이터
      * @param request 현재 HTTP 요청
      * @return 검증 결과
+     * @throws ApiException metadata가 null인 경우
      */
     public TokenSecurityCheckResult validate(RefreshTokenMetadata metadata, HttpServletRequest request) {
+        if (metadata == null) {
+            log.warn("RefreshTokenMetadata가 null입니다. 보안 검증을 수행할 수 없습니다.");
+            throw new ApiException(ErrorCode.BAD_REQUEST, "RefreshTokenMetadata는 null일 수 없습니다.");
+        }
+        
         String currentIp = HttpRequestUtils.getClientIpAddress(request);
         String currentUserAgent = HttpRequestUtils.getUserAgent(request);
         

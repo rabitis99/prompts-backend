@@ -3,6 +3,10 @@ package org.example.sharedprompts.auth.oauth.state;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.auth.redis.RedisKeyFactory;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.global.util.RandomGenerator;
+import org.example.sharedprompts.global.util.SecurityUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +15,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
-import java.util.UUID;
 
 /**
  * OAuth2 State 검증 서비스
@@ -38,7 +41,7 @@ public class OAuth2StateService {
      * @return 생성된 State 값
      */
     public String generateState() {
-        String nonce = UUID.randomUUID().toString();
+        String nonce = RandomGenerator.randomUUID();
         long timestamp = System.currentTimeMillis();
         String data = nonce + ":" + timestamp;
         String hmac = calculateHmac(data);
@@ -101,10 +104,10 @@ public class OAuth2StateService {
                 return false;
             }
 
-            // 4. HMAC 검증
+            // 4. HMAC 검증 (타이밍 공격 방지를 위한 상수 시간 비교)
             String data = nonce + ":" + timestamp;
             String expectedHmac = calculateHmac(data);
-            boolean isValid = hmac.equals(expectedHmac);
+            boolean isValid = SecurityUtils.constantTimeEquals(hmac, expectedHmac);
             
             if (!isValid) {
                 log.warn("OAuth2 State HMAC 검증 실패: state={}", state);
@@ -135,8 +138,9 @@ public class OAuth2StateService {
             return Base64.getUrlEncoder().encodeToString(hmacBytes);
         } catch (Exception e) {
             log.error("HMAC 계산 실패", e);
-            throw new RuntimeException("HMAC 계산 실패", e);
+            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, "HMAC 계산 실패", e);
         }
     }
+
 }
 

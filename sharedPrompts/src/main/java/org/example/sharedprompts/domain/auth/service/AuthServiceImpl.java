@@ -25,6 +25,7 @@ import org.example.sharedprompts.dto.auth.response.AuthResponseDto;
 import org.example.sharedprompts.dto.auth.response.TokenResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.example.sharedprompts.global.util.RandomGenerator;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -73,7 +74,7 @@ public class AuthServiceImpl implements AuthService {
 
         User user = userRepository.findByProviderAndProviderId(Provider.LOCAL, email)
                 .orElseThrow(() -> {
-                    log.warn("Login failed - reason=USER_NOT_FOUND, email={}", email);
+                    log.warn("Login failed - reason=USER_NOT_FOUND, email={}", SensitiveDataMasker.maskEmail(email));
 
                     authAuditPublisher.loginFailByEmail(Provider.LOCAL, email, AuthFailReason.USER_NOT_FOUND);
 
@@ -81,7 +82,7 @@ public class AuthServiceImpl implements AuthService {
                 });
 
         if (!user.verifyPassword(dto.getPassword(), passwordVerifier)) {
-            log.warn("Login failed - reason=INVALID_PASSWORD, email={}", email);
+            log.warn("Login failed - reason=INVALID_PASSWORD, email={}", SensitiveDataMasker.maskEmail(email));
 
             authAuditPublisher.loginFailByUser(user, AuthFailReason.INVALID_PASSWORD);
 
@@ -99,11 +100,12 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public TokenResponseDto callback(String key, String state, HttpServletRequest request) {
         OAuthLoginPayload payload = oAuthLoginFlow.validate(key, state);
 
         User user = payload.user();
+        // authTokenService.issue()는 Redis에 토큰을 저장하므로 쓰기 작업이 필요합니다.
         TokenResponseDto tokenResponseDto = authTokenService.issue(user, request);
 
         authAuditPublisher.loginSuccessByUser(user);
@@ -133,8 +135,11 @@ public class AuthServiceImpl implements AuthService {
                     return new ApiException(ErrorCode.USER_NOT_FOUND);
                 });
 
-        // 4. 토큰 재발급 (메타데이터 전달)
-        TokenResponseDto tokenResponseDto = authTokenService.reissue(user, metadata, request);
+        // 4. 토큰 재발급 (메타데이터 및 현재 refresh 토큰 전달)
+        // getAndDelete로 이미 삭제되었으므로, 회전하지 않는 경우 재저장을 위해 현재 토큰 전달
+        TokenResponseDto tokenResponseDto = authTokenService.reissue(
+                user, metadata, dto.getRefreshToken(), request
+        );
 
         authAuditPublisher.tokenRefreshSuccessByUser(user);
 

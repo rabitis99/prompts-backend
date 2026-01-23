@@ -7,8 +7,6 @@ import org.example.sharedprompts.auth.audit.AuthAuditPublisher;
 import org.example.sharedprompts.auth.jwt.model.PrincipalDetails;
 import org.example.sharedprompts.auth.jwt.service.JwtTokenService;
 import org.example.sharedprompts.auth.oauth.state.OAuth2StateService;
-import org.example.sharedprompts.domain.user.User;
-import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.global.redis.TokenRedisService;
 import org.example.sharedprompts.global.util.RandomGenerator;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,7 +38,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final JwtTokenService jwtTokenService;
     private final TokenRedisService tokenRedisService;
     private final OAuth2StateService oAuth2StateService;
-    private final UserRepository userRepository;
     private final AuthAuditPublisher authAuditPublisher;
 
     @Value("${oauth2.redirect.front-url}")
@@ -53,22 +50,19 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         PrincipalDetails principal = (PrincipalDetails) authentication.getPrincipal();
 
-        // 사용자 조회
-        User user = userRepository.findById(principal.getId())
-                .orElseThrow(() -> new IllegalStateException(
-                        "OAuth2 인증 성공 후 사용자를 찾을 수 없습니다: userId=" + principal.getId()
-                ));
+        // JWT 토큰 생성 (PrincipalDetails의 정보 사용 - 중복 DB 조회 불필요)
+        String accessToken = jwtTokenService.generateAccessToken(
+                principal.getId(),
+                principal.getRole()
+        );
+        String refreshToken = jwtTokenService.generateRefreshToken(
+                principal.getId(),
+                principal.getRole()
+        );
 
-        // JWT 토큰 생성 (JwtTokenService가 tokenVersion 관리)
-        String accessToken = jwtTokenService.generateAccessToken(user);
-        String refreshToken = jwtTokenService.generateRefreshToken(user);
-
-        // OAuth2StateService를 사용하여 State 생성 (HMAC 검증 포함)
+        // OAuth2 State 및 임시 키 생성
         String state = oAuth2StateService.generateState();
-        
-        // SecureRandom 기반 임시 key 생성
         String tempKey = RandomGenerator.randomKey();
-
         String provider = principal.getProvider().name();
         String providerId = principal.getProviderId();
 
@@ -83,9 +77,13 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         );
 
         // 성공 로그 기록
-        authAuditPublisher.loginSuccessByUser(user);
+        authAuditPublisher.loginSuccess(
+                principal.getProvider(),
+                principal.getProviderId(),
+                principal.getId()
+        );
 
-        // 프론트로 리다이렉트 (key + state 전달)
+        // 프론트엔드로 리다이렉트
         String redirectUrl = frontRedirectUrl
                 + "?key=" + URLEncoder.encode(tempKey, StandardCharsets.UTF_8)
                 + "&state=" + URLEncoder.encode(state, StandardCharsets.UTF_8);

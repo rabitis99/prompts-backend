@@ -1,18 +1,22 @@
 package org.example.sharedprompts.auth.redis;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.auth.jwt.config.TokenTtlProperties;
+import org.example.sharedprompts.global.Lua.LuaScripts;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Refresh Token 저장소 구현체
@@ -27,6 +31,19 @@ public class RefreshTokenStoreImpl implements RefreshTokenStore {
 
     private final StringRedisTemplate redisTemplate;
     private final TokenTtlProperties ttlProperties;
+    
+    
+    @SuppressWarnings("rawtypes")
+    private DefaultRedisScript<List> getAndDeleteScript;
+    
+    @PostConstruct
+    public void init() {
+        @SuppressWarnings("rawtypes")
+        DefaultRedisScript<List> script = new DefaultRedisScript<>();
+        script.setScriptText(LuaScripts.GET_AND_DELETE_REFRESH_TOKEN);
+        script.setResultType(List.class);
+        this.getAndDeleteScript = script;
+    }
 
     @Override
     public void save(String token, Long userId, String ip, String userAgent) {
@@ -52,12 +69,13 @@ public class RefreshTokenStoreImpl implements RefreshTokenStore {
             redisTemplate.expire(metaKey, ttl);
             
             // 사용자별 Set에 추가
+            // TOCTOU 경쟁 조건 방지: add 후 항상 expire 호출
+            // Redis의 EXPIRE는 키가 없어도 에러를 발생시키지 않으므로 안전합니다.
             String userKey = RedisKeyFactory.refreshTokenSet(userId);
-            boolean setExists = Boolean.TRUE.equals(redisTemplate.hasKey(userKey));
             redisTemplate.opsForSet().add(userKey, token);
-            if (!setExists) {
-                redisTemplate.expire(userKey, ttl);
-            }
+            // 키가 이미 존재하면 TTL이 유지되거나 갱신되며, 없으면 새로 생성된 키에 TTL이 설정됩니다.
+            // 경쟁 조건을 방지하기 위해 항상 expire를 호출합니다.
+            redisTemplate.expire(userKey, ttl);
         } catch (DataAccessException e) {
             log.error("Refresh Token 저장 실패: userId={}", userId, e);
             throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
@@ -68,34 +86,36 @@ public class RefreshTokenStoreImpl implements RefreshTokenStore {
     public RefreshTokenMetadata getAndDelete(String token) {
         try {
             String key = RedisKeyFactory.refreshToken(token);
-            String userIdStr = redisTemplate.opsForValue().get(key);
+            String metaKey = key + ":meta";
+            String setKeyPrefix = RedisKeyFactory.getRefreshTokenSetPrefix();
             
-            if (userIdStr == null) {
+            // Lua 스크립트를 사용하여 원자적으로 조회 및 삭제
+            // 스크립트 내부에서 userId를 조회한 후 userSetKey를 동적으로 구성
+            @SuppressWarnings("unchecked")
+            List<String> result = redisTemplate.execute(
+                    getAndDeleteScript,
+                    List.of(key, metaKey),
+                    token,
+                    setKeyPrefix
+            );
+            
+            if (result == null || result.isEmpty()) {
                 return null; // 토큰이 없거나 이미 사용됨
             }
             
-            // Hash에서 메타데이터 조회
-            String metaKey = key + ":meta";
-            Map<Object, Object> metadata = redisTemplate.opsForHash().entries(metaKey);
-            String ip = (String) metadata.get("ip");
-            String userAgent = (String) metadata.get("userAgent");
+            // 결과 파싱: [userId, ip, userAgent, remainingTtlMillis]
+            String userIdStr = result.get(0);
+            String ip = result.size() > 1 ? result.get(1) : "";
+            String userAgent = result.size() > 2 ? result.get(2) : "";
+            long remainingTtlMillis = result.size() > 3 ? Long.parseLong(result.get(3)) : 0L;
             
-            // 남은 TTL 계산
-            Long ttl = redisTemplate.getExpire(key, TimeUnit.MILLISECONDS);
-            long remainingTtlMillis = ttl != null && ttl > 0 ? ttl : 0L;
-            
-            // 즉시 삭제 (1회용 보장)
-            redisTemplate.delete(key);
-            redisTemplate.delete(metaKey);
-            
-            // Set에서도 제거
             Long userId = Long.valueOf(userIdStr);
-            String userKey = RedisKeyFactory.refreshTokenSet(userId);
-            redisTemplate.opsForSet().remove(userKey, token);
-            
             return new RefreshTokenMetadata(userId, ip, userAgent, remainingTtlMillis);
         } catch (DataAccessException e) {
-            log.error("Refresh Token 조회/삭제 실패: token={}", token, e);
+            log.error("Refresh Token 조회/삭제 실패: token={}", SensitiveDataMasker.maskToken(token), e);
+            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
+        } catch (NumberFormatException e) {
+            log.error("Refresh Token 메타데이터 파싱 실패: token={}", SensitiveDataMasker.maskToken(token), e);
             throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
@@ -173,7 +193,7 @@ public class RefreshTokenStoreImpl implements RefreshTokenStore {
                 if (!Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
                     // 만료된 토큰 제거
                     redisTemplate.opsForSet().remove(userKey, token);
-                    log.debug("만료된 Refresh Token 정리: userId={}, token={}", userId, token);
+                    log.debug("만료된 Refresh Token 정리: userId={}", userId);
                 }
             }
         } catch (DataAccessException e) {

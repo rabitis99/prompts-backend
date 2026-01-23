@@ -143,15 +143,43 @@ jwt:
     expiration: ${JWT_ACCESS_EXPIRATION}
   refresh:
     expiration: ${JWT_REFRESH_EXPIRATION}
+    rotation-threshold-days: ${JWT_REFRESH_ROTATION_THRESHOLD_DAYS:1} # Refresh Token 회전 임계값 (일)
 
 # =========================
 # OAuth2 커스텀 정보
 # =========================
 oauth2:
   failure-redirect-url: ${OAUTH2_FAILURE_REDIRECT_URL}
+
+# =========================
+# 쿠키 보안 설정
+# =========================
+auth:
+  cookie:
+    # Secure 플래그: HTTPS 환경에서만 쿠키 전송
+    # 운영 환경에서는 true로 설정 권장
+    secure: ${AUTH_COOKIE_SECURE:false}
+    # SameSite 속성: "Strict", "Lax", "None"
+    # (Java Cookie API에서 직접 지원하지 않으므로 주석으로만 표시)
+    # same-site: Lax
   salt: ${OAUTH2_SALT}
+  state:
+    validity-minutes: ${OAUTH2_STATE_VALIDITY_MINUTES:10} # OAuth2 State 유효 기간 (분)
   redirect:
     front-url: ${OAUTH2_REDIRECT_FRONT_URL}
+
+# =========================
+# 비밀번호 정책
+# =========================
+password:
+  policy:
+    min-length: ${PASSWORD_MIN_LENGTH:10}
+    max-length: ${PASSWORD_MAX_LENGTH:100}
+    require-upper-case: ${PASSWORD_REQUIRE_UPPER_CASE:true}
+    require-lower-case: ${PASSWORD_REQUIRE_LOWER_CASE:true}
+    require-digit: ${PASSWORD_REQUIRE_DIGIT:true}
+    require-special-char: ${PASSWORD_REQUIRE_SPECIAL_CHAR:true}
+    special-chars: ${PASSWORD_SPECIAL_CHARS:!@#$%^&*()_+-=[]{}|;:,.<>?}
 
 # =========================
 # CORS
@@ -222,6 +250,38 @@ notification:
 statistics:
   cache:
     ttl: ${STATISTICS_CACHE_TTL:300} # 통계 데이터 캐시 TTL (초, 기본값: 5분)
+
+# =========================
+# Rate Limit 로그 정리 설정
+# =========================
+rate-limit:
+  log:
+    cleanup:
+      enabled: ${RATE_LIMIT_LOG_CLEANUP_ENABLED:true} # Rate Limit 로그 정리 활성화 여부
+      retention-days: ${RATE_LIMIT_LOG_CLEANUP_RETENTION_DAYS:90} # Rate Limit 로그 보관 기간 (일)
+
+# =========================
+# 애플리케이션 설정
+# =========================
+app:
+  redis:
+    hot-ttl-seconds: ${APP_REDIS_HOT_TTL_SECONDS:86400} # 핫 데이터 Redis TTL (초, 기본값: 1일)
+
+# =========================
+# Actuator 설정
+# =========================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus # 노출할 엔드포인트
+  endpoint:
+    health:
+      show-details: when-authorized # 인증된 사용자에게만 상세 정보 표시
+  metrics:
+    export:
+      prometheus:
+        enabled: true # Prometheus 메트릭 수집 활성화
 
 # =========================
 # 로깅

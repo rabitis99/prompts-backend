@@ -12,6 +12,21 @@ public class RedisKeyFactory {
     private static final String OAUTH_PREFIX = "oauth";
     
     /**
+     * Refresh Token Set 키의 prefix
+     * Lua 스크립트에서 동적으로 키를 구성할 때 사용됩니다.
+     */
+    public static final String REFRESH_TOKEN_SET_PREFIX = AUTH_PREFIX + ":refresh:set:";
+    
+    /**
+     * Refresh Token Set 키의 prefix를 반환합니다.
+     * 
+     * @return Refresh Token Set 키의 prefix
+     */
+    public static String getRefreshTokenSetPrefix() {
+        return REFRESH_TOKEN_SET_PREFIX;
+    }
+    
+    /**
      * Access Token 키 생성
      */
     public static String accessToken(String token) {

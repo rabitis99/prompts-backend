@@ -4,111 +4,92 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
-import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 
 /**
- * TokenVersionStore의 Redis 구현
+ * Token Version 저장소 구현체
  * 
- * 저장 형식: auth:version:{userId} = {version}
- * TTL: 365일 (사용자 삭제 시 수동 삭제, TTL은 안전장치 역할)
+ * Redis를 사용하여 사용자별 tokenVersion을 관리합니다.
  */
 @Slf4j
-@Service
+@Repository
 @RequiredArgsConstructor
 public class TokenVersionStoreImpl implements TokenVersionStore {
 
-    private static final long DEFAULT_TTL_DAYS = 365; // 1년 (실제로는 수동 삭제)
+    private static final String DEFAULT_VERSION = "0";
+    private static final int DEFAULT_TTL_DAYS = 365;
 
     private final StringRedisTemplate redisTemplate;
-    private final RefreshTokenStore refreshTokenStore;
 
     @Override
     public Long get(Long userId) {
         if (userId == null) {
-            throw new IllegalArgumentException("userId must not be null");
+            throw new IllegalArgumentException("userId는 null일 수 없습니다.");
         }
-        
-        String key = RedisKeyFactory.tokenVersion(userId);
-        String value;
-        
+
         try {
-            value = redisTemplate.opsForValue().get(key);
-        } catch (DataAccessException e) {
-            log.error("토큰 버전 조회 실패: userId={}", userId, e);
-            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
-        }
-        
-        if (value == null) {
-            // 캐시에 없으면 0 반환 (초기 버전)
-            return 0L;
-        }
-        
-        try {
-            return Long.valueOf(value);
+            String key = RedisKeyFactory.tokenVersion(userId);
+            String value = redisTemplate.opsForValue().get(key);
+            
+            if (value == null) {
+                return 0L;
+            }
+            
+            return Long.parseLong(value);
         } catch (NumberFormatException e) {
-            log.error("토큰 버전 형식 오류: userId={}, value={}", userId, value, e);
-            throw new ApiException(ErrorCode.TOKEN_VERSION_INCREMENT_FAILED);
+            log.error("Token Version 파싱 실패: userId={}", userId, e);
+            return 0L;
         }
     }
 
     @Override
     public void increment(Long userId) {
         if (userId == null) {
-            throw new IllegalArgumentException("userId must not be null");
+            throw new IllegalArgumentException("userId는 null일 수 없습니다.");
         }
-        
-        String key = RedisKeyFactory.tokenVersion(userId);
-        Long newVersion;
-        
+
         try {
-            newVersion = redisTemplate.opsForValue().increment(key);
-        } catch (DataAccessException e) {
-            log.error("토큰 버전 증가 실패: userId={}", userId, e);
+            String key = RedisKeyFactory.tokenVersion(userId);
+            redisTemplate.opsForValue().increment(key);
+            redisTemplate.expire(key, Duration.ofDays(DEFAULT_TTL_DAYS));
+        } catch (Exception e) {
+            log.error("Token Version 증가 실패: userId={}", userId, e);
             throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
-        
-        if (newVersion == null) {
-            log.error("토큰 버전 증가 실패: userId={}", userId);
-            throw new ApiException(ErrorCode.TOKEN_VERSION_INCREMENT_FAILED);
-        }
-        
-        // 새로 생성된 경우(버전이 1) TTL 설정
-        // 기존 키의 경우 TTL이 이미 설정되어 있으므로 재설정 불필요
-        if (newVersion == 1) {
-            try {
-                redisTemplate.expire(key, Duration.ofDays(DEFAULT_TTL_DAYS));
-            } catch (DataAccessException e) {
-                log.error("토큰 버전 TTL 설정 실패: userId={}", userId, e);
-                // TTL 설정 실패는 치명적이지 않으므로 경고만
-            }
-        }
-        
-        log.debug("토큰 버전 증가: userId={}, newVersion={}", userId, newVersion);
     }
 
     @Override
     public void initialize(Long userId) {
         if (userId == null) {
-            throw new IllegalArgumentException("userId must not be null");
+            throw new IllegalArgumentException("userId는 null일 수 없습니다.");
         }
-        
-        String key = RedisKeyFactory.tokenVersion(userId);
-        
+
         try {
+            String key = RedisKeyFactory.tokenVersion(userId);
             Boolean set = redisTemplate.opsForValue().setIfAbsent(
-                    key, "0", Duration.ofDays(DEFAULT_TTL_DAYS)
+                    key,
+                    DEFAULT_VERSION,
+                    Duration.ofDays(DEFAULT_TTL_DAYS)
             );
+            
+            // setIfAbsent가 null을 반환할 때 실패로 처리
+            if (set == null) {
+                log.error("토큰 버전 초기화 결과가 null: userId={}", userId);
+                throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
+            }
+            
             if (Boolean.FALSE.equals(set)) {
                 log.debug("토큰 버전 초기화 스킵(이미 존재): userId={}", userId);
             } else {
-                log.debug("토큰 버전 초기화: userId={}", userId);
+                log.debug("토큰 버전 초기화 완료: userId={}", userId);
             }
-        } catch (DataAccessException e) {
-            log.error("토큰 버전 초기화 실패: userId={}", userId, e);
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Token Version 초기화 실패: userId={}", userId, e);
             throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
@@ -116,22 +97,16 @@ public class TokenVersionStoreImpl implements TokenVersionStore {
     @Override
     public void delete(Long userId) {
         if (userId == null) {
-            throw new IllegalArgumentException("userId must not be null");
+            throw new IllegalArgumentException("userId는 null일 수 없습니다.");
         }
-        
-        String key = RedisKeyFactory.tokenVersion(userId);
-        
+
         try {
+            String key = RedisKeyFactory.tokenVersion(userId);
             redisTemplate.delete(key);
-            
-            // 관련 토큰도 삭제
-            refreshTokenStore.deleteAllByUser(userId);
-            
-            log.info("토큰 버전 삭제: userId={}", userId);
-        } catch (DataAccessException e) {
-            log.error("토큰 버전 삭제 실패: userId={}", userId, e);
+            log.debug("Token Version 삭제 완료: userId={}", userId);
+        } catch (Exception e) {
+            log.error("Token Version 삭제 실패: userId={}", userId, e);
             throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
 }
-
