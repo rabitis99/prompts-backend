@@ -52,15 +52,44 @@ public class AsyncConfig {
         executor.setThreadNamePrefix("rate-limit-log-async-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(30);
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        // 스레드 풀 포화 시 거부 정책: 로깅 후 호출 스레드에서 실행
+        executor.setRejectedExecutionHandler(createRateLimitRejectedHandler());
         executor.initialize();
         return executor;
     }
 
     /**
+     * Rate Limit 로그 TaskExecutor용 거부 정책 생성
+     * - 로깅 후 호출 스레드에서 실행하여 로그 유실 방지
+     *
+     * @return RejectedExecutionHandler
+     */
+    private RejectedExecutionHandler createRateLimitRejectedHandler() {
+        return new RejectedExecutionHandler() {
+            @Override
+            public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+                log.warn("Rate limit log task executor pool is saturated. " +
+                                "Active threads: {}, Queue size: {}, Pool size: {}. " +
+                                "Executing task in caller thread to prevent log loss.",
+                        executor.getActiveCount(),
+                        executor.getQueue().size(),
+                        executor.getPoolSize());
+
+                // 호출 스레드에서 직접 실행하여 로그 유실 방지
+                // CallerRunsPolicy와 동일한 동작이지만 로깅 추가
+                if (!executor.isShutdown()) {
+                    r.run();
+                } else {
+                    log.error("Task rejected because executor is shutdown");
+                }
+            }
+        };
+    }
+
+    /**
      * 스레드 풀 포화 시 거부 정책 생성
      * - 로깅 후 호출 스레드에서 실행하여 알림 유실 방지
-     * 
+     *
      * @return RejectedExecutionHandler
      */
     private RejectedExecutionHandler createRejectedExecutionHandler() {
@@ -68,12 +97,12 @@ public class AsyncConfig {
             @Override
             public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
                 log.warn("SSE task executor pool is saturated. " +
-                        "Active threads: {}, Queue size: {}, Pool size: {}. " +
-                        "Executing task in caller thread to prevent notification loss.",
+                                "Active threads: {}, Queue size: {}, Pool size: {}. " +
+                                "Executing task in caller thread to prevent notification loss.",
                         executor.getActiveCount(),
                         executor.getQueue().size(),
                         executor.getPoolSize());
-                
+
                 // 호출 스레드에서 직접 실행하여 알림 유실 방지
                 // CallerRunsPolicy와 동일한 동작이지만 로깅 추가
                 if (!executor.isShutdown()) {
