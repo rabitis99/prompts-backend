@@ -18,6 +18,13 @@ import org.example.sharedprompts.global.entity.BaseEntity;
                         name = "uk_prompt_like_prompt_user",
                         columnNames = {"prompt_id", "user_id"}
                 )
+        },
+        indexes = {
+                // 추가된 인덱스 목록 (우선순위: 권장)
+                // 사용자별 좋아요 이력 조회 시 정렬 최적화
+                @Index(name = "idx_prompt_likes_user_created_at", columnList = "user_id, created_at"),
+                // 프롬프트별 좋아요 조회 시 정렬 최적화
+                @Index(name = "idx_prompt_likes_prompt_created_at", columnList = "prompt_id, created_at")
         }
 )
 public class PromptLike extends BaseEntity {

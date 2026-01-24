@@ -14,7 +14,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PromptCountSyncScheduler {
 
-    private final PromptRepository promptRepository; // -> List<Long> findAllIdsAfter(Long lastId, Pageable)
+    private final PromptRepository promptRepository;
     private final PromptBatchService promptBatchService;
 
     private static final int BATCH_SIZE = 1000;

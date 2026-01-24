@@ -10,8 +10,8 @@ import org.example.sharedprompts.dto.statistics.response.PromptStatisticsRespons
 import org.example.sharedprompts.dto.statistics.response.StatisticsResponseDto;
 import org.example.sharedprompts.dto.statistics.response.UserStatisticsResponseDto;
 import org.example.sharedprompts.global.annotation.AdminOnly;
-import org.example.sharedprompts.global.response.CustomResponse;
-import org.example.sharedprompts.global.response.CustomResponseHelper;
+import org.example.sharedprompts.dto.common.CustomResponse;
+import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

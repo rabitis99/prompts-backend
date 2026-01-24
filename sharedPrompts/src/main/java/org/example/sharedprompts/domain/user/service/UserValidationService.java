@@ -5,9 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.global.util.ValidationUtils;
 import org.springframework.stereotype.Service;
-
-import java.util.Objects;
 
 /**
  * 사용자 검증 서비스
@@ -30,7 +29,7 @@ public class UserValidationService {
      * @throws ApiException 검증 실패 시
      */
     public void validate(User user) {
-        Objects.requireNonNull(user, "user must not be null");
+        ValidationUtils.requireNonNull(user, "user");
         
         // 삭제 상태를 먼저 검증 (USER_NOT_FOUND 우선 반환)
         validateNotDeleted(user);
