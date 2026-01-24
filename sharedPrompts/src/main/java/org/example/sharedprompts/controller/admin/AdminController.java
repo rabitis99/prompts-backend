@@ -35,6 +35,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 
+import static org.example.sharedprompts.domain.rate.ratelimitlog.constants.RateLimitLogConstants.Statistics.DEFAULT_STATISTICS_DAYS;
+
 @AdminOnly
 @RestController
 @RequestMapping("/admin")
@@ -267,10 +269,7 @@ public class AdminController {
 
         LocalDateTime now = LocalDateTime.now();
 
-        LocalDateTime defaultStartDate = now.minusDays(
-                org.example.sharedprompts.domain.rate.ratelimitlog.constants.RateLimitLogConstants.Statistics.DEFAULT_STATISTICS_DAYS
-        );
-
+        LocalDateTime defaultStartDate = now.minusDays(DEFAULT_STATISTICS_DAYS);
         LocalDateTime finalStartDate = startDate != null ? startDate : defaultStartDate;
         LocalDateTime finalEndDate = endDate != null ? endDate : now;
         
