@@ -1,16 +1,31 @@
 package org.example.sharedprompts.domain.admin.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.domain.admin.user.service.AdminUserService;
+import org.example.sharedprompts.domain.admin.prompt.service.AdminPromptService;
+import org.example.sharedprompts.domain.admin.report.service.AdminReportService;
+import org.example.sharedprompts.domain.admin.audit.service.AdminAuditService;
+import org.example.sharedprompts.domain.admin.audit.service.AdminAuthAuditService;
+import org.example.sharedprompts.domain.admin.follow.service.AdminFollowService;
+import org.example.sharedprompts.domain.rate.ratelimitlog.service.RateLimitLogService;
+import org.example.sharedprompts.domain.rate.ratelimitlog.service.RateLimitLogStatisticsService;
+import org.example.sharedprompts.domain.audit.auth.enums.AuthEventType;
+import org.example.sharedprompts.domain.audit.auth.enums.AuthFailReason;
 import org.example.sharedprompts.domain.audit.enums.AuditAction;
 import org.example.sharedprompts.domain.audit.enums.AuditEntityType;
+import org.example.sharedprompts.domain.rate.ratelimitlog.enums.RateLimitType;
+import org.example.sharedprompts.domain.user.enums.Provider;
 import org.example.sharedprompts.domain.follow.FollowStatus;
 import org.example.sharedprompts.dto.audit.response.AuditLogResponseDto;
+import org.example.sharedprompts.dto.audit.response.AuthAuditLogResponseDto;
 import org.example.sharedprompts.domain.report.enums.ReportStatus;
 import org.example.sharedprompts.dto.admin.request.PromptVisibilityRequestDto;
 import org.example.sharedprompts.dto.admin.request.UserBlockRequestDto;
 import org.example.sharedprompts.dto.admin.request.UserRoleChangeRequestDto;
 import org.example.sharedprompts.dto.admin.response.AdminPromptResponseDto;
 import org.example.sharedprompts.dto.admin.response.AdminUserResponseDto;
+import org.example.sharedprompts.dto.admin.response.RateLimitLogResponseDto;
+import org.example.sharedprompts.dto.admin.response.RateLimitLogStatisticsResponseDto;
 import org.example.sharedprompts.dto.report.request.ReportProcessRequestDto;
 import org.example.sharedprompts.dto.report.response.ReportDetailResponseDto;
 import org.example.sharedprompts.dto.report.response.ReportResponseDto;
@@ -29,7 +44,10 @@ public class AdminServiceImpl implements AdminService {
     private final AdminPromptService adminPromptService;
     private final AdminReportService adminReportService;
     private final AdminAuditService adminAuditService;
+    private final AdminAuthAuditService adminAuthAuditService;
     private final AdminFollowService adminFollowService;
+    private final RateLimitLogService rateLimitLogService;
+    private final RateLimitLogStatisticsService rateLimitLogStatisticsService;
 
     // ======================
     //      사용자 관리
@@ -124,6 +142,21 @@ public class AdminServiceImpl implements AdminService {
         return adminAuditService.getAuditLogs(actorId, entityType, action, startDate, endDate, pageable);
     }
 
+    @Override
+    public Page<AuthAuditLogResponseDto> getAuthAuditLogs(
+            AuthEventType eventType,
+            Provider provider,
+            Long userId,
+            AuthFailReason failReason,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            Pageable pageable
+    ) {
+        return adminAuthAuditService.getAuthAuditLogs(
+                eventType, provider, userId, failReason, startDate, endDate, pageable
+        );
+    }
+
     // ======================
     //      팔로우 관리
     // ======================
@@ -136,5 +169,32 @@ public class AdminServiceImpl implements AdminService {
             Pageable pageable
     ) {
         return adminFollowService.getFollows(followerId, followingId, status, pageable);
+    }
+
+    // ======================
+    //      Rate Limit 로그 조회
+    // ======================
+
+    @Override
+    public Page<RateLimitLogResponseDto> getRateLimitLogs(
+            Long userId,
+            String clientIp,
+            String ruleName,
+            RateLimitType rateLimitType,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            Pageable pageable
+    ) {
+        return rateLimitLogService.getRateLimitLogs(
+                userId, clientIp, ruleName, rateLimitType, startDate, endDate, pageable
+        );
+    }
+
+    @Override
+    public RateLimitLogStatisticsResponseDto getRateLimitLogStatistics(
+            LocalDateTime startDate,
+            LocalDateTime endDate
+    ) {
+        return rateLimitLogStatisticsService.getStatistics(startDate, endDate);
     }
 }

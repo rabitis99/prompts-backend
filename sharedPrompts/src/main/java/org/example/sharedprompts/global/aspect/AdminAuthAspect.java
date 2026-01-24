@@ -8,7 +8,7 @@ import org.example.sharedprompts.domain.user.enums.Role;
 import org.example.sharedprompts.global.annotation.AdminOnly;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
-import org.example.sharedprompts.global.jwt.PrincipalDetails;
+import org.example.sharedprompts.auth.jwt.model.PrincipalDetails;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;

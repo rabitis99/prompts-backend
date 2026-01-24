@@ -47,13 +47,15 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             @NotNull HttpServletResponse response,
             @NotNull FilterChain filterChain
     ) throws ServletException, IOException {
-        if (!shouldApplyFilter(request, response, filterChain)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+        try (ScopedResponseHandled ignored = new ScopedResponseHandled()) {
+            if (!shouldApplyFilter(request, response, filterChain)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-        RateLimitFilterContext context = createContext(request);
-        processRateLimitCheck(context, request, response, filterChain);
+            RateLimitFilterContext context = createContext(request);
+            processRateLimitCheck(context, request, response, filterChain);
+        }
     }
 
     /**
@@ -264,4 +266,27 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             HttpServletRequest request
     );
 
+    /**
+     * ThreadLocal 기반 플래그를 Scoped 방식으로 처리
+     */
+    private static final class ScopedResponseHandled implements AutoCloseable {
+        private static final ThreadLocal<Boolean> RESPONSE_HANDLED = ThreadLocal.withInitial(() -> false);
+
+        ScopedResponseHandled() {
+            RESPONSE_HANDLED.set(false);
+        }
+
+        static boolean isHandled() {
+            return RESPONSE_HANDLED.get();
+        }
+
+        static void markHandled() {
+            RESPONSE_HANDLED.set(true);
+        }
+
+        @Override
+        public void close() {
+            RESPONSE_HANDLED.remove();
+        }
+    }
 }

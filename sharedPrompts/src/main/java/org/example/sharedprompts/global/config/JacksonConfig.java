@@ -10,7 +10,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import org.example.sharedprompts.domain.audit.util.AuditLogPublisher;
-import org.example.sharedprompts.global.jwt.util.JwtErrorResponseWriter;
+import org.example.sharedprompts.auth.jwt.util.JwtErrorResponseWriter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

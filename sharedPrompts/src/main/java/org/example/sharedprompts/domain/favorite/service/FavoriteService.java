@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.favorite.service;
 
 import org.example.sharedprompts.dto.favorite.response.FavoriteResponseDto;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
-import org.example.sharedprompts.global.response.PageResponse;
+import org.example.sharedprompts.dto.common.PageResponse;
 import org.springframework.data.domain.Pageable;
 
 public interface FavoriteService {

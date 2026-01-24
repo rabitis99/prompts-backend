@@ -8,21 +8,25 @@ import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.follow.FollowStatus;
 import org.example.sharedprompts.domain.report.enums.ReportStatus;
 import org.example.sharedprompts.dto.admin.request.PromptVisibilityRequestDto;
+import org.example.sharedprompts.dto.admin.request.RateLimitLogFilterRequestDto;
 import org.example.sharedprompts.dto.admin.request.UserBlockRequestDto;
 import org.example.sharedprompts.dto.admin.request.UserRoleChangeRequestDto;
-import org.example.sharedprompts.domain.audit.enums.AuditAction;
-import org.example.sharedprompts.domain.audit.enums.AuditEntityType;
+import org.example.sharedprompts.dto.admin.request.AuditLogFilterRequestDto;
+import org.example.sharedprompts.dto.admin.request.AuthAuditLogFilterRequestDto;
 import org.example.sharedprompts.dto.admin.response.AdminPromptResponseDto;
 import org.example.sharedprompts.dto.admin.response.AdminUserResponseDto;
+import org.example.sharedprompts.dto.admin.response.RateLimitLogResponseDto;
+import org.example.sharedprompts.dto.admin.response.RateLimitLogStatisticsResponseDto;
 import org.example.sharedprompts.dto.audit.response.AuditLogResponseDto;
+import org.example.sharedprompts.dto.audit.response.AuthAuditLogResponseDto;
 import org.example.sharedprompts.dto.report.request.ReportProcessRequestDto;
 import org.example.sharedprompts.dto.report.response.ReportDetailResponseDto;
 import org.example.sharedprompts.dto.report.response.ReportResponseDto;
 import org.example.sharedprompts.dto.user.response.UserResponseDto;
 import org.example.sharedprompts.global.annotation.AdminOnly;
-import org.example.sharedprompts.global.response.CustomResponse;
-import org.example.sharedprompts.global.response.CustomResponseHelper;
-import org.example.sharedprompts.global.response.PageResponse;
+import org.example.sharedprompts.dto.common.CustomResponse;
+import org.example.sharedprompts.dto.common.CustomResponseHelper;
+import org.example.sharedprompts.dto.common.PageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -31,6 +35,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+
+import static org.example.sharedprompts.domain.rate.ratelimitlog.constants.RateLimitLogConstants.Statistics.DEFAULT_STATISTICS_DAYS;
 
 @AdminOnly
 @RestController
@@ -217,15 +223,59 @@ public class AdminController {
      */
     @GetMapping("/audit-logs")
     public ResponseEntity<CustomResponse<PageResponse<AuditLogResponseDto>>> getAuditLogs(
-            @RequestParam(required = false) Long actorId,
-            @RequestParam(required = false) AuditEntityType entityType,
-            @RequestParam(required = false) AuditAction action,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @ModelAttribute("condition") AuditLogFilterRequestDto condition,
             @PageableDefault(size = 50) Pageable pageable
     ) {
-        Page<AuditLogResponseDto> page = adminService.getAuditLogs(actorId, entityType, action, startDate, endDate, pageable);
+        Page<AuditLogResponseDto> page = adminService.getAuditLogs(condition, pageable);
         return CustomResponseHelper.ok(PageResponse.of(page));
+    }
+
+    /**
+     * 인증 보안 이벤트 로그 조회 (필터링 가능)
+     */
+    @GetMapping("/auth-audit-logs")
+    public ResponseEntity<CustomResponse<PageResponse<AuthAuditLogResponseDto>>> getAuthAuditLogs(
+            @ModelAttribute("condition") AuthAuditLogFilterRequestDto condition,
+            @PageableDefault(size = 50) Pageable pageable
+    ) {
+        Page<AuthAuditLogResponseDto> page = adminService.getAuthAuditLogs(condition, pageable);
+        return CustomResponseHelper.ok(PageResponse.of(page));
+    }
+
+    // ======================
+    //      Rate Limit 로그 조회
+    // ======================
+
+    /**
+     * Rate Limit 로그 조회 (필터링 가능)
+     */
+    @GetMapping("/rate-limit-logs")
+    public ResponseEntity<CustomResponse<PageResponse<RateLimitLogResponseDto>>> getRateLimitLogs(
+            @ModelAttribute("condition") RateLimitLogFilterRequestDto condition,
+            @PageableDefault(size = 50) Pageable pageable
+    ) {
+        Page<RateLimitLogResponseDto> page = adminService.getRateLimitLogs(condition, pageable);
+        return CustomResponseHelper.ok(PageResponse.of(page));
+    }
+
+    /**
+     * Rate Limit 로그 통계 조회
+     */
+    @GetMapping("/rate-limit-logs/statistics")
+    public ResponseEntity<CustomResponse<RateLimitLogStatisticsResponseDto>> getRateLimitLogStatistics(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate
+    ) {
+        // 기본값: 최근 7일
+
+        LocalDateTime now = LocalDateTime.now();
+
+        LocalDateTime defaultStartDate = now.minusDays(DEFAULT_STATISTICS_DAYS);
+        LocalDateTime finalStartDate = startDate != null ? startDate : defaultStartDate;
+        LocalDateTime finalEndDate = endDate != null ? endDate : now;
+        
+        RateLimitLogStatisticsResponseDto statistics = adminService.getRateLimitLogStatistics(finalStartDate, finalEndDate);
+        return CustomResponseHelper.ok(statistics);
     }
 
 }

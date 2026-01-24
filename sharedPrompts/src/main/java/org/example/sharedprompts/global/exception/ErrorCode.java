@@ -18,39 +18,55 @@ public enum ErrorCode {
     // ==========================
     BAD_REQUEST("CM00401", HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
     INVALID_INPUT_VALUE("CM00402", HttpStatus.BAD_REQUEST, "유효하지 않은 입력 값입니다."),
-    UNAUTHORIZED("CM00501", HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
+    RATE_LIMIT_EXCEEDED("CM00403", HttpStatus.TOO_MANY_REQUESTS, "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
+    INVALID_REQUEST_INFO("CM00404", HttpStatus.BAD_REQUEST, "요청 정보가 유효하지 않습니다."),
+    UNAUTHORIZED("CM00501", HttpStatus.UNAUTHORIZED, "인증이 필요합니다. 로그인 후 다시 시도해주세요."),
     FORBIDDEN("CM00601", HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
     NOT_FOUND("CM00701", HttpStatus.NOT_FOUND, "리소스를 찾을 수 없습니다."),
     NOT_FOUND_ENDPOINT("CM00702", HttpStatus.NOT_FOUND, "엔드포인트를 찾을 수 없습니다."),
     METHOD_NOT_ALLOWED("CM00703", HttpStatus.METHOD_NOT_ALLOWED, "허용되지 않은 메소드입니다."),
+    RATE_LIMIT_EXCEEDED("CM00429", HttpStatus.TOO_MANY_REQUESTS, "요청 한도를 초과했습니다."),
+    RATE_LIMIT_CHECK_FAILED("CM01002", HttpStatus.INTERNAL_SERVER_ERROR, "Rate Limit 체크에 실패했습니다."),
     DATA_INTEGRITY_VIOLATION("CM00901", HttpStatus.CONFLICT, "데이터 무결성 제약 조건을 위반했습니다."),
     INTERNAL_SERVER_ERROR("CM01001", HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다."),
 
     // ==========================
     // 🔹 USER
     // ==========================
-    USER_NOT_FOUND("US00701", HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
+    USER_NOT_FOUND("US00701", HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다. 입력한 정보를 확인해주세요."),
     USER_PROFILE_NOT_FOUND("US00702", HttpStatus.NOT_FOUND, "사용자 프로필을 찾을 수 없습니다."),
-    INVALID_PASSWORD("US00401", HttpStatus.BAD_REQUEST, "비밀번호가 일치하지 않습니다."),
+    INVALID_PASSWORD("US00401", HttpStatus.BAD_REQUEST, "비밀번호가 일치하지 않습니다. 올바른 비밀번호를 입력해주세요."),
+    INVALID_PASSWORD_STRENGTH("US00403", HttpStatus.BAD_REQUEST, "비밀번호는 최소 10자 이상이며, 대문자, 소문자, 숫자, 특수문자를 각각 1개 이상 포함해야 합니다."),
     NOT_LOCAL_USER("US00601", HttpStatus.FORBIDDEN, "자체 회원가입만 가능한 서비스입니다."),
-    SAME_AS_CURRENT_PASSWORD("US00402", HttpStatus.BAD_REQUEST, "현재 비밀번호와 동일합니다."),
+    SAME_AS_CURRENT_PASSWORD("US00402", HttpStatus.BAD_REQUEST, "현재 비밀번호와 동일합니다. 다른 비밀번호를 입력해주세요."),
 
     // ==========================
     // 🔹 Auth
     // ==========================
-    CONFLICT_EMAIL("AU00901", HttpStatus.CONFLICT, "중복된 이메일 입니다."),
+    LOGIN_FAILED("AU00403", HttpStatus.FORBIDDEN, "이메일 또는 비밀번호가 올바르지 않습니다."),
+    CONFLICT_EMAIL("AU00901", HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다. 다른 이메일을 사용해주세요."),
     UNAUTHORIZED_TOKEN_ACCESS("AU00503", HttpStatus.UNAUTHORIZED, "해당 토큰은 요청한 사용자의 것이 아닙니다."),
-    INVALID_ACCESS_TOKEN("AU00504", HttpStatus.UNAUTHORIZED, "유효하지 않은 액세스 토큰입니다."),
-    INVALID_REFRESH_TOKEN("AU00505", HttpStatus.UNAUTHORIZED, "유효하지 않은 리프레시 토큰입니다."),
+    INVALID_ACCESS_TOKEN("AU00504", HttpStatus.UNAUTHORIZED, "유효하지 않은 액세스 토큰입니다. 다시 로그인해주세요."),
+    INVALID_REFRESH_TOKEN("AU00505", HttpStatus.UNAUTHORIZED, "리프레시 토큰이 만료되었거나 존재하지 않습니다. 다시 로그인해주세요."),
+    REFRESH_TOKEN_SECURITY_MISMATCH("AU00506", HttpStatus.UNAUTHORIZED, "리프레시 토큰의 보안 검증에 실패했습니다. 보안을 위해 모든 세션이 무효화되었습니다. 다시 로그인해주세요."),
     TOKEN_VERSION_INCREMENT_FAILED("AU01001", HttpStatus.INTERNAL_SERVER_ERROR, "토큰 버전 증가에 실패했습니다."),
 
     // ==========================
     // 🔹 OAuth2
     // ==========================
-    OAUTH2_INVALID_CODE("AU00401", HttpStatus.BAD_REQUEST, "유효하지 않은 인증 코드입니다."),
-    OAUTH2_STATE_MISMATCH("AU00402", HttpStatus.BAD_REQUEST, "state 값이 일치하지 않습니다."),
-    OAUTH2_TOKEN_EXPIRED("AU00501", HttpStatus.UNAUTHORIZED, "임시 토큰이 만료되었습니다."),
-    OAUTH2_TOKEN_INVALID("AU00502", HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
+    OAUTH2_INVALID_CODE("AU00401", HttpStatus.BAD_REQUEST, "유효하지 않은 OAuth2 인증 코드입니다. 인증 과정을 다시 시작해주세요."),
+    OAUTH2_STATE_MISMATCH("AU00402", HttpStatus.BAD_REQUEST, "OAuth2 state 값이 일치하지 않습니다. 보안을 위해 인증 과정을 다시 시작해주세요."),
+    OAUTH2_TOKEN_EXPIRED("AU00501", HttpStatus.UNAUTHORIZED, "OAuth2 임시 토큰이 만료되었습니다. 인증 과정을 다시 시작해주세요."),
+    OAUTH2_TOKEN_INVALID("AU00502", HttpStatus.UNAUTHORIZED, "유효하지 않은 OAuth2 토큰입니다. 인증 과정을 다시 시작해주세요."),
+    OAUTH2_AUTHENTICATION_FAILED("AU00404", HttpStatus.BAD_REQUEST, "OAuth2 인증에 실패했습니다. 다시 시도해주세요."),
+    
+    // OAuth2 사용자 정보 매핑 관련
+    OAUTH2_PROVIDER_NOT_SUPPORTED("AU00405", HttpStatus.BAD_REQUEST, "지원하지 않는 OAuth2 제공자입니다."),
+    OAUTH2_USER_INFO_EMPTY("AU00406", HttpStatus.BAD_REQUEST, "OAuth2 사용자 정보가 비어있습니다."),
+    OAUTH2_PROVIDER_ID_MISSING("AU00407", HttpStatus.BAD_REQUEST, "OAuth2 Provider ID가 없습니다."),
+    OAUTH2_USER_INFO_MAPPING_FAILED("AU00408", HttpStatus.BAD_REQUEST, "OAuth2 사용자 정보 매핑에 실패했습니다."),
+    OAUTH2_USER_ATTRIBUTES_INVALID("AU00409", HttpStatus.BAD_REQUEST, "OAuth2 사용자 속성이 유효하지 않습니다."),
+    OAUTH2_PROVIDER_REQUIRED("AU00410", HttpStatus.BAD_REQUEST, "OAuth2 Provider는 필수입니다."),
 
     // ==========================
     // 🔹 PROMPT
@@ -133,6 +149,8 @@ public enum ErrorCode {
     CANNOT_MODIFY_SELF("AD00404", HttpStatus.BAD_REQUEST, "자기 자신은 수정할 수 없습니다."),
     LAST_ADMIN_CANNOT_BE_MODIFIED("AD00405", HttpStatus.BAD_REQUEST, "마지막 관리자 계정은 수정할 수 없습니다."),
     INVALID_DATE_RANGE("AD00406", HttpStatus.BAD_REQUEST, "시작일은 종료일보다 이전이어야 합니다."),
+    DATE_REQUIRED("AD00411", HttpStatus.BAD_REQUEST, "시작일과 종료일은 필수입니다."),
+    STATISTICS_DATE_RANGE_EXCEEDED("AD00412", HttpStatus.BAD_REQUEST, "통계 조회 기간이 최대 허용 기간을 초과했습니다."),
     PAGE_SIZE_EXCEEDED("AD00407", HttpStatus.BAD_REQUEST, "페이징 사이즈는 최대 100까지 가능합니다."),
     SAME_ROLE("AD00408", HttpStatus.BAD_REQUEST, "현재 권한과 동일한 권한으로 변경할 수 없습니다."),
     SAME_VISIBILITY("AD00409", HttpStatus.BAD_REQUEST, "현재 공개 상태와 동일한 상태로 변경할 수 없습니다."),

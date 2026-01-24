@@ -15,7 +15,17 @@ import java.util.List;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "prompts")
+@Table(
+        name = "prompts",
+        indexes = {
+                // 작성자 + 생성일 기준 조회/정렬 (내 프롬프트, 사용자 프롬프트 리스트 등)
+                @Index(name = "idx_prompts_author_created_at", columnList = "user_id, created_at"),
+                // 카테고리 + 생성일 기준 피드/검색
+                @Index(name = "idx_prompts_category_created_at", columnList = "prompt_category, created_at"),
+                // 제목 검색 최적화를 위한 인덱스 (LIKE 검색 시에도 일부 활용 가능)
+                @Index(name = "idx_prompts_title", columnList = "title")
+        }
+)
 public class Prompt extends BaseEntity {
 
     @Id

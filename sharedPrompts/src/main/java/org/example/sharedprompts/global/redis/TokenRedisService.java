@@ -16,8 +16,6 @@ public interface TokenRedisService {
     boolean isAccessTokenValidWithUserId(String accessToken, Long userId);
 
     // Refresh Token 관리
-    void saveRefreshToken(String token, Long userId);
-    
     boolean isRefreshTokenValid(String token, Long userId);
     
     Long getRefreshToken(String token);

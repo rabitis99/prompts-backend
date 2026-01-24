@@ -16,7 +16,10 @@ import org.example.sharedprompts.global.entity.BaseEntity;
         @Index(name = "idx_notification_user_created", columnList = "user_id, created_at DESC"),
         @Index(name = "idx_notification_user_read", columnList = "user_id, is_read"),
         @Index(name = "idx_notification_user_read_created", columnList = "user_id, is_read, created_at DESC"),
-        @Index(name = "idx_notification_type_related", columnList = "type, related_entity_id, created_at DESC")
+        @Index(name = "idx_notification_type_related", columnList = "type, related_entity_id, created_at DESC"),
+        // 추가된 인덱스 목록 (우선순위: 필수)
+        // 그룹 알림 중복 방지 로직 최적화
+        @Index(name = "idx_notification_group_key_read_created", columnList = "group_key, is_read, created_at DESC")
 })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor

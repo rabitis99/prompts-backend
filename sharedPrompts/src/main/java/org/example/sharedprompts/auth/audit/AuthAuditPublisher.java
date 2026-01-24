@@ -163,8 +163,8 @@ public class AuthAuditPublisher {
         // IP 주소 추출 (안전한 폴백)
         try {
             ipAddress = request != null 
-                    ? HttpRequestUtils.getClientIpAddress(request)
-                    : HttpRequestUtils.getClientIpAddress();
+                ? HttpRequestUtils.getClientIpAddress(request)
+                : HttpRequestUtils.getClientIpAddress();
         } catch (Exception e) {
             log.debug("IP 주소 추출 실패 (감사 로그용, 무시): eventType={}", eventType, e);
             ipAddress = "unknown";
@@ -173,8 +173,8 @@ public class AuthAuditPublisher {
         // User-Agent 추출 (안전한 폴백)
         try {
             userAgent = request != null
-                    ? HttpRequestUtils.getUserAgent(request)
-                    : HttpRequestUtils.getUserAgent();
+                ? HttpRequestUtils.getUserAgent(request)
+                : HttpRequestUtils.getUserAgent();
         } catch (Exception e) {
             log.debug("User-Agent 추출 실패 (감사 로그용, 무시): eventType={}", eventType, e);
             userAgent = null;
