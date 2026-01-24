@@ -7,6 +7,8 @@ import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
+
 /**
  * 사용자 검증 서비스
  * 
@@ -22,13 +24,18 @@ public class UserValidationService {
      * 사용자 검증 (확장 가능한 구조)
      * 
      * 모든 검증 규칙을 통합하여 실행합니다.
+     * 검증 순서: 삭제 상태 우선 검증 후 차단 상태 검증
      * 
      * @param user 검증할 사용자
      * @throws ApiException 검증 실패 시
      */
     public void validate(User user) {
-        validateNotBlocked(user);
+        Objects.requireNonNull(user, "user must not be null");
+        
+        // 삭제 상태를 먼저 검증 (USER_NOT_FOUND 우선 반환)
         validateNotDeleted(user);
+        // 차단 상태 검증 (FORBIDDEN 반환)
+        validateNotBlocked(user);
         // validateDormant(user);  // 미래 확장
     }
     
