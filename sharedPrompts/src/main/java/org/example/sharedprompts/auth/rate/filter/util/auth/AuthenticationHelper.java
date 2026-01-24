@@ -57,7 +57,7 @@ public final class AuthenticationHelper {
 
         Object principal = authentication.getPrincipal();
         if (principal instanceof PrincipalDetails principalDetails) {
-            return Optional.of(principalDetails.getId());
+            return Optional.ofNullable(principalDetails.getId());
         }
 
         return Optional.empty();

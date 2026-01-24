@@ -21,7 +21,20 @@ import java.util.concurrent.TimeUnit;
 public class FixedWindowRateLimiter implements RateLimiter {
 
     private final RedisTemplate<String, Object> redisTemplate;
+    
+    /**
+     * Lua 스크립트 객체를 정적 필드로 캐시하여 재사용합니다.
+     * 매 호출마다 생성하는 비용을 줄여 성능을 개선합니다.
+     */
+    private static final DefaultRedisScript<Long> INCREMENT_WITH_TTL_SCRIPT;
 
+    static {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptText(LuaScripts.INCREMENT_WITH_TTL);
+        script.setResultType(Long.class);
+        INCREMENT_WITH_TTL_SCRIPT = script;
+    }
+    
     /**
      * 주어진 key에 대해 1토큰을 소비하면서 요청 허용 여부를 판단합니다.
      *
@@ -35,8 +48,11 @@ public class FixedWindowRateLimiter implements RateLimiter {
         try {
             Long currentCount = executeIncrementWithTtl(key, windowSeconds);
 
+            // Redis 스크립트가 null을 반환하는 것은 비정상 상황입니다.
+            // INCREMENT_WITH_TTL Lua 스크립트는 정상적으로 항상 값을 반환하므로,
+            // null은 Redis 장애, 스크립트 실행 오류, 또는 연결 문제를 의미합니다.
             if (currentCount == null) {
-                currentCount = 0L;
+                throw new IllegalStateException("Redis script returned null for key: " + key);
             }
 
             boolean allowed = currentCount <= capacity;
@@ -58,12 +74,8 @@ public class FixedWindowRateLimiter implements RateLimiter {
     }
 
     private Long executeIncrementWithTtl(String key, long windowSeconds) {
-        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
-        script.setScriptText(LuaScripts.INCREMENT_WITH_TTL);
-        script.setResultType(Long.class);
-
         return redisTemplate.execute(
-                script,
+                INCREMENT_WITH_TTL_SCRIPT,
                 Collections.singletonList(key),
                 String.valueOf(windowSeconds)
         );

@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 
 /**
  * JWT 토큰 서비스
- * 
  * 고수준 토큰 관련 비즈니스 로직을 담당합니다.
  * - User 객체 기반 토큰 생성
  * - Claims에서 값 추출
@@ -140,7 +139,6 @@ public class JwtTokenService {
 
     /**
      * tokenVersion 검증
-     * 
      * JWT에 포함된 tokenVersion과 현재 저장된 tokenVersion을 비교하여
      * 토큰이 유효한지 검증합니다.
      * 

@@ -22,9 +22,7 @@ import java.time.Duration;
 
 /**
  * OAuth2 인증 성공 핸들러
- * 
  * OAuth2 인증 성공 후 JWT 토큰 생성 및 임시 토큰 저장, 성공 로그 기록을 담당합니다.
- * 
  * 책임:
  * - JWT 토큰 생성 (JwtTokenService 위임)
  * - 임시 토큰 저장

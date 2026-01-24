@@ -23,13 +23,11 @@ import java.io.IOException;
 
 /**
  * JWT 인증 필터
- * 
  * 책임:
  * - 토큰 서명 검증
  * - 만료 시간 검증
  * - Claim 파싱
  * - tokenVersion 검증 (soft delete, 차단 등 상태 변경 검증)
- * 
  * 금지:
  * - Repository/Service 호출
  * - DB 접근

@@ -146,7 +146,8 @@ public class CustomRateLimitLogRepositoryImpl implements CustomRateLimitLogRepos
     @Override
     public Map<Integer, Long> countByHour(LocalDateTime startDate, LocalDateTime endDate) {
         // EXTRACT 함수는 JPA 표준이 아니므로 네이티브 쿼리 사용
-        Query query = entityManager.createNativeQuery(COUNT_BY_HOUR);
+        String queryString = buildCountByHourQuery(startDate, endDate);
+        Query query = entityManager.createNativeQuery(queryString);
         setDateParameters(query, startDate, endDate);
         
         List<Object[]> results = getResultList(query);
@@ -160,7 +161,8 @@ public class CustomRateLimitLogRepositoryImpl implements CustomRateLimitLogRepos
 
     @Override
     public Map<String, Long> countByRuleName(LocalDateTime startDate, LocalDateTime endDate) {
-        Query query = entityManager.createQuery(COUNT_BY_RULE_NAME);
+        String queryString = buildCountByRuleNameQuery(startDate, endDate);
+        Query query = entityManager.createQuery(queryString);
         setDateParameters(query, startDate, endDate);
         
         List<Object[]> results = getResultList(query);
@@ -174,7 +176,8 @@ public class CustomRateLimitLogRepositoryImpl implements CustomRateLimitLogRepos
 
     @Override
     public Map<RateLimitType, Long> countByType(LocalDateTime startDate, LocalDateTime endDate) {
-        Query query = entityManager.createQuery(COUNT_BY_TYPE);
+        String queryString = buildCountByTypeQuery(startDate, endDate);
+        Query query = entityManager.createQuery(queryString);
         setDateParameters(query, startDate, endDate);
         
         List<Object[]> results = getResultList(query);
@@ -189,7 +192,8 @@ public class CustomRateLimitLogRepositoryImpl implements CustomRateLimitLogRepos
 
     @Override
     public List<Object[]> findTopViolatingIps(LocalDateTime startDate, LocalDateTime endDate, int limit) {
-        Query query = entityManager.createQuery(FIND_TOP_VIOLATING_IPS);
+        String queryString = buildFindTopViolatingIpsQuery(startDate, endDate);
+        Query query = entityManager.createQuery(queryString);
         setDateParameters(query, startDate, endDate);
         query.setMaxResults(limit);
         
@@ -198,7 +202,8 @@ public class CustomRateLimitLogRepositoryImpl implements CustomRateLimitLogRepos
 
     @Override
     public List<Object[]> findTopViolatingUsers(LocalDateTime startDate, LocalDateTime endDate, int limit) {
-        Query query = entityManager.createQuery(FIND_TOP_VIOLATING_USERS);
+        String queryString = buildFindTopViolatingUsersQuery(startDate, endDate);
+        Query query = entityManager.createQuery(queryString);
         setDateParameters(query, startDate, endDate);
         query.setMaxResults(limit);
         
@@ -206,7 +211,94 @@ public class CustomRateLimitLogRepositoryImpl implements CustomRateLimitLogRepos
     }
 
     /**
+     * 시간대별 통계 쿼리를 동적으로 생성합니다.
+     * startDate나 endDate가 null이면 전체 조회로 처리합니다.
+     */
+    private String buildCountByHourQuery(LocalDateTime startDate, LocalDateTime endDate) {
+        String baseQuery = "SELECT EXTRACT(HOUR FROM r.created_at) as hour, COUNT(*) as count " +
+                          "FROM rate_limit_logs r ";
+        String whereClause = buildDateWhereClause(startDate, endDate, "r.created_at");
+        return baseQuery + whereClause + " GROUP BY EXTRACT(HOUR FROM r.created_at) ORDER BY hour";
+    }
+
+    /**
+     * 규칙별 통계 쿼리를 동적으로 생성합니다.
+     */
+    private String buildCountByRuleNameQuery(LocalDateTime startDate, LocalDateTime endDate) {
+        String baseQuery = "SELECT r.ruleName, COUNT(r) " +
+                          "FROM RateLimitLog r ";
+        String whereClause = buildDateWhereClause(startDate, endDate, "r.createdAt");
+        return baseQuery + whereClause + " GROUP BY r.ruleName ORDER BY COUNT(r) DESC";
+    }
+
+    /**
+     * 타입별 통계 쿼리를 동적으로 생성합니다.
+     */
+    private String buildCountByTypeQuery(LocalDateTime startDate, LocalDateTime endDate) {
+        String baseQuery = "SELECT r.rateLimitType, COUNT(r) " +
+                          "FROM RateLimitLog r ";
+        String whereClause = buildDateWhereClause(startDate, endDate, "r.createdAt");
+        return baseQuery + whereClause + " GROUP BY r.rateLimitType";
+    }
+
+    /**
+     * 최다 위반 IP 조회 쿼리를 동적으로 생성합니다.
+     */
+    private String buildFindTopViolatingIpsQuery(LocalDateTime startDate, LocalDateTime endDate) {
+        String baseQuery = "SELECT r.clientIp, COUNT(r) as violationCount " +
+                          "FROM RateLimitLog r ";
+        String whereClause = buildDateWhereClause(startDate, endDate, "r.createdAt");
+        return baseQuery + whereClause + " GROUP BY r.clientIp ORDER BY violationCount DESC";
+    }
+
+    /**
+     * 최다 위반 사용자 조회 쿼리를 동적으로 생성합니다.
+     */
+    private String buildFindTopViolatingUsersQuery(LocalDateTime startDate, LocalDateTime endDate) {
+        String baseQuery = "SELECT r.user.id, COUNT(r) as violationCount " +
+                          "FROM RateLimitLog r " +
+                          "WHERE r.user IS NOT NULL ";
+        String dateClause = buildDateCondition(startDate, endDate, "r.createdAt");
+        if (!dateClause.isEmpty()) {
+            return baseQuery + "AND " + dateClause + " GROUP BY r.user.id ORDER BY violationCount DESC";
+        }
+        return baseQuery + "GROUP BY r.user.id ORDER BY violationCount DESC";
+    }
+
+    /**
+     * 날짜 조건 WHERE 절을 생성합니다.
+     * startDate나 endDate가 null이면 조건을 포함하지 않습니다 (전체 조회).
+     */
+    private String buildDateWhereClause(LocalDateTime startDate, LocalDateTime endDate, String dateColumn) {
+        String dateCondition = buildDateCondition(startDate, endDate, dateColumn);
+        return dateCondition.isEmpty() ? "" : "WHERE " + dateCondition + " ";
+    }
+
+    /**
+     * 날짜 조건을 생성합니다.
+     * startDate나 endDate가 null이면 빈 문자열을 반환합니다.
+     */
+    private String buildDateCondition(LocalDateTime startDate, LocalDateTime endDate, String dateColumn) {
+        if (startDate == null && endDate == null) {
+            return "";
+        }
+        
+        StringBuilder condition = new StringBuilder();
+        if (startDate != null && endDate != null) {
+            condition.append(dateColumn).append(" >= :startDate AND ")
+                     .append(dateColumn).append(" <= :endDate");
+        } else if (startDate != null) {
+            condition.append(dateColumn).append(" >= :startDate");
+        } else {
+            condition.append(dateColumn).append(" <= :endDate");
+        }
+        
+        return condition.toString();
+    }
+
+    /**
      * 쿼리에 날짜 파라미터를 설정합니다.
+     * null이 아닌 경우에만 파라미터를 바인딩합니다.
      */
     private void setDateParameters(Query query, LocalDateTime startDate, LocalDateTime endDate) {
         if (startDate != null) {

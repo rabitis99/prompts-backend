@@ -20,7 +20,6 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * OAuth2 인증 실패 핸들러
- * 
  * 상세한 로깅과 Audit 이벤트를 발행합니다.
  */
 @Slf4j

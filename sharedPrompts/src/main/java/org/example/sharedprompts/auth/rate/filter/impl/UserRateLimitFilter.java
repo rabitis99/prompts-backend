@@ -10,6 +10,7 @@ import org.example.sharedprompts.auth.rate.filter.model.RateLimitKey;
 import org.example.sharedprompts.auth.rate.filter.service.facade.RateLimitFacade;
 import org.example.sharedprompts.auth.rate.filter.strategy.UserRateLimitKeyStrategy;
 import org.example.sharedprompts.auth.rate.filter.util.auth.AuthenticationHelper;
+import org.example.sharedprompts.auth.rate.policy.RateLimitProperties;
 import org.example.sharedprompts.auth.rate.policy.RateLimitRule;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.core.Authentication;
@@ -34,9 +35,10 @@ public class UserRateLimitFilter extends AbstractRateLimitFilter {
 
     public UserRateLimitFilter(
             RateLimitFacade facade,
-            UserRateLimitKeyStrategy keyStrategy
+            UserRateLimitKeyStrategy keyStrategy,
+            RateLimitProperties rateLimitProperties
     ) {
-        super(facade, keyStrategy);
+        super(facade, keyStrategy, rateLimitProperties);
     }
 
     @Override

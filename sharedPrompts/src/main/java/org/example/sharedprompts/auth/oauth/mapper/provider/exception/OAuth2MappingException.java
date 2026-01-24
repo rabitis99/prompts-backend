@@ -6,7 +6,6 @@ import org.example.sharedprompts.global.exception.ErrorCode;
 
 /**
  * OAuth2 매핑 예외
- * 
  * Provider별 특수 케이스 처리 중 발생하는 예외
  * 상황에 맞는 세분화된 ErrorCode를 사용합니다.
  */

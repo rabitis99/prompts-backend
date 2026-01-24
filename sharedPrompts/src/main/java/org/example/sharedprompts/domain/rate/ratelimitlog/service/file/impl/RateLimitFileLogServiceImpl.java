@@ -33,29 +33,49 @@ public class RateLimitFileLogServiceImpl implements RateLimitFileLogService {
     ) {
         long retryAfter = result.getRetryAfter(Response.MIN_RETRY_AFTER_SECONDS);
         String uri = request.getRequestURI();
-        HttpMethod method = HttpMethod.valueOf(request.getMethod());
+
+        HttpMethod method = null;
+        try {
+            method = HttpMethod.valueOf(request.getMethod());
+        } catch (IllegalArgumentException e) {
+            logInvalidHttpMethod(request.getMethod());
+        }
+
         String clientIp = HttpRequestUtils.getClientIpAddress(request);
 
         if (userId != null) {
             // 사용자 기반 로그
             rateLimitLogger.warn(
                     Logging.LOG_FORMAT_USER,
-                    rule.getName(), key, result.currentCount(), rule.getCapacity(),
-                    retryAfter, userId, clientIp, uri, method
+                    rule.getName(),
+                    key,
+                    result.currentCount(),
+                    rule.getCapacity(),
+                    retryAfter,
+                    userId,
+                    clientIp,
+                    uri,
+                    method != null ? method.name() : request.getMethod()
             );
         } else {
             // IP 기반 로그
             rateLimitLogger.warn(
                     Logging.LOG_FORMAT_IP,
-                    rule.getName(), key, result.currentCount(), rule.getCapacity(),
-                    retryAfter, clientIp, uri, method
+                    rule.getName(),
+                    key,
+                    result.currentCount(),
+                    rule.getCapacity(),
+                    retryAfter,
+                    clientIp,
+                    uri,
+                    method != null ? method.name() : request.getMethod()
             );
         }
     }
 
     @Override
     public void logRateLimitCheckFailed(String key, String error, Exception exception) {
-        rateLimitLogger.error("Rate limit check failed, allowing request - key={}, error={}", 
+        rateLimitLogger.error("Rate limit check failed, allowing request - key={}, error={}",
                 key, error, exception);
     }
 
@@ -64,8 +84,3 @@ public class RateLimitFileLogServiceImpl implements RateLimitFileLogService {
         rateLimitLogger.warn("Invalid HTTP method: {}", method);
     }
 }
-
-
-
-
-

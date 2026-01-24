@@ -11,7 +11,6 @@ import java.util.Map;
 
 /**
  * OAuth2 사용자 정보 매퍼 추상 클래스
- * 
  * Provider별 Mapper의 공통 로직을 제공합니다.
  * Template Method 패턴을 사용하여 공통 흐름을 정의하고,
  * 각 구현체는 Provider별 특수 로직만 구현합니다.

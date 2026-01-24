@@ -24,6 +24,10 @@ public class RateLimitMetricsCollector {
      * @param result RateLimitResult
      */
     public void recordCheck(RateLimitRule rule, RateLimiter.RateLimitResult result) {
+        if (result == null) {
+            metricsService.recordRateLimitCheckFailed(rule);
+            return;
+        }
         metricsService.recordRateLimitCheck(rule, result, result.isExceeded());
     }
 

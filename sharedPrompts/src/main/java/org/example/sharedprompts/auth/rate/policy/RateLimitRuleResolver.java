@@ -1,7 +1,6 @@
 package org.example.sharedprompts.auth.rate.policy;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 
@@ -15,7 +14,6 @@ import java.util.List;
  * Spring Bean으로 관리되어 런타임에 Matcher 목록을 변경할 수 있습니다.
  */
 @Component
-@RequiredArgsConstructor
 @Getter
 public class RateLimitRuleResolver {
 
@@ -26,10 +24,10 @@ public class RateLimitRuleResolver {
     private final List<RateLimitMatcher> matchers;
 
     /**
-     * 기본 생성자 - RateLimitRuleConfig를 사용하여 Matcher 목록 초기화
+     * RateLimitRuleConfig를 주입받아 Matcher 목록 초기화
      */
-    public RateLimitRuleResolver() {
-        this.matchers = RateLimitRuleConfig.createMatchers();
+    public RateLimitRuleResolver(RateLimitRuleConfig ruleConfig) {
+        this.matchers = ruleConfig.createMatchers();
     }
 
     /**

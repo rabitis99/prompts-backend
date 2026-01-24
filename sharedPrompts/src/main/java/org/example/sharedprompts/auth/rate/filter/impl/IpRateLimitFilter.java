@@ -1,14 +1,20 @@
 package org.example.sharedprompts.auth.rate.filter.impl;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.example.sharedprompts.auth.rate.RateLimiter;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitFilterContext;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitKey;
 import org.example.sharedprompts.auth.rate.filter.service.facade.RateLimitFacade;
 import org.example.sharedprompts.auth.rate.filter.strategy.IpRateLimitKeyStrategy;
+import org.example.sharedprompts.auth.rate.policy.RateLimitProperties;
 import org.example.sharedprompts.auth.rate.policy.RateLimitRule;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+
+import java.io.IOException;
 
 /**
  * IP 기반 Rate Limiting 필터
@@ -28,9 +34,20 @@ public class IpRateLimitFilter extends AbstractRateLimitFilter {
 
     public IpRateLimitFilter(
             RateLimitFacade facade,
-            IpRateLimitKeyStrategy keyStrategy
+            IpRateLimitKeyStrategy keyStrategy,
+            RateLimitProperties rateLimitProperties
     ) {
-        super(facade, keyStrategy);
+        super(facade, keyStrategy, rateLimitProperties);
+    }
+
+    @Override
+    protected boolean shouldApplyFilter(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+        // IP 기반 필터는 인증 여부와 관계없이 모든 요청에 적용
+        return true;
     }
 
     @Override
