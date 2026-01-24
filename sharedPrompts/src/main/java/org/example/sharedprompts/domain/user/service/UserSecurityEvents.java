@@ -44,8 +44,7 @@ public class UserSecurityEvents {
      * 계정 차단 시 토큰 무효화
      */
     public void onAccountBlocked(Long userId) {
-        tokenVersionStore.increment(userId);
-        refreshTokenStore.deleteAllByUser(userId);
+        invalidateTokensAndRefreshTokens(userId);
         log.info("계정 차단으로 인한 토큰 무효화: userId={}", userId);
     }
 
@@ -53,8 +52,7 @@ public class UserSecurityEvents {
      * 계정 차단 해제 시 토큰 무효화
      */
     public void onAccountUnblocked(Long userId) {
-        tokenVersionStore.increment(userId);
-        refreshTokenStore.deleteAllByUser(userId);
+        invalidateTokensAndRefreshTokens(userId);
         log.info("계정 차단 해제로 인한 토큰 무효화: userId={}", userId);
     }
 
@@ -62,9 +60,18 @@ public class UserSecurityEvents {
      * 강제 로그아웃 시 토큰 무효화
      */
     public void onForcedLogout(Long userId) {
+        invalidateTokensAndRefreshTokens(userId);
+        log.info("강제 로그아웃으로 인한 토큰 무효화: userId={}", userId);
+    }
+
+    /**
+     * 토큰 버전 증가 및 리프레시 토큰 삭제를 수행하는 공통 메서드
+     * 
+     * @param userId 사용자 ID
+     */
+    private void invalidateTokensAndRefreshTokens(Long userId) {
         tokenVersionStore.increment(userId);
         refreshTokenStore.deleteAllByUser(userId);
-        log.info("강제 로그아웃으로 인한 토큰 무효화: userId={}", userId);
     }
 
     /**
