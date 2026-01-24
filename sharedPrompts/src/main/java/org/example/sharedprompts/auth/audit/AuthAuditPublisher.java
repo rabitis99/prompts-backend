@@ -145,6 +145,9 @@ public class AuthAuditPublisher {
     /**
      * 실제 이벤트 객체 생성 및 발행 공통 처리
      * 
+     * 감사 로깅은 비치명적이어야 하므로, 모든 보조 데이터 추출에 안전한 폴백을 적용합니다.
+     * 예외가 발생해도 인증 흐름에 영향을 주지 않도록 처리합니다.
+     * 
      * @param request HttpServletRequest (선택적). 제공되면 직접 사용하고, 없으면 RequestContextHolder 사용
      */
     private void publish(AuthEventType eventType,
@@ -153,16 +156,42 @@ public class AuthAuditPublisher {
                          Long userId,
                          AuthFailReason failReason,
                          HttpServletRequest request) {
-        // HttpServletRequest가 제공되면 직접 사용, 없으면 RequestContextHolder 사용 (하위 호환성)
-        String ipAddress = request != null 
+        String ipAddress = null;
+        String userAgent = null;
+        String providerIdHash = null;
+
+        // IP 주소 추출 (안전한 폴백)
+        try {
+            ipAddress = request != null 
                 ? HttpRequestUtils.getClientIpAddress(request)
                 : HttpRequestUtils.getClientIpAddress();
-        String userAgent = request != null
+        } catch (Exception e) {
+            log.debug("IP 주소 추출 실패 (감사 로그용, 무시): eventType={}", eventType, e);
+            ipAddress = "unknown";
+        }
+
+        // User-Agent 추출 (안전한 폴백)
+        try {
+            userAgent = request != null
                 ? HttpRequestUtils.getUserAgent(request)
                 : HttpRequestUtils.getUserAgent();
+        } catch (Exception e) {
+            log.debug("User-Agent 추출 실패 (감사 로그용, 무시): eventType={}", eventType, e);
+            userAgent = null;
+        }
 
-        String providerIdHash = providerId != null ? authHashUtil.hash(providerId) : null;
+        // ProviderId 해시 계산 (안전한 폴백)
+        if (providerId != null) {
+            try {
+                providerIdHash = authHashUtil.hash(providerId);
+            } catch (Exception e) {
+                log.debug("ProviderId 해시 계산 실패 (감사 로그용, 무시): eventType={}, providerId 길이={}", 
+                        eventType, providerId != null ? providerId.length() : 0, e);
+                providerIdHash = null; // 해시 실패 시 null로 저장
+            }
+        }
 
+        // 이벤트 발행 (최종 안전 장치)
         try {
             AuthEvent event = AuthEvent.builder()
                     .eventType(eventType)

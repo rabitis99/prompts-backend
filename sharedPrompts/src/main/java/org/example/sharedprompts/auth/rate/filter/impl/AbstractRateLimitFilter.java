@@ -48,7 +48,6 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             @NotNull FilterChain filterChain
     ) throws ServletException, IOException {
         try (ScopedResponseHandled ignored = new ScopedResponseHandled()) {
-
             if (!shouldApplyFilter(request, response, filterChain)) {
                 filterChain.doFilter(request, response);
                 return;
@@ -59,6 +58,15 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
         }
     }
 
+    /**
+     * Rate limit 체크 결과를 처리합니다.
+     * 
+     * @param result Rate limit 체크 결과
+     * @param context Rate Limit 필터 컨텍스트
+     * @param request HTTP 요청
+     * @param response HTTP 응답
+     * @param filterChain 필터 체인
+     */
     private void handleRateLimitResult(
             RateLimitResultWithKey result,
             RateLimitFilterContext context,
@@ -66,18 +74,47 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-
         if (result.isExceeded()) {
-            // Rate limit 초과 로깅은 이미 logRateLimitExceeded()에서 처리되었으므로,
-            // handle() 메서드의 logCallback에는 빈 람다를 전달합니다.
-            // 이는 중복 로깅을 방지하기 위한 설계입니다.
-            // logCallback은 handle() 메서드 내부에서 recordLog()를 통해 호출되며,
-            // 필요시 추가적인 로깅이나 후처리를 수행할 수 있는 확장 포인트 역할을 합니다.
-            logRateLimitExceeded(result.getRule(), result.getKey(), result.getResult(), context, request);
-            facade.getExceededFacade().handle(result.getRule(), result.getKey(), result.getResult(), response, (k, r) -> {});
+            handleRateLimitExceeded(result, context, request, response);
         } else {
             filterChain.doFilter(request, response);
         }
+    }
+
+    /**
+     * Rate limit 초과 시 처리를 수행합니다.
+     * 
+     * @param result Rate limit 체크 결과
+     * @param context Rate Limit 필터 컨텍스트
+     * @param request HTTP 요청
+     * @param response HTTP 응답
+     */
+    private void handleRateLimitExceeded(
+            RateLimitResultWithKey result,
+            RateLimitFilterContext context,
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws IOException {
+        // Rate limit 초과 로깅
+        logRateLimitExceeded(
+                result.getRule(),
+                result.getKey(),
+                result.getResult(),
+                context,
+                request
+        );
+
+        // Rate limit 초과 응답 처리
+        // logCallback은 빈 람다를 전달하여 중복 로깅을 방지합니다.
+        // logCallback은 handle() 메서드 내부에서 recordLog()를 통해 호출되며,
+        // 필요시 추가적인 로깅이나 후처리를 수행할 수 있는 확장 포인트 역할을 합니다.
+        facade.getExceededFacade().handle(
+                result.getRule(),
+                result.getKey(),
+                result.getResult(),
+                response,
+                (k, r) -> {}
+        );
     }
 
     /**
@@ -94,23 +131,83 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        Optional<RateLimitResultWithKey> opt;
+        Optional<RateLimitResultWithKey> result;
         try {
-            opt = facade.getRuleResolutionService().resolveRule(request)
-                    .flatMap(rule -> keyStrategy.buildKey(rule, context)
-                            .map(key -> new RateLimitResultWrapper(rule, key)))
-                    .flatMap(wrapper -> facade.getProcessor()
-                            .processRule(wrapper.rule(), context, r -> Optional.of(wrapper.key())));
+            result = performRateLimitCheck(context, request);
         } catch (Exception e) {
             handleRateLimitCheckFailure(e, filterChain, request, response);
             return;
         }
 
-        if (opt.isPresent()) {
-            handleRateLimitResult(opt.get(), context, request, response, filterChain);
+        if (result.isPresent()) {
+            handleRateLimitResult(result.get(), context, request, response, filterChain);
         } else {
             filterChain.doFilter(request, response);
         }
+    }
+
+    /**
+     * Rate limit 체크를 수행합니다.
+     * 
+     * @param context Rate Limit 필터 컨텍스트
+     * @param request HTTP 요청
+     * @return Rate limit 체크 결과 (규칙이 없거나 키를 생성할 수 없는 경우 Optional.empty())
+     */
+    private Optional<RateLimitResultWithKey> performRateLimitCheck(
+            RateLimitFilterContext context,
+            HttpServletRequest request
+    ) {
+        Optional<RateLimitRule> ruleOpt = resolveRule(request);
+        if (ruleOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        RateLimitRule rule = ruleOpt.get();
+        Optional<RateLimitKey> keyOpt = buildRateLimitKey(rule, context);
+        if (keyOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        RateLimitKey key = keyOpt.get();
+        return processRateLimitRule(rule, key, context);
+    }
+
+    /**
+     * 요청에 대한 Rate limit 규칙을 해석합니다.
+     * 
+     * @param request HTTP 요청
+     * @return Rate limit 규칙 (규칙이 없는 경우 Optional.empty())
+     */
+    private Optional<RateLimitRule> resolveRule(HttpServletRequest request) {
+        return facade.getRuleResolutionService().resolveRule(request);
+    }
+
+    /**
+     * Rate limit 키를 생성합니다.
+     * 
+     * @param rule Rate limit 규칙
+     * @param context Rate Limit 필터 컨텍스트
+     * @return Rate limit 키 (키를 생성할 수 없는 경우 Optional.empty())
+     */
+    private Optional<RateLimitKey> buildRateLimitKey(RateLimitRule rule, RateLimitFilterContext context) {
+        return keyStrategy.buildKey(rule, context);
+    }
+
+    /**
+     * Rate limit 규칙을 처리하고 결과를 반환합니다.
+     * 
+     * @param rule Rate limit 규칙
+     * @param key Rate limit 키
+     * @param context Rate Limit 필터 컨텍스트
+     * @return Rate limit 체크 결과
+     */
+    private Optional<RateLimitResultWithKey> processRateLimitRule(
+            RateLimitRule rule,
+            RateLimitKey key,
+            RateLimitFilterContext context
+    ) {
+        return facade.getProcessor()
+                .processRule(rule, context, r -> Optional.of(key));
     }
 
     /**
@@ -192,9 +289,4 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             RESPONSE_HANDLED.remove();
         }
     }
-
-    /**
-     * Rule-Key 묶음 객체
-     */
-    private record RateLimitResultWrapper(RateLimitRule rule, RateLimitKey key) {}
 }
