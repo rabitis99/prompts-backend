@@ -19,10 +19,12 @@ public class AdminReportServiceImpl implements AdminReportService {
     private final ReportService reportService;
     private final AdminValidator adminValidator;
 
+    private static final int MAX_PAGE_SIZE = 100;
+
     @Override
     @Transactional(readOnly = true)
     public Page<ReportResponseDto> getReports(ReportStatus status, Pageable pageable) {
-        adminValidator.validatePageSize(pageable, 100);
+        adminValidator.validatePageSize(pageable, MAX_PAGE_SIZE);
         if (status == null) {
             return reportService.getReports(pageable);
         }

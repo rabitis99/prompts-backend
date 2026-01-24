@@ -18,15 +18,14 @@ import org.example.sharedprompts.dto.admin.response.AdminUserResponseDto;
 import org.example.sharedprompts.dto.admin.response.RateLimitLogResponseDto;
 import org.example.sharedprompts.dto.admin.response.RateLimitLogStatisticsResponseDto;
 import org.example.sharedprompts.dto.audit.response.AuditLogResponseDto;
-import org.example.sharedprompts.dto.audit.response.AuthAuditLogResponseDto;
 import org.example.sharedprompts.dto.report.request.ReportProcessRequestDto;
 import org.example.sharedprompts.dto.report.response.ReportDetailResponseDto;
 import org.example.sharedprompts.dto.report.response.ReportResponseDto;
 import org.example.sharedprompts.dto.user.response.UserResponseDto;
 import org.example.sharedprompts.global.annotation.AdminOnly;
-import org.example.sharedprompts.dto.common.CustomResponse;
-import org.example.sharedprompts.dto.common.CustomResponseHelper;
-import org.example.sharedprompts.dto.common.PageResponse;
+import org.example.sharedprompts.global.response.CustomResponse;
+import org.example.sharedprompts.global.response.CustomResponseHelper;
+import org.example.sharedprompts.global.response.PageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -265,13 +264,15 @@ public class AdminController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate
     ) {
         // 기본값: 최근 7일
-        LocalDateTime defaultStartDate = LocalDateTime.now().minusDays(
+
+        LocalDateTime now = LocalDateTime.now();
+
+        LocalDateTime defaultStartDate = now.minusDays(
                 org.example.sharedprompts.domain.rate.ratelimitlog.constants.RateLimitLogConstants.Statistics.DEFAULT_STATISTICS_DAYS
         );
-        LocalDateTime defaultEndDate = LocalDateTime.now();
-        
+
         LocalDateTime finalStartDate = startDate != null ? startDate : defaultStartDate;
-        LocalDateTime finalEndDate = endDate != null ? endDate : defaultEndDate;
+        LocalDateTime finalEndDate = endDate != null ? endDate : now;
         
         RateLimitLogStatisticsResponseDto statistics = adminService.getRateLimitLogStatistics(finalStartDate, finalEndDate);
         return CustomResponseHelper.ok(statistics);

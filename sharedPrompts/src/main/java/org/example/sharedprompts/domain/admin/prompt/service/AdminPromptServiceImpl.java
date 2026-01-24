@@ -58,18 +58,19 @@ public class AdminPromptServiceImpl implements AdminPromptService {
     @Override
     @Transactional
     public void deletePrompt(Long promptId, Long adminId) {
+        User admin = entityFinder.findUserById(adminId);
         Prompt prompt = entityFinder.findPromptById(promptId);
 
         promptRepository.delete(prompt);
         log.info("프롬프트 삭제: promptId={}, adminId={}", promptId, adminId);
 
-        User admin = entityFinder.findUserById(adminId);
         adminAuditLogger.logPromptDelete(admin, promptId);
     }
 
     @Override
     @Transactional
     public AdminPromptResponseDto togglePromptVisibility(Long promptId, Long adminId, PromptVisibilityRequestDto requestDto) {
+        User admin = entityFinder.findUserById(adminId);
         Prompt prompt = entityFinder.findPromptById(promptId);
 
         Boolean isPublic = requestDto.getIsPublic();
@@ -85,7 +86,6 @@ public class AdminPromptServiceImpl implements AdminPromptService {
         log.info("프롬프트 공개 상태 변경: promptId={}, oldVisibility={}, newVisibility={}, adminId={}",
                 promptId, oldVisibility, isPublic, adminId);
 
-        User admin = entityFinder.findUserById(adminId);
         adminAuditLogger.logPromptVisibilityChange(admin, promptId, isPublic);
 
         return AdminPromptResponseDto.from(prompt);
