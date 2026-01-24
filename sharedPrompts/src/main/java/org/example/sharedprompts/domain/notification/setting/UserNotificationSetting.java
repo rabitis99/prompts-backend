@@ -13,8 +13,15 @@ import org.example.sharedprompts.global.entity.BaseEntity;
 @Entity
 @Getter
 @Builder
-@Table(name = "user_notification_settings", 
-       uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "notification_type"}))
+@Table(
+        name = "user_notification_settings", 
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "notification_type"}),
+        indexes = {
+                // 추가된 인덱스 목록 (우선순위: 권장)
+                // 사용자별 설정 조회 최적화
+                @Index(name = "idx_user_notification_setting_user", columnList = "user_id")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class UserNotificationSetting extends BaseEntity {

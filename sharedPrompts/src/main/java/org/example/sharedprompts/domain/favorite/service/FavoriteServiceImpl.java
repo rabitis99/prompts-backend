@@ -14,7 +14,7 @@ import org.example.sharedprompts.dto.favorite.response.FavoriteResponseDto;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
-import org.example.sharedprompts.global.response.PageResponse;
+import org.example.sharedprompts.dto.common.PageResponse;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;

@@ -10,9 +10,9 @@ import org.example.sharedprompts.dto.prompt.request.PromptRequestDto;
 import org.example.sharedprompts.dto.prompt.request.PromptSearchCondition;
 import org.example.sharedprompts.dto.prompt.request.PromptUpdateDto;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
-import org.example.sharedprompts.global.response.CustomResponse;
-import org.example.sharedprompts.global.response.CustomResponseHelper;
-import org.example.sharedprompts.global.response.PageResponse;
+import org.example.sharedprompts.dto.common.CustomResponse;
+import org.example.sharedprompts.dto.common.CustomResponseHelper;
+import org.example.sharedprompts.dto.common.PageResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,7 +23,6 @@ public class PromptController {
 
     private final PromptService promptService;
     private final PromptFacade promptFacade;
-
 
     @PostMapping
     public ResponseEntity<CustomResponse<PromptResponseDto>> createPrompt(

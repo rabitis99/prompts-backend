@@ -13,13 +13,6 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
-  # 프로필 설정
-  # 프로필은 환경변수 SPRING_PROFILES_ACTIVE로 설정하거나
-  # 실행 시 --spring.profiles.active 옵션으로 지정합니다.
-  # 운영 환경에서는 prod 프로필을 사용하는 것을 권장합니다.
-  # profiles:
-  #   active: ${SPRING_PROFILES_ACTIVE:}
-
   web:
     resources:
       add-mappings: false
@@ -34,9 +27,7 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
-            scope:
-              - email
-              - profile
+            scope: [ email, profile ]
             redirect-uri: "{baseUrl}/login/oauth2/code/google"
             client-name: Google
             authorization-grant-type: authorization_code
@@ -45,9 +36,7 @@ spring:
             client-id: ${NAVER_CLIENT_ID}
             client-secret: ${NAVER_CLIENT_SECRET}
             client-authentication-method: client_secret_post
-            scope:
-              - name
-              - email
+            scope: [ name, email ]
             redirect-uri: "{baseUrl}/login/oauth2/code/naver"
             client-name: Naver
             authorization-grant-type: authorization_code
@@ -56,9 +45,7 @@ spring:
             client-id: ${KAKAO_CLIENT_ID}
             client-secret: ${KAKAO_CLIENT_SECRET}
             client-authentication-method: client_secret_post
-            scope:
-              - profile_nickname
-              - profile_image
+            scope: [ profile_nickname, profile_image ]
             redirect-uri: "{baseUrl}/login/oauth2/code/kakao"
             client-name: Kakao
             authorization-grant-type: authorization_code
@@ -99,7 +86,7 @@ spring:
       hibernate:
         dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.MySQL8Dialect}
         jdbc:
-          batch_size: ${HIBERNATE_BATCH_SIZE:50} # 배치 처리 사이즈
+          batch_size: ${HIBERNATE_BATCH_SIZE:50}
 
   # =========================
   # Redis
@@ -110,7 +97,7 @@ spring:
       port: ${REDIS_PORT:6379}
     web:
       pageable:
-        max-page-size: 100 # 페이지 크기 상한 (클라이언트가 과도한 size 요청 방지)
+        max-page-size: 100
 
   # =========================
   # RabbitMQ
@@ -123,8 +110,8 @@ spring:
     listener:
       simple:
         acknowledge-mode: auto
-        prefetch: ${RABBITMQ_PREFETCH:10} # Consumer가 한 번에 가져올 메시지 수
-        default-requeue-rejected: false # 실패한 메시지 재큐잉 방지
+        prefetch: ${RABBITMQ_PREFETCH:10}
+        default-requeue-rejected: false
         retry:
           enabled: true
           initial-interval: 1000
@@ -132,7 +119,7 @@ spring:
           multiplier: 2
 
   # =========================
-  # Spring AI 설정
+  # Spring AI
   # =========================
   ai:
     openai:
@@ -147,7 +134,7 @@ jwt:
     expiration: ${JWT_ACCESS_EXPIRATION}
   refresh:
     expiration: ${JWT_REFRESH_EXPIRATION}
-    rotation-threshold-days: ${JWT_REFRESH_ROTATION_THRESHOLD_DAYS:1} # Refresh Token 회전 임계값 (일)
+    rotation-threshold-days: ${JWT_REFRESH_ROTATION_THRESHOLD_DAYS:1}
 
 # =========================
 # OAuth2 커스텀 설정
@@ -160,16 +147,10 @@ oauth2:
 # =========================
 auth:
   cookie:
-    # Secure 플래그: HTTPS 환경에서만 쿠키 전송
-    # 기본값은 true (보안상 안전한 기본값)
-    # 개발 환경에서는 application-dev.yml에서 false로 덮어쓸 수 있습니다.
     secure: ${AUTH_COOKIE_SECURE:true}
-    # SameSite 속성: "Strict", "Lax", "None"
-    # (Java Cookie API에서 직접 지원하지 않으므로 주석으로만 표시)
-    # same-site: Lax
   salt: ${OAUTH2_SALT}
   state:
-    validity-minutes: ${OAUTH2_STATE_VALIDITY_MINUTES:10} # OAuth2 State 유효 기간 (분)
+    validity-minutes: ${OAUTH2_STATE_VALIDITY_MINUTES:10}
   redirect:
     front-url: ${OAUTH2_REDIRECT_FRONT_URL}
 
@@ -193,7 +174,7 @@ cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS}
 
 # =========================
-# AI 설정
+# AI (Gemini)
 # =========================
 google:
   gemini:
@@ -203,11 +184,8 @@ google:
     timeout-seconds: ${GOOGLE_GEMINI_TIMEOUT_SECONDS:30}
 
 # =========================
-# Resilience4j CircuitBreaker 설정
+# Resilience4j CircuitBreaker
 # =========================
-# AI API 특성 고려: LLM API는 정상적으로 10~20초 응답이 발생할 수 있으므로
-# slowCallDurationThreshold는 timeout의 50% 이상으로 설정합니다.
-# 운영 환경에서는 Prometheus 메트릭을 통해 상태 전환 빈도, slow call/failure 비율을 모니터링하세요.
 resilience4j:
   circuitbreaker:
     instances:
@@ -226,39 +204,46 @@ resilience4j:
 # =========================
 notification:
   sse:
-    timeout: ${NOTIFICATION_SSE_TIMEOUT:1800000} # 30분 (밀리초)
-    cleanup-interval: ${NOTIFICATION_SSE_CLEANUP_INTERVAL:300000} # 5분 (밀리초)
+    timeout: ${NOTIFICATION_SSE_TIMEOUT:1800000}
+    cleanup-interval: ${NOTIFICATION_SSE_CLEANUP_INTERVAL:300000}
   duplicate:
-    check-window-minutes: ${NOTIFICATION_DUPLICATE_CHECK_WINDOW:5} # 중복 체크 시간 윈도우 (분)
+    check-window-minutes: ${NOTIFICATION_DUPLICATE_CHECK_WINDOW:5}
   cleanup:
     enabled: ${NOTIFICATION_CLEANUP_ENABLED:true}
-    retention-days: ${NOTIFICATION_RETENTION_DAYS:90} # 읽은 알림 보관 기간 (일)
-    schedule: ${NOTIFICATION_CLEANUP_SCHEDULE:0 0 2 * * ?} # 매일 새벽 2시
+    retention-days: ${NOTIFICATION_RETENTION_DAYS:90}
+    schedule: ${NOTIFICATION_CLEANUP_SCHEDULE:0 0 2 * * ?}
   cache:
-    unread-count-ttl: ${NOTIFICATION_UNREAD_COUNT_TTL:60} # 읽지 않은 알림 개수 캐시 TTL (초)
+    unread-count-ttl: ${NOTIFICATION_UNREAD_COUNT_TTL:60}
 
 # =========================
 # 통계 설정
 # =========================
 statistics:
   cache:
-    ttl: ${STATISTICS_CACHE_TTL:300} # 통계 데이터 캐시 TTL (초, 기본값: 5분)
+    ttl: ${STATISTICS_CACHE_TTL:300}
 
 # =========================
-# Rate Limit 로그 정리 설정
+# Rate Limit 설정
 # =========================
 rate-limit:
+  rules:
+    login: ${RATE_LIMIT_LOGIN:5}
+    signup: ${RATE_LIMIT_SIGNUP:3}
+    prompt-create: ${RATE_LIMIT_PROMPT_CREATE:10}
+    general: ${RATE_LIMIT_GENERAL:100}
+  windows:
+    default-seconds: ${RATE_LIMIT_WINDOW_SECONDS:60}
   log:
     cleanup:
-      enabled: ${RATE_LIMIT_LOG_CLEANUP_ENABLED:true} # Rate Limit 로그 정리 활성화 여부
-      retention-days: ${RATE_LIMIT_LOG_CLEANUP_RETENTION_DAYS:90} # Rate Limit 로그 보관 기간 (일)
+      enabled: ${RATE_LIMIT_LOG_CLEANUP_ENABLED:true}
+      retention-days: ${RATE_LIMIT_LOG_CLEANUP_RETENTION_DAYS:90}
 
 # =========================
 # 애플리케이션 설정
 # =========================
 app:
   redis:
-    hot-ttl-seconds: ${APP_REDIS_HOT_TTL_SECONDS:86400} # 핫 데이터 Redis TTL (초, 기본값: 1일)
+    hot-ttl-seconds: ${APP_REDIS_HOT_TTL_SECONDS:86400}
 
 # =========================
 # Actuator 설정
@@ -267,14 +252,14 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus # 노출할 엔드포인트
+        include: health,info,metrics,prometheus
   endpoint:
     health:
-      show-details: when-authorized # 인증된 사용자에게만 상세 정보 표시
-  metrics:
-    export:
-      prometheus:
-        enabled: true # Prometheus 메트릭 수집 활성화
+      show-details: when-authorized
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 # =========================
 # 로깅
@@ -282,4 +267,3 @@ management:
 logging:
   level:
     root: ${LOG_LEVEL_ROOT:INFO}
-    # 개발 환경에서는 application-dev.yml에서 DEBUG로 설정됩니다.

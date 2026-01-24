@@ -1,11 +1,11 @@
 package org.example.sharedprompts.controller.admin;
 
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.domain.admin.service.AdminMaintenanceService;
+import org.example.sharedprompts.domain.admin.maintenance.service.AdminMaintenanceService;
 import org.example.sharedprompts.dto.admin.response.RebuildLikeCountsStatusResponseDto;
 import org.example.sharedprompts.global.annotation.AdminOnly;
-import org.example.sharedprompts.global.response.CustomResponse;
-import org.example.sharedprompts.global.response.CustomResponseHelper;
+import org.example.sharedprompts.dto.common.CustomResponse;
+import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;

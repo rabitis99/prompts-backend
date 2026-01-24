@@ -1,6 +1,8 @@
 package org.example.sharedprompts.domain.notification.service;
 
 import org.example.sharedprompts.domain.user.User;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -98,7 +100,8 @@ public class NotificationMessageFormatter {
         if (formatter != null) {
             return formatter.apply(user);
         }
-        throw new IllegalArgumentException("Unknown template key: " + templateKey);
+        throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "templateKey", 
+                "Unknown template key: " + templateKey);
     }
 }
 

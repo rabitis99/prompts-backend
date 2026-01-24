@@ -33,8 +33,7 @@ public class AsyncConfig {
         executor.setThreadNamePrefix("sse-async-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(60);
-        // 스레드 풀 포화 시 거부 정책: 로깅 후 호출 스레드에서 실행
-        executor.setRejectedExecutionHandler(createRejectedExecutionHandler());
+        executor.setRejectedExecutionHandler(createSseRejectedExecutionHandler());
         executor.initialize();
         return executor;
     }
@@ -42,6 +41,7 @@ public class AsyncConfig {
     /**
      * Rate Limit 로그 저장용 TaskExecutor
      * - Rate Limit 로그를 비동기로 저장하여 요청 응답 시간에 영향 없도록 함
+     * - 풀 포화 시 호출 스레드에서 실행하여 로그 유실 방지
      */
     @Bean(name = "rateLimitLogTaskExecutor")
     public Executor rateLimitLogTaskExecutor() {
@@ -52,37 +52,52 @@ public class AsyncConfig {
         executor.setThreadNamePrefix("rate-limit-log-async-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(30);
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executor.setRejectedExecutionHandler(createRateLimitRejectedHandler());
         executor.initialize();
         return executor;
     }
 
     /**
-     * 스레드 풀 포화 시 거부 정책 생성
+     * SSE TaskExecutor용 거부 정책
      * - 로깅 후 호출 스레드에서 실행하여 알림 유실 방지
-     * 
-     * @return RejectedExecutionHandler
      */
-    private RejectedExecutionHandler createRejectedExecutionHandler() {
-        return new RejectedExecutionHandler() {
-            @Override
-            public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-                log.warn("SSE task executor pool is saturated. " +
-                        "Active threads: {}, Queue size: {}, Pool size: {}. " +
-                        "Executing task in caller thread to prevent notification loss.",
-                        executor.getActiveCount(),
-                        executor.getQueue().size(),
-                        executor.getPoolSize());
-                
-                // 호출 스레드에서 직접 실행하여 알림 유실 방지
-                // CallerRunsPolicy와 동일한 동작이지만 로깅 추가
-                if (!executor.isShutdown()) {
-                    r.run();
-                } else {
-                    log.error("Task rejected because executor is shutdown");
-                }
+    private RejectedExecutionHandler createSseRejectedExecutionHandler() {
+        return (r, executor) -> {
+            log.warn(
+                    "SSE task executor pool is saturated. Active threads: {}, Queue size: {}, Pool size: {}. " +
+                    "Executing task in caller thread to prevent notification loss.",
+                    executor.getActiveCount(),
+                    executor.getQueue().size(),
+                    executor.getPoolSize()
+            );
+
+            if (!executor.isShutdown()) {
+                r.run();
+            } else {
+                log.error("SSE task rejected because executor is shutdown");
+            }
+        };
+    }
+
+    /**
+     * Rate Limit 로그 TaskExecutor용 거부 정책
+     * - 로깅 후 호출 스레드에서 실행하여 로그 유실 방지
+     */
+    private RejectedExecutionHandler createRateLimitRejectedHandler() {
+        return (r, executor) -> {
+            log.warn(
+                    "Rate limit log task executor pool is saturated. Active threads: {}, Queue size: {}, Pool size: {}. " +
+                    "Executing task in caller thread to prevent log loss.",
+                    executor.getActiveCount(),
+                    executor.getQueue().size(),
+                    executor.getPoolSize()
+            );
+
+            if (!executor.isShutdown()) {
+                r.run();
+            } else {
+                log.error("Rate limit log task rejected because executor is shutdown");
             }
         };
     }
 }
-

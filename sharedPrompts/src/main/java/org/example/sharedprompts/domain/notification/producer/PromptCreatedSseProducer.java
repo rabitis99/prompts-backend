@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.notification.producer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.notification.message.PromptCreatedMessage;
-import org.example.sharedprompts.global.config.RabbitMQConfig;
+import org.example.sharedprompts.infra.messaging.RabbitMQConfig;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 

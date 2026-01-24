@@ -1,15 +1,11 @@
 package org.example.sharedprompts.domain.prompt.service;
 
-import org.example.sharedprompts.dto.prompt.request.PromptRequestDto;
 import org.example.sharedprompts.dto.prompt.request.PromptSearchCondition;
 import org.example.sharedprompts.dto.prompt.request.PromptUpdateDto;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
-import org.example.sharedprompts.global.response.PageResponse;
-import reactor.core.publisher.Mono;
+import org.example.sharedprompts.dto.common.PageResponse;
 
 public interface PromptService {
-
-    Mono<PromptResponseDto> createPrompt(PromptRequestDto request, Long userId);
 
     PageResponse<PromptResponseDto> getPrompts(PromptSearchCondition condition, Long viewerId);
 

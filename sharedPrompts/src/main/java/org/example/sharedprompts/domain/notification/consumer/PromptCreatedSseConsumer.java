@@ -7,7 +7,9 @@ import org.example.sharedprompts.domain.notification.message.PromptCreatedMessag
 import org.example.sharedprompts.domain.notification.metrics.NotificationMetrics;
 import org.example.sharedprompts.domain.notification.service.SseBatchSender;
 import org.example.sharedprompts.domain.notification.validator.PromptCreatedMessageValidator;
-import org.example.sharedprompts.global.config.RabbitMQConfig;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.infra.messaging.RabbitMQConfig;
 import jakarta.validation.Valid;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
@@ -67,7 +69,7 @@ public class PromptCreatedSseConsumer {
             log.error("All SSE notifications failed for prompt: promptId={}, authorId={}, followerCount={}", 
                     message.getPromptId(), message.getAuthorId(), message.getFollowerIds().size(), 
                     result.getLastException());
-            throw new RuntimeException(
+            throw new ApiException(ErrorCode.NOTIFICATION_PUBLISH_FAILED, null, 
                     "All SSE notifications failed for prompt: " + message.getPromptId(), 
                     result.getLastException());
         }

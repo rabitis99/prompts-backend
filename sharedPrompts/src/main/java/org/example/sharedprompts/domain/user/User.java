@@ -13,9 +13,24 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "users", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"provider", "providerId"})
-})
+@Table(
+        name = "users",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"provider", "providerId"})
+        },
+        indexes = {
+                // provider + providerId + deleted_at: 로그인/존재 여부 조회 최적화
+                @Index(name = "idx_users_provider_provider_id_deleted_at", columnList = "provider, provider_id, deleted_at"),
+                // 최근 활동/가입자 수 통계를 위한 인덱스
+                @Index(name = "idx_users_updated_at_deleted_at", columnList = "updated_at, deleted_at"),
+                @Index(name = "idx_users_created_at_deleted_at", columnList = "created_at, deleted_at"),
+                // 관리자/권한 관련 조회 및 보호 로직
+                @Index(name = "idx_users_role_deleted_at", columnList = "role, deleted_at"),
+                // 추가된 인덱스 목록 (우선순위: 필수)
+                // 활성 사용자 필터링 최적화 (팔로워/팔로잉 목록 조회 시 필수)
+                @Index(name = "idx_users_blocked_deleted_at", columnList = "blocked, deleted_at")
+        }
+)
 public class User extends BaseEntity {
 
     @Id
@@ -109,6 +124,17 @@ public class User extends BaseEntity {
 
     public boolean isDeleted() {
         return this.deletedAt != null;
+    }
+
+    /**
+     * 비밀번호 검증 로직을 엔티티 안으로 모읍니다.
+     * 인코딩/매칭 구현은 PasswordVerifier에 위임합니다.
+     */
+    public boolean verifyPassword(String rawPassword, PasswordVerifier verifier) {
+        if (this.password == null) {
+            return false;
+        }
+        return verifier.matches(rawPassword, this.password);
     }
 
 }
