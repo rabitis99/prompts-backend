@@ -43,9 +43,10 @@ public class AuthAuditLog extends BaseEntity {
 
     /**
      * 인증 제공자
+     * null인 경우: OAuth 코드 검증 실패, 토큰 갱신 실패(사용자 정보 없음) 등 provider를 알 수 없는 경우
      */
     @Enumerated(EnumType.STRING)
-    @Column(name = "provider", nullable = false, length = 20)
+    @Column(name = "provider", nullable = true, length = 20)
     private Provider provider;
 
     /**

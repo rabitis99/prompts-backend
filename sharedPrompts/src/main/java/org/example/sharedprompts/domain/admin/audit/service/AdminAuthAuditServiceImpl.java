@@ -21,6 +21,7 @@ public class AdminAuthAuditServiceImpl implements AdminAuthAuditService {
 
     private final AuthAuditLogService authAuditLogService;
     private final AdminValidator adminValidator;
+    private static final int MAX_AUDIT_PAGE_SIZE = 100;
 
     @Override
     @Transactional(readOnly = true)
@@ -34,7 +35,7 @@ public class AdminAuthAuditServiceImpl implements AdminAuthAuditService {
             Pageable pageable
     ) {
         adminValidator.validateDateRange(startDate, endDate);
-        adminValidator.validatePageSize(pageable, 100);
+        adminValidator.validatePageSize(pageable, MAX_AUDIT_PAGE_SIZE);
 
         Page<AuthAuditLog> logs = authAuditLogService.getLogsWithFilters(
                 eventType, provider, userId, failReason, startDate, endDate, pageable
