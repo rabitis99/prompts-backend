@@ -1,6 +1,5 @@
 package org.example.sharedprompts.controller.comment;
 
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.auth.AuthUser;
@@ -9,8 +8,8 @@ import org.example.sharedprompts.domain.comment.service.CommentService;
 import org.example.sharedprompts.dto.comment.request.CommentRequestDto;
 import org.example.sharedprompts.dto.comment.request.CommentUpdateDto;
 import org.example.sharedprompts.dto.comment.response.CommentResponseDto;
-import org.example.sharedprompts.global.response.CustomResponse;
-import org.example.sharedprompts.global.response.CustomResponseHelper;
+import org.example.sharedprompts.dto.common.CustomResponse;
+import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

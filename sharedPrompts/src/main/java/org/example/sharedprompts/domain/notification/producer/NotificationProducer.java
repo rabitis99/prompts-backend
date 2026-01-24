@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.notification.message.NotificationMessage;
 import org.example.sharedprompts.domain.notification.metrics.NotificationMetrics;
-import org.example.sharedprompts.global.config.RabbitMQConfig;
+import org.example.sharedprompts.infra.messaging.RabbitMQConfig;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;

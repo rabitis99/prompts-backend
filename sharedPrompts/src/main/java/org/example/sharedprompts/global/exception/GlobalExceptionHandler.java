@@ -2,7 +2,7 @@ package org.example.sharedprompts.global.exception;
 
 import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.global.response.CustomResponseHelper;
+import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import jakarta.persistence.OptimisticLockException;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;

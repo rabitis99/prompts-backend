@@ -1,37 +1,52 @@
 package org.example.sharedprompts.domain.auth.service;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.auth.audit.AuthAuditPublisher;
+import org.example.sharedprompts.auth.storage.RefreshTokenMetadata;
+import org.example.sharedprompts.auth.storage.RefreshTokenStore;
+import org.example.sharedprompts.auth.security.token.TokenSecurityCheckResult;
+import org.example.sharedprompts.auth.security.token.TokenSecurityValidator;
+import org.example.sharedprompts.domain.audit.auth.enums.AuthFailReason;
+import org.example.sharedprompts.domain.auth.service.OAuthLoginFlow.OAuthLoginPayload;
+import org.example.sharedprompts.domain.user.PasswordVerifier;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.enums.Provider;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
+import org.example.sharedprompts.domain.user.validator.PasswordStrengthValidator;
 import org.example.sharedprompts.dto.auth.request.LoginRequestDto;
 import org.example.sharedprompts.dto.auth.request.LogoutRequestDto;
 import org.example.sharedprompts.dto.auth.request.RefreshRequestDto;
 import org.example.sharedprompts.dto.auth.request.SignUpRequestDto;
+import org.example.sharedprompts.domain.user.service.UserRegistrationService;
+import org.example.sharedprompts.domain.user.service.UserValidationService;
 import org.example.sharedprompts.dto.auth.response.AuthResponseDto;
 import org.example.sharedprompts.dto.auth.response.TokenResponseDto;
-import org.example.sharedprompts.global.constant.Constant;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
-import org.example.sharedprompts.global.jwt.JwtProvider;
-import org.example.sharedprompts.global.redis.TokenRedisService;
-import org.example.sharedprompts.global.redis.TokenVersionCacheService;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.example.sharedprompts.global.util.RandomGenerator;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Map;
-
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtProvider jwtProvider;
-    private final TokenRedisService tokenRedisService;
-    private final TokenVersionCacheService tokenVersionCacheService;
+    private final PasswordVerifier passwordVerifier;
+    private final PasswordStrengthValidator passwordStrengthValidator;
+    private final UserRegistrationService userRegistrationService;
+    private final UserValidationService userValidationService;
+    private final AuthAuditPublisher authAuditPublisher;
+    private final OAuthLoginFlow oAuthLoginFlow;
+    private final AuthTokenService authTokenService;
+    private final RefreshTokenStore refreshTokenStore;
+    private final TokenSecurityValidator tokenSecurityValidator;
 
     @Override
     @Transactional
@@ -40,115 +55,134 @@ public class AuthServiceImpl implements AuthService {
             throw new ApiException(ErrorCode.CONFLICT_EMAIL);
         }
 
+        // 비밀번호 강도 검증
+        passwordStrengthValidator.validate(dto.getPassword());
+
         String encodedPassword = passwordEncoder.encode(dto.getPassword());
         String nickname = RandomGenerator.randomNickname();
 
-        User user = userRepository.save(dto.toEntity(encodedPassword, nickname));
-        
-        // 회원가입 시 tokenVersion 초기화
-        tokenVersionCacheService.initializeTokenVersion(user.getId());
+        // UserRegistrationService로 위임 (사용자 생성 + tokenVersion 초기화 + 이벤트 발행)
+        User user = userRegistrationService.registerLocalUser(dto, encodedPassword, nickname);
         
         return AuthResponseDto.from(user);
     }
 
     @Override
     @Transactional
-    public TokenResponseDto login(LoginRequestDto dto) {
-        User user = userRepository.findByProviderAndProviderId(Provider.LOCAL, dto.getEmail())
-                .orElseThrow(() -> new ApiException(ErrorCode.FORBIDDEN));
+    public TokenResponseDto login(LoginRequestDto dto, HttpServletRequest request) {
+        String email = dto.getEmail();
 
-        if (user.getPassword() == null || !passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-            throw new ApiException(ErrorCode.FORBIDDEN);
+        User user = userRepository.findByProviderAndProviderId(Provider.LOCAL, email)
+                .orElseThrow(() -> {
+                    log.warn("Login failed - reason=USER_NOT_FOUND, email={}", SensitiveDataMasker.maskEmail(email));
+
+                    authAuditPublisher.loginFailByEmail(Provider.LOCAL, email, AuthFailReason.USER_NOT_FOUND);
+
+                    return new ApiException(ErrorCode.LOGIN_FAILED);
+                });
+
+        if (!user.verifyPassword(dto.getPassword(), passwordVerifier)) {
+            log.warn("Login failed - reason=INVALID_PASSWORD, email={}", SensitiveDataMasker.maskEmail(email));
+
+            authAuditPublisher.loginFailByUser(user, AuthFailReason.INVALID_PASSWORD, request);
+
+            throw new ApiException(ErrorCode.LOGIN_FAILED);
         }
 
-        TokenResponseDto tokenResponseDto = jwtProvider.getToken(user);
+        // 사용자 상태 검증 (차단, 삭제 등)
+        userValidationService.validate(user);
 
-        tokenRedisService.saveAccessToken(tokenResponseDto.getAccessToken(), user.getId());
-        tokenRedisService.saveRefreshToken(tokenResponseDto.getRefreshToken(), user.getId());
+        TokenResponseDto tokenResponseDto = authTokenService.issue(user, request);
+
+        authAuditPublisher.loginSuccessByUser(user, request);
 
         return tokenResponseDto;
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public TokenResponseDto callback(String key, String state) {
+    @Transactional
+    public TokenResponseDto callback(String key, String state, HttpServletRequest request) {
+        OAuthLoginPayload payload = oAuthLoginFlow.validate(key, state);
 
-        Map<String, String> tokens = tokenRedisService.getAndDeleteTempToken(key);
+        User user = payload.user();
+        // authTokenService.issue()는 Redis에 토큰을 저장하므로 쓰기 작업이 필요합니다.
+        TokenResponseDto tokenResponseDto = authTokenService.issue(user, request);
 
-        if (tokens == null) {
-            throw new ApiException(ErrorCode.OAUTH2_INVALID_CODE);
-        }
+        authAuditPublisher.loginSuccessByUser(user, request);
 
-        String expectedState = tokens.get(Constant.STATE_KEY);
-        if (expectedState == null || !expectedState.equals(state)) {
-            throw new ApiException(ErrorCode.OAUTH2_STATE_MISMATCH);
-        }
-
-        String accessToken = tokens.get(Constant.ACCESS_TOKEN_KEY);
-        String refreshToken = tokens.get(Constant.REFRESH_TOKEN_KEY);
-        String providerStr = tokens.get(Constant.PROVIDER_KEY);
-        String providerId = tokens.get(Constant.PROVIDER_ID_KEY);
-
-        if (accessToken == null || refreshToken == null || providerStr == null || providerId == null) {
-            throw new ApiException(ErrorCode.OAUTH2_TOKEN_INVALID);
-        }
-
-        // userId 조회
-        User user = userRepository.findByProviderAndProviderId(
-                Provider.valueOf(providerStr),
-                providerId
-        ).orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
-
-
-        tokenRedisService.saveAccessToken(accessToken, user.getId());
-        tokenRedisService.saveRefreshToken(refreshToken, user.getId());
-
-        return new TokenResponseDto(accessToken, refreshToken);
+        return tokenResponseDto;
     }
 
     @Override
     @Transactional
-    public TokenResponseDto refresh(RefreshRequestDto dto) {
-
-        Long userId = tokenRedisService.getRefreshToken(dto.getRefreshToken());
-
-        if (userId == null) {
+    public TokenResponseDto refresh(RefreshRequestDto dto, HttpServletRequest request) {
+        // 1. RefreshToken 조회 및 삭제 (1회용 보장)
+        RefreshTokenMetadata metadata = refreshTokenStore.getAndDelete(dto.getRefreshToken());
+        
+        if (metadata == null) {
+            authAuditPublisher.tokenRefreshFailWithoutUser(AuthFailReason.INVALID_REFRESH_TOKEN);
             throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
+        
+        // 2. IP/User-Agent 보안 검증
+        TokenSecurityCheckResult checkResult = tokenSecurityValidator.validate(metadata, request);
+        handleSecurityCheckResult(checkResult, metadata, request);
+        
+        // 3. 사용자 조회
+        User user = userRepository.findById(metadata.getUserId())
+                .orElseThrow(() -> {
+                    authAuditPublisher.tokenRefreshFailByUserId(metadata.getUserId(), AuthFailReason.USER_NOT_FOUND, request);
+                    return new ApiException(ErrorCode.USER_NOT_FOUND);
+                });
 
-        if (!tokenRedisService.isRefreshTokenValid(dto.getRefreshToken(), userId)) {
-            throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN);
+        // 4. 토큰 재발급 (메타데이터 및 현재 refresh 토큰 전달)
+        // getAndDelete로 이미 삭제되었으므로, 회전하지 않는 경우 재저장을 위해 현재 토큰 전달
+        TokenResponseDto tokenResponseDto = authTokenService.reissue(
+                user, metadata, dto.getRefreshToken(), request
+        );
+
+        authAuditPublisher.tokenRefreshSuccessByUser(user, request);
+
+        return tokenResponseDto;
+    }
+    
+    /**
+     * 보안 검증 결과 처리
+     */
+    private void handleSecurityCheckResult(TokenSecurityCheckResult checkResult, RefreshTokenMetadata metadata, HttpServletRequest request) {
+        if (checkResult == TokenSecurityCheckResult.MISMATCH) {
+            // 보안 로그 + 전체 세션 무효화
+            log.warn("Token refresh security alert - userId={}, storedIp={}, storedUa={}",
+                    metadata.getUserId(), metadata.getIp(), metadata.getUserAgent());
+            refreshTokenStore.deleteAllByUser(metadata.getUserId());
+            authAuditPublisher.tokenRefreshFailByUserId(metadata.getUserId(), AuthFailReason.INVALID_REFRESH_TOKEN, request);
+            throw new ApiException(ErrorCode.REFRESH_TOKEN_SECURITY_MISMATCH);
+        } else if (checkResult == TokenSecurityCheckResult.SUSPICIOUS) {
+            // 경고 로그만
+            log.warn("Suspicious token refresh: userId={}, ip={}, ua={}",
+                    metadata.getUserId(), metadata.getIp(), metadata.getUserAgent());
         }
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
-
-        String newAccessToken = jwtProvider.generateAccessToken(user);
-        String newRefreshToken = jwtProvider.generateRefreshToken(user);
-
-        tokenRedisService.deleteRefreshToken(dto.getRefreshToken(), userId);
-
-        tokenRedisService.saveAccessToken(newAccessToken, userId);
-        tokenRedisService.saveRefreshToken(newRefreshToken, userId);
-
-
-        return new TokenResponseDto(newAccessToken, newRefreshToken);
     }
 
     @Override
     @Transactional
     public void logout(Long userId, LogoutRequestDto dto, String accessToken) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    authAuditPublisher.logoutFailByUserId(userId, AuthFailReason.USER_NOT_FOUND);
+                    return new ApiException(ErrorCode.USER_NOT_FOUND);
+                });
 
-        if (!tokenRedisService.isRefreshTokenValid(dto.getRefreshToken(), userId)) {
+        if (!refreshTokenStore.isValid(dto.getRefreshToken(), userId)) {
+            authAuditPublisher.logoutFailByUserId(userId, AuthFailReason.INVALID_REFRESH_TOKEN);
             throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
-        if (!tokenRedisService.isAccessTokenValidWithUserId(accessToken, userId)) {
-            throw new ApiException(ErrorCode.INVALID_ACCESS_TOKEN);
-        }
+        
+        // Access Token 검증은 TokenRedisService에서 처리
+        // (AuthTokenService에서 처리하도록 변경 가능하지만, 기존 구조 유지)
 
-        tokenRedisService.deleteAccessToken(accessToken);
-        tokenRedisService.deleteRefreshToken(dto.getRefreshToken(), userId);
-
+        authTokenService.logout(user, accessToken, dto.getRefreshToken());
+        authAuditPublisher.logoutSuccessByUser(user);
     }
-
 }
+

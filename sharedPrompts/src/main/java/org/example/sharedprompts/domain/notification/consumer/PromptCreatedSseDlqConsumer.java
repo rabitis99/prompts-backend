@@ -2,14 +2,12 @@ package org.example.sharedprompts.domain.notification.consumer;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.domain.audit.auth.util.AuthHashUtil;
 import org.example.sharedprompts.domain.notification.metrics.NotificationMetrics;
-import org.example.sharedprompts.global.config.RabbitMQConfig;
+import org.example.sharedprompts.infra.messaging.RabbitMQConfig;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
-
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 /**
  * 프롬프트 생성 SSE 알림 Dead Letter Queue Consumer
@@ -23,6 +21,7 @@ import java.security.NoSuchAlgorithmException;
 public class PromptCreatedSseDlqConsumer {
 
     private final NotificationMetrics metrics;
+    private final AuthHashUtil authHashUtil;
 
     /**
      * DLQ에서 실패한 메시지를 수신하여 처리
@@ -49,8 +48,12 @@ public class PromptCreatedSseDlqConsumer {
             
             // 메시지 본문 정보 추출 (개인정보 보호를 위해 본문 전체는 로그에 남기지 않음)
             byte[] messageBody = message.getBody();
-            int messageSize = messageBody.length;
-            String messageHash = calculateMessageHash(messageBody);
+            int messageSize = messageBody != null ? messageBody.length : 0;
+            // AuthHashUtil을 사용하여 해시 계산 (byte[] 직접 해시 - 비UTF-8 payload 안전, 메모리 효율적)
+            String messageHash = authHashUtil.hash(messageBody);
+            if (messageHash == null) {
+                messageHash = "empty_or_invalid_message";
+            }
             
             log.error("Received failed message in DLQ: " +
                     "routingKey={}, exchange={}, queue={}, reason={}, deathCount={}, messageSize={}, messageHash={}", 
@@ -59,8 +62,11 @@ public class PromptCreatedSseDlqConsumer {
             // DLQ 메시지 카운터 증가
             metrics.recordDlqMessage("SSE_PROMPT_CREATED");
 
-            // TODO: 운영팀에게 알림 발송 (이메일, 슬랙 등)
-            // 필요 시 메시지 본문은 별도 경로로 전달 (로그에는 포함하지 않음)
+            // 운영팀 알림 발송이 필요한 경우:
+            // 1. 메트릭 기반 알림: Prometheus AlertManager를 통해 DLQ 메시지 수가 임계값을 초과하면 알림 발송
+            // 2. 직접 알림: 이메일/Slack 연동 서비스를 주입받아 여기서 직접 호출
+            // 3. 이벤트 발행: DLQ 메시지 수신 이벤트를 발행하여 별도 핸들러에서 처리
+            // 현재는 로그와 메트릭으로 모니터링하며, 필요 시 위 방법 중 하나를 선택하여 구현
 
         } catch (Exception e) {
             log.error("Failed to process DLQ message", e);
@@ -69,31 +75,5 @@ public class PromptCreatedSseDlqConsumer {
         }
     }
 
-    /**
-     * 메시지 본문의 해시값 계산 (개인정보 보호를 위해 로그에 해시만 남김)
-     * 
-     * @param messageBody 메시지 본문 바이트 배열
-     * @return SHA-256 해시값 (16진수 문자열)
-     */
-    private String calculateMessageHash(byte[] messageBody) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(messageBody);
-            
-            // 16진수 문자열로 변환
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) {
-                    hexString.append('0');
-                }
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            log.warn("Failed to calculate message hash", e);
-            return "hash_calculation_failed";
-        }
-    }
 }
 

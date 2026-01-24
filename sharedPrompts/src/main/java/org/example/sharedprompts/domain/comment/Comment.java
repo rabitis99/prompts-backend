@@ -12,7 +12,17 @@ import java.util.List;
 @Entity
 @Getter
 @Builder
-@Table(name = "comments")
+@Table(
+        name = "comments",
+        indexes = {
+                // 프롬프트 상세 페이지에서 루트 댓글을 프롬프트/작성일 기준으로 조회할 때 사용
+                @Index(name = "idx_comments_prompt_created_at", columnList = "prompt_id, created_at"),
+                // 대댓글 조회 및 정렬을 위한 인덱스
+                @Index(name = "idx_comments_parent_created_at", columnList = "parent_id, created_at"),
+                // 특정 사용자의 댓글 이력 조회(마이페이지 등)를 고려한 인덱스
+                @Index(name = "idx_comments_user_created_at", columnList = "user_id, created_at")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class Comment extends BaseEntity {
