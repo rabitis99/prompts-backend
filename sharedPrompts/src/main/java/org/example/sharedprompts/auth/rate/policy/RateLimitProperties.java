@@ -1,5 +1,6 @@
 package org.example.sharedprompts.auth.rate.policy;
 
+import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -22,15 +23,18 @@ public class RateLimitProperties {
     /**
      * Rate Limit 규칙별 한도 설정
      */
+    @Valid
     private RateLimitRules rules = new RateLimitRules();
 
     /**
      * Rate Limit 윈도우 설정
      */
+    @Valid
     private RateLimitWindows windows = new RateLimitWindows();
 
     /**
      * Rate Limit 실패 정책 설정
      */
+    @Valid
     private RateLimitFailurePolicy failurePolicy = new RateLimitFailurePolicy();
 }

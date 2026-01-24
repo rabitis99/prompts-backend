@@ -1,7 +1,12 @@
 package org.example.sharedprompts.auth.rate.filter.impl;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.example.sharedprompts.auth.rate.RateLimiter;
+
+import java.io.IOException;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitFilterContext;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitKey;
 import org.example.sharedprompts.auth.rate.filter.service.facade.RateLimitFacade;
@@ -33,6 +38,16 @@ public class IpRateLimitFilter extends AbstractRateLimitFilter {
             RateLimitProperties rateLimitProperties
     ) {
         super(facade, keyStrategy, rateLimitProperties);
+    }
+
+    @Override
+    protected boolean shouldApplyFilter(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+        // IP 기반 필터는 인증 여부와 관계없이 모든 요청에 적용
+        return true;
     }
 
     @Override

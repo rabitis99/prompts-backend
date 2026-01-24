@@ -65,7 +65,7 @@ public class RateLimitRuleConfig {
         return new RateLimitRule(
                 RateLimitConstants.RuleNames.LOGIN,
                 properties.getRules().getLogin(),
-                properties.getWindows().getDefaultSeconds()
+                properties.getWindows().getLoginSeconds()
         );
     }
 
@@ -76,7 +76,7 @@ public class RateLimitRuleConfig {
         return new RateLimitRule(
                 RateLimitConstants.RuleNames.SIGNUP,
                 properties.getRules().getSignup(),
-                properties.getWindows().getDefaultSeconds()
+                properties.getWindows().getSignupSeconds()
         );
     }
 
@@ -87,7 +87,7 @@ public class RateLimitRuleConfig {
         return new RateLimitRule(
                 RateLimitConstants.RuleNames.PROMPT_CREATE,
                 properties.getRules().getPromptCreate(),
-                properties.getWindows().getDefaultSeconds()
+                properties.getWindows().getPromptCreateSeconds()
         );
     }
 
@@ -98,7 +98,7 @@ public class RateLimitRuleConfig {
         return new RateLimitRule(
                 RateLimitConstants.RuleNames.GENERAL,
                 properties.getRules().getGeneral(),
-                properties.getWindows().getDefaultSeconds()
+                properties.getWindows().getGeneralSeconds()
         );
     }
 }

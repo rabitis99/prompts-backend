@@ -47,7 +47,6 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             @NotNull HttpServletResponse response,
             @NotNull FilterChain filterChain
     ) throws ServletException, IOException {
-
         try (ScopedResponseHandled ignored = new ScopedResponseHandled()) {
 
             if (!shouldApplyFilter(request, response, filterChain)) {
@@ -57,9 +56,6 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
 
             RateLimitFilterContext context = createContext(request);
             processRateLimitCheck(context, request, response, filterChain);
-
-        } catch (Exception e) {
-            handleRateLimitCheckFailure(e, filterChain, request, response);
         }
     }
 
@@ -80,7 +76,7 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             logRateLimitExceeded(result.getRule(), result.getKey(), result.getResult(), context, request);
             facade.getExceededFacade().handle(result.getRule(), result.getKey(), result.getResult(), response, (k, r) -> {});
         } else {
-            safeFilterChain(filterChain, request, response);
+            filterChain.doFilter(request, response);
         }
     }
 
@@ -97,20 +93,24 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain
-    ) {
-        facade.getRuleResolutionService().resolveRule(request)
-                .flatMap(rule -> keyStrategy.buildKey(rule, context).map(key -> new RateLimitResultWrapper(rule, key)))
-                .flatMap(wrapper -> facade.getProcessor().processRule(wrapper.rule(), context, r -> Optional.of(wrapper.key())))
-                .ifPresentOrElse(
-                        result -> {
-                            try {
-                                handleRateLimitResult(result, context, request, response, filterChain);
-                            } catch (ServletException | IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        },
-                        () -> safeFilterChain(filterChain, request, response)
-                );
+    ) throws ServletException, IOException {
+        Optional<RateLimitResultWithKey> opt;
+        try {
+            opt = facade.getRuleResolutionService().resolveRule(request)
+                    .flatMap(rule -> keyStrategy.buildKey(rule, context)
+                            .map(key -> new RateLimitResultWrapper(rule, key)))
+                    .flatMap(wrapper -> facade.getProcessor()
+                            .processRule(wrapper.rule(), context, r -> Optional.of(wrapper.key())));
+        } catch (Exception e) {
+            handleRateLimitCheckFailure(e, filterChain, request, response);
+            return;
+        }
+
+        if (opt.isPresent()) {
+            handleRateLimitResult(opt.get(), context, request, response, filterChain);
+        } else {
+            filterChain.doFilter(request, response);
+        }
     }
 
     /**
@@ -126,11 +126,11 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             FilterChain filterChain,
             HttpServletRequest request,
             HttpServletResponse response
-    ) {
+    ) throws ServletException, IOException {
         boolean failOpen = rateLimitProperties.getFailurePolicy().isFailOpen();
         if (failOpen) {
             logger.warn("Rate limit check failed, allowing request (Fail-Open)", e);
-            safeFilterChain(filterChain, request, response);
+            filterChain.doFilter(request, response);
         } else {
             logger.error("Rate limit check failed, blocking request (Fail-Closed)", e);
             sendServiceUnavailableResponse(response);
@@ -148,21 +148,6 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
         } catch (IOException ioException) {
             logger.error("Failed to send error response", ioException);
             throw new RuntimeException(ioException);
-        }
-    }
-
-    /**
-     * 안전하게 필터 체인을 실행합니다.
-     * 
-     * @param filterChain 필터 체인
-     * @param request HTTP 요청
-     * @param response HTTP 응답
-     */
-    private void safeFilterChain(FilterChain filterChain, HttpServletRequest request, HttpServletResponse response) {
-        try {
-            filterChain.doFilter(request, response);
-        } catch (IOException | ServletException e) {
-            throw new RuntimeException(e);
         }
     }
 

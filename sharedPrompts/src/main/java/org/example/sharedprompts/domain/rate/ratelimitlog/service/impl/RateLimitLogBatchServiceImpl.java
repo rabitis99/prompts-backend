@@ -1,5 +1,7 @@
 package org.example.sharedprompts.domain.rate.ratelimitlog.service.impl;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.rate.ratelimitlog.RateLimitLog;
@@ -26,6 +28,9 @@ public class RateLimitLogBatchServiceImpl implements RateLimitLogBatchService {
 
     private final RateLimitLogRepository repository;
     private final RateLimitLogExceptionHandler exceptionHandler;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     @Async("rateLimitLogTaskExecutor")
@@ -57,6 +62,8 @@ public class RateLimitLogBatchServiceImpl implements RateLimitLogBatchService {
             int end = Math.min(i + BATCH_SIZE, logs.size());
             List<RateLimitLog> chunk = logs.subList(i, end);
             repository.saveAll(chunk);
+            entityManager.flush();
+            entityManager.clear();
             totalSaved += chunk.size();
         }
         return totalSaved;
