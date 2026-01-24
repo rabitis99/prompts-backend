@@ -36,6 +36,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 
+import static org.example.sharedprompts.domain.rate.ratelimitlog.constants.RateLimitLogConstants.Statistics.DEFAULT_STATISTICS_DAYS;
+
 @AdminOnly
 @RestController
 @RequestMapping("/admin")
@@ -265,13 +267,12 @@ public class AdminController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate
     ) {
         // 기본값: 최근 7일
-        LocalDateTime defaultStartDate = LocalDateTime.now().minusDays(
-                org.example.sharedprompts.domain.rate.ratelimitlog.constants.RateLimitLogConstants.Statistics.DEFAULT_STATISTICS_DAYS
-        );
-        LocalDateTime defaultEndDate = LocalDateTime.now();
-        
+
+        LocalDateTime now = LocalDateTime.now();
+
+        LocalDateTime defaultStartDate = now.minusDays(DEFAULT_STATISTICS_DAYS);
         LocalDateTime finalStartDate = startDate != null ? startDate : defaultStartDate;
-        LocalDateTime finalEndDate = endDate != null ? endDate : defaultEndDate;
+        LocalDateTime finalEndDate = endDate != null ? endDate : now;
         
         RateLimitLogStatisticsResponseDto statistics = adminService.getRateLimitLogStatistics(finalStartDate, finalEndDate);
         return CustomResponseHelper.ok(statistics);

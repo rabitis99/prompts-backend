@@ -1,6 +1,5 @@
 package org.example.sharedprompts.dto.admin.request;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -12,9 +11,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
 
-/**
- * Rate Limit 로그 필터 요청 DTO
- */
 @Getter
 @Builder
 @AllArgsConstructor
@@ -34,16 +30,26 @@ public class RateLimitLogFilterRequestDto {
     private RateLimitType rateLimitType;
 
     @JsonProperty("start_date")
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime startDate;
 
     @JsonProperty("end_date")
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime endDate;
 
     /**
-     * 정적 팩토리 메서드
+     * @ModelAttribute 바인딩을 위한 snake_case 파라미터 지원
+     *
+     * 예)
+     * - ?user_id=1
+     * - ?client_ip=192.168.1.1
+     * - ?rule_name=api_rate_limit
+     * - ?rate_limit_type=API
+     * - ?start_date=2024-01-01T00:00:00
+     * - ?end_date=2024-01-31T23:59:59
+     */
+    /**
+     * 서비스/테스트 코드에서 사용하기 좋은 정적 팩토리 메서드
      */
     public static RateLimitLogFilterRequestDto of(
             Long userId,
