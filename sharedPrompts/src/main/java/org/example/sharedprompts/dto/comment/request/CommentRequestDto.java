@@ -3,7 +3,6 @@ package org.example.sharedprompts.dto.comment.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -12,7 +11,6 @@ import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.user.User;
 
 @Getter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class CommentRequestDto {
@@ -24,12 +22,12 @@ public class CommentRequestDto {
     @JsonProperty("parent_id")
     private Long parentId;
 
-    public Comment toEntity(User user, Prompt prompt, Comment parent) {
+    public Comment toEntity(User user, Prompt prompt, Comment parent, String sanitizedContent) {
         return Comment.builder()
-                .content(content)
                 .user(user)
                 .prompt(prompt)
                 .parent(parent)
+                .content(sanitizedContent)
                 .build();
     }
 }

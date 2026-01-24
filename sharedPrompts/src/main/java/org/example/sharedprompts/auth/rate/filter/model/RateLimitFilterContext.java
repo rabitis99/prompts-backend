@@ -10,6 +10,7 @@ import java.util.Optional;
 
 /**
  * Rate Limit 필터 컨텍스트
+ * 
  * Rate Limit 필터 처리 중 사용되는 컨텍스트 정보를 담는 불변 객체입니다.
  * 확장 가능한 구조로 설계되었습니다.
  */

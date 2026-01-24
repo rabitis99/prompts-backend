@@ -2,7 +2,7 @@ package org.example.sharedprompts.auth.rate.filter.util.auth;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.example.sharedprompts.global.jwt.PrincipalDetails;
+import org.example.sharedprompts.auth.jwt.model.PrincipalDetails;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -11,6 +11,7 @@ import java.util.Optional;
 
 /**
  * 인증 관련 헬퍼 클래스
+ * 
  * Rate Limit 필터에서 사용하는 인증 관련 유틸리티를 통합 제공합니다.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)

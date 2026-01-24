@@ -17,7 +17,7 @@ import org.example.sharedprompts.dto.prompt.validator.ValidInputContent;
 import java.util.List;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class PromptRequestDto {
@@ -55,6 +55,36 @@ public class PromptRequestDto {
     private StyleType style;               // 스타일
     private LanguageType language;         // 언어
 
+    /**
+     * 방어적 복사를 적용한 정적 팩토리 메서드.
+     * 외부에서 DTO를 생성할 때 tags 리스트가 변경되더라도 내부 상태는 유지된다.
+     */
+    public static PromptRequestDto of(
+            String title,
+            String description,
+            Boolean isPublic,
+            PromptCategory promptCategory,
+            List<String> tags,
+            String input,
+            ToneType tone,
+            ExperienceLevel experience,
+            StyleType style,
+            LanguageType language
+    ) {
+        return PromptRequestDto.builder()
+                .title(title)
+                .description(description)
+                .isPublic(isPublic)
+                .promptCategory(promptCategory)
+                .tags(tags != null ? List.copyOf(tags) : null)
+                .input(input)
+                .tone(tone)
+                .experience(experience)
+                .style(style)
+                .language(language)
+                .build();
+    }
+
     // ------------------------------
     // AI 생성 content 적용 후 엔티티 변환
     // ------------------------------
@@ -86,7 +116,7 @@ public class PromptRequestDto {
                 .style(style)
                 .language(language)
                 .promptCategory(this.promptCategory)
-                .tags(this.tags)
+                .tags(this.tags != null ? List.copyOf(this.tags) : null)
                 .build();
     }
 }

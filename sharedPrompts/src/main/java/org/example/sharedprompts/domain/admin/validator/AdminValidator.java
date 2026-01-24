@@ -61,18 +61,6 @@ public class AdminValidator {
     }
 
     /**
-     * 관리자 권한 변경 검증
-     * 관리자에서 일반 사용자로 권한을 변경하려는 경우 마지막 관리자 검증 수행
-     * @param currentRole 현재 권한
-     * @param newRole 새로운 권한
-     */
-    public void validateRoleChange(Role currentRole, Role newRole) {
-        if (currentRole == Role.ROLE_ADMIN && newRole != Role.ROLE_ADMIN) {
-            validateNotLastAdmin();
-        }
-    }
-
-    /**
      * 동일 권한으로 변경 시도하는지 검증
      * @param currentRole 현재 권한
      * @param newRole 새로운 권한

@@ -1,13 +1,23 @@
 package org.example.sharedprompts.domain.admin.service;
 
+import org.example.sharedprompts.dto.admin.request.AuditLogFilterRequestDto;
+import org.example.sharedprompts.dto.admin.request.AuthAuditLogFilterRequestDto;
 import org.example.sharedprompts.dto.admin.request.PromptVisibilityRequestDto;
+import org.example.sharedprompts.dto.admin.request.RateLimitLogFilterRequestDto;
 import org.example.sharedprompts.dto.admin.request.UserBlockRequestDto;
 import org.example.sharedprompts.dto.admin.request.UserRoleChangeRequestDto;
 import org.example.sharedprompts.dto.admin.response.AdminPromptResponseDto;
 import org.example.sharedprompts.dto.admin.response.AdminUserResponseDto;
+import org.example.sharedprompts.dto.admin.response.RateLimitLogResponseDto;
+import org.example.sharedprompts.dto.admin.response.RateLimitLogStatisticsResponseDto;
 import org.example.sharedprompts.dto.audit.response.AuditLogResponseDto;
+import org.example.sharedprompts.dto.audit.response.AuthAuditLogResponseDto;
+import org.example.sharedprompts.domain.audit.auth.enums.AuthEventType;
+import org.example.sharedprompts.domain.audit.auth.enums.AuthFailReason;
 import org.example.sharedprompts.domain.audit.enums.AuditAction;
 import org.example.sharedprompts.domain.audit.enums.AuditEntityType;
+import org.example.sharedprompts.domain.rate.ratelimitlog.enums.RateLimitType;
+import org.example.sharedprompts.domain.user.enums.Provider;
 import org.example.sharedprompts.domain.follow.FollowStatus;
 import org.example.sharedprompts.domain.report.enums.ReportStatus;
 import org.example.sharedprompts.dto.user.response.UserResponseDto;
@@ -114,6 +124,54 @@ public interface AdminService {
             Pageable pageable
     );
 
+    /**
+     * 관리자 활동 감사 로그 조회 - 조건 DTO로 한번에 전달
+     */
+    default Page<AuditLogResponseDto> getAuditLogs(
+            AuditLogFilterRequestDto condition,
+            Pageable pageable
+    ) {
+        return getAuditLogs(
+                condition.getActorId(),
+                condition.getEntityType(),
+                condition.getAction(),
+                condition.getStartDate(),
+                condition.getEndDate(),
+                pageable
+        );
+    }
+
+    /**
+     * 인증 보안 이벤트 로그 조회
+     */
+    Page<AuthAuditLogResponseDto> getAuthAuditLogs(
+            AuthEventType eventType,
+            Provider provider,
+            Long userId,
+            AuthFailReason failReason,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            Pageable pageable
+    );
+
+    /**
+     * 인증 보안 이벤트 로그 조회 - 조건 DTO로 한번에 전달
+     */
+    default Page<AuthAuditLogResponseDto> getAuthAuditLogs(
+            AuthAuditLogFilterRequestDto condition,
+            Pageable pageable
+    ) {
+        return getAuthAuditLogs(
+            condition.getEventType(),
+            condition.getProvider(),
+            condition.getUserId(),
+            condition.getFailReason(),
+            condition.getStartDate(),
+            condition.getEndDate(),
+            pageable
+        );
+    }
+
     // ======================
     //      팔로우 관리
     // ======================
@@ -129,6 +187,49 @@ public interface AdminService {
             Long followingId,
             FollowStatus status,
             Pageable pageable
+    );
+
+    // ======================
+    //      Rate Limit 로그 조회
+    // ======================
+
+    /**
+     * Rate Limit 로그 조회
+     */
+    Page<RateLimitLogResponseDto> getRateLimitLogs(
+            Long userId,
+            String clientIp,
+            String ruleName,
+            RateLimitType rateLimitType,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            Pageable pageable
+    );
+
+    /**
+     * Rate Limit 로그 조회 - 조건 DTO로 한번에 전달
+     */
+    default Page<RateLimitLogResponseDto> getRateLimitLogs(
+            RateLimitLogFilterRequestDto condition,
+            Pageable pageable
+    ) {
+        return getRateLimitLogs(
+                condition.getUserId(),
+                condition.getClientIp(),
+                condition.getRuleName(),
+                condition.getRateLimitType(),
+                condition.getStartDate(),
+                condition.getEndDate(),
+                pageable
+        );
+    }
+
+    /**
+     * Rate Limit 로그 통계 조회
+     */
+    RateLimitLogStatisticsResponseDto getRateLimitLogStatistics(
+            LocalDateTime startDate,
+            LocalDateTime endDate
     );
 
 }

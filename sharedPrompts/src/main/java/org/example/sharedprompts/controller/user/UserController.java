@@ -9,8 +9,8 @@ import org.example.sharedprompts.dto.user.request.PasswordChangeRequestDto;
 import org.example.sharedprompts.dto.user.request.UserUpdateRequestDto;
 import org.example.sharedprompts.dto.user.response.UserPublicProfileDto;
 import org.example.sharedprompts.dto.user.response.UserResponseDto;
-import org.example.sharedprompts.global.response.CustomResponse;
-import org.example.sharedprompts.global.response.CustomResponseHelper;
+import org.example.sharedprompts.dto.common.CustomResponse;
+import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

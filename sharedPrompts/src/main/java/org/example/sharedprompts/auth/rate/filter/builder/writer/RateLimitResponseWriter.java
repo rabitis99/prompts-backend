@@ -5,7 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.example.sharedprompts.auth.rate.policy.RateLimitConstants;
-import org.example.sharedprompts.global.response.CustomResponse;
+import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.http.MediaType;

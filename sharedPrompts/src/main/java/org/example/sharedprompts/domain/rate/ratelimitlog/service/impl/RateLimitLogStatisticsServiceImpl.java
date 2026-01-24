@@ -47,7 +47,6 @@ public class RateLimitLogStatisticsServiceImpl implements RateLimitLogStatistics
             throw new ApiException(ErrorCode.STATISTICS_DATE_RANGE_EXCEEDED);
         }
 
-
         // 시간대별 통계
         Map<Integer, Long> hourlyStats = rateLimitLogRepository.countByHour(startDate, endDate);
         

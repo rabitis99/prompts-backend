@@ -14,7 +14,6 @@ public class RateLimitLogExceptionHandler {
 
     /**
      * 예외를 처리하고 로깅합니다.
-     *
      * @param ruleName 규칙 이름
      * @param key Rate Limit 키
      * @param exception 발생한 예외

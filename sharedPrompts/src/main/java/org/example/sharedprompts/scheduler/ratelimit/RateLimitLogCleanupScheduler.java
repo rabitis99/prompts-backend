@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 
 /**
  * Rate Limit 로그 정리 스케줄러
- * 
  * 오래된 Rate Limit 로그를 주기적으로 삭제하여 DB 용량을 관리합니다.
  */
 @Slf4j
