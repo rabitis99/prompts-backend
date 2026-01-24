@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -40,6 +41,12 @@ public class RateLimitLogStatisticsServiceImpl implements RateLimitLogStatistics
         }
         if (startDate.isAfter(endDate)) {
             throw new ApiException(ErrorCode.INVALID_DATE_RANGE);
+        }
+
+        // 통계 조회 기간 상한 검증
+        long daysBetween = ChronoUnit.DAYS.between(startDate, endDate);
+        if (daysBetween > Statistics.DEFAULT_STATISTICS_DAYS) {
+            throw new ApiException(ErrorCode.STATISTICS_DATE_RANGE_EXCEEDED);
         }
 
 

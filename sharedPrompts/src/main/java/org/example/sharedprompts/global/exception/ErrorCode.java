@@ -136,6 +136,7 @@ public enum ErrorCode {
     LAST_ADMIN_CANNOT_BE_MODIFIED("AD00405", HttpStatus.BAD_REQUEST, "마지막 관리자 계정은 수정할 수 없습니다."),
     INVALID_DATE_RANGE("AD00406", HttpStatus.BAD_REQUEST, "시작일은 종료일보다 이전이어야 합니다."),
     DATE_REQUIRED("AD00411", HttpStatus.BAD_REQUEST, "시작일과 종료일은 필수입니다."),
+    STATISTICS_DATE_RANGE_EXCEEDED("AD00412", HttpStatus.BAD_REQUEST, "통계 조회 기간이 최대 허용 기간을 초과했습니다."),
     PAGE_SIZE_EXCEEDED("AD00407", HttpStatus.BAD_REQUEST, "페이징 사이즈는 최대 100까지 가능합니다."),
     SAME_ROLE("AD00408", HttpStatus.BAD_REQUEST, "현재 권한과 동일한 권한으로 변경할 수 없습니다."),
     SAME_VISIBILITY("AD00409", HttpStatus.BAD_REQUEST, "현재 공개 상태와 동일한 상태로 변경할 수 없습니다."),

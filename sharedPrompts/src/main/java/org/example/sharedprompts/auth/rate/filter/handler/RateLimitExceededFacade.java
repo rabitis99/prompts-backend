@@ -42,6 +42,11 @@ public class RateLimitExceededFacade {
      * @param result RateLimitResult
      * @param response HttpServletResponse
      * @param logCallback 로그 기록 콜백 (key, result)
+     *                    주의: 이 콜백은 handle() 메서드 내부의 recordLog()에서 호출됩니다.
+     *                    AbstractRateLimitFilter에서는 이미 logRateLimitExceeded()를 통해
+     *                    로깅이 완료되므로, 중복 로깅을 방지하기 위해 빈 람다 (k, r) -> {}를
+     *                    전달하는 것이 일반적입니다. 필요시 추가적인 로깅이나 후처리를
+     *                    수행할 수 있는 확장 포인트로 활용할 수 있습니다.
      * @param errorCode 사용할 에러 코드 (null이면 기본값 RATE_LIMIT_EXCEEDED 사용)
      * @throws IOException 응답 작성 실패 시
      */
@@ -73,6 +78,11 @@ public class RateLimitExceededFacade {
      * @param result RateLimitResult
      * @param response HttpServletResponse
      * @param logCallback 로그 기록 콜백 (key, result)
+     *                    주의: 이 콜백은 handle() 메서드 내부의 recordLog()에서 호출됩니다.
+     *                    AbstractRateLimitFilter에서는 이미 logRateLimitExceeded()를 통해
+     *                    로깅이 완료되므로, 중복 로깅을 방지하기 위해 빈 람다 (k, r) -> {}를
+     *                    전달하는 것이 일반적입니다. 필요시 추가적인 로깅이나 후처리를
+     *                    수행할 수 있는 확장 포인트로 활용할 수 있습니다.
      * @throws IOException 응답 작성 실패 시
      */
     public void handle(

@@ -54,7 +54,7 @@ public class FixedWindowRateLimiter implements RateLimiter {
             // INCREMENT_WITH_TTL Lua 스크립트는 정상적으로 항상 값을 반환하므로,
             // null은 Redis 장애, 스크립트 실행 오류, 또는 연결 문제를 의미합니다.
             if (currentCount == null) {
-                throw new ApiException(ErrorCode.RATE_LIMIT_CHECK_FAILED);
+                throw new IllegalStateException("Redis script returned null for key: " + key);
             }
 
             boolean allowed = currentCount <= capacity;
