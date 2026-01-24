@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 
 /**
  * Rate Limit 로그 서비스 인터페이스
- * 
  * Rate Limit 로그 조회 기능을 제공합니다.
  */
 public interface RateLimitLogService {
@@ -21,8 +20,8 @@ public interface RateLimitLogService {
      * @param clientIp 클라이언트 IP (null 가능)
      * @param ruleName 규칙 이름 (null 가능)
      * @param rateLimitType Rate Limit 타입 (null 가능)
-     * @param startDate 시작 날짜 (null 가능)
-     * @param endDate 종료 날짜 (null 가능)
+     * @param startDate 시작 날짜 (null 가능, 시스템 기본 타임존 기준으로 해석)
+     * @param endDate 종료 날짜 (null 가능, 포함 여부/배제 여부를 명시)
      * @param pageable 페이지네이션 정보
      * @return Rate Limit 로그 페이지
      */

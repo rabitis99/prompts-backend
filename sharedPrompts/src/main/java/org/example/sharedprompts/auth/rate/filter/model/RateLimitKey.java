@@ -6,7 +6,6 @@ import org.example.sharedprompts.global.exception.ErrorCode;
 
 /**
  * Rate Limit 키 Value Object
- * 
  * Rate Limit 키의 값과 타입을 함께 관리합니다.
  * 타입 정보를 포함하여 로그/메트릭/DB 저장 시 의미를 명확히 합니다.
  * 
@@ -25,13 +24,16 @@ public record RateLimitKey(
      * @return RateLimitKey
      * @throws ApiException value가 null이거나 비어있는 경우, 또는 type이 null인 경우
      */
-    public static RateLimitKey of(String value, RateLimitType type) {
+    public RateLimitKey {
         if (value == null || value.isBlank()) {
             throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "value");
         }
         if (type == null) {
             throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "type");
         }
+    }
+
+    public static RateLimitKey of(String value, RateLimitType type) {
         return new RateLimitKey(value, type);
     }
 

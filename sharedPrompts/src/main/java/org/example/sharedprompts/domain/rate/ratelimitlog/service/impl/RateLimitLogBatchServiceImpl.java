@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -29,10 +30,11 @@ public class RateLimitLogBatchServiceImpl implements RateLimitLogBatchService {
         if (logs == null || logs.isEmpty()) {
             return;
         }
+        List<RateLimitLog> snapshot = new ArrayList<>(logs);
 
         try {
-            repository.saveAll(logs);
-            log.debug("Saved {} rate limit logs in batch", logs.size());
+            repository.saveAll(snapshot);
+            log.debug("Saved {} rate limit logs in batch", snapshot.size());
         } catch (org.springframework.dao.DataAccessException e) {
             log.error("Database error while batch saving rate limit logs: count={}", logs.size(), e);
         } catch (IllegalArgumentException e) {

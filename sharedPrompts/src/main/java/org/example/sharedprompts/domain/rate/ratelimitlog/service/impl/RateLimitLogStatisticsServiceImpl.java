@@ -6,6 +6,8 @@ import org.example.sharedprompts.domain.rate.ratelimitlog.repository.RateLimitLo
 import org.example.sharedprompts.domain.rate.ratelimitlog.service.RateLimitLogStatisticsService;
 import org.example.sharedprompts.domain.rate.ratelimitlog.service.mapper.RateLimitLogStatisticsMapper;
 import org.example.sharedprompts.dto.admin.response.RateLimitLogStatisticsResponseDto;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +34,15 @@ public class RateLimitLogStatisticsServiceImpl implements RateLimitLogStatistics
     public RateLimitLogStatisticsResponseDto getStatistics(LocalDateTime startDate, LocalDateTime endDate) {
         // RateLimitLogRepository는 CustomRateLimitLogRepository를 확장하므로
         // CustomRateLimitLogRepository의 메서드를 직접 사용할 수 있습니다.
-        
+
+        if (startDate == null || endDate == null) {
+            throw new ApiException(ErrorCode.DATE_REQUIRED);
+        }
+        if (startDate.isAfter(endDate)) {
+            throw new ApiException(ErrorCode.INVALID_DATE_RANGE);
+        }
+
+
         // 시간대별 통계
         Map<Integer, Long> hourlyStats = rateLimitLogRepository.countByHour(startDate, endDate);
         

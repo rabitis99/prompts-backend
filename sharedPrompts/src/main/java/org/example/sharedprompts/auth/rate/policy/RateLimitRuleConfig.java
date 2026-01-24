@@ -1,10 +1,10 @@
 package org.example.sharedprompts.auth.rate.policy;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.auth.rate.policy.matcher.ExactPathMatcher;
 import org.example.sharedprompts.auth.rate.policy.matcher.PrefixPathMatcher;
 import org.springframework.http.HttpMethod;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,10 +15,13 @@ import static org.example.sharedprompts.auth.rate.policy.RateLimitConstants.ApiP
  * Rate Limit 규칙 설정
  * 
  * Rate Limit Matcher 목록을 구성합니다.
- * Spring Bean으로 등록하여 의존성 주입이 가능하도록 할 수 있습니다.
+ * application.yml의 설정을 기반으로 Rate Limit 규칙을 생성합니다.
  */
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class RateLimitRuleConfig {
+@Component
+@RequiredArgsConstructor
+public class RateLimitRuleConfig {
+
+    private final RateLimitProperties properties;
 
     /**
      * Rate Limit Matcher 목록을 생성합니다.
@@ -26,33 +29,77 @@ public final class RateLimitRuleConfig {
      * 
      * @return Rate Limit Matcher 목록
      */
-    public static List<RateLimitMatcher> createMatchers() {
+    public List<RateLimitMatcher> createMatchers() {
         List<RateLimitMatcher> matchers = new ArrayList<>();
 
         // 정확한 경로 매칭 (우선순위 높음)
         matchers.add(new ExactPathMatcher(
                 ApiPaths.AUTH_LOGIN,
                 HttpMethod.POST,
-                RateLimitRule.Predefined.LOGIN
+                createLoginRule()
         ));
         matchers.add(new ExactPathMatcher(
                 ApiPaths.AUTH_SIGNUP,
                 HttpMethod.POST,
-                RateLimitRule.Predefined.SIGNUP
+                createSignupRule()
         ));
         matchers.add(new ExactPathMatcher(
                 ApiPaths.PROMPTS,
                 HttpMethod.POST,
-                RateLimitRule.Predefined.PROMPT_CREATE
+                createPromptCreateRule()
         ));
 
         // Prefix 매칭 (우선순위 낮음 - 마지막에 배치)
         matchers.add(new PrefixPathMatcher(
                 ApiPaths.API_PREFIX,
-                RateLimitRule.Predefined.GENERAL
+                createGeneralRule()
         ));
 
         return matchers;
+    }
+
+    /**
+     * 로그인 Rate Limit 규칙 생성
+     */
+    private RateLimitRule createLoginRule() {
+        return new RateLimitRule(
+                RateLimitConstants.RuleNames.LOGIN,
+                properties.getRules().getLogin(),
+                properties.getWindows().getDefaultSeconds()
+        );
+    }
+
+    /**
+     * 회원가입 Rate Limit 규칙 생성
+     */
+    private RateLimitRule createSignupRule() {
+        return new RateLimitRule(
+                RateLimitConstants.RuleNames.SIGNUP,
+                properties.getRules().getSignup(),
+                properties.getWindows().getDefaultSeconds()
+        );
+    }
+
+    /**
+     * 프롬프트 생성 Rate Limit 규칙 생성
+     */
+    private RateLimitRule createPromptCreateRule() {
+        return new RateLimitRule(
+                RateLimitConstants.RuleNames.PROMPT_CREATE,
+                properties.getRules().getPromptCreate(),
+                properties.getWindows().getDefaultSeconds()
+        );
+    }
+
+    /**
+     * 일반 API Rate Limit 규칙 생성
+     */
+    private RateLimitRule createGeneralRule() {
+        return new RateLimitRule(
+                RateLimitConstants.RuleNames.GENERAL,
+                properties.getRules().getGeneral(),
+                properties.getWindows().getDefaultSeconds()
+        );
     }
 }
 

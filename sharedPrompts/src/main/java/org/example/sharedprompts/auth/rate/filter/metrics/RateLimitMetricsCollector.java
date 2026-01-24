@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 
 /**
  * Rate Limit 메트릭 수집기
- * 
  * Rate Limit 관련 메트릭을 수집하는 컴포넌트입니다.
  * Observer 패턴을 통해 Rate Limit 체크와 메트릭 수집을 분리합니다.
  */
@@ -24,6 +23,10 @@ public class RateLimitMetricsCollector {
      * @param result RateLimitResult
      */
     public void recordCheck(RateLimitRule rule, RateLimiter.RateLimitResult result) {
+        if (result == null) {
+            metricsService.recordRateLimitCheckFailed(rule);
+            return;
+        }
         metricsService.recordRateLimitCheck(rule, result, result.isExceeded());
     }
 

@@ -8,7 +8,6 @@ import org.example.sharedprompts.global.entity.BaseEntity;
 
 /**
  * Rate Limit 로그 엔티티
- * 
  * Rate Limit 초과 이벤트를 기록하는 엔티티입니다.
  * 관리자가 Rate Limit 위반 패턴을 분석하고 모니터링할 수 있도록 합니다.
  */
@@ -40,7 +39,6 @@ public class RateLimitLog extends BaseEntity {
 
     /**
      * Rate Limit 키 값 (IP 또는 사용자 기반)
-     * 
      * 키 값과 타입이 분리되어 저장되어 집계 쿼리 작성이 용이합니다.
      * 타입 정보는 rateLimitType 필드에 별도로 저장됩니다.
      */
@@ -75,7 +73,7 @@ public class RateLimitLog extends BaseEntity {
     /**
      * 클라이언트 IP 주소
      */
-    @Column(name = "client_ip", nullable = false, length = 50)
+    @Column(name = "client_ip", nullable = false, length = 64)
     private String clientIp;
 
     /**
@@ -92,7 +90,6 @@ public class RateLimitLog extends BaseEntity {
 
     /**
      * Rate Limit 타입 (IP 또는 USER)
-     * 
      * 키 값(rateLimitKey)과 분리되어 저장되어 타입별 집계 쿼리가 용이합니다.
      * 예: WHERE rate_limit_type = 'IP' GROUP BY ...
      */

@@ -4,7 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.example.sharedprompts.dto.common.CustomResponse;
+import org.example.sharedprompts.auth.rate.policy.RateLimitConstants;
+import org.example.sharedprompts.global.response.CustomResponse;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.http.MediaType;
@@ -46,7 +47,12 @@ public final class RateLimitResponseWriter {
         response.setStatus(code.getHttpStatus().value());
         
         // Retry-After 헤더 설정 (RFC 7231)
-        response.setHeader(RETRY_AFTER_HEADER, String.valueOf(retryAfterSeconds));
+        // 최소값으로 클램프하여 0/음수 값 방지
+        long safeRetryAfterSeconds = Math.max(
+                retryAfterSeconds,
+                RateLimitConstants.Response.MIN_RETRY_AFTER_SECONDS
+        );
+        response.setHeader(RETRY_AFTER_HEADER, String.valueOf(safeRetryAfterSeconds));
         
         // Content-Type 및 인코딩 설정
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

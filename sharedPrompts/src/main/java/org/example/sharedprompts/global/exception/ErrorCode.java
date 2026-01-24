@@ -23,6 +23,8 @@ public enum ErrorCode {
     NOT_FOUND("CM00701", HttpStatus.NOT_FOUND, "리소스를 찾을 수 없습니다."),
     NOT_FOUND_ENDPOINT("CM00702", HttpStatus.NOT_FOUND, "엔드포인트를 찾을 수 없습니다."),
     METHOD_NOT_ALLOWED("CM00703", HttpStatus.METHOD_NOT_ALLOWED, "허용되지 않은 메소드입니다."),
+    RATE_LIMIT_EXCEEDED("CM00429", HttpStatus.TOO_MANY_REQUESTS, "요청 한도를 초과했습니다."),
+    RATE_LIMIT_CHECK_FAILED("CM01002", HttpStatus.INTERNAL_SERVER_ERROR, "Rate Limit 체크에 실패했습니다."),
     DATA_INTEGRITY_VIOLATION("CM00901", HttpStatus.CONFLICT, "데이터 무결성 제약 조건을 위반했습니다."),
     INTERNAL_SERVER_ERROR("CM01001", HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다."),
 
@@ -133,6 +135,7 @@ public enum ErrorCode {
     CANNOT_MODIFY_SELF("AD00404", HttpStatus.BAD_REQUEST, "자기 자신은 수정할 수 없습니다."),
     LAST_ADMIN_CANNOT_BE_MODIFIED("AD00405", HttpStatus.BAD_REQUEST, "마지막 관리자 계정은 수정할 수 없습니다."),
     INVALID_DATE_RANGE("AD00406", HttpStatus.BAD_REQUEST, "시작일은 종료일보다 이전이어야 합니다."),
+    DATE_REQUIRED("AD00411", HttpStatus.BAD_REQUEST, "시작일과 종료일은 필수입니다."),
     PAGE_SIZE_EXCEEDED("AD00407", HttpStatus.BAD_REQUEST, "페이징 사이즈는 최대 100까지 가능합니다."),
     SAME_ROLE("AD00408", HttpStatus.BAD_REQUEST, "현재 권한과 동일한 권한으로 변경할 수 없습니다."),
     SAME_VISIBILITY("AD00409", HttpStatus.BAD_REQUEST, "현재 공개 상태와 동일한 상태로 변경할 수 없습니다."),

@@ -224,6 +224,18 @@ statistics:
     ttl: ${STATISTICS_CACHE_TTL:300} # 통계 데이터 캐시 TTL (초, 기본값: 5분)
 
 # =========================
+# Rate Limit 설정
+# =========================
+rate-limit:
+  rules:
+    login: ${RATE_LIMIT_LOGIN:5} # 로그인 한도 (기본값: 5회)
+    signup: ${RATE_LIMIT_SIGNUP:3} # 회원가입 한도 (기본값: 3회)
+    prompt-create: ${RATE_LIMIT_PROMPT_CREATE:10} # 프롬프트 생성 한도 (기본값: 10회)
+    general: ${RATE_LIMIT_GENERAL:100} # 일반 API 한도 (기본값: 100회)
+  windows:
+    default-seconds: ${RATE_LIMIT_WINDOW_SECONDS:60} # 기본 윈도우 시간 (초, 기본값: 60초)
+
+# =========================
 # 로깅
 # =========================
 logging:

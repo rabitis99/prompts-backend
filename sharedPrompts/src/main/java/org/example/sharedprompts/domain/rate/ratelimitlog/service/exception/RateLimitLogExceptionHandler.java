@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 
 /**
  * Rate Limit 로그 예외 처리 핸들러
- * 
  * Rate Limit 로그 저장 시 발생하는 예외를 처리합니다.
  */
 @Slf4j
@@ -21,6 +20,7 @@ public class RateLimitLogExceptionHandler {
      * @param exception 발생한 예외
      */
     public void handleException(String ruleName, String key, Exception exception) {
+
         if (exception instanceof DataAccessException) {
             // 데이터베이스 관련 예외
             log.error("Database error while saving rate limit log: rule={}, key={}", 
@@ -36,5 +36,3 @@ public class RateLimitLogExceptionHandler {
         }
     }
 }
-
-
