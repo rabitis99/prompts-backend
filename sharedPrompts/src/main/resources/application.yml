@@ -99,6 +99,15 @@ spring:
       pageable:
         max-page-size: 100
 
+# =========================
+# Redis Health Check 설정
+# =========================
+redis:
+  health-check:
+    enabled: ${REDIS_HEALTH_CHECK_ENABLED:true}
+    interval-ms: ${REDIS_HEALTH_CHECK_INTERVAL_MS:5000}
+    max-consecutive-failures: ${REDIS_HEALTH_CHECK_MAX_CONSECUTIVE_FAILURES:3}
+
   # =========================
   # RabbitMQ
   # =========================
@@ -141,6 +150,11 @@ jwt:
 # =========================
 oauth2:
   failure-redirect-url: ${OAUTH2_FAILURE_REDIRECT_URL}
+  salt: ${OAUTH2_SALT}
+  state:
+    validity-minutes: ${OAUTH2_STATE_VALIDITY_MINUTES:10}
+  redirect:
+    front-url: ${OAUTH2_REDIRECT_FRONT_URL}
 
 # =========================
 # 쿠키 보안 설정
@@ -148,11 +162,6 @@ oauth2:
 auth:
   cookie:
     secure: ${AUTH_COOKIE_SECURE:true}
-  salt: ${OAUTH2_SALT}
-  state:
-    validity-minutes: ${OAUTH2_STATE_VALIDITY_MINUTES:10}
-  redirect:
-    front-url: ${OAUTH2_REDIRECT_FRONT_URL}
 
 # =========================
 # 비밀번호 정책
@@ -198,6 +207,24 @@ resilience4j:
         waitDurationInOpenState: 30s
         permittedNumberOfCallsInHalfOpenState: 3
         minimumNumberOfCalls: 10
+      # Redis 토큰 서비스용 Circuit Breaker
+      # Fail-Open 정책과 연동하여 Redis 장애 시 서비스 연속성 보장
+      tokenRedis:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20  # 최근 20개 호출 기준으로 실패율 계산
+        failureRateThreshold: 50  # 실패율 50% 시 Circuit Breaker Open
+        slowCallRateThreshold: 80  # 느린 호출 비율 80% 시 Circuit Breaker Open
+        slowCallDurationThreshold: 2s  # 2초 이상 소요 시 느린 호출로 간주
+        waitDurationInOpenState: 30s  # Open 상태에서 30초 후 Half-Open으로 전환
+        permittedNumberOfCallsInHalfOpenState: 5  # Half-Open 상태에서 5개 호출 허용
+        minimumNumberOfCalls: 20  # 최소 20개 호출 후 통계 계산
+        recordExceptions:
+          - org.springframework.dao.DataAccessException
+          - java.net.ConnectException
+          - java.net.SocketTimeoutException
+          - redis.clients.jedis.exceptions.JedisConnectionException
+        ignoreExceptions:
+          - org.example.sharedprompts.global.exception.ApiException
 
 # =========================
 # 알림 설정
