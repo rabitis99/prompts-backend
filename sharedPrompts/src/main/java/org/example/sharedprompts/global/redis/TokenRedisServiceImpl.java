@@ -1,13 +1,11 @@
 package org.example.sharedprompts.global.redis;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.auth.jwt.config.TokenTtlProperties;
 import org.example.sharedprompts.auth.resilience.RedisExecutor;
 import org.example.sharedprompts.auth.storage.RedisKeyFactory;
-import org.example.sharedprompts.global.Lua.LuaScripts;
 import org.example.sharedprompts.global.constant.Constant;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
@@ -41,19 +39,18 @@ public class TokenRedisServiceImpl implements TokenRedisService {
     private final TokenTtlProperties ttlProperties;
     private final RedisExecutor redisExecutor;
     
-    private DefaultRedisScript<List<String>> getAndDeleteTempTokenScript;
-    
-    @PostConstruct
-    public void init() {
-        // GET_AND_DELETE_TEMP_TOKEN 스크립트 초기화
-        DefaultRedisScript<List<String>> getAndDelete = new DefaultRedisScript<>();
-        getAndDelete.setScriptText(LuaScripts.GET_AND_DELETE_TEMP_TOKEN);
-        // Spring Data Redis는 런타임에 제네릭 타입 정보를 잃어버리므로 raw type을 사용
-        @SuppressWarnings("unchecked")
-        Class<List<String>> resultType = (Class<List<String>>) (Class<?>) List.class;
-        getAndDelete.setResultType(resultType);
-        this.getAndDeleteTempTokenScript = getAndDelete;
-    }
+    /**
+     * GET_AND_DELETE_TEMP_TOKEN Lua 스크립트
+     * 
+     * 책임 분리:
+     * - 스크립트 정의: RedisLuaScriptConfig
+     * - 스크립트 실행: 이 클래스 (Service 책임)
+     * 
+     * 운영 원칙:
+     * - @PostConstruct에서 초기화하지 않음 (외부 리소스 접근 위험 제거)
+     * - Bean 주입으로 스크립트 사용 (애플리케이션 기동 안정성 보장)
+     */
+    private final DefaultRedisScript<List<String>> getAndDeleteTempTokenScript;
 
     // ==================== Access Token 관리 ====================
 

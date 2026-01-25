@@ -1,12 +1,10 @@
 package org.example.sharedprompts.auth.storage;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.auth.jwt.config.TokenTtlProperties;
 import org.example.sharedprompts.auth.resilience.RedisExecutor;
-import org.example.sharedprompts.global.Lua.LuaScripts;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.util.SensitiveDataMasker;
@@ -40,33 +38,28 @@ public class RefreshTokenStoreImpl implements RefreshTokenStore {
     private final TokenTtlProperties ttlProperties;
     private final RedisExecutor redisExecutor;
     
-    private DefaultRedisScript<List<String>> getAndDeleteScript;
-    private DefaultRedisScript<Long> deleteScript;
-    private DefaultRedisScript<Long> deleteAllByUserScript;
+    /**
+     * GET_AND_DELETE_REFRESH_TOKEN Lua 스크립트
+     * 
+     * 책임 분리:
+     * - 스크립트 정의: RedisLuaScriptConfig
+     * - 스크립트 실행: 이 클래스 (Service 책임)
+     * 
+     * 운영 원칙:
+     * - @PostConstruct에서 초기화하지 않음 (외부 리소스 접근 위험 제거)
+     * - Bean 주입으로 스크립트 사용 (애플리케이션 기동 안정성 보장)
+     */
+    private final DefaultRedisScript<List<String>> getAndDeleteRefreshTokenScript;
     
-    @PostConstruct
-    public void init() {
-        // GET_AND_DELETE 스크립트 초기화
-        DefaultRedisScript<List<String>> getAndDelete = new DefaultRedisScript<>();
-        getAndDelete.setScriptText(LuaScripts.GET_AND_DELETE_REFRESH_TOKEN);
-        // Spring Data Redis는 런타임에 제네릭 타입 정보를 잃어버리므로 raw type을 사용
-        @SuppressWarnings("unchecked")
-        Class<List<String>> resultType = (Class<List<String>>) (Class<?>) List.class;
-        getAndDelete.setResultType(resultType);
-        this.getAndDeleteScript = getAndDelete;
-        
-        // DELETE 스크립트 초기화
-        DefaultRedisScript<Long> delete = new DefaultRedisScript<>();
-        delete.setScriptText(LuaScripts.DELETE_REFRESH_TOKEN);
-        delete.setResultType(Long.class);
-        this.deleteScript = delete;
-        
-        // DELETE_ALL_BY_USER 스크립트 초기화
-        DefaultRedisScript<Long> deleteAll = new DefaultRedisScript<>();
-        deleteAll.setScriptText(LuaScripts.DELETE_ALL_REFRESH_TOKENS_BY_USER);
-        deleteAll.setResultType(Long.class);
-        this.deleteAllByUserScript = deleteAll;
-    }
+    /**
+     * DELETE_REFRESH_TOKEN Lua 스크립트
+     */
+    private final DefaultRedisScript<Long> deleteRefreshTokenScript;
+    
+    /**
+     * DELETE_ALL_REFRESH_TOKENS_BY_USER Lua 스크립트
+     */
+    private final DefaultRedisScript<Long> deleteAllRefreshTokensByUserScript;
 
     @Override
     public void save(String token, Long userId, String ip, String userAgent) {
@@ -143,7 +136,7 @@ public class RefreshTokenStoreImpl implements RefreshTokenStore {
                     // 스크립트 내부에서 userId를 조회한 후 userSetKey를 동적으로 구성
                     // 스크립트는 DEL/SREM 명령을 실행하므로 쓰기 작업입니다.
                     List<String> result = redisTemplate.execute(
-                            getAndDeleteScript,
+                            getAndDeleteRefreshTokenScript,
                             List.of(key, metaKey),
                             token,
                             setKeyPrefix
@@ -229,7 +222,7 @@ public class RefreshTokenStoreImpl implements RefreshTokenStore {
                     
                     // Lua 스크립트를 사용하여 원자적으로 삭제
                     Long deletedCount = redisTemplate.execute(
-                            deleteScript,
+                            deleteRefreshTokenScript,
                             List.of(key, metaKey, userKey),
                             token
                     );
@@ -291,7 +284,7 @@ public class RefreshTokenStoreImpl implements RefreshTokenStore {
                     
                     // Lua 스크립트를 사용하여 원자적으로 모든 토큰 삭제
                     Long deletedCount = redisTemplate.execute(
-                            deleteAllByUserScript,
+                            deleteAllRefreshTokensByUserScript,
                             List.of(userKey),
                             tokenPrefix
                     );
