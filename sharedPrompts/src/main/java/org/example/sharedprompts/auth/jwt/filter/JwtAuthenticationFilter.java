@@ -1,26 +1,28 @@
 package org.example.sharedprompts.auth.jwt.filter;
 
-import io.jsonwebtoken.Claims;
+import java.io.IOException;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
 import org.example.sharedprompts.auth.jwt.model.PrincipalDetails;
 import org.example.sharedprompts.auth.jwt.service.JwtTokenService;
 import org.example.sharedprompts.auth.jwt.util.JwtErrorResponseWriter;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.redis.TokenRedisService;
 import org.example.sharedprompts.global.util.SensitiveDataMasker;
-import org.jetbrains.annotations.NotNull;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import java.io.IOException;
 
 /**
  * JWT 인증 필터
@@ -93,19 +95,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // ==================== 2단계: Redis 토큰 검증 (선택적, Fail-Open) ====================
         // Redis는 선택 검증 단계로 처리: Redis 장애 시에도 JWT 서명 검증 통과 시 인증 허용
-        boolean isRedisTokenValid;
-        try {
-            isRedisTokenValid = tokenRedisService.isAccessTokenValid(token);
-        } catch (Exception e) {
-            // Redis 장애 시 Fail-Open: JWT 서명 검증은 이미 통과했으므로 인증 허용
-            // Circuit Breaker가 Open 상태이거나 DataAccessException 발생 시
-            log.warn("Redis 토큰 검증 실패 (Redis 장애로 추정): userId={}, token={}, Fail-Open 적용하여 인증 허용", 
-                    userId, SensitiveDataMasker.maskToken(token), e);
-            isRedisTokenValid = true; // Fail-Open: Redis 장애 시 토큰을 유효한 것으로 간주
-        }
+        // TokenRedisService의 Circuit Breaker fallback이 Fail-Open 정책을 적용하므로
+        // 예외가 발생하지 않고 true를 반환합니다.
+        boolean isRedisTokenValid = tokenRedisService.isAccessTokenValid(token);
 
         if (!isRedisTokenValid) {
             // Redis에서 토큰이 없거나 만료된 경우 (Redis가 정상 동작 중일 때만)
+            // Circuit Breaker가 Open 상태이거나 Redis 장애 시에는 fallback에서 true를 반환하므로
+            // 이 분기는 Redis가 정상 동작 중이고 토큰이 실제로 없거나 만료된 경우에만 실행됩니다.
             log.warn("Redis 토큰 검증 실패: userId={}, token={}, 토큰이 Redis에 없거나 만료됨", 
                     userId, SensitiveDataMasker.maskToken(token));
             handleInvalidToken(token, response, "Redis 토큰 검증 실패: userId=%s", userId);

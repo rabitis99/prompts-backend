@@ -1,20 +1,16 @@
 package org.example.sharedprompts.auth.rate.filter.impl;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.example.sharedprompts.auth.rate.RateLimiter;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitFilterContext;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitKey;
+import org.example.sharedprompts.auth.rate.filter.metrics.RateLimitMetricsCollector;
 import org.example.sharedprompts.auth.rate.filter.service.facade.RateLimitFacade;
 import org.example.sharedprompts.auth.rate.filter.strategy.IpRateLimitKeyStrategy;
 import org.example.sharedprompts.auth.rate.policy.RateLimitProperties;
 import org.example.sharedprompts.auth.rate.policy.RateLimitRule;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-
-import java.io.IOException;
 
 /**
  * IP 기반 Rate Limiting 필터
@@ -29,25 +25,16 @@ import java.io.IOException;
  * - 일반 API: 100회/분
  */
 @Component
-@Order(-200)
+@Order(-200) // 인증 필터 이전 실행: IP 기반 제한은 인증 여부와 무관
 public class IpRateLimitFilter extends AbstractRateLimitFilter {
 
     public IpRateLimitFilter(
             RateLimitFacade facade,
             IpRateLimitKeyStrategy keyStrategy,
-            RateLimitProperties rateLimitProperties
+            RateLimitProperties rateLimitProperties,
+            RateLimitMetricsCollector metricsCollector
     ) {
-        super(facade, keyStrategy, rateLimitProperties);
-    }
-
-    @Override
-    protected boolean shouldApplyFilter(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
-        // IP 기반 필터는 인증 여부와 관계없이 모든 요청에 적용
-        return true;
+        super(facade, keyStrategy, rateLimitProperties, metricsCollector);
     }
 
     @Override
@@ -63,6 +50,8 @@ public class IpRateLimitFilter extends AbstractRateLimitFilter {
             RateLimitFilterContext context,
             HttpServletRequest request
     ) {
-        facade.getLoggingService().logRateLimitExceeded(rule, key, result, request, null);
+        // IP 기반 Rate Limit은 인증 주체가 없으므로 principal=null
+        facade.getLoggingService()
+                .logRateLimitExceeded(rule, key, result, request, null);
     }
 }

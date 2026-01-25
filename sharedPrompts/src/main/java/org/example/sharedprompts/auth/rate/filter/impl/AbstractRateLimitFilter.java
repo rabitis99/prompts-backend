@@ -8,6 +8,7 @@ import org.example.sharedprompts.auth.rate.RateLimiter;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitFilterContext;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitKey;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitResultWithKey;
+import org.example.sharedprompts.auth.rate.filter.metrics.RateLimitMetricsCollector;
 import org.example.sharedprompts.auth.rate.filter.service.facade.RateLimitFacade;
 import org.example.sharedprompts.auth.rate.filter.strategy.RateLimitKeyStrategy;
 import org.example.sharedprompts.auth.rate.policy.RateLimitProperties;
@@ -30,15 +31,18 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
     protected final RateLimitFacade facade;
     protected final RateLimitKeyStrategy keyStrategy;
     protected final RateLimitProperties rateLimitProperties;
+    protected final RateLimitMetricsCollector metricsCollector;
 
     protected AbstractRateLimitFilter(
             RateLimitFacade facade,
             RateLimitKeyStrategy keyStrategy,
-            RateLimitProperties rateLimitProperties
+            RateLimitProperties rateLimitProperties,
+            RateLimitMetricsCollector metricsCollector
     ) {
         this.facade = facade;
         this.keyStrategy = keyStrategy;
         this.rateLimitProperties = rateLimitProperties;
+        this.metricsCollector = metricsCollector;
     }
 
     @Override
@@ -47,25 +51,18 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             @NotNull HttpServletResponse response,
             @NotNull FilterChain filterChain
     ) throws ServletException, IOException {
-        try (ScopedResponseHandled ignored = new ScopedResponseHandled()) {
-            if (!shouldApplyFilter(request, response, filterChain)) {
-                filterChain.doFilter(request, response);
-                return;
-            }
 
-            RateLimitFilterContext context = createContext(request);
-            processRateLimitCheck(context, request, response, filterChain);
+        if (!shouldApplyFilter(request, response, filterChain)) {
+            filterChain.doFilter(request, response);
+            return;
         }
+
+        RateLimitFilterContext context = createContext(request);
+        processRateLimitCheck(context, request, response, filterChain);
     }
 
     /**
      * Rate limit 체크 결과를 처리합니다.
-     * 
-     * @param result Rate limit 체크 결과
-     * @param context Rate Limit 필터 컨텍스트
-     * @param request HTTP 요청
-     * @param response HTTP 응답
-     * @param filterChain 필터 체인
      */
     private void handleRateLimitResult(
             RateLimitResultWithKey result,
@@ -74,6 +71,7 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+
         if (result.isExceeded()) {
             handleRateLimitExceeded(result, context, request, response);
         } else {
@@ -82,12 +80,7 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Rate limit 초과 시 처리를 수행합니다.
-     * 
-     * @param result Rate limit 체크 결과
-     * @param context Rate Limit 필터 컨텍스트
-     * @param request HTTP 요청
-     * @param response HTTP 응답
+     * Rate limit 초과 시 처리
      */
     private void handleRateLimitExceeded(
             RateLimitResultWithKey result,
@@ -95,7 +88,7 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             HttpServletRequest request,
             HttpServletResponse response
     ) throws IOException {
-        // Rate limit 초과 로깅
+
         logRateLimitExceeded(
                 result.getRule(),
                 result.getKey(),
@@ -104,10 +97,7 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
                 request
         );
 
-        // Rate limit 초과 응답 처리
-        // logCallback은 빈 람다를 전달하여 중복 로깅을 방지합니다.
-        // logCallback은 handle() 메서드 내부에서 recordLog()를 통해 호출되며,
-        // 필요시 추가적인 로깅이나 후처리를 수행할 수 있는 확장 포인트 역할을 합니다.
+        // Exceeded 응답 처리 (중복 로깅 방지를 위해 빈 콜백 전달)
         facade.getExceededFacade().handle(
                 result.getRule(),
                 result.getKey(),
@@ -118,12 +108,7 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Rate limit 체크를 수행하고 결과에 따라 요청을 처리합니다.
-     * 
-     * @param context Rate Limit 필터 컨텍스트
-     * @param request HTTP 요청
-     * @param response HTTP 응답
-     * @param filterChain 필터 체인
+     * Rate limit 체크 메인 흐름
      */
     private void processRateLimitCheck(
             RateLimitFilterContext context,
@@ -131,10 +116,12 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+
         Optional<RateLimitResultWithKey> result;
         try {
             result = performRateLimitCheck(context, request);
         } catch (Exception e) {
+            // Redis 등 인프라 장애 상황만 정책적으로 처리됨을 전제로 함
             handleRateLimitCheckFailure(e, filterChain, request, response);
             return;
         }
@@ -147,11 +134,7 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Rate limit 체크를 수행합니다.
-     * 
-     * @param context Rate Limit 필터 컨텍스트
-     * @param request HTTP 요청
-     * @return Rate limit 체크 결과 (규칙이 없거나 키를 생성할 수 없는 경우 Optional.empty())
+     * Rate limit 체크 수행
      */
     private Optional<RateLimitResultWithKey> performRateLimitCheck(
             RateLimitFilterContext context,
@@ -173,33 +156,24 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 요청에 대한 Rate limit 규칙을 해석합니다.
-     * 
-     * @param request HTTP 요청
-     * @return Rate limit 규칙 (규칙이 없는 경우 Optional.empty())
+     * 요청에 대한 Rate limit 규칙 해석
      */
     private Optional<RateLimitRule> resolveRule(HttpServletRequest request) {
         return facade.getRuleResolutionService().resolveRule(request);
     }
 
     /**
-     * Rate limit 키를 생성합니다.
-     * 
-     * @param rule Rate limit 규칙
-     * @param context Rate Limit 필터 컨텍스트
-     * @return Rate limit 키 (키를 생성할 수 없는 경우 Optional.empty())
+     * Rate limit 키 생성
      */
-    private Optional<RateLimitKey> buildRateLimitKey(RateLimitRule rule, RateLimitFilterContext context) {
+    private Optional<RateLimitKey> buildRateLimitKey(
+            RateLimitRule rule,
+            RateLimitFilterContext context
+    ) {
         return keyStrategy.buildKey(rule, context);
     }
 
     /**
-     * Rate limit 규칙을 처리하고 결과를 반환합니다.
-     * 
-     * @param rule Rate limit 규칙
-     * @param key Rate limit 키
-     * @param context Rate Limit 필터 컨텍스트
-     * @return Rate limit 체크 결과
+     * Rate limit 규칙 처리
      */
     private Optional<RateLimitResultWithKey> processRateLimitRule(
             RateLimitRule rule,
@@ -207,16 +181,14 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             RateLimitFilterContext context
     ) {
         return facade.getProcessor()
-                .processRule(rule, context, r -> Optional.of(key));
+                .processRule(rule, context, ignored -> Optional.of(key));
     }
 
     /**
-     * Rate limit 체크 실패 시 정책에 따라 요청을 처리합니다.
-     * 
-     * @param e 발생한 예외
-     * @param filterChain 필터 체인
-     * @param request HTTP 요청
-     * @param response HTTP 응답
+     * Rate limit 체크 실패 시 처리
+     *
+     * Redis 장애 등 인프라 오류 발생 시,
+     * Failure Policy(Fail-Open / Fail-Closed)에 따라 요청을 처리합니다.
      */
     private void handleRateLimitCheckFailure(
             Exception e,
@@ -224,24 +196,50 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             HttpServletRequest request,
             HttpServletResponse response
     ) throws ServletException, IOException {
+
         boolean failOpen = rateLimitProperties.getFailurePolicy().isFailOpen();
+        boolean logFailure = rateLimitProperties.getFailurePolicy().isLogFailure();
+
+        Optional<RateLimitRule> ruleOpt = Optional.empty();
+        try {
+            ruleOpt = resolveRule(request);
+        } catch (Exception ignored) {
+            // 이미 실패 상황이므로 추가 오류는 무시
+        }
+
         if (failOpen) {
-            logger.warn("Rate limit check failed, allowing request (Fail-Open)", e);
+            if (logFailure) {
+                logger.warn(
+                        "Rate limit check failed, allowing request (Fail-Open). Request={}",
+                        request.getRequestURI(),
+                        e
+                );
+            }
+
+            metricsCollector.recordFailOpen(ruleOpt.orElse(null));
             filterChain.doFilter(request, response);
         } else {
-            logger.error("Rate limit check failed, blocking request (Fail-Closed)", e);
+            if (logFailure) {
+                logger.error(
+                        "Rate limit check failed, blocking request (Fail-Closed). Request={}",
+                        request.getRequestURI(),
+                        e
+                );
+            }
+
             sendServiceUnavailableResponse(response);
         }
     }
 
     /**
-     * 서비스 불가 응답을 전송합니다.
-     * 
-     * @param response HTTP 응답
+     * 503 응답 전송
      */
     private void sendServiceUnavailableResponse(HttpServletResponse response) {
         try {
-            response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Service temporarily unavailable");
+            response.sendError(
+                    HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                    "Service temporarily unavailable"
+            );
         } catch (IOException ioException) {
             logger.error("Failed to send error response", ioException);
             throw new RuntimeException(ioException);
@@ -249,10 +247,13 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 필터 적용 여부 결정
+     * 필터 적용 여부 결정 (확장 포인트)
      */
-    protected boolean shouldApplyFilter(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected boolean shouldApplyFilter(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
         return true;
     }
 
@@ -265,28 +266,4 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             RateLimitFilterContext context,
             HttpServletRequest request
     );
-
-    /**
-     * ThreadLocal 기반 플래그를 Scoped 방식으로 처리
-     */
-    private static final class ScopedResponseHandled implements AutoCloseable {
-        private static final ThreadLocal<Boolean> RESPONSE_HANDLED = ThreadLocal.withInitial(() -> false);
-
-        ScopedResponseHandled() {
-            RESPONSE_HANDLED.set(false);
-        }
-
-        static boolean isHandled() {
-            return RESPONSE_HANDLED.get();
-        }
-
-        static void markHandled() {
-            RESPONSE_HANDLED.set(true);
-        }
-
-        @Override
-        public void close() {
-            RESPONSE_HANDLED.remove();
-        }
-    }
 }
