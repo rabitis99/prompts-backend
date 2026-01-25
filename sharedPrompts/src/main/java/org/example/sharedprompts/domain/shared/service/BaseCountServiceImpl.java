@@ -1,8 +1,6 @@
 package org.example.sharedprompts.domain.shared.service;
 
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.global.Lua.LuaScripts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,44 +26,43 @@ public class BaseCountServiceImpl implements BaseCountService {
     @Value("${app.redis.hot-ttl-seconds:86400}")
     private long hotTtlSeconds;
 
-    private DefaultRedisScript<Long> safeDecrScript;
-    private DefaultRedisScript<Long> incrWithTtlScript;
-    private DefaultRedisScript<Long> safeDecrWithTtlScript;
-
-    @PostConstruct
-    public void init() {
-        safeDecrScript = new DefaultRedisScript<>();
-        safeDecrScript.setScriptText(LuaScripts.SAFE_DECREMENT);
-        safeDecrScript.setResultType(Long.class);
-
-        incrWithTtlScript = new DefaultRedisScript<>();
-        incrWithTtlScript.setScriptText(LuaScripts.INCREMENT_WITH_TTL);
-        incrWithTtlScript.setResultType(Long.class);
-
-        safeDecrWithTtlScript = new DefaultRedisScript<>();
-        safeDecrWithTtlScript.setScriptText(LuaScripts.SAFE_DECREMENT_WITH_TTL);
-        safeDecrWithTtlScript.setResultType(Long.class);
-    }
+    /**
+     * INCREMENT_WITH_TTL Lua 스크립트
+     * 
+     * 책임 분리:
+     * - 스크립트 정의: RedisLuaScriptConfig
+     * - 스크립트 실행: 이 클래스 (Service 책임)
+     * 
+     * 운영 원칙:
+     * - @PostConstruct에서 초기화하지 않음 (외부 리소스 접근 위험 제거)
+     * - Bean 주입으로 스크립트 사용 (애플리케이션 기동 안정성 보장)
+     */
+    private final DefaultRedisScript<Long> incrementWithTtlScript;
+    
+    /**
+     * SAFE_DECREMENT_WITH_TTL Lua 스크립트
+     */
+    private final DefaultRedisScript<Long> safeDecrementWithTtlScript;
 
     @Override
     public void increment(String key) {
-        executeWithTtl(incrWithTtlScript, key, "increment");
+        executeWithTtl(incrementWithTtlScript, key, "increment");
     }
 
     @Override
     public void decrement(String key) {
-        executeWithTtl(safeDecrWithTtlScript, key, "decrement");
+        executeWithTtl(safeDecrementWithTtlScript, key, "decrement");
     }
 
     @Override
     public long incrementAndGet(String key) {
-        Long val = executeWithTtl(incrWithTtlScript, key, "incrementAndGet");
+        Long val = executeWithTtl(incrementWithTtlScript, key, "incrementAndGet");
         return val != null ? val : 0L;
     }
 
     @Override
     public long decrementAndGet(String key) {
-        Long val = executeWithTtl(safeDecrWithTtlScript, key, "decrementAndGet");
+        Long val = executeWithTtl(safeDecrementWithTtlScript, key, "decrementAndGet");
         return val != null ? val : 0L;
     }
 
