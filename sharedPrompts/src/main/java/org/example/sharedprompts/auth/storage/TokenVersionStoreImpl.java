@@ -50,7 +50,7 @@ public class TokenVersionStoreImpl implements TokenVersionStore {
             throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "userId", "userId는 null일 수 없습니다.");
         }
 
-        return redisFailSafeHandler.executeRead(
+        Long result = redisFailSafeHandler.executeRead(
                 () -> {
                     String key = RedisKeyFactory.tokenVersion(userId);
                     String value = redisTemplate.opsForValue().get(key);
@@ -69,6 +69,8 @@ public class TokenVersionStoreImpl implements TokenVersionStore {
                 RedisExecutor.ReadType.NULL_LONG, // Fail-Close: null 반환 후 0으로 변환
                 "TokenVersion 조회: userId=" + userId
         );
+
+        return result != null ? result : 0L;
     }
     
     /**
