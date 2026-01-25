@@ -15,6 +15,7 @@ import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import org.example.sharedprompts.dto.common.PageResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.async.WebAsyncTask;
 
 @RestController
 @RequestMapping("/prompts")
@@ -25,12 +26,11 @@ public class PromptController {
     private final PromptFacade promptFacade;
 
     @PostMapping
-    public ResponseEntity<CustomResponse<PromptResponseDto>> createPrompt(
+    public WebAsyncTask<ResponseEntity<CustomResponse<PromptResponseDto>>> createPrompt(
             @Valid @RequestBody PromptRequestDto request,
             @CurrentUser AuthUser authUser
     ) {
-        PromptResponseDto result = promptFacade.createPrompt(request, authUser.getId());
-        return CustomResponseHelper.created(result);
+        return promptFacade.createPromptAsyncWeb(request, authUser.getId());
     }
 
     @GetMapping
