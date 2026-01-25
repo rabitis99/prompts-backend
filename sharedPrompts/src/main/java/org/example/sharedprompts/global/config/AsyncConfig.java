@@ -7,6 +7,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionHandler;
 
 /**
@@ -82,8 +83,15 @@ public class AsyncConfig {
      * - QueueCapacity: 100 (대기 중인 AI 호출 수 제한)
      * - 타임아웃: 60초 (GoogleGeminiProperties.timeoutSeconds + 여유)
      */
+    /**
+     * AI 호출 전용 TaskExecutor
+     * 
+     * 반환 타입: ExecutorService
+     * - ExecutorService는 Executor를 상속하므로 기존 코드와 호환됨
+     * - Future.cancel() 등 ExecutorService의 고급 기능 사용 가능
+     */
     @Bean(name = "aiCallTaskExecutor")
-    public Executor aiCallTaskExecutor() {
+    public ExecutorService aiCallTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(10);
         executor.setMaxPoolSize(50);
@@ -93,7 +101,7 @@ public class AsyncConfig {
         executor.setAwaitTerminationSeconds(60);
         executor.setRejectedExecutionHandler(createAiCallRejectedHandler());
         executor.initialize();
-        return executor;
+        return executor.getThreadPoolExecutor();
     }
 
     /**
