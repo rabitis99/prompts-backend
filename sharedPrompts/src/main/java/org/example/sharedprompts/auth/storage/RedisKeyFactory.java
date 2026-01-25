@@ -10,7 +10,7 @@ public class RedisKeyFactory {
     private static final String AUTH_PREFIX = "auth";
     private static final String RATE_PREFIX = "rate";
     private static final String OAUTH_PREFIX = "oauth";
-    
+    private static final String OAUTH_TEMP_PREFIX = "oauth:temp:";
     /**
      * Refresh Token Set 키의 prefix
      * Lua 스크립트에서 동적으로 키를 구성할 때 사용됩니다.
@@ -84,6 +84,14 @@ public class RedisKeyFactory {
     public static String oauthState(String value) {
         return String.format("%s:state:%s", OAUTH_PREFIX, value);
     }
+    
+    /**
+     * OAuth2 임시 토큰 키 생성
+     */
+    public static String oauthTemp(String key) {
+        return OAUTH_TEMP_PREFIX + key;
+    }
+
 }
 
 

@@ -123,165 +123,12 @@ public class TokenRedisServiceImpl implements TokenRedisService {
                 "AccessToken 삭제: " + SensitiveDataMasker.maskToken(token)
         );
     }
-    
+
     /**
      * Access Token 삭제 Fallback (Circuit Breaker Open 상태)
      */
     private void deleteAccessTokenFallback(String token, Exception e) {
         // 삭제 실패는 치명적이지 않으므로 예외를 던지지 않음
-    }
-
-    /**
-     * Access Token 유효성 검증 (UserId 포함)
-     * 
-     * 읽기 작업이므로 Redis 장애 시 Fail-Open 정책 적용
-     * 
-     * <p>자동 Fail-Open 정책: Health Check 장애 감지 시 Redis 호출 전에 미리 Fail-Open 적용
-     */
-    @Override
-    @CircuitBreaker(name = "tokenRedis", fallbackMethod = "isAccessTokenValidWithUserIdFallback")
-    public boolean isAccessTokenValidWithUserId(String accessToken, Long userId) {
-        return redisExecutor.executeRead(
-                () -> {
-                    String key = RedisKeyFactory.accessToken(accessToken);
-                    String storedUserId = redisTemplate.opsForValue().get(key);
-                    return storedUserId != null && storedUserId.equals(userId.toString());
-                },
-                RedisExecutor.ReadType.ACCESS_TOKEN,
-                "AccessToken 검증 (userId): userId=" + userId
-        );
-    }
-    
-    /**
-     * Access Token 유효성 검증 Fallback (UserId 포함, Circuit Breaker Open 상태)
-     */
-    private boolean isAccessTokenValidWithUserIdFallback(String accessToken, Long userId, Exception e) {
-        return true; // Fail-Open
-    }
-
-    // ==================== Refresh Token 관리 ====================
-
-    /**
-     * Refresh Token 유효성 검증
-     * 
-     * 읽기 작업이지만 Refresh Token은 보안상 중요하므로 장애 시 false 반환 (Fail-Close)
-     */
-    @Override
-    @CircuitBreaker(name = "tokenRedis", fallbackMethod = "isRefreshTokenValidFallback")
-    public boolean isRefreshTokenValid(String token, Long userId) {
-        return redisExecutor.executeRead(
-                () -> {
-                    String key = RedisKeyFactory.refreshToken(token);
-                    String storedUserId = redisTemplate.opsForValue().get(key);
-                    return storedUserId != null && storedUserId.equals(userId.toString());
-                },
-                RedisExecutor.ReadType.REFRESH_TOKEN,
-                "RefreshToken 검증: userId=" + userId
-        );
-    }
-    
-    /**
-     * Refresh Token 유효성 검증 Fallback (Circuit Breaker Open 상태)
-     */
-    private boolean isRefreshTokenValidFallback(String token, Long userId, Exception e) {
-        return false; // Fail-Close
-    }
-
-    /**
-     * Refresh Token 조회
-     * 
-     * 읽기 작업이지만 Refresh Token은 보안상 중요하므로 장애 시 null 반환
-     */
-    @Override
-    @CircuitBreaker(name = "tokenRedis", fallbackMethod = "getRefreshTokenFallback")
-    public Long getRefreshToken(String token) {
-        return redisExecutor.executeRead(
-                () -> {
-                    String key = RedisKeyFactory.refreshToken(token);
-                    String userIdStr = redisTemplate.opsForValue().get(key);
-                    
-                    if (userIdStr == null) {
-                        return null;
-                    }
-                    
-                    try {
-                        return Long.valueOf(userIdStr);
-                    } catch (NumberFormatException e) {
-                        log.error("Refresh Token userId 파싱 실패: token={}", 
-                                SensitiveDataMasker.maskToken(token), e);
-                        return null;
-                    }
-                },
-                RedisExecutor.ReadType.NULL_LONG,
-                "RefreshToken 조회: " + SensitiveDataMasker.maskToken(token)
-        );
-    }
-    
-    /**
-     * Refresh Token 조회 Fallback (Circuit Breaker Open 상태)
-     */
-    private Long getRefreshTokenFallback(String token, Exception e) {
-        return null; // Fail-Close
-    }
-
-    /**
-     * Refresh Token 삭제
-     * 
-     * 쓰기 작업이지만, 삭제 실패는 치명적이지 않으므로 장애 시에도 예외를 던지지 않음
-     */
-    @Override
-    @CircuitBreaker(name = "tokenRedis", fallbackMethod = "deleteRefreshTokenFallback")
-    public void deleteRefreshToken(String token, Long userId) {
-        redisExecutor.executeDelete(
-                () -> {
-                    String key = RedisKeyFactory.refreshToken(token);
-                    String metaKey = key + ":meta";
-                    String userKey = RedisKeyFactory.refreshTokenSet(userId);
-                    
-                    // 토큰 키 삭제
-                    redisTemplate.delete(key);
-                    // 메타데이터 키 삭제
-                    redisTemplate.delete(metaKey);
-                    // 사용자별 Set에서 토큰 제거
-                    redisTemplate.opsForSet().remove(userKey, token);
-                    
-                    log.debug("Refresh Token 삭제 완료: userId={}", userId);
-                },
-                "RefreshToken 삭제: userId=" + userId
-        );
-    }
-    
-    /**
-     * Refresh Token 삭제 Fallback (Circuit Breaker Open 상태)
-     */
-    private void deleteRefreshTokenFallback(String token, Long userId, Exception e) {
-        // 삭제 실패는 치명적이지 않으므로 예외를 던지지 않음
-    }
-
-    /**
-     * 사용자별 Refresh Token 목록 조회
-     * 
-     * 읽기 작업이므로 장애 시 빈 Set 반환
-     */
-    @Override
-    @CircuitBreaker(name = "tokenRedis", fallbackMethod = "getAllRefreshTokensByUserFallback")
-    public Set<String> getAllRefreshTokensByUser(Long userId) {
-        return redisExecutor.executeRead(
-                () -> {
-                    String userKey = RedisKeyFactory.refreshTokenSet(userId);
-                    Set<String> tokens = redisTemplate.opsForSet().members(userKey);
-                    return tokens != null ? tokens : Set.of();
-                },
-                RedisExecutor.ReadType.SET,
-                "RefreshToken 목록 조회: userId=" + userId
-        );
-    }
-    
-    /**
-     * 사용자별 Refresh Token 목록 조회 Fallback (Circuit Breaker Open 상태)
-     */
-    private Set<String> getAllRefreshTokensByUserFallback(Long userId, Exception e) {
-        return Set.of(); // Fail-Open
     }
 
     // ==================== OAuth2 임시 토큰 관리 ====================
@@ -297,7 +144,7 @@ public class TokenRedisServiceImpl implements TokenRedisService {
                               String provider, String providerId, Duration ttl) {
         redisExecutor.executeWrite(
                 () -> {
-                    String redisKey = "oauth:temp:" + key;
+                    String redisKey = RedisKeyFactory.oauthTemp(key);
                     Map<String, String> tokenData = new HashMap<>();
                     tokenData.put(Constant.ACCESS_TOKEN_KEY, accessToken != null ? accessToken : "");
                     tokenData.put(Constant.REFRESH_TOKEN_KEY, refreshToken != null ? refreshToken : "");
@@ -334,7 +181,7 @@ public class TokenRedisServiceImpl implements TokenRedisService {
     public Map<String, String> getAndDeleteTempToken(String key) {
         return redisExecutor.executeRead(
                 () -> {
-                    String redisKey = "oauth:temp:" + key;
+                    String redisKey = RedisKeyFactory.oauthTemp(key);
                     
                     // Hash 조회
                     Map<Object, Object> rawData = redisTemplate.opsForHash().entries(redisKey);

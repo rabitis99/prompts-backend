@@ -226,7 +226,12 @@ public class RedisHealthService {
      * - 연속 실패 횟수에 따라 backoff 시간 증가
      * - 최대 30초까지 증가
      * 
+     * <p>캐시 갱신 정책:
+     * - 첫 번째 실패 시 즉시 캐시를 unhealthy로 갱신하여 Fail-Open 정책이 즉시 적용되도록 함
+     * - 연속 실패 횟수는 로깅 및 backoff 계산에만 사용
+     * 
      * 수정: 동시성 안전성 보장 (AtomicLong 사용)
+     * 수정: 첫 번째 실패 시 즉시 캐시 갱신하여 Fail-Open 정책 즉시 적용
      */
     private void handleHealthCheckFailure() {
         long failures = consecutiveFailures.incrementAndGet();
@@ -234,13 +239,18 @@ public class RedisHealthService {
         
         // Adaptive backoff 계산: 실패 횟수에 따라 지수적으로 증가
         // 예: 3회 실패 → 1초, 6회 실패 → 2초, 9회 실패 → 4초, ...
-        long backoff = Math.min((failures / healthCheckProperties.getMaxConsecutiveFailures()) * 1000, MAX_BACKOFF_MS);
+        long maxFailures = Math.max(1, healthCheckProperties.getMaxConsecutiveFailures());
+        long backoff = Math.min((failures / maxFailures) * 1000, MAX_BACKOFF_MS);
         adaptiveBackoffMs.set(backoff);
-        
-        if (failures >= healthCheckProperties.getMaxConsecutiveFailures()) {
-            if (isHealthy.compareAndSet(true, false)) {
-                log.error("Redis 장애 감지: 연속 {}회 Health Check 실패 (backoff: {}ms)", failures, backoff);
-            }
+
+        // 수정: 첫 번째 실패 시 즉시 캐시를 unhealthy로 갱신
+        // 이렇게 하면 RedisExecutor.executeRead()에서 getCachedHealthStatus()를 호출할 때
+        // 즉시 Fail-Open 정책이 적용되어 부정확한 캐시 상태로 인한 문제를 방지
+        if (isHealthy.compareAndSet(true, false)) {
+            log.error("Redis 장애 감지: Health Check 실패 (연속 실패 횟수: {}, backoff: {}ms)", failures, backoff);
+        } else if (failures >= maxFailures) {
+            // 이미 unhealthy 상태이지만, maxFailures에 도달한 경우 추가 로깅
+            log.error("Redis 장애 지속: 연속 {}회 Health Check 실패 (backoff: {}ms)", failures, backoff);
         }
     }
     

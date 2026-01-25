@@ -155,7 +155,15 @@ public class RefreshTokenStoreImpl implements RefreshTokenStore {
                     String userIdStr = result.get(0);
                     String ip = result.size() > 1 ? result.get(1) : "";
                     String userAgent = result.size() > 2 ? result.get(2) : "";
-                    long remainingTtlMillis = result.size() > 3 ? Long.parseLong(result.get(3)) : 0L;
+                    long remainingTtlMillis = 0L;
+                     if (result.size() > 3) {
+                         try {
+                             remainingTtlMillis = Long.parseLong(result.get(3));
+                            } catch (NumberFormatException e) {
+                            log.warn("Refresh Token TTL 파싱 실패: token={}",
+                                    SensitiveDataMasker.maskToken(token), e);
+                         }
+                     }
                     
                     try {
                         Long userId = Long.valueOf(userIdStr);

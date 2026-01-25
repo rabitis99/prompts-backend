@@ -99,15 +99,6 @@ spring:
       pageable:
         max-page-size: 100
 
-# =========================
-# Redis Health Check 설정
-# =========================
-redis:
-  health-check:
-    enabled: ${REDIS_HEALTH_CHECK_ENABLED:true}
-    interval-ms: ${REDIS_HEALTH_CHECK_INTERVAL_MS:5000}
-    max-consecutive-failures: ${REDIS_HEALTH_CHECK_MAX_CONSECUTIVE_FAILURES:3}
-
   # =========================
   # RabbitMQ
   # =========================
@@ -133,6 +124,15 @@ redis:
   ai:
     openai:
       api-key: ${SPRING_AI_OPENAI_API_KEY:dummy-openai-api-key}
+
+# =========================
+# Redis Health Check 설정
+# =========================
+redis:
+  health-check:
+    enabled: ${REDIS_HEALTH_CHECK_ENABLED:true}
+    interval-ms: ${REDIS_HEALTH_CHECK_INTERVAL_MS:5000}
+    max-consecutive-failures: ${REDIS_HEALTH_CHECK_MAX_CONSECUTIVE_FAILURES:3}
 
 # =========================
 # JWT
@@ -222,7 +222,7 @@ resilience4j:
           - org.springframework.dao.DataAccessException
           - java.net.ConnectException
           - java.net.SocketTimeoutException
-          - redis.clients.jedis.exceptions.JedisConnectionException
+          - org.springframework.data.redis.RedisConnectionFailureException
         ignoreExceptions:
           - org.example.sharedprompts.global.exception.ApiException
 
@@ -256,10 +256,10 @@ rate-limit:
   rules:
     login: ${RATE_LIMIT_LOGIN:5}
     signup: ${RATE_LIMIT_SIGNUP:3}
-    prompt-create: ${RATE_LIMIT_PROMPT_CREATE:10}
+    promptCreate: ${RATE_LIMIT_PROMPT_CREATE:10}
     general: ${RATE_LIMIT_GENERAL:100}
   windows:
-    default-seconds: ${RATE_LIMIT_WINDOW_SECONDS:60}
+    defaultSeconds: ${RATE_LIMIT_WINDOW_SECONDS:60}
   log:
     cleanup:
       enabled: ${RATE_LIMIT_LOG_CLEANUP_ENABLED:true}

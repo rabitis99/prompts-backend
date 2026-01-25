@@ -1,9 +1,11 @@
 package org.example.sharedprompts.global.redis;
 
+import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
+import org.springframework.validation.annotation.Validated;
 
 /**
  * Redis Health Check 설정
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Component;
 @Getter
 @Setter
 @Component
+@Validated
 @ConfigurationProperties(prefix = "redis.health-check")
 public class RedisHealthCheckProperties {
     
@@ -37,6 +40,7 @@ public class RedisHealthCheckProperties {
      * 
      * <p>기본값: 5000 (5초)
      */
+    @Min(1)
     private long intervalMs = 5_000;
     
     /**
@@ -45,6 +49,7 @@ public class RedisHealthCheckProperties {
      * <p>이 횟수만큼 연속 실패하면 Redis를 장애 상태로 간주합니다.
      * 기본값: 3
      */
+    @Min(1)
     private long maxConsecutiveFailures = 3;
 }
 
