@@ -8,6 +8,7 @@ import org.example.sharedprompts.global.redis.RedisHealthService;
 import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.dao.DataAccessException;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
@@ -15,6 +16,8 @@ import java.util.function.Supplier;
  * 
  * Redis Key 생성, 안전한 Redis 호출 래퍼, 예외 처리 로직을 공통화합니다.
  * Fail-Open 정책을 일괄 적용하여 Redis 장애 시 서비스 연속성을 보장합니다.
+ * 
+ * 수정: null-safe 반환 및 Optional 사용으로 NPE 방지
  */
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -67,20 +70,51 @@ public class RedisUtil {
      * );
      * }</pre>
      * 
+     * 수정: null-safe 반환 보장, fallback이 null일 수 있으므로 호출부에서 null 체크 필요
+     * 
      * @param <T> 반환 타입
      * @param redisCall Redis 호출 로직
-     * @param fallback Redis 장애 시 반환할 fallback 값
-     * @return Redis 호출 결과 또는 fallback 값
+     * @param fallback Redis 장애 시 반환할 fallback 값 (null 가능)
+     * @return Redis 호출 결과 또는 fallback 값 (null 가능)
      */
     public static <T> T safeCall(Supplier<T> redisCall, T fallback) {
         try {
-            return redisCall.get();
+            T result = redisCall.get();
+            // 수정: Redis에서 null이 반환될 수 있으므로 그대로 반환
+            // 호출부에서 null 체크 필요
+            return result;
         } catch (DataAccessException e) {
             log.warn("Redis 호출 실패, Fail-Open 정책 적용: {}", e.getMessage(), e);
+            // 수정: fallback이 null일 수 있으므로 그대로 반환
+            // 호출부에서 null 체크 필요
             return fallback;
         } catch (Exception e) {
             log.error("Redis 호출 중 예상치 못한 예외 발생: {}", e.getMessage(), e);
+            // 수정: fallback이 null일 수 있으므로 그대로 반환
+            // 호출부에서 null 체크 필요
             return fallback;
+        }
+    }
+
+    /**
+     * Redis 호출을 안전하게 처리하는 래퍼 메서드 (Optional 반환)
+     * 
+     * 수정: null-safe 반환을 위해 Optional 사용
+     * 
+     * @param <T> 반환 타입
+     * @param redisCall Redis 호출 로직
+     * @return Optional로 감싼 Redis 호출 결과
+     */
+    public static <T> Optional<T> safeCallOptional(Supplier<T> redisCall) {
+        try {
+            T result = redisCall.get();
+            return Optional.ofNullable(result);
+        } catch (DataAccessException e) {
+            log.warn("Redis 호출 실패, Fail-Open 정책 적용: {}", e.getMessage(), e);
+            return Optional.empty();
+        } catch (Exception e) {
+            log.error("Redis 호출 중 예상치 못한 예외 발생: {}", e.getMessage(), e);
+            return Optional.empty();
         }
     }
 
@@ -97,15 +131,19 @@ public class RedisUtil {
      *   <li>주의: Redis 장애로 인한 예외는 비즈니스 로직 예외이므로 트랜잭션 롤백이 적절함</li>
      * </ul>
      * 
+     * 수정: null-safe 반환 보장
+     * 
      * @param <T> 반환 타입
      * @param redisCall Redis 호출 로직
      * @param errorMessage 예외 발생 시 사용할 에러 메시지
-     * @return Redis 호출 결과
+     * @return Redis 호출 결과 (null 가능)
      * @throws RuntimeException Redis 장애 시 발생 (트랜잭션 롤백 유발)
      */
     public static <T> T safeCallOrThrow(Supplier<T> redisCall, String errorMessage) {
         try {
-            return redisCall.get();
+            T result = redisCall.get();
+            // 수정: Redis에서 null이 반환될 수 있으므로 그대로 반환
+            return result;
         } catch (DataAccessException e) {
             log.error("Redis 호출 실패 (데이터 일관성 보장을 위해 예외 발생): {}", errorMessage, e);
             throw new RuntimeException(errorMessage, e);
@@ -120,12 +158,14 @@ public class RedisUtil {
      * 
      * <p>리플렉션 대신 직접 메서드 호출로 변경하여 성능 및 타입 안정성 향상
      * 
+     * 수정: null-safe 반환 및 Health Service null 체크
+     * 
      * @param redisCall Redis 호출 로직
-     * @param fallback Redis 장애 시 반환할 fallback 값
+     * @param fallback Redis 장애 시 반환할 fallback 값 (null 가능)
      * @param healthService Redis Health Service (null 가능)
      * @param token 마스킹할 토큰 (로깅용, null 가능)
      * @param <T> 반환 타입
-     * @return Redis 호출 결과 또는 fallback 값
+     * @return Redis 호출 결과 또는 fallback 값 (null 가능)
      */
     public static <T> T safeCallWithHealthCheck(
             Supplier<T> redisCall,
@@ -133,27 +173,32 @@ public class RedisUtil {
             RedisHealthService healthService,
             String token) {
         try {
-            return redisCall.get();
+            T result = redisCall.get();
+            // 수정: Redis에서 null이 반환될 수 있으므로 그대로 반환
+            return result;
         } catch (DataAccessException e) {
             String maskedToken = token != null ? SensitiveDataMasker.maskToken(token) : "N/A";
             log.warn("Redis 호출 실패, Fail-Open 정책 적용: token={}", maskedToken, e);
             
-            // Health Service에 실패 보고 (직접 메서드 호출)
+            // 수정: Health Service null 체크 추가
             if (healthService != null) {
                 healthService.reportFailure();
             }
             
+            // 수정: fallback이 null일 수 있으므로 그대로 반환
+            // 호출부에서 null 체크 필요
             return fallback;
         } catch (Exception e) {
             log.error("Redis 호출 중 예상치 못한 예외 발생", e);
             
-            // Health Service에 실패 보고 (직접 메서드 호출)
+            // 수정: Health Service null 체크 추가
             if (healthService != null) {
                 healthService.reportFailure();
             }
             
+            // 수정: fallback이 null일 수 있으므로 그대로 반환
+            // 호출부에서 null 체크 필요
             return fallback;
         }
     }
 }
-

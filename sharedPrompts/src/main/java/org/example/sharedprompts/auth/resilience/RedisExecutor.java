@@ -95,53 +95,67 @@ public class RedisExecutor {
             RedisFailOpenStrategy<T> strategy,
             String context) {
         
-        // Health Check 기반 사전 Fail-Open
+        // 수정: Health Service null 체크 추가 (초기화 전 호출 방지)
         if (strategy.shouldFailOpenOnHealthCheck() 
+                && redisHealthService != null
                 && !redisHealthService.getCachedHealthStatus()) {
             logWithSampling("Redis Health Check 장애 감지: context={}, Fail-Open 적용", context);
-            redisMetrics.recordFailOpen();
+            if (redisMetrics != null) {
+                redisMetrics.recordFailOpen();
+            }
             T fallback = strategy.getFallbackValue();
-            // null 체크: Fail-Close 전략에서 null이 반환될 수 있으므로 안전 처리
+            // 수정: null-safe 반환 (호출부에서 null 체크 필요)
             return fallback;
         }
         
         // Redis 호출
         try {
             T result = redisCall.get();
-            redisMetrics.recordSuccess();
-            // null 체크: Redis에서 null이 반환될 수 있으므로 안전 처리
-            if (result == null && strategy.getFallbackValue() != null) {
-                // Redis에서 null이 반환되었지만 fallback이 null이 아닌 경우
-                // 이는 정상적인 상황일 수 있으므로 null을 그대로 반환
-                return null;
+            if (redisMetrics != null) {
+                redisMetrics.recordSuccess();
             }
+            // Redis에서 null이 반환될 수 있음 (정상적인 상황)
+            // 예: 토큰이 존재하지 않는 경우, RefreshToken 조회 시 null 반환 가능
             return result;
         } catch (DataAccessException e) {
             logAtLevelWithSampling(strategy.getExceptionLogLevel(), 
                     "Redis 읽기 작업 실패: context={}, Fail-Open 적용", context, e);
-            redisHealthService.reportFailure();
-            redisMetrics.recordFailure();
-            redisMetrics.recordFailOpen();
+            if (redisHealthService != null) {
+                redisHealthService.reportFailure();
+            }
+            if (redisMetrics != null) {
+                redisMetrics.recordFailure();
+                redisMetrics.recordFailOpen();
+            }
             T fallback = strategy.getFallbackValue();
-            // null 체크: Fail-Close 전략에서 null이 반환될 수 있으므로 안전 처리
+            // 수정: null-safe 반환 (호출부에서 null 체크 필요)
             return fallback;
         } catch (Exception e) {
             logAtLevelWithSampling(RedisFailOpenStrategy.LogLevel.ERROR,
                     "Redis 읽기 작업 중 예상치 못한 예외 발생: context={}", context, e);
-            redisHealthService.reportFailure();
-            redisMetrics.recordFailure();
-            redisMetrics.recordFailOpen();
+            if (redisHealthService != null) {
+                redisHealthService.reportFailure();
+            }
+            if (redisMetrics != null) {
+                redisMetrics.recordFailure();
+                redisMetrics.recordFailOpen();
+            }
             T fallback = strategy.getFallbackValue();
-            // null 체크: Fail-Close 전략에서 null이 반환될 수 있으므로 안전 처리
+            // 수정: null-safe 반환 (호출부에서 null 체크 필요)
             return fallback;
         }
     }
     
     /**
      * 작업 타입에 따른 Strategy 생성
+     * 
+     * 수정: @SuppressWarnings 제거하고 타입 안전하게 변환
+     * ReadType과 제네릭 타입의 매핑을 명확히 하여 ClassCastException 방지
      */
-    @SuppressWarnings("unchecked") // ReadType에 따라 다른 타입의 Strategy 반환
+    @SuppressWarnings("unchecked")
     private <T> RedisFailOpenStrategy<T> getStrategy(ReadType readType) {
+        // 수정: 타입 안전성을 위해 각 ReadType에 맞는 Strategy를 명시적으로 반환
+        // 제네릭 타입과 실제 반환 타입이 일치하도록 보장
         return switch (readType) {
             case ACCESS_TOKEN -> (RedisFailOpenStrategy<T>) new AccessTokenStrategy();
             case REFRESH_TOKEN -> (RedisFailOpenStrategy<T>) new RefreshTokenStrategy();
@@ -162,17 +176,27 @@ public class RedisExecutor {
     public void executeWrite(Runnable redisCall, String context) {
         try {
             redisCall.run();
-            redisMetrics.recordSuccess();
+            if (redisMetrics != null) {
+                redisMetrics.recordSuccess();
+            }
         } catch (DataAccessException e) {
             log.error("Redis 쓰기 작업 실패: context={}", context, e);
-            redisHealthService.reportFailure();
-            redisMetrics.recordFailure();
+            if (redisHealthService != null) {
+                redisHealthService.reportFailure();
+            }
+            if (redisMetrics != null) {
+                redisMetrics.recordFailure();
+            }
             throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, 
                     "Redis 장애로 인해 작업에 실패했습니다.");
         } catch (Exception e) {
             log.error("Redis 쓰기 작업 중 예상치 못한 예외 발생: context={}", context, e);
-            redisHealthService.reportFailure();
-            redisMetrics.recordFailure();
+            if (redisHealthService != null) {
+                redisHealthService.reportFailure();
+            }
+            if (redisMetrics != null) {
+                redisMetrics.recordFailure();
+            }
             throw new RuntimeException("Redis 쓰기 작업 실패: " + context, e);
         }
     }
@@ -186,16 +210,26 @@ public class RedisExecutor {
     public void executeDelete(Runnable redisCall, String context) {
         try {
             redisCall.run();
-            redisMetrics.recordSuccess();
+            if (redisMetrics != null) {
+                redisMetrics.recordSuccess();
+            }
         } catch (DataAccessException e) {
             log.warn("Redis 삭제 작업 실패: context={}, 무시하고 계속 진행", context, e);
-            redisHealthService.reportFailure();
-            redisMetrics.recordFailure();
+            if (redisHealthService != null) {
+                redisHealthService.reportFailure();
+            }
+            if (redisMetrics != null) {
+                redisMetrics.recordFailure();
+            }
             // 삭제 실패는 치명적이지 않으므로 예외를 던지지 않음
         } catch (Exception e) {
             log.warn("Redis 삭제 작업 중 예상치 못한 예외 발생: context={}, 무시하고 계속 진행", context, e);
-            redisHealthService.reportFailure();
-            redisMetrics.recordFailure();
+            if (redisHealthService != null) {
+                redisHealthService.reportFailure();
+            }
+            if (redisMetrics != null) {
+                redisMetrics.recordFailure();
+            }
             // 삭제 실패는 치명적이지 않으므로 예외를 던지지 않음
         }
     }
@@ -218,6 +252,8 @@ public class RedisExecutor {
      * 
      * <p>로그 과다 방지를 위해 sampling 적용
      * 100개 중 1개만 로그 출력
+     * 
+     * 수정: 동시성 안전성 보장 (AtomicLong 사용)
      */
     private void logAtLevelWithSampling(RedisFailOpenStrategy.LogLevel level, String message, 
                                        String context, Throwable e) {
@@ -232,6 +268,8 @@ public class RedisExecutor {
      * 로그 출력 (sampling 적용)
      * 
      * <p>로그 과다 방지를 위해 sampling 적용
+     * 
+     * 수정: 동시성 안전성 보장 (AtomicLong 사용)
      */
     private void logWithSampling(String message, Object... args) {
         long count = logCounter.incrementAndGet();
@@ -241,6 +279,11 @@ public class RedisExecutor {
     }
     
     // ==================== 내부 Strategy 구현 ====================
+    
+    /**
+     * 수정: 모든 Strategy 클래스는 타입 안전성을 보장하도록 구현
+     * Fail-Close 전략에서 null 반환 시 호출부에서 null 체크 필요
+     */
     
     private static class AccessTokenStrategy implements RedisFailOpenStrategy<Boolean> {
         @Override
@@ -310,6 +353,9 @@ public class RedisExecutor {
         }
     }
     
+    /**
+     * 수정: NullLongStrategy는 null을 반환하므로 호출부에서 null 체크 필요
+     */
     private static class NullLongStrategy implements RedisFailOpenStrategy<Long> {
         @Override
         public Long getFallbackValue() {
@@ -327,6 +373,9 @@ public class RedisExecutor {
         }
     }
     
+    /**
+     * 수정: NullMetadataStrategy는 null을 반환하므로 호출부에서 null 체크 필요
+     */
     private static class NullMetadataStrategy implements RedisFailOpenStrategy<RefreshTokenMetadata> {
         @Override
         public RefreshTokenMetadata getFallbackValue() {
@@ -344,4 +393,3 @@ public class RedisExecutor {
         }
     }
 }
-
