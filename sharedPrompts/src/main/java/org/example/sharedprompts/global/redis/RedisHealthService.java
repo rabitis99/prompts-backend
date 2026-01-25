@@ -6,7 +6,8 @@ import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.PostConstruct;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -30,6 +31,11 @@ public class RedisHealthService {
     private final AtomicLong lastCheckTime = new AtomicLong(0);
     private final AtomicLong consecutiveFailures = new AtomicLong(0);
     
+    // Adaptive backoff를 위한 변수
+    private final AtomicLong adaptiveBackoffMs = new AtomicLong(0);
+    private static final long MIN_TTL_MS = 1000; // 최소 TTL: 1초
+    private static final long MAX_BACKOFF_MS = 30_000; // 최대 backoff: 30초
+    
     /**
      * RedisMetrics 설정 (선택적 의존성)
      * 
@@ -39,7 +45,13 @@ public class RedisHealthService {
         this.redisMetrics = redisMetrics;
     }
     
-    @PostConstruct
+    /**
+     * ApplicationReadyEvent에서 초기화
+     * 
+     * <p>PostConstruct 대신 ApplicationReadyEvent를 사용하여 초기화 순서 안정화
+     * 모든 Bean이 준비된 후에 초기화되므로 순환 참조 문제를 방지합니다.
+     */
+    @EventListener(ApplicationReadyEvent.class)
     public void init() {
         // Health Status Gauge 등록
         if (redisMetrics != null) {
@@ -49,6 +61,13 @@ public class RedisHealthService {
     
     /**
      * Redis 연결 상태 확인
+     * 
+     * <p>Adaptive backoff 및 최소 TTL 보장:
+     * <ul>
+     *   <li>정상 상태: 기본 interval 사용</li>
+     *   <li>장애 상태: adaptive backoff 적용 (최대 30초)</li>
+     *   <li>최소 TTL: 1초 (stale 데이터 최소화)</li>
+     * </ul>
      * 
      * @return Redis가 정상 상태이면 true, 장애 상태이면 false
      */
@@ -61,13 +80,42 @@ public class RedisHealthService {
         long currentTime = System.currentTimeMillis();
         long lastCheck = lastCheckTime.get();
         
+        // 최소 TTL 보장: 마지막 체크 후 최소 1초는 경과해야 함
+        if (currentTime - lastCheck < MIN_TTL_MS && lastCheck > 0) {
+            return isHealthy.get();
+        }
+        
+        // Adaptive backoff 계산
+        long effectiveInterval = calculateEffectiveInterval();
+        
         // 최근에 체크했고 아직 인터벌이 지나지 않았다면 캐시된 결과 반환
-        if (currentTime - lastCheck < healthCheckProperties.getIntervalMs() && lastCheck > 0) {
+        if (currentTime - lastCheck < effectiveInterval && lastCheck > 0) {
             return isHealthy.get();
         }
         
         // 실제 Health Check 수행
         return performHealthCheck();
+    }
+    
+    /**
+     * Adaptive backoff를 고려한 유효한 인터벌 계산
+     * 
+     * <p>장애 상태일 때는 backoff를 적용하여 Health Check 빈도를 줄입니다.
+     * 정상 상태일 때는 기본 interval을 사용합니다.
+     * 
+     * @return 유효한 인터벌 (밀리초)
+     */
+    private long calculateEffectiveInterval() {
+        long baseInterval = healthCheckProperties.getIntervalMs();
+        long backoff = adaptiveBackoffMs.get();
+        
+        if (backoff > 0) {
+            // 장애 상태: base interval + backoff (최대 30초)
+            return Math.min(baseInterval + backoff, MAX_BACKOFF_MS);
+        }
+        
+        // 정상 상태: base interval만 사용
+        return baseInterval;
     }
     
     /**
@@ -87,6 +135,7 @@ public class RedisHealthService {
                 // 정상 상태
                 consecutiveFailures.set(0);
                 isHealthy.set(true);
+                adaptiveBackoffMs.set(0); // Backoff 초기화
                 lastCheckTime.set(System.currentTimeMillis());
                 log.debug("Redis Health Check: 정상");
                 
@@ -121,14 +170,23 @@ public class RedisHealthService {
     
     /**
      * Health Check 실패 처리
+     * 
+     * <p>Adaptive backoff 적용:
+     * - 연속 실패 횟수에 따라 backoff 시간 증가
+     * - 최대 30초까지 증가
      */
     private void handleHealthCheckFailure() {
         long failures = consecutiveFailures.incrementAndGet();
         lastCheckTime.set(System.currentTimeMillis());
         
+        // Adaptive backoff 계산: 실패 횟수에 따라 지수적으로 증가
+        // 예: 3회 실패 → 1초, 6회 실패 → 2초, 9회 실패 → 4초, ...
+        long backoff = Math.min((failures / healthCheckProperties.getMaxConsecutiveFailures()) * 1000, MAX_BACKOFF_MS);
+        adaptiveBackoffMs.set(backoff);
+        
         if (failures >= healthCheckProperties.getMaxConsecutiveFailures()) {
             if (isHealthy.compareAndSet(true, false)) {
-                log.error("Redis 장애 감지: 연속 {}회 Health Check 실패", failures);
+                log.error("Redis 장애 감지: 연속 {}회 Health Check 실패 (backoff: {}ms)", failures, backoff);
             }
         }
     }
@@ -166,6 +224,7 @@ public class RedisHealthService {
         isHealthy.set(healthy);
         if (healthy) {
             consecutiveFailures.set(0);
+            adaptiveBackoffMs.set(0); // Backoff 초기화
         }
         lastCheckTime.set(System.currentTimeMillis());
     }

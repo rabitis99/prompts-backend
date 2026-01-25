@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 /**
@@ -35,11 +36,24 @@ public class RedisExecutor {
     private final RedisHealthService redisHealthService;
     private final RedisMetrics redisMetrics;
     
+    // 로그 sampling/throttling을 위한 카운터
+    private static final long LOG_SAMPLE_RATE = 100; // 100개 중 1개만 로그
+    private final AtomicLong logCounter = new AtomicLong(0);
+    
     /**
      * 읽기 작업 타입
      */
     public enum ReadType {
-        /** Access Token 검증: Fail-Open (true 반환) */
+        /** 
+         * Access Token 검증: Fail-Open (true 반환)
+         * 
+         * <p>보안 검토 필요:
+         * - Redis 장애 시 모든 Access Token을 유효한 것으로 간주
+         * - JWT 서명 검증은 이미 통과한 상태이므로, Redis 장애 시에도 인증 허용
+         * - 보안 위험: 만료된 토큰도 유효한 것으로 간주될 수 있음
+         * - 대안: Fail-Close로 변경 시 서비스 중단 가능성 있음
+         * - 권장: 모니터링 강화 및 빠른 Redis 복구 대응
+         */
         ACCESS_TOKEN,
         /** Refresh Token 검증: Fail-Close (false 반환) */
         REFRESH_TOKEN,
@@ -84,29 +98,42 @@ public class RedisExecutor {
         // Health Check 기반 사전 Fail-Open
         if (strategy.shouldFailOpenOnHealthCheck() 
                 && !redisHealthService.getCachedHealthStatus()) {
-            log.warn("Redis Health Check 장애 감지: context={}, Fail-Open 적용", context);
+            logWithSampling("Redis Health Check 장애 감지: context={}, Fail-Open 적용", context);
             redisMetrics.recordFailOpen();
-            return strategy.getFallbackValue();
+            T fallback = strategy.getFallbackValue();
+            // null 체크: Fail-Close 전략에서 null이 반환될 수 있으므로 안전 처리
+            return fallback;
         }
         
         // Redis 호출
         try {
             T result = redisCall.get();
             redisMetrics.recordSuccess();
+            // null 체크: Redis에서 null이 반환될 수 있으므로 안전 처리
+            if (result == null && strategy.getFallbackValue() != null) {
+                // Redis에서 null이 반환되었지만 fallback이 null이 아닌 경우
+                // 이는 정상적인 상황일 수 있으므로 null을 그대로 반환
+                return null;
+            }
             return result;
         } catch (DataAccessException e) {
-            logAtLevel(strategy.getExceptionLogLevel(), 
+            logAtLevelWithSampling(strategy.getExceptionLogLevel(), 
                     "Redis 읽기 작업 실패: context={}, Fail-Open 적용", context, e);
             redisHealthService.reportFailure();
             redisMetrics.recordFailure();
             redisMetrics.recordFailOpen();
-            return strategy.getFallbackValue();
+            T fallback = strategy.getFallbackValue();
+            // null 체크: Fail-Close 전략에서 null이 반환될 수 있으므로 안전 처리
+            return fallback;
         } catch (Exception e) {
-            log.error("Redis 읽기 작업 중 예상치 못한 예외 발생: context={}", context, e);
+            logAtLevelWithSampling(RedisFailOpenStrategy.LogLevel.ERROR,
+                    "Redis 읽기 작업 중 예상치 못한 예외 발생: context={}", context, e);
             redisHealthService.reportFailure();
             redisMetrics.recordFailure();
             redisMetrics.recordFailOpen();
-            return strategy.getFallbackValue();
+            T fallback = strategy.getFallbackValue();
+            // null 체크: Fail-Close 전략에서 null이 반환될 수 있으므로 안전 처리
+            return fallback;
         }
     }
     
@@ -183,6 +210,33 @@ public class RedisExecutor {
             case INFO -> log.info(message, context, e);
             case WARN -> log.warn(message, context, e);
             case ERROR -> log.error(message, context, e);
+        }
+    }
+    
+    /**
+     * 로깅 레벨에 따라 로그 출력 (sampling 적용)
+     * 
+     * <p>로그 과다 방지를 위해 sampling 적용
+     * 100개 중 1개만 로그 출력
+     */
+    private void logAtLevelWithSampling(RedisFailOpenStrategy.LogLevel level, String message, 
+                                       String context, Throwable e) {
+        long count = logCounter.incrementAndGet();
+        if (count % LOG_SAMPLE_RATE == 0 || level == RedisFailOpenStrategy.LogLevel.ERROR) {
+            // ERROR 레벨은 항상 로그, 나머지는 sampling
+            logAtLevel(level, message, context, e);
+        }
+    }
+    
+    /**
+     * 로그 출력 (sampling 적용)
+     * 
+     * <p>로그 과다 방지를 위해 sampling 적용
+     */
+    private void logWithSampling(String message, Object... args) {
+        long count = logCounter.incrementAndGet();
+        if (count % LOG_SAMPLE_RATE == 0) {
+            log.warn(message, args);
         }
     }
     

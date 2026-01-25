@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.auth.storage.RedisKeyFactory;
+import org.example.sharedprompts.global.redis.RedisHealthService;
 import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.dao.DataAccessException;
 
@@ -89,11 +90,18 @@ public class RedisUtil {
      * <p>쓰기 작업 등 데이터 일관성이 중요한 경우 사용합니다.
      * Redis 장애 시 예외를 발생시켜 트랜잭션 롤백 등을 보장합니다.
      * 
+     * <p>트랜잭션 롤백 적용 여부:
+     * <ul>
+     *   <li>@Transactional 메서드 내에서 호출 시: RuntimeException이므로 트랜잭션 롤백 발생</li>
+     *   <li>트랜잭션 없이 호출 시: 예외만 발생하고 롤백 없음</li>
+     *   <li>주의: Redis 장애로 인한 예외는 비즈니스 로직 예외이므로 트랜잭션 롤백이 적절함</li>
+     * </ul>
+     * 
      * @param <T> 반환 타입
      * @param redisCall Redis 호출 로직
      * @param errorMessage 예외 발생 시 사용할 에러 메시지
      * @return Redis 호출 결과
-     * @throws RuntimeException Redis 장애 시 발생
+     * @throws RuntimeException Redis 장애 시 발생 (트랜잭션 롤백 유발)
      */
     public static <T> T safeCallOrThrow(Supplier<T> redisCall, String errorMessage) {
         try {
@@ -110,6 +118,8 @@ public class RedisUtil {
     /**
      * Redis 호출 실패를 로깅하고 Health Service에 보고
      * 
+     * <p>리플렉션 대신 직접 메서드 호출로 변경하여 성능 및 타입 안정성 향상
+     * 
      * @param redisCall Redis 호출 로직
      * @param fallback Redis 장애 시 반환할 fallback 값
      * @param healthService Redis Health Service (null 가능)
@@ -120,7 +130,7 @@ public class RedisUtil {
     public static <T> T safeCallWithHealthCheck(
             Supplier<T> redisCall,
             T fallback,
-            Object healthService,
+            RedisHealthService healthService,
             String token) {
         try {
             return redisCall.get();
@@ -128,18 +138,20 @@ public class RedisUtil {
             String maskedToken = token != null ? SensitiveDataMasker.maskToken(token) : "N/A";
             log.warn("Redis 호출 실패, Fail-Open 정책 적용: token={}", maskedToken, e);
             
-            // Health Service에 실패 보고 (리플렉션 사용)
+            // Health Service에 실패 보고 (직접 메서드 호출)
             if (healthService != null) {
-                try {
-                    healthService.getClass().getMethod("reportFailure").invoke(healthService);
-                } catch (Exception ex) {
-                    log.debug("Health Service에 실패 보고 실패: {}", ex.getMessage());
-                }
+                healthService.reportFailure();
             }
             
             return fallback;
         } catch (Exception e) {
             log.error("Redis 호출 중 예상치 못한 예외 발생", e);
+            
+            // Health Service에 실패 보고 (직접 메서드 호출)
+            if (healthService != null) {
+                healthService.reportFailure();
+            }
+            
             return fallback;
         }
     }
