@@ -18,13 +18,14 @@ import java.util.function.Supplier;
 /**
  * 통합 Redis 실행기
  * 
- * <p>읽기, 쓰기, 삭제 작업을 모두 처리하는 통합 Executor입니다.
+ * <p>읽기, 쓰기, 삭제, 읽기+쓰기 작업을 모두 처리하는 통합 Executor입니다.
  * 작업 타입에 따라 적절한 예외 처리 및 Fail-Open 정책을 자동으로 적용합니다.
  * 
  * <p>작업 타입:
  * <ul>
  *   <li>READ: 읽기 작업 (Fail-Open 가능, 작업 타입에 따라 자동 결정)</li>
  *   <li>WRITE: 쓰기 작업 (예외 발생, 데이터 일관성 보장)</li>
+ *   <li>READWRITE: 읽기+쓰기 작업 (Fail-Close, null 반환, master 연결 필요)</li>
  *   <li>DELETE: 삭제 작업 (예외 무시, 치명적이지 않음)</li>
  * </ul>
  */
@@ -198,6 +199,47 @@ public class RedisExecutor {
                 redisMetrics.recordFailure();
             }
             throw new RuntimeException("Redis 쓰기 작업 실패: " + context, e);
+        }
+    }
+    
+    /**
+     * 읽기+쓰기 작업 실행 (읽기와 쓰기를 모두 수행하는 원자적 연산)
+     * 
+     * <p>읽기+쓰기 작업은 master에 연결되어야 하므로 replica 라우팅을 사용할 수 없습니다.
+     * Fail-Close 정책을 적용하여 보안상 중요한 작업에 적합합니다.
+     * 
+     * @param <T> 반환 타입
+     * @param redisCall Redis 호출 로직
+     * @param context 로깅용 컨텍스트
+     * @return Redis 호출 결과 또는 null (장애 시 Fail-Close)
+     */
+    public <T> T executeReadWrite(Supplier<T> redisCall, String context) {
+        try {
+            T result = redisCall.get();
+            if (redisMetrics != null) {
+                redisMetrics.recordSuccess();
+            }
+            return result;
+        } catch (DataAccessException e) {
+            log.error("Redis 읽기+쓰기 작업 실패: context={}, Fail-Close 적용 (null 반환)", context, e);
+            if (redisHealthService != null) {
+                redisHealthService.reportFailure();
+            }
+            if (redisMetrics != null) {
+                redisMetrics.recordFailure();
+            }
+            // Fail-Close: 보안상 중요한 작업이므로 null 반환
+            return null;
+        } catch (Exception e) {
+            log.error("Redis 읽기+쓰기 작업 중 예상치 못한 예외 발생: context={}, Fail-Close 적용 (null 반환)", context, e);
+            if (redisHealthService != null) {
+                redisHealthService.reportFailure();
+            }
+            if (redisMetrics != null) {
+                redisMetrics.recordFailure();
+            }
+            // Fail-Close: 보안상 중요한 작업이므로 null 반환
+            return null;
         }
     }
     

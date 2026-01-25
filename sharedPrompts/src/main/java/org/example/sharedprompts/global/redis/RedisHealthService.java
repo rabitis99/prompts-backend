@@ -119,12 +119,6 @@ public class RedisHealthService {
             return isHealthy.get();
         }
         
-        // 수정: 중복 호출 방지 (lock 사용)
-        if (isChecking) {
-            // 다른 스레드가 체크 중이면 캐시된 결과 반환
-            return isHealthy.get();
-        }
-        
         // 실제 Health Check 수행
         return performHealthCheck();
     }

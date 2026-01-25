@@ -40,8 +40,8 @@ public class RedisHealthCheckScheduler {
      * Health Check 결과는 RedisHealthService에 캐시되어
      * Redis 호출 전에 사전 Fail-Open 정책을 적용하는 데 사용됩니다.
      */
-    @Scheduled(fixedDelayString = "${redis.healthcheck.fixed-delay:5000}",
-            initialDelayString = "${redis.healthcheck.initial-delay:10000}") // 5초마다, 시작 후 10초 지연
+    @Scheduled(fixedDelayString = "${redis.health-check.fixed-delay:5000}",
+                initialDelayString = "${redis.health-check.initial-delay:10000}") // 5초마다, 시작 후 10초 지연
     public void performHealthCheck() {
         try {
             boolean isHealthy = redisHealthService.isRedisHealthy();

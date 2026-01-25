@@ -1,22 +1,25 @@
 package org.example.sharedprompts.global.redis;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.auth.jwt.config.TokenTtlProperties;
 import org.example.sharedprompts.auth.resilience.RedisExecutor;
 import org.example.sharedprompts.auth.storage.RedisKeyFactory;
+import org.example.sharedprompts.global.Lua.LuaScripts;
 import org.example.sharedprompts.global.constant.Constant;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Token Redis 서비스 구현체
@@ -37,6 +40,20 @@ public class TokenRedisServiceImpl implements TokenRedisService {
     private final StringRedisTemplate redisTemplate;
     private final TokenTtlProperties ttlProperties;
     private final RedisExecutor redisExecutor;
+    
+    private DefaultRedisScript<List<String>> getAndDeleteTempTokenScript;
+    
+    @PostConstruct
+    public void init() {
+        // GET_AND_DELETE_TEMP_TOKEN 스크립트 초기화
+        DefaultRedisScript<List<String>> getAndDelete = new DefaultRedisScript<>();
+        getAndDelete.setScriptText(LuaScripts.GET_AND_DELETE_TEMP_TOKEN);
+        // Spring Data Redis는 런타임에 제네릭 타입 정보를 잃어버리므로 raw type을 사용
+        @SuppressWarnings("unchecked")
+        Class<List<String>> resultType = (Class<List<String>>) (Class<?>) List.class;
+        getAndDelete.setResultType(resultType);
+        this.getAndDeleteTempTokenScript = getAndDelete;
+    }
 
     // ==================== Access Token 관리 ====================
 
@@ -174,35 +191,44 @@ public class TokenRedisServiceImpl implements TokenRedisService {
     /**
      * OAuth2 임시 토큰 조회 및 삭제
      * 
-     * 읽기+쓰기 작업이지만, 조회 실패 시 빈 Map 반환
+     * 읽기+쓰기 작업이므로 executeReadWrite()를 사용합니다.
+     * Lua 스크립트가 DEL 명령을 실행하므로 master에 연결되어야 합니다.
+     * TOCTOU 문제를 방지하기 위해 조회와 삭제를 원자적으로 처리합니다.
      */
     @Override
     @CircuitBreaker(name = "tokenRedis", fallbackMethod = "getAndDeleteTempTokenFallback")
     public Map<String, String> getAndDeleteTempToken(String key) {
-        return redisExecutor.executeRead(
+        Map<String, String> result = redisExecutor.executeReadWrite(
                 () -> {
                     String redisKey = RedisKeyFactory.oauthTemp(key);
                     
-                    // Hash 조회
-                    Map<Object, Object> rawData = redisTemplate.opsForHash().entries(redisKey);
+                    // Lua 스크립트를 사용하여 원자적으로 조회 및 삭제
+                    // 스크립트는 평탄화된 배열 [field1, value1, field2, value2, ...]을 반환
+                    List<String> entries = redisTemplate.execute(
+                            getAndDeleteTempTokenScript,
+                            List.of(redisKey)
+                    );
                     
-                    if (rawData == null || rawData.isEmpty()) {
-                        return Map.of();
+                    if (entries == null || entries.isEmpty()) {
+                        return Map.of(); // 토큰이 없거나 이미 사용됨
                     }
                     
-                    // Object -> String 변환
+                    // 평탄화된 배열을 Map으로 변환
                     Map<String, String> tokenData = new HashMap<>();
-                    rawData.forEach((k, v) -> tokenData.put(String.valueOf(k), String.valueOf(v)));
-                    
-                    // 조회 후 삭제
-                    redisTemplate.delete(redisKey);
+                    for (int i = 0; i < entries.size(); i += 2) {
+                        if (i + 1 < entries.size()) {
+                            tokenData.put(entries.get(i), entries.get(i + 1));
+                        }
+                    }
                     
                     log.debug("OAuth2 임시 토큰 조회 및 삭제 완료: key={}", key);
                     return tokenData;
                 },
-                RedisExecutor.ReadType.MAP,
                 "OAuth2 임시 토큰 조회/삭제: key=" + key
         );
+        
+        // executeReadWrite는 장애 시 null을 반환할 수 있으므로 빈 Map으로 변환
+        return result != null ? result : Map.of();
     }
     
     /**
@@ -212,9 +238,3 @@ public class TokenRedisServiceImpl implements TokenRedisService {
         return Map.of(); // Fail-Open
     }
 }
-
-
-
-
-
-

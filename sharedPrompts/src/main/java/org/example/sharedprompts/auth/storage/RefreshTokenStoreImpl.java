@@ -127,12 +127,14 @@ public class RefreshTokenStoreImpl implements RefreshTokenStore {
     /**
      * Refresh Token 조회 및 삭제 (1회용 보장)
      * 
-     * 읽기+쓰기 작업이지만, Refresh Token은 보안상 중요하므로 장애 시 null 반환 (Fail-Close)
+     * 읽기+쓰기 작업이므로 executeReadWrite()를 사용합니다.
+     * Lua 스크립트가 DEL/SREM 명령을 실행하므로 master에 연결되어야 합니다.
+     * Refresh Token은 보안상 중요하므로 장애 시 null 반환 (Fail-Close)
      */
     @Override
     @CircuitBreaker(name = "tokenRedis", fallbackMethod = "getAndDeleteFallback")
     public RefreshTokenMetadata getAndDelete(String token) {
-        return redisExecutor.executeRead(
+        return redisExecutor.executeReadWrite(
                 () -> {
                     String key = RedisKeyFactory.refreshToken(token);
                     String metaKey = key + ":meta";
@@ -140,6 +142,7 @@ public class RefreshTokenStoreImpl implements RefreshTokenStore {
                     
                     // Lua 스크립트를 사용하여 원자적으로 조회 및 삭제
                     // 스크립트 내부에서 userId를 조회한 후 userSetKey를 동적으로 구성
+                    // 스크립트는 DEL/SREM 명령을 실행하므로 쓰기 작업입니다.
                     List<String> result = redisTemplate.execute(
                             getAndDeleteScript,
                             List.of(key, metaKey),
@@ -164,7 +167,7 @@ public class RefreshTokenStoreImpl implements RefreshTokenStore {
                                     SensitiveDataMasker.maskToken(token), e);
                          }
                      }
-                    
+                     
                     try {
                         Long userId = Long.valueOf(userIdStr);
                         return new RefreshTokenMetadata(userId, ip, userAgent, remainingTtlMillis);
@@ -174,7 +177,6 @@ public class RefreshTokenStoreImpl implements RefreshTokenStore {
                         return null;
                     }
                 },
-                RedisExecutor.ReadType.NULL_METADATA,
                 "RefreshToken 조회/삭제: " + SensitiveDataMasker.maskToken(token)
         );
     }
