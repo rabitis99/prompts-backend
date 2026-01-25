@@ -95,20 +95,19 @@ public class RedisExecutor {
             Supplier<T> redisCall,
             RedisFailOpenStrategy<T> strategy,
             String context) {
-        
+
         // 수정: Health Service null 체크 추가 (초기화 전 호출 방지)
-        if (strategy.shouldFailOpenOnHealthCheck() 
+        if (strategy.shouldFailOpenOnHealthCheck()
                 && redisHealthService != null
                 && !redisHealthService.getCachedHealthStatus()) {
             logWithSampling("Redis Health Check 장애 감지: context={}, Fail-Open 적용", context);
             if (redisMetrics != null) {
                 redisMetrics.recordFailOpen();
             }
-            T fallback = strategy.getFallbackValue();
             // 수정: null-safe 반환 (호출부에서 null 체크 필요)
-            return fallback;
+            return strategy.getFallbackValue();
         }
-        
+
         // Redis 호출
         try {
             T result = redisCall.get();
@@ -119,7 +118,7 @@ public class RedisExecutor {
             // 예: 토큰이 존재하지 않는 경우, RefreshToken 조회 시 null 반환 가능
             return result;
         } catch (DataAccessException e) {
-            logAtLevelWithSampling(strategy.getExceptionLogLevel(), 
+            logAtLevelWithSampling(strategy.getExceptionLogLevel(),
                     "Redis 읽기 작업 실패: context={}, Fail-Open 적용", context, e);
             if (redisHealthService != null) {
                 redisHealthService.reportFailure();
@@ -128,9 +127,8 @@ public class RedisExecutor {
                 redisMetrics.recordFailure();
                 redisMetrics.recordFailOpen();
             }
-            T fallback = strategy.getFallbackValue();
             // 수정: null-safe 반환 (호출부에서 null 체크 필요)
-            return fallback;
+            return strategy.getFallbackValue();
         } catch (Exception e) {
             logAtLevelWithSampling(RedisFailOpenStrategy.LogLevel.ERROR,
                     "Redis 읽기 작업 중 예상치 못한 예외 발생: context={}", context, e);
@@ -139,11 +137,8 @@ public class RedisExecutor {
             }
             if (redisMetrics != null) {
                 redisMetrics.recordFailure();
-                redisMetrics.recordFailOpen();
-            }
-            T fallback = strategy.getFallbackValue();
-            // 수정: null-safe 반환 (호출부에서 null 체크 필요)
-            return fallback;
+                }
+            throw new RuntimeException("Redis 읽기 작업 중 예상치 못한 예외 발생: " + context, e);
         }
     }
     

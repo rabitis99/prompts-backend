@@ -10,7 +10,6 @@ import org.example.sharedprompts.global.Lua.LuaScripts;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.util.SensitiveDataMasker;
-import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -314,27 +313,32 @@ public class RefreshTokenStoreImpl implements RefreshTokenStore {
     }
 
     @Override
+    @CircuitBreaker(name = "tokenRedis", fallbackMethod = "cleanupExpiredTokensFallback")
     public void cleanupExpiredTokens(Long userId) {
-        try {
-            String userKey = RedisKeyFactory.refreshTokenSet(userId);
-            Set<String> tokens = getAllByUser(userId);
-            
-            if (tokens == null || tokens.isEmpty()) {
-                return;
-            }
-            
-            for (String token : tokens) {
-                String key = RedisKeyFactory.refreshToken(token);
-                if (!Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
-                    // 만료된 토큰 제거
-                    redisTemplate.opsForSet().remove(userKey, token);
-                    log.debug("만료된 Refresh Token 정리: userId={}", userId);
-                }
-            }
-        } catch (DataAccessException e) {
-            log.error("만료된 Refresh Token 정리 실패: userId={}", userId, e);
-            // 정리 작업 실패는 치명적이지 않으므로 예외를 던지지 않음
-        }
+        redisExecutor.executeDelete(
+                () -> {
+                    String userKey = RedisKeyFactory.refreshTokenSet(userId);
+                    Set<String> tokens = getAllByUser(userId);
+
+                    if (tokens == null || tokens.isEmpty()) {
+                        return;
+                    }
+
+                    for (String token : tokens) {
+                        String key = RedisKeyFactory.refreshToken(token);
+                        if (!Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
+                            redisTemplate.opsForSet().remove(userKey, token);
+                            log.debug("만료된 Refresh Token 정리: userId={}", userId);
+                        }
+                    }
+                },
+                "만료된 RefreshToken 정리: userId=" + userId
+        );
+    }
+
+    private void cleanupExpiredTokensFallback(Long userId, Throwable e) {
+        // 정리 작업 실패는 치명적이지 않으므로 예외를 전파하지 않음
+        log.warn("cleanupExpiredTokens fallback 실행: userId={}", userId, e);
     }
 }
 

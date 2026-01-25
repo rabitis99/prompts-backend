@@ -32,6 +32,7 @@ public class RedisHealthService {
     
     private final AtomicBoolean isHealthy = new AtomicBoolean(true);
     private final AtomicLong lastCheckTime = new AtomicLong(0);
+    private final AtomicBoolean healthGaugeRegistered = new AtomicBoolean(false);
     private final AtomicLong consecutiveFailures = new AtomicLong(0);
     
     // 수정: Adaptive backoff를 위한 변수 (volatile로 가시성 보장)
@@ -52,8 +53,16 @@ public class RedisHealthService {
      */
     public synchronized void setRedisMetrics(RedisMetrics redisMetrics) {
         this.redisMetrics = redisMetrics;
+        registerHealthGaugeIfPossible();
     }
-    
+
+    private void registerHealthGaugeIfPossible() {
+        RedisMetrics metrics = this.redisMetrics;
+        if (metrics != null && healthGaugeRegistered.compareAndSet(false, true)) {
+            metrics.registerHealthStatusGauge(this);
+        }
+    }
+
     /**
      * ApplicationReadyEvent에서 초기화
      * 
@@ -66,9 +75,7 @@ public class RedisHealthService {
     public void init() {
         try {
             // Health Status Gauge 등록
-            if (redisMetrics != null) {
-                redisMetrics.registerHealthStatusGauge(this);
-            }
+            registerHealthGaugeIfPossible();
         } catch (Exception e) {
             // 수정: 초기화 실패해도 서비스는 계속 동작
             log.error("Redis Health Service 초기화 실패 (서비스는 계속 동작)", e);
@@ -197,7 +204,7 @@ public class RedisHealthService {
                 // 예외 발생 시 장애 처리
                 long duration = System.currentTimeMillis() - startTime;
                 handleHealthCheckFailure();
-                log.warn("Redis Health Check 실패: {}", e.getMessage());
+                log.warn("Redis Health Check 실패", e);
                 
                 // 메트릭 기록 (null 체크)
                 if (redisMetrics != null) {
