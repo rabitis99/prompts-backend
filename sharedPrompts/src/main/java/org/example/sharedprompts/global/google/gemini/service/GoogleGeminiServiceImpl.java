@@ -30,7 +30,7 @@ public class GoogleGeminiServiceImpl implements GoogleGeminiService {
 
     private final WebClient webClient;
     private final GoogleGeminiProperties properties;
-    private final CircuitBreaker circuitBreaker;
+    private final CircuitBreaker googleGeminiCircuitBreaker;
     private final MeterRegistry meterRegistry;
     private final GeminiResponseExtractor responseExtractor;
     private final GeminiFallbackHandler fallbackHandler;
@@ -67,7 +67,7 @@ public class GoogleGeminiServiceImpl implements GoogleGeminiService {
 
         // CircuitBreaker 적용 (timeout/retry 이후)
         Mono<String> protectedCall = chatCall.transformDeferred(
-                CircuitBreakerOperator.of(circuitBreaker)
+                CircuitBreakerOperator.of(googleGeminiCircuitBreaker)
         );
 
         // Fallback 적용: 모든 에러와 빈 응답에 대해 Fallback 반환
