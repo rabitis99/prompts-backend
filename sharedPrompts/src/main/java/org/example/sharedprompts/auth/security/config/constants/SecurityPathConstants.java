@@ -42,6 +42,10 @@ public final class SecurityPathConstants {
             "/auth/login",
             "/auth/callback",
             "/auth/refresh",
+            "/api/auth/signup",
+            "/api/auth/login",
+            "/api/auth/callback",
+            "/api/auth/refresh",
             "/oauth2/**",
             "/login/**"
     };
