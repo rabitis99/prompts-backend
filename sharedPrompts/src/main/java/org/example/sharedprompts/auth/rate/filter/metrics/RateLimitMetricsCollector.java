@@ -7,9 +7,12 @@ import org.springframework.stereotype.Component;
 
 /**
  * Rate Limit 메트릭 수집기
- * 
+ *
  * Rate Limit 관련 메트릭을 수집하는 컴포넌트입니다.
- * Observer 패턴을 통해 Rate Limit 체크와 메트릭 수집을 분리합니다.
+ * Observer 패턴을 통해 Rate Limit 체크 로직과 메트릭 수집을 분리합니다.
+ *
+ * 이 클래스는 "무엇이 발생했는지"만 표현하며,
+ * 실패/초과/허용 정책의 의미 해석은 상위 레이어에서 수행합니다.
  */
 @Component
 @RequiredArgsConstructor
@@ -19,8 +22,10 @@ public class RateLimitMetricsCollector {
 
     /**
      * Rate Limit 체크 메트릭을 기록합니다.
-     * 
-     * @param rule RateLimitRule
+     *
+     * 정상적으로 Rate Limit 체크가 수행된 경우에만 호출됩니다.
+     *
+     * @param rule   RateLimitRule
      * @param result RateLimitResult
      */
     public void recordCheck(RateLimitRule rule, RateLimiter.RateLimitResult result) {
@@ -33,10 +38,10 @@ public class RateLimitMetricsCollector {
 
     /**
      * Rate Limit 초과 메트릭을 기록합니다.
-     * 
-     * @param rule RateLimitRule
+     *
+     * @param rule         RateLimitRule
      * @param currentCount 현재 카운트
-     * @param limit 제한 값
+     * @param limit        제한 값
      */
     public void recordExceeded(RateLimitRule rule, long currentCount, long limit) {
         metricsService.recordRateLimitExceeded(rule, currentCount, limit);
@@ -44,8 +49,11 @@ public class RateLimitMetricsCollector {
 
     /**
      * Rate Limit 체크 실패 메트릭을 기록합니다.
-     * 
-     * @param rule RateLimitRule
+     *
+     * Redis 장애, 내부 오류 등으로 Rate Limit 체크 자체가
+     * 정상 수행되지 못한 경우를 의미합니다.
+     *
+     * @param rule RateLimitRule (null 가능 - 규칙을 식별할 수 없는 경우)
      */
     public void recordFailed(RateLimitRule rule) {
         metricsService.recordRateLimitCheckFailed(rule);
@@ -53,14 +61,13 @@ public class RateLimitMetricsCollector {
 
     /**
      * Rate Limit Fail-Open 메트릭을 기록합니다.
-     * 
-     * Redis 장애 등으로 Rate Limit 체크가 실패했을 때
-     * Fail-Open 정책에 의해 요청이 허용된 경우를 기록합니다.
-     * 
+     *
+     * Redis 장애 등으로 Rate Limit 체크가 실패했지만
+     * Fail-Open 정책에 따라 요청이 허용된 경우를 기록합니다.
+     *
      * @param rule RateLimitRule (null 가능 - 규칙을 식별할 수 없는 경우)
      */
     public void recordFailOpen(RateLimitRule rule) {
         metricsService.recordRateLimitFailOpen(rule);
     }
 }
-

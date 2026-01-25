@@ -31,7 +31,7 @@ import java.util.Optional;
  * - 인증되지 않은 요청은 자동으로 필터를 통과합니다.
  */
 @Component
-@Order(-50)
+@Order(-50) // IP 기반 RateLimit 이후, 인증 필터 이후 실행
 public class UserRateLimitFilter extends AbstractRateLimitFilter {
 
     public UserRateLimitFilter(
@@ -49,15 +49,17 @@ public class UserRateLimitFilter extends AbstractRateLimitFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        // 인증되지 않은 사용자는 통과 (IP 기반 필터에서 처리)
-        Optional<Long> userIdOpt = AuthenticationHelper.getCurrentUserId();
-        return userIdOpt.isPresent();
+        // 인증되지 않은 요청은 IP 기반 RateLimit에서 처리
+        return AuthenticationHelper.getAuthentication().isPresent();
     }
 
     @Override
     protected RateLimitFilterContext createContext(HttpServletRequest request) {
         Optional<Authentication> authOpt = AuthenticationHelper.getAuthentication();
         Optional<Long> userIdOpt = authOpt.flatMap(AuthenticationHelper::extractUserId);
+
+        // shouldApplyFilter에서 인증 존재를 확인하므로
+        // 실제 처리 경로에서는 userId가 항상 존재하는 것이 정상 케이스
         return RateLimitFilterContext.forUser(
                 request,
                 authOpt.orElse(null),
@@ -74,6 +76,7 @@ public class UserRateLimitFilter extends AbstractRateLimitFilter {
             HttpServletRequest request
     ) {
         Long userId = context.getUserIdOpt().orElse(null);
-        facade.getLoggingService().logRateLimitExceeded(rule, key, result, request, userId);
+        facade.getLoggingService()
+                .logRateLimitExceeded(rule, key, result, request, userId);
     }
 }
