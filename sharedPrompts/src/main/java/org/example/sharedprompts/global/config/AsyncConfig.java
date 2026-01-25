@@ -73,7 +73,7 @@ public class AsyncConfig {
      * 
      * 운영 원칙:
      * - AI 호출은 최대 60초까지 소요될 수 있으므로 충분한 스레드 수 확보
-     * - 풀 포화 시 CallerRunsPolicy로 전환하여 AI 호출 과부하 방지
+     * - 풀 포화 시 작업을 즉시 거부하여 Tomcat 스레드 풀 보호
      * - AI 호출 실패는 Circuit Breaker로 격리되지만, 스레드 풀은 독립적으로 관리
      * 
      * 설정 근거:
