@@ -264,6 +264,14 @@ rate-limit:
     cleanup:
       enabled: ${RATE_LIMIT_LOG_CLEANUP_ENABLED:true}
       retention-days: ${RATE_LIMIT_LOG_CLEANUP_RETENTION_DAYS:90}
+  failure-policy:
+    # Redis 장애 시 Rate Limit 체크 실패 정책
+    # true: Fail-Open (요청 허용, 가용성 우선) - 기본값
+    # false: Fail-Closed (요청 차단, 보안 우선)
+    fail-open: ${RATE_LIMIT_FAILURE_POLICY_FAIL_OPEN:true}
+    # 장애 로깅 활성화 여부
+    # true: Redis 장애 시 상세 로깅 수행
+    log-failure: ${RATE_LIMIT_FAILURE_POLICY_LOG_FAILURE:true}
 
 # =========================
 # 애플리케이션 설정

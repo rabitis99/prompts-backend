@@ -8,6 +8,7 @@ import org.example.sharedprompts.auth.rate.RateLimiter;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitFilterContext;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitKey;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitResultWithKey;
+import org.example.sharedprompts.auth.rate.filter.metrics.RateLimitMetricsCollector;
 import org.example.sharedprompts.auth.rate.filter.service.facade.RateLimitFacade;
 import org.example.sharedprompts.auth.rate.filter.strategy.RateLimitKeyStrategy;
 import org.example.sharedprompts.auth.rate.policy.RateLimitProperties;
@@ -30,15 +31,18 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
     protected final RateLimitFacade facade;
     protected final RateLimitKeyStrategy keyStrategy;
     protected final RateLimitProperties rateLimitProperties;
+    protected final RateLimitMetricsCollector metricsCollector;
 
     protected AbstractRateLimitFilter(
             RateLimitFacade facade,
             RateLimitKeyStrategy keyStrategy,
-            RateLimitProperties rateLimitProperties
+            RateLimitProperties rateLimitProperties,
+            RateLimitMetricsCollector metricsCollector
     ) {
         this.facade = facade;
         this.keyStrategy = keyStrategy;
         this.rateLimitProperties = rateLimitProperties;
+        this.metricsCollector = metricsCollector;
     }
 
     @Override
@@ -213,6 +217,9 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
     /**
      * Rate limit 체크 실패 시 정책에 따라 요청을 처리합니다.
      * 
+     * Redis 장애 등으로 Rate Limit 체크가 실패한 경우,
+     * 설정된 Failure Policy에 따라 요청을 허용(Fail-Open)하거나 차단(Fail-Closed)합니다.
+     * 
      * @param e 발생한 예외
      * @param filterChain 필터 체인
      * @param request HTTP 요청
@@ -225,11 +232,42 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             HttpServletResponse response
     ) throws ServletException, IOException {
         boolean failOpen = rateLimitProperties.getFailurePolicy().isFailOpen();
+        boolean logFailure = rateLimitProperties.getFailurePolicy().isLogFailure();
+        
+        // 규칙 식별 시도 (메트릭 기록용)
+        Optional<RateLimitRule> ruleOpt = Optional.empty();
+        try {
+            ruleOpt = resolveRule(request);
+        } catch (Exception resolveException) {
+            // 규칙 해석 실패는 무시 (이미 예외 상황)
+        }
+        
         if (failOpen) {
-            logger.warn("Rate limit check failed, allowing request (Fail-Open)", e);
+            // Fail-Open 정책: 요청 허용
+            if (logFailure) {
+                logger.warn(
+                    "Rate limit check failed, allowing request (Fail-Open). " +
+                    "Redis may be down. Request: {}",
+                    request.getRequestURI(),
+                    e
+                );
+            }
+            
+            // Fail-Open 메트릭 기록
+            metricsCollector.recordFailOpen(ruleOpt.orElse(null));
+            
             filterChain.doFilter(request, response);
         } else {
-            logger.error("Rate limit check failed, blocking request (Fail-Closed)", e);
+            // Fail-Closed 정책: 요청 차단
+            if (logFailure) {
+                logger.error(
+                    "Rate limit check failed, blocking request (Fail-Closed). " +
+                    "Request: {}",
+                    request.getRequestURI(),
+                    e
+                );
+            }
+            
             sendServiceUnavailableResponse(response);
         }
     }

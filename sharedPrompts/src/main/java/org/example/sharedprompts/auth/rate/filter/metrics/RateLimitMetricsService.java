@@ -19,6 +19,7 @@ public class RateLimitMetricsService {
     private static final String RATE_LIMIT_CHECK = "rate.limit.check";
     private static final String RATE_LIMIT_EXCEEDED = "rate.limit.exceeded";
     private static final String RATE_LIMIT_CHECK_FAILED = "rate.limit.check.failed";
+    private static final String RATE_LIMIT_FAIL_OPEN = "rate.limit.fail.open";
 
     private final MeterRegistry meterRegistry;
 
@@ -61,5 +62,26 @@ public class RateLimitMetricsService {
                 .tag("rule", rule.getName())
                 .register(meterRegistry)
                 .increment();
+    }
+
+    /**
+     * Rate Limit Fail-Open 메트릭을 기록합니다.
+     * 
+     * Redis 장애 등으로 Rate Limit 체크가 실패했을 때
+     * Fail-Open 정책에 의해 요청이 허용된 경우를 기록합니다.
+     * 
+     * @param rule RateLimitRule (null 가능 - 규칙을 식별할 수 없는 경우)
+     */
+    public void recordRateLimitFailOpen(RateLimitRule rule) {
+        Counter.Builder builder = Counter.builder(RATE_LIMIT_FAIL_OPEN)
+                .description("Rate Limit 체크 실패 시 Fail-Open 정책으로 요청이 허용된 횟수");
+        
+        if (rule != null) {
+            builder.tag("rule", rule.getName());
+        } else {
+            builder.tag("rule", "unknown");
+        }
+        
+        builder.register(meterRegistry).increment();
     }
 }

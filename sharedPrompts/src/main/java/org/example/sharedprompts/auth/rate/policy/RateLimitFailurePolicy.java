@@ -25,5 +25,18 @@ public class RateLimitFailurePolicy {
      *   별도의 Circuit Breaker 패턴과 함께 사용하는 것을 권장합니다.
      */
     private boolean failOpen = true;
+
+    /**
+     * 장애 로깅 활성화 여부
+     * 
+     * true: Rate limit 체크 실패 시 상세 로깅 수행
+     * false: Rate limit 체크 실패 시 최소 로깅만 수행
+     * 
+     * 기본값: true
+     * 
+     * 로깅 내용:
+     * - 요청 URI, 예외 정보, Fail-Open/Fail-Closed 정책 적용 여부 등
+     */
+    private boolean logFailure = true;
 }
 

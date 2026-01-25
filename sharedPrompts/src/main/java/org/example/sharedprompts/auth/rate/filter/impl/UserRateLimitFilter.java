@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.example.sharedprompts.auth.rate.RateLimiter;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitFilterContext;
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitKey;
+import org.example.sharedprompts.auth.rate.filter.metrics.RateLimitMetricsCollector;
 import org.example.sharedprompts.auth.rate.filter.service.facade.RateLimitFacade;
 import org.example.sharedprompts.auth.rate.filter.strategy.UserRateLimitKeyStrategy;
 import org.example.sharedprompts.auth.rate.filter.util.auth.AuthenticationHelper;
@@ -36,9 +37,10 @@ public class UserRateLimitFilter extends AbstractRateLimitFilter {
     public UserRateLimitFilter(
             RateLimitFacade facade,
             UserRateLimitKeyStrategy keyStrategy,
-            RateLimitProperties rateLimitProperties
+            RateLimitProperties rateLimitProperties,
+            RateLimitMetricsCollector metricsCollector
     ) {
-        super(facade, keyStrategy, rateLimitProperties);
+        super(facade, keyStrategy, rateLimitProperties, metricsCollector);
     }
 
     @Override
