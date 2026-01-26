@@ -35,7 +35,7 @@ public class PromptController {
 
     @GetMapping
     public ResponseEntity<CustomResponse<PageResponse<PromptResponseDto>>> getPrompts(
-            @ModelAttribute("condition") PromptSearchCondition condition,
+            @Valid @ModelAttribute("condition") PromptSearchCondition condition,
             @CurrentUser AuthUser authUser
     ) {
         Long viewerId = authUser != null ? authUser.getId() : null;
@@ -73,7 +73,7 @@ public class PromptController {
     @GetMapping("/me")
     public ResponseEntity<CustomResponse<PageResponse<PromptResponseDto>>> getMyPrompts(
             @CurrentUser AuthUser authUser,
-            @ModelAttribute("condition") PromptSearchCondition condition
+            @Valid @ModelAttribute("condition") PromptSearchCondition condition
     ) {
         PageResponse<PromptResponseDto> response = promptService.getMyPrompts(authUser.getId(), condition);
         return CustomResponseHelper.ok(response);
@@ -85,7 +85,7 @@ public class PromptController {
     @GetMapping("/user/{userId}")
     public ResponseEntity<CustomResponse<PageResponse<PromptResponseDto>>> getUserPrompts(
             @PathVariable Long userId,
-            @ModelAttribute("condition") PromptSearchCondition condition,
+            @Valid @ModelAttribute("condition") PromptSearchCondition condition,
             @CurrentUser AuthUser authUser
     ) {
         Long viewerId = authUser != null ? authUser.getId() : null;
