@@ -28,11 +28,11 @@ public class JwtErrorResponseWriter {
     private final ObjectMapper objectMapper;
 
     /**
-     * ErrorCode만으로 에러 응답 작성
+     * Write a structured JSON error response for the provided ErrorCode.
      *
-     * @param response HttpServletResponse
-     * @param errorCode 에러 코드
-     * @throws IOException 응답 작성 실패 시
+     * @param response  the HttpServletResponse to write to
+     * @param errorCode the error code describing the failure
+     * @throws IOException if an I/O error occurs while writing the response
      */
     public void writeErrorResponse(
             HttpServletResponse response,
@@ -42,11 +42,11 @@ public class JwtErrorResponseWriter {
     }
 
     /**
-     * ApiException을 기반으로 에러 응답을 HTTP 응답에 작성
+     * Write a structured JSON error response to the given HTTP response using data from the provided ApiException.
      *
-     * @param response HttpServletResponse
-     * @param apiException ApiException
-     * @throws IOException 응답 작성 실패 시
+     * @param response     the HttpServletResponse to write the error to
+     * @param apiException the ApiException whose error code and details are used to build the response body and status
+     * @throws IOException if an I/O error occurs while writing the response
      */
     private void writeErrorResponse(
             HttpServletResponse response,

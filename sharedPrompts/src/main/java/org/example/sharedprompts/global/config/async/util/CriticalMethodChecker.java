@@ -33,10 +33,13 @@ public class CriticalMethodChecker {
     );
 
     /**
-     * 주어진 메서드가 중요 비즈니스 로직인지 판단
+     * Determines whether the given reflected method matches any configured critical method pattern.
      *
-     * @param method 판단할 메서드
-     * @return 중요 메서드이면 true
+     * A method is considered critical when its declaring class simple name and method name
+     * concatenated as "ClassName.methodName" exactly equals any entry in {@code criticalMethodPatterns}.
+     *
+     * @param method the reflected method to check
+     * @return {@code true} if the method is considered critical, {@code false} otherwise
      */
     public boolean isCritical(Method method) {
         String methodName = method.getDeclaringClass().getSimpleName() + "." + method.getName();

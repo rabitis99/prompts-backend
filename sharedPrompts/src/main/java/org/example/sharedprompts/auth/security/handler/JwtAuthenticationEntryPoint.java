@@ -21,6 +21,13 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private final JwtErrorResponseWriter jwtErrorResponseWriter;
 
+    /**
+     * Sends a standardized 401 Unauthorized error response when authentication fails.
+     *
+     * @param response the HttpServletResponse to write the error payload to
+     * @param authException the authentication failure that triggered this entry point
+     * @throws IOException if an I/O error occurs while writing the response
+     */
     @Override
     public void commence(
             HttpServletRequest request,
@@ -31,4 +38,3 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         jwtErrorResponseWriter.writeErrorResponse(response, ErrorCode.UNAUTHORIZED);
     }
 }
-

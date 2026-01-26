@@ -25,6 +25,15 @@ public class AccessDeniedHandlerImpl implements AccessDeniedHandler {
 
     private final JwtErrorResponseWriter jwtErrorResponseWriter;
 
+    /**
+     * Handles an access-denied event by logging the denial and sending a forbidden error response to the client.
+     *
+     * @param request the incoming HTTP request that was denied access
+     * @param response the HTTP response used to return the error to the client
+     * @param accessDeniedException the exception describing why access was denied
+     * @throws IOException if an I/O error occurs while writing the response
+     * @throws ServletException if a servlet error occurs while handling the denial
+     */
     @Override
     public void handle(
             HttpServletRequest request,

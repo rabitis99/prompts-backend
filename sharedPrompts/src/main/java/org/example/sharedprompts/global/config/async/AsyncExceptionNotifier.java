@@ -11,12 +11,14 @@ import java.lang.reflect.Method;
 public interface AsyncExceptionNotifier {
     
     /**
-     * 비동기 메서드 실행 실패 알람 발송
-     * 
-     * @param ex 발생한 예외
-     * @param method 실행된 메서드
-     * @param params 메서드 파라미터
-     */
+ * Notify about a failure that occurred during asynchronous method execution.
+ *
+ * Sends an alert containing the thrown exception, the reflected method that failed,
+ * and the invocation arguments so implementations can route the notification to appropriate channels.
+ *
+ * @param ex the exception that was thrown during execution
+ * @param method the reflective Method that was invoked when the exception occurred
+ * @param params the arguments passed to the method invocation
+ */
     void notify(Throwable ex, Method method, Object... params);
 }
-

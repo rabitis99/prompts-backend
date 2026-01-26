@@ -52,11 +52,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final TokenRedisService tokenRedisService;
     private final JwtErrorResponseWriter jwtErrorResponseWriter;
 
+    /**
+     * Ensure the filter is invoked for asynchronous request dispatches.
+     *
+     * @return `false` to run this filter during async dispatches, `true` to skip it.
+     */
     @Override
     protected boolean shouldNotFilterAsyncDispatch() {
         return false;
     }
 
+    /**
+     * Authenticates the incoming HTTP request by validating a Bearer JWT from the Authorization header and, on success,
+     * sets the Authentication in the SecurityContext before continuing the filter chain.
+     *
+     * <p>Behavior:
+     * - If the Authorization header is absent or does not start with "Bearer ", the request is forwarded unchanged.
+     * - Validates JWT signature/expiration and required claims (userId and role); rejects the request with an HTTP 401
+     *   response if validation fails.
+     * - Performs an optional Redis-based token check; when Redis indicates the token is invalid the request is rejected,
+     *   but Redis failures do not block authentication when JWT checks have passed.
+     * - On successful validation, creates a PrincipalDetails-based Authentication and stores it in the SecurityContext.</p>
+     */
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -134,15 +151,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 무효한 토큰 처리
+     * Handle an invalid JWT by attempting token cleanup and producing an unauthorized error response.
      *
-     * 토큰 삭제 및 에러 응답을 일관된 방식으로 처리합니다.
+     * Attempts to delete the token from Redis (errors ignored) and writes an UNAUTHORIZED response.
      *
-     * @param token 무효한 토큰
-     * @param response HTTP 응답
-     * @param reason 무효화 사유 (포맷 문자열)
-     * @param args reason의 인자
-     * @throws IOException 응답 작성 실패 시
+     * @param token the invalid JWT to process (will be masked in logs)
+     * @param response the HTTP response to write the error to
+     * @param reason a format string describing why the token was considered invalid
+     * @param args arguments referenced by the reason format string
+     * @throws IOException if writing the error response fails
      */
     private void handleInvalidToken(String token, HttpServletResponse response, String reason, Object... args) throws IOException {
         log.warn("JWT 토큰 무효화: token={}, reason={}",

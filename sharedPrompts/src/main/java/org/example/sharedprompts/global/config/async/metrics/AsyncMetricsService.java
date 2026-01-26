@@ -23,10 +23,12 @@ public class AsyncMetricsService {
     private final MeterRegistry meterRegistry;
     
     /**
-     * 비동기 메서드 실행 실패 메트릭 기록
-     * 
-     * @param method 실행된 메서드
-     * @param exception 발생한 예외
+     * Record a metric counter for a failed asynchronous method execution.
+     *
+     * If `method` or `exception` is null, the corresponding tag value "unknown" is used.
+     *
+     * @param method    the executed Method, or null to record the method tag as "unknown"
+     * @param exception the Throwable that occurred, or null to record the exception tag as "unknown"
      */
     public void recordFailure(Method method, Throwable exception) {
         String methodName = method != null ? AsyncParamFormatter.formatMethodName(method) : "unknown";
@@ -38,4 +40,3 @@ public class AsyncMetricsService {
         ).increment();
     }
 }
-

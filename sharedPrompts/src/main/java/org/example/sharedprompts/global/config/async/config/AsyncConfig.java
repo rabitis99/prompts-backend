@@ -44,9 +44,9 @@ public class AsyncConfig implements AsyncConfigurer {
     private final AsyncExceptionNotifier asyncExceptionNotifier;
     private final CriticalMethodChecker criticalMethodChecker;
     /**
-     * @EnableAsync의 기본 Executor
-     * - @Async 어노테이션이 명시된 메서드에서 사용
-     * - SecurityContext 자동 전파 포함
+     * Defines the default Executor for @Async-annotated methods and propagates the SecurityContext to async tasks.
+     *
+     * @return the configured ThreadPoolTaskExecutor used for asynchronous method execution
      */
     @Bean(name = "taskExecutor")
     public Executor taskExecutor() {
@@ -62,11 +62,21 @@ public class AsyncConfig implements AsyncConfigurer {
         return executor;
     }
     
+    /**
+     * Provides the Executor that Spring will use for executing methods annotated with @Async.
+     *
+     * @return the Executor used to execute @Async-annotated methods
+     */
     @Override
     public Executor getAsyncExecutor() {
         return taskExecutor();
     }
     
+    /**
+     * Provide the handler for uncaught exceptions thrown by @Async methods with a void return type.
+     *
+     * @return the AsyncUncaughtExceptionHandler that records async metrics and notifies on uncaught exceptions from @Async void methods
+     */
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
         return new CustomAsyncUncaughtExceptionHandler(

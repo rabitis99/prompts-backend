@@ -25,13 +25,13 @@ public class AuthEventListener {
     private final AuthAuditLogService authAuditLogService;
 
     /**
-     * 인증 이벤트 처리
-     * - AFTER_COMMIT: 트랜잭션 커밋 후 실행
-     * - @Async: 비동기 처리로 메인 트랜잭션에 영향 없음
-     * 
-     * <p>예외 처리:
-     * - try-catch로 로깅은 유지하되, 예외를 재던져서 AsyncUncaughtExceptionHandler가 처리하도록 함
-     * - AsyncUncaughtExceptionHandler가 알람 발송 및 메트릭 기록을 수행
+     * Create and persist an authentication audit log for the given event after the surrounding transaction commits.
+     *
+     * Masks the user identifier for logging. If persistence fails, the method logs the error and rethrows a
+     * RuntimeException so an AsyncUncaughtExceptionHandler can perform alarm delivery and metric recording.
+     *
+     * @param event the authentication event to convert into and persist as an audit log
+     * @throws RuntimeException if saving the audit log fails; rethrown to allow async uncaught-exception handling
      */
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -62,4 +62,3 @@ public class AuthEventListener {
         }
     }
 }
-

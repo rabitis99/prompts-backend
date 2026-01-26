@@ -36,6 +36,18 @@ public class RateLimitLogBatchServiceImpl implements RateLimitLogBatchService {
     @PersistenceContext
     private EntityManager entityManager;
 
+    /**
+     * Persist a list of RateLimitLog entities in fixed-size batches and record success/failure metrics.
+     *
+     * <p>If {@code logs} is null or empty this method returns immediately. The method creates a
+     * shallow snapshot of the input list, saves entities in chunks (defined by {@code BATCH_SIZE}),
+     * flushes and clears the persistence context between chunks, and updates Micrometer counters and
+     * summaries for success or failure. If an exception occurs, the snapshot and exception are
+     * delegated to the central exception handler and a RuntimeException is thrown to surface the
+     * failure to the async uncaught exception handler.
+     *
+     * @param logs the logs to persist; may be null or empty
+     */
     @Override
     @Async("rateLimitLogTaskExecutor")
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -88,13 +100,12 @@ public class RateLimitLogBatchServiceImpl implements RateLimitLogBatchService {
     }
 
     /**
-     * 배치 저장 중 발생한 예외를 처리합니다.
-     * RateLimitLogExceptionHandler로 위임합니다.
-     * 
-     * <p>주의: 예외는 상위 메서드에서 재던지므로 여기서는 재던지지 않음
+     * Delegates exceptions that occur during batch saving to the central RateLimitLogExceptionHandler.
      *
-     * @param snapshot 저장 시도한 로그 스냅샷
-     * @param e 발생한 예외
+     * <p>This method forwards the error with ruleName "BATCH" and a null key; it does not rethrow the exception.
+     *
+     * @param snapshot the list of logs that were being saved when the exception occurred
+     * @param e the exception that was raised during batch save
      */
     private void handleBatchSaveException(List<RateLimitLog> snapshot, Exception e) {
         // 예외를 RateLimitLogExceptionHandler로 위임하여 중앙 집중식 처리
@@ -102,7 +113,6 @@ public class RateLimitLogBatchServiceImpl implements RateLimitLogBatchService {
         exceptionHandler.handleException("BATCH", null, e);
     }
 }
-
 
 
 

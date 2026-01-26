@@ -19,8 +19,12 @@ import java.time.format.DateTimeFormatter;
 public class JacksonConfig {
 
     /**
-     * Spring 관리 ObjectMapper 빈 생성
-     * 설정 드리프트를 방지하기 위해 일관된 설정을 적용합니다.
+     * Creates a centrally configured ObjectMapper managed by Spring for application use.
+     *
+     * Configures LocalDateTime formatting with pattern "yyyy-MM-dd HH:mm:ss", excludes null values,
+     * uses snake_case property naming, disables date timestamps, and enables pretty printing.
+     *
+     * @return the configured ObjectMapper instance with application-wide serialization settings
      */
     @Bean
     public ObjectMapper objectMapper() {
@@ -43,9 +47,16 @@ public class JacksonConfig {
     }
 
     /**
-     * Redis 직렬화용 안전한 ObjectMapper
-     * - BasicPolymorphicTypeValidator를 사용하여 신뢰할 수 있는 패키지만 허용
-     * - LaissezFaireSubTypeValidator의 취약점 방지 (gadget 기반 역직렬화 공격 차단)
+     * Create an ObjectMapper configured for safe Redis serialization with restricted polymorphic typing.
+     *
+     * <p>Configures a BasicPolymorphicTypeValidator that only allows subtypes from
+     * org.example.sharedprompts, java.util, java.lang, and java.time to mitigate gadget-based
+     * deserialization attacks. Activates default typing for non-final types, registers a
+     * JavaTimeModule using the pattern "yyyy-MM-dd HH:mm:ss" for LocalDateTime, excludes null
+     * properties from serialization, uses snake_case property naming, and disables writing dates
+     * as timestamps. Pretty printing is intentionally not enabled.</p>
+     *
+     * @return an ObjectMapper configured for Redis serialization with safe polymorphic typing and Java time handling
      */
     @Bean("redisObjectMapper")
     public ObjectMapper redisObjectMapper() {
@@ -79,7 +90,6 @@ public class JacksonConfig {
         return mapper;
     }
 }
-
 
 
 

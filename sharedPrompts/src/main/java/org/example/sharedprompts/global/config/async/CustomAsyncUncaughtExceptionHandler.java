@@ -30,6 +30,16 @@ public class CustomAsyncUncaughtExceptionHandler implements AsyncUncaughtExcepti
     private final AsyncExceptionNotifier asyncExceptionNotifier;
     private final CriticalMethodChecker criticalMethodChecker;
     
+    /**
+     * Handles uncaught exceptions thrown by asynchronous methods by logging the failure,
+     * recording a failure metric, and sending a notification if the method is considered critical.
+     *
+     * If recording metrics or sending notifications fails, those failures are logged and not propagated.
+     *
+     * @param ex the uncaught exception thrown by the asynchronous method
+     * @param method the reflected Method instance where the exception originated
+     * @param params the arguments that were passed to the asynchronous method
+     */
     @Override
     public void handleUncaughtException(Throwable ex, Method method, Object... params) {
         String methodName = AsyncParamFormatter.formatMethodName(method);
@@ -59,4 +69,3 @@ public class CustomAsyncUncaughtExceptionHandler implements AsyncUncaughtExcepti
         // asyncExceptionQueue.enqueue(methodName, params, ex);
     }
 }
-

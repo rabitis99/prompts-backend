@@ -24,6 +24,15 @@ import java.lang.reflect.Method;
 @Component
 public class AsyncExceptionNotifierImpl implements AsyncExceptionNotifier {
     
+    /**
+     * Notify about an exception thrown by an asynchronous method.
+     *
+     * Logs a critical alert containing the target method name, exception type, and a masked exception message.
+     *
+     * @param ex the exception that was thrown
+     * @param method the reflected method where the exception occurred
+     * @param params the arguments that were passed to the method invocation
+     */
     @Override
     public void notify(Throwable ex, Method method, Object... params) {
         String methodName = AsyncParamFormatter.formatMethodName(method);
@@ -42,4 +51,3 @@ public class AsyncExceptionNotifierImpl implements AsyncExceptionNotifier {
         // pagerDutyClient.triggerIncident("Async method failure", methodName, ex);
     }
 }
-

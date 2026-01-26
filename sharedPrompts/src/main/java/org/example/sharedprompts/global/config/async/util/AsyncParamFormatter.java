@@ -20,11 +20,9 @@ public class AsyncParamFormatter {
     private static final int LONG_STRING_THRESHOLD = 50;
     
     /**
-     * 메서드 이름을 포맷팅
-     * 클래스명.메서드명 형태로 반환
-     * 
-     * @param method 메서드
-     * @return 포맷팅된 메서드 이름 (예: "ClassName.methodName")
+     * Format a Method into the "ClassName.methodName" representation.
+     *
+     * @return the formatted method name in the form "ClassName.methodName"
      */
     public static String formatMethodName(Method method) {
         return method.getDeclaringClass().getSimpleName() + "." + method.getName();
@@ -47,7 +45,15 @@ public class AsyncParamFormatter {
     }
     
     /**
-     * 단일 파라미터를 포맷팅하며 민감 정보를 마스킹
+     * Format a single parameter value and mask sensitive information found in its string form.
+     *
+     * <p>Null parameters produce the literal string "null". For string representations:
+     * emails are masked, values that appear to be tokens (long and containing "bearer" or "token")
+     * are masked as tokens, and other long strings are masked. Otherwise the parameter's
+     * toString() value is returned unchanged.
+     *
+     * @param param the parameter to format; may be null
+     * @return the formatted string with sensitive parts masked where applicable
      */
     private static String formatSingleParam(Object param) {
         if (param == null) {
@@ -76,4 +82,3 @@ public class AsyncParamFormatter {
         return str;
     }
 }
-
