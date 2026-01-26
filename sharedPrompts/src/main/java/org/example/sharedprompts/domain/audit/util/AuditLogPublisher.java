@@ -1,12 +1,6 @@
 package org.example.sharedprompts.domain.audit.util;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
-import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.audit.enums.AuditAction;
@@ -14,9 +8,6 @@ import org.example.sharedprompts.domain.audit.enums.AuditEntityType;
 import org.example.sharedprompts.domain.audit.event.AuditEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
-
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 /**
  * 감사 로그 이벤트를 발행하는 유틸리티 클래스
@@ -29,56 +20,7 @@ import java.time.format.DateTimeFormatter;
 public class AuditLogPublisher {
 
     private final ApplicationEventPublisher eventPublisher;
-    private static volatile ObjectMapper objectMapper;
-
-    /**
-     * Spring 관리 ObjectMapper 설정
-     * 별도 설정 클래스에서 이 메서드를 호출하여 Spring 관리 ObjectMapper를 주입할 수 있습니다.
-     * 
-     * @param mapper Spring 관리 ObjectMapper
-     */
-    public static void setObjectMapper(ObjectMapper mapper) {
-        objectMapper = mapper;
-    }
-
-    /**
-     * ObjectMapper 조회
-     * Spring 관리 ObjectMapper가 설정되어 있으면 사용하고, 없으면 기본 ObjectMapper를 한 번만 생성하여 캐싱합니다.
-     */
-    private static ObjectMapper getObjectMapper() {
-        if (objectMapper == null) {
-            synchronized (AuditLogPublisher.class) {
-                if (objectMapper == null) {
-                    objectMapper = createObjectMapper();
-                }
-            }
-        }
-        return objectMapper;
-    }
-
-    /**
-     * Spring의 JacksonConfig와 동일한 설정을 가진 ObjectMapper 생성
-     * 응답 형식 일관성을 보장하기 위해 동일한 설정을 적용합니다.
-     */
-    private static ObjectMapper createObjectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-
-        // JavaTimeModule 등록 (LocalDateTime 직렬화/역직렬화)
-        JavaTimeModule javaTimeModule = new JavaTimeModule();
-        javaTimeModule.addSerializer(LocalDateTime.class,
-                new LocalDateTimeSerializer(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        javaTimeModule.addDeserializer(LocalDateTime.class,
-                new LocalDateTimeDeserializer(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        mapper.registerModule(javaTimeModule);
-
-        // Spring JacksonConfig와 동일한 설정 적용
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
-
-        return mapper;
-    }
+    private final ObjectMapper objectMapper;
 
     /**
      * 감사 로그 이벤트 발행
@@ -130,7 +72,7 @@ public class AuditLogPublisher {
             return null;
         }
         try {
-            return getObjectMapper().writeValueAsString(value);
+            return objectMapper.writeValueAsString(value);
         } catch (Exception e) {
             log.warn("감사 로그 {} 직렬화 실패: {}", label, e.getMessage());
             return null;

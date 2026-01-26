@@ -25,9 +25,6 @@ CREATE TABLE IF NOT EXISTS shedlock (
     locked_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '락 획득 시간',
     locked_by VARCHAR(255) NOT NULL COMMENT '락을 획득한 인스턴스 식별자 (hostname:pid)',
     PRIMARY KEY (name)
+    INDEX idx_shedlock_lock_until (lock_until)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     COMMENT='ShedLock 분산 락 테이블 - Redis 장애 시 DB 기반 LockProvider 사용';
-
--- 인덱스 추가 (lock_until 기준 정리 작업 최적화)
--- 만료된 락을 빠르게 찾기 위한 인덱스
-CREATE INDEX idx_shedlock_lock_until ON shedlock(lock_until);

@@ -9,8 +9,9 @@ import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
-import org.example.sharedprompts.domain.audit.util.AuditLogPublisher;
 import org.example.sharedprompts.auth.jwt.util.JwtErrorResponseWriter;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,9 +21,11 @@ import java.time.format.DateTimeFormatter;
 @Configuration
 public class JacksonConfig {
 
+    private ObjectMapper objectMapper;
+
     /**
-     * JwtErrorResponseWriter에 Spring 관리 ObjectMapper 주입
-     * 설정 드리프트를 방지하기 위해 Spring 관리 ObjectMapper를 사용합니다.
+     * Spring 관리 ObjectMapper 빈 생성
+     * 설정 드리프트를 방지하기 위해 일관된 설정을 적용합니다.
      */
     @Bean
     public ObjectMapper objectMapper() {
@@ -41,12 +44,28 @@ public class JacksonConfig {
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
 
-        // JwtErrorResponseWriter에 Spring 관리 ObjectMapper 주입
-        JwtErrorResponseWriter.setObjectMapper(mapper);
-        // AuditLogPublisher에 Spring 관리 ObjectMapper 주입
-        AuditLogPublisher.setObjectMapper(mapper);
-
         return mapper;
+    }
+
+    /**
+     * ObjectMapper 빈 주입
+     * @Bean 메서드로 생성된 ObjectMapper를 주입받습니다.
+     */
+    @Autowired
+    public void setObjectMapper(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
+    /**
+     * JwtErrorResponseWriter에 Spring 관리 ObjectMapper 주입
+     * @PostConstruct를 사용하여 빈 초기화 완료 후 주입을 보장합니다.
+     * 이 방식은 빈 초기화 순서에 의존하지 않고, 테스트 시 모킹이 용이합니다.
+     * 
+     * 참고: AuditLogPublisher는 생성자 주입을 사용하므로 여기서 별도 설정이 필요 없습니다.
+     */
+    @PostConstruct
+    public void initializeJwtErrorResponseWriter() {
+        JwtErrorResponseWriter.setObjectMapper(objectMapper);
     }
 
     /**

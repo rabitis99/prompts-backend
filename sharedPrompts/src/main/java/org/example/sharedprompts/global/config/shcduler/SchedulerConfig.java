@@ -6,6 +6,7 @@ import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
 import net.javacrumbs.shedlock.core.LockProvider;
 import net.javacrumbs.shedlock.provider.redis.spring.RedisLockProvider;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -117,7 +118,7 @@ public class SchedulerConfig {
     @ConditionalOnProperty(name = "shedlock.fallback.enabled", havingValue = "true")
     public LockProvider fallbackLockProvider(
             RedisLockProvider redisLockProvider,
-            LockProvider dbLockProvider) {
+            @Qualifier("dbLockProvider") LockProvider dbLockProvider) {
         log.info("FallbackLockProvider initialized with Redis primary and DB fallback");
         return new FallbackLockProvider(redisLockProvider, dbLockProvider);
     }

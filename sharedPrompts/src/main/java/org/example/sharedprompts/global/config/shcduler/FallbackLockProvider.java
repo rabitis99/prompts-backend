@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.core.LockConfiguration;
 import net.javacrumbs.shedlock.core.LockProvider;
 import net.javacrumbs.shedlock.core.SimpleLock;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.RedisConnectionFailureException;
@@ -36,32 +37,32 @@ public class FallbackLockProvider implements LockProvider {
         this.fallbackLockProvider = fallbackLockProvider;
     }
 
+    @NotNull
     @Override
-    public Optional<SimpleLock> lock(LockConfiguration lockConfiguration) {
-        // Fallback 모드가 아닐 때는 Primary (Redis) 시도
-        if (!useFallback) {
-            try {
-                Optional<SimpleLock> lock = primaryLockProvider.lock(lockConfiguration);
-                if (lock.isPresent()) {
-                    // Redis 정상 작동 - Fallback 모드 해제
-                    if (useFallback) {
-                        log.info("Redis LockProvider recovered. Switching back to Redis from DB fallback.");
-                        useFallback = false;
-                    }
-                    return lock;
-                }
-            } catch (Exception e) {
-                if (isRedisFailure(e)) {
+    public Optional<SimpleLock> lock(@NotNull LockConfiguration lockConfiguration) {
+        // Always try Redis first
+        try {
+            Optional<SimpleLock> lock = primaryLockProvider.lock(lockConfiguration);
+            if (lock.isPresent() && useFallback) {
+                // Redis has recovered, switching back from DB fallback
+                log.info("Redis LockProvider recovered. Switching back to Redis from DB fallback.");
+                useFallback = false;
+            }
+            return lock; // If Redis returns Optional.empty(), don't fallback to DB
+        } catch (Exception e) {
+            if (isRedisFailure(e)) {
+                // On Redis failure, switch to fallback
+                if (!useFallback) {
                     log.warn("Redis LockProvider failed. Switching to DB fallback. Error: {}", e.getMessage());
                     useFallback = true;
-                } else {
-                    // Redis가 아닌 다른 예외는 그대로 전파
-                    throw e;
                 }
+            } else {
+                // Redis-related exceptions are handled here
+                throw e;
             }
         }
 
-        // Fallback 모드이거나 Primary 실패 시 Fallback (DB) 사용
+        // Fallback to DB only if Redis has failed or we are in fallback mode
         try {
             Optional<SimpleLock> lock = fallbackLockProvider.lock(lockConfiguration);
             if (lock.isPresent() && useFallback) {
@@ -69,36 +70,28 @@ public class FallbackLockProvider implements LockProvider {
             }
             return lock;
         } catch (Exception e) {
-            // DB 테이블이 없는 경우 명확한 에러 메시지 제공
-            if (isTableNotExistsError(e)) {
-                log.error("DB LockProvider failed: shedlock table does not exist. " +
-                        "Please create the table using the SQL script in src/main/resources/db/migration/shedlock.sql. " +
-                        "Lock: {}", lockConfiguration.getName());
-                throw new RuntimeException(
-                    "ShedLock table (shedlock) does not exist. " +
-                    "Please create it using: src/main/resources/db/migration/shedlock.sql", e);
-            }
+            // Log and rethrow if DB fails
             log.error("Both Redis and DB LockProvider failed. Lock: {}", lockConfiguration.getName(), e);
             throw new RuntimeException("All LockProviders failed", e);
         }
     }
 
+
     /**
      * Redis 장애 여부 판단
      */
     private boolean isRedisFailure(Exception e) {
-        return e instanceof RedisConnectionFailureException
-                || e instanceof DataAccessException
+        return e instanceof DataAccessException
                 || (e.getCause() != null && (
-                    e.getCause() instanceof RedisConnectionFailureException
-                    || e.getCause() instanceof DataAccessException
-                    || e.getCause().getClass().getName().contains("redis")
-                ))
+                e.getCause() instanceof RedisConnectionFailureException
+                        || e.getCause() instanceof DataAccessException
+                        || e.getCause().getClass().getName().contains("redis")
+        ))
                 || e.getMessage() != null && (
-                    e.getMessage().toLowerCase().contains("redis")
-                    || e.getMessage().toLowerCase().contains("connection")
-                    || e.getMessage().toLowerCase().contains("timeout")
-                );
+                e.getMessage().toLowerCase().contains("redis")
+                        || e.getMessage().toLowerCase().contains("connection")
+                        || e.getMessage().toLowerCase().contains("timeout")
+        );
     }
 
     /**
