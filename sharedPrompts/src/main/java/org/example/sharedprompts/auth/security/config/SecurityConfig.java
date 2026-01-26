@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.context.DeferredSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.HttpRequestResponseHolder;
@@ -85,14 +86,41 @@ public class SecurityConfig {
      * 비동기 응답 처리 시 SecurityContext를 유지하기 위해 사용
      */
     private static class HttpServletRequestAttributeSecurityContextRepository implements SecurityContextRepository {
+        /**
+         * @deprecated Spring Security 6+에서는 loadDeferredContext를 사용합니다.
+         * 이 메서드는 인터페이스 호환성을 위해 유지되며 실제로는 사용되지 않습니다.
+         */
+        @Deprecated
         @Override
         public SecurityContext loadContext(HttpRequestResponseHolder requestResponseHolder) {
-            HttpServletRequest request = requestResponseHolder.getRequest();
-            SecurityContext context = (SecurityContext) request.getAttribute(SecurityConstants.SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME);
-            if (context == null) {
-                context = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
-            }
-            return context;
+            // Spring Security 6+에서는 loadDeferredContext를 사용하므로 이 메서드는 사용되지 않습니다.
+            return null;
+        }
+
+        @Override
+        public DeferredSecurityContext loadDeferredContext(HttpServletRequest request) {
+            return new DeferredSecurityContext() {
+                private SecurityContext securityContext;
+                private boolean isGenerated;
+
+                @Override
+                public SecurityContext get() {
+                    if (this.securityContext == null) {
+                        this.securityContext = (SecurityContext) request.getAttribute(SecurityConstants.SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME);
+                        if (this.securityContext == null) {
+                            this.securityContext = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
+                            this.isGenerated = true;
+                        }
+                    }
+                    return this.securityContext;
+                }
+
+                @Override
+                public boolean isGenerated() {
+                    get();
+                    return this.isGenerated;
+                }
+            };
         }
 
         @Override

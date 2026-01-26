@@ -9,6 +9,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.context.request.async.CallableProcessingInterceptor;
+import org.springframework.web.context.request.async.DeferredResult;
 import org.springframework.web.context.request.async.DeferredResultProcessingInterceptor;
 import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -17,7 +18,7 @@ import java.util.concurrent.Callable;
 
 /**
  * 비동기 요청 처리 시 SecurityContext를 유지하기 위한 설정
- * 
+ *
  * <p>WebAsyncTask와 DeferredResult를 사용하는 비동기 요청에서
  * SecurityContext가 스레드 간 전파되도록 보장합니다.
  */
@@ -85,14 +86,14 @@ public class WebAsyncSecurityConfig implements WebMvcConfigurer {
         }
 
         @Override
-        public <T> Object handleError(@NotNull NativeWebRequest request, @NotNull Callable<T> task, Throwable t) {
+        public <T> Object handleError(@NotNull NativeWebRequest request, @NotNull Callable<T> task, @NotNull Throwable t) {
             // 에러 발생 시 SecurityContext 복원
             restoreSecurityContext(request);
             return null;
         }
 
         @Override
-        public <T> void afterCompletion(NativeWebRequest request, Callable<T> task) {
+        public <T> void afterCompletion(@NotNull NativeWebRequest request, @NotNull Callable<T> task) {
             // 비동기 작업 완료 후 SecurityContext 정리
             SecurityContextHolder.clearContext();
         }
@@ -103,7 +104,7 @@ public class WebAsyncSecurityConfig implements WebMvcConfigurer {
      */
     private static class SecurityContextDeferredResultInterceptor implements DeferredResultProcessingInterceptor {
         @Override
-        public <T> void beforeConcurrentHandling(NativeWebRequest request, org.springframework.web.context.request.async.DeferredResult<T> deferredResult) {
+        public <T> void beforeConcurrentHandling(@NotNull NativeWebRequest request, @NotNull DeferredResult<T> deferredResult) {
             // 비동기 처리가 시작되기 전에 현재 SecurityContext를 저장
             SecurityContext context = SecurityContextHolder.getContext();
             if (context.getAuthentication() != null) {
@@ -119,28 +120,35 @@ public class WebAsyncSecurityConfig implements WebMvcConfigurer {
         }
 
         @Override
-        public <T> void preProcess(NativeWebRequest request, org.springframework.web.context.request.async.DeferredResult<T> deferredResult) {
+        public <T> void preProcess(@NotNull NativeWebRequest request, @NotNull DeferredResult<T> deferredResult) {
             // 비동기 작업 실행 전에 SecurityContext 복원
             restoreSecurityContext(request);
         }
 
         @Override
-        public <T> void postProcess(NativeWebRequest request, org.springframework.web.context.request.async.DeferredResult<T> deferredResult, Object concurrentResult) {
+        public <T> void postProcess(@NotNull NativeWebRequest request, @NotNull DeferredResult<T> deferredResult, Object concurrentResult) {
             // 비동기 작업 완료 후 SecurityContext 복원
             restoreSecurityContext(request);
         }
 
         @Override
-        public <T> boolean handleTimeout(NativeWebRequest request, org.springframework.web.context.request.async.DeferredResult<T> deferredResult) {
+        public <T> boolean handleTimeout(@NotNull NativeWebRequest request, @NotNull DeferredResult<T> deferredResult) {
             // 타임아웃 발생 시 SecurityContext 복원
             restoreSecurityContext(request);
             return true;
         }
 
         @Override
-        public <T> void afterCompletion(NativeWebRequest request, org.springframework.web.context.request.async.DeferredResult<T> deferredResult) {
+        public <T> void afterCompletion(@NotNull NativeWebRequest request, @NotNull DeferredResult<T> deferredResult) {
             // 비동기 작업 완료 후 SecurityContext 정리
             SecurityContextHolder.clearContext();
+        }
+
+        @Override
+        public <T> boolean handleError(@NotNull NativeWebRequest request, @NotNull DeferredResult<T> deferredResult, @NotNull Throwable t) {
+            // 에러 발생 시 SecurityContext 복원
+            restoreSecurityContext(request);
+            return true;
         }
     }
 }
