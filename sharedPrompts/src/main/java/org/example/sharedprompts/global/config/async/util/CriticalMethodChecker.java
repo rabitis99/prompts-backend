@@ -1,4 +1,4 @@
-package org.example.sharedprompts.global.config.async;
+package org.example.sharedprompts.global.config.async.util;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -32,12 +32,12 @@ public class CriticalMethodChecker {
     public void init() {
         // 설정이 없으면 기본 패턴 사용
         if (criticalMethodPatterns.isEmpty()) {
-            criticalMethodPatterns = List.of(
+            criticalMethodPatterns = new ArrayList<>(List.of(
                 "AuthEventListener",
                 "Payment",
                 "Audit",
                 "RateLimitLogBatchService"
-            );
+            ));
         }
     }
     
@@ -50,7 +50,7 @@ public class CriticalMethodChecker {
     public boolean isCritical(Method method) {
         String methodName = method.getDeclaringClass().getSimpleName() + "." + method.getName();
         return criticalMethodPatterns.stream()
-            .anyMatch(pattern -> methodName.contains(pattern));
+            .anyMatch(methodName::contains);
     }
 }
 

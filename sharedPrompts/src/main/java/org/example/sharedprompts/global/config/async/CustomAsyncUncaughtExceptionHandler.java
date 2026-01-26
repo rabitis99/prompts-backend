@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.config.async.metrics.AsyncMetricsService;
 import org.example.sharedprompts.global.config.async.util.AsyncParamFormatter;
+import org.example.sharedprompts.global.config.async.util.CriticalMethodChecker;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 
 import java.lang.reflect.Method;
@@ -31,7 +32,7 @@ public class CustomAsyncUncaughtExceptionHandler implements AsyncUncaughtExcepti
     
     @Override
     public void handleUncaughtException(Throwable ex, Method method, Object... params) {
-        String methodName = formatMethodName(method);
+        String methodName = AsyncParamFormatter.formatMethodName(method);
         String formattedParams = AsyncParamFormatter.formatParams(params);
         
         // 1. 에러 로깅 (상세 정보 포함)
@@ -48,14 +49,6 @@ public class CustomAsyncUncaughtExceptionHandler implements AsyncUncaughtExcepti
         
         // 4. Dead Letter Queue 또는 재시도 큐에 추가 (선택적)
         // asyncExceptionQueue.enqueue(methodName, params, ex);
-    }
-    
-    /**
-     * 메서드 이름을 포맷팅
-     * 클래스명.메서드명 형태로 반환
-     */
-    private String formatMethodName(Method method) {
-        return method.getDeclaringClass().getSimpleName() + "." + method.getName();
     }
 }
 

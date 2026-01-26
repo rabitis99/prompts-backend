@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.example.sharedprompts.global.util.SensitiveDataMasker;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
@@ -17,6 +18,17 @@ public class AsyncParamFormatter {
     
     private static final int TOKEN_DETECTION_LENGTH = 20;
     private static final int LONG_STRING_THRESHOLD = 50;
+    
+    /**
+     * 메서드 이름을 포맷팅
+     * 클래스명.메서드명 형태로 반환
+     * 
+     * @param method 메서드
+     * @return 포맷팅된 메서드 이름 (예: "ClassName.methodName")
+     */
+    public static String formatMethodName(Method method) {
+        return method.getDeclaringClass().getSimpleName() + "." + method.getName();
+    }
     
     /**
      * 파라미터 배열을 포맷팅하며 민감 정보를 마스킹
@@ -48,10 +60,11 @@ public class AsyncParamFormatter {
         if (str.contains("@")) {
             return SensitiveDataMasker.maskEmail(str);
         }
-        
+
+        String lowerStr = str.toLowerCase();
         // 토큰 마스킹 (Bearer 토큰 또는 token 키워드 포함)
-        if (str.length() > TOKEN_DETECTION_LENGTH && 
-            (str.contains("Bearer") || str.contains("token"))) {
+        if (str.length() > TOKEN_DETECTION_LENGTH &&
+                (lowerStr.contains("bearer") || lowerStr.contains("token"))) {
             return SensitiveDataMasker.maskToken(str);
         }
         

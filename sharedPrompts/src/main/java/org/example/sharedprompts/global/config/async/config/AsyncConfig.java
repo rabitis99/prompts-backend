@@ -1,8 +1,11 @@
-package org.example.sharedprompts.global.config.async;
+package org.example.sharedprompts.global.config.async.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.global.config.async.*;
 import org.example.sharedprompts.global.config.async.metrics.AsyncMetricsService;
+import org.example.sharedprompts.global.config.async.security.SecurityContextTaskDecorator;
+import org.example.sharedprompts.global.config.async.util.CriticalMethodChecker;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,7 +43,7 @@ public class AsyncConfig implements AsyncConfigurer {
     private final AsyncMetricsService asyncMetricsService;
     private final AsyncExceptionNotifier asyncExceptionNotifier;
     private final CriticalMethodChecker criticalMethodChecker;
-
+    private Executor taskExecutorInstance;
     /**
      * @EnableAsync의 기본 Executor
      * - @Async 어노테이션이 명시된 메서드에서 사용
@@ -57,12 +60,13 @@ public class AsyncConfig implements AsyncConfigurer {
         executor.setAwaitTerminationSeconds(60);
         executor.setTaskDecorator(new SecurityContextTaskDecorator());
         executor.initialize();
+        this.taskExecutorInstance = executor;
         return executor;
     }
     
     @Override
     public Executor getAsyncExecutor() {
-        return taskExecutor();
+        return taskExecutorInstance;
     }
     
     @Override

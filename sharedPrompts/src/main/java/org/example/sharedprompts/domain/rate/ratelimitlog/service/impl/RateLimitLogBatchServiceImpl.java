@@ -49,15 +49,15 @@ public class RateLimitLogBatchServiceImpl implements RateLimitLogBatchService {
             int totalSaved = saveInChunks(snapshot);
             log.debug("Saved {} rate limit logs in batch (chunk size: {})", totalSaved, BATCH_SIZE);
             
-            // 성공 메트릭 기록
-            meterRegistry.counter("rate_limit_log.batch.save.success", 
-                "count", String.valueOf(totalSaved)
-            ).increment();
+            // 배치 작업 성공 횟수 기록
+            meterRegistry.counter("rate_limit_log.batch.save", "result", "success").increment();
+            // 저장된 로그 수 기록 (DistributionSummary로 평균, 최대, 최소 등 통계 추적)
+            meterRegistry.summary("rate_limit_log.batch.save.size").record(totalSaved);
         } catch (Exception e) {
-            // 실패 메트릭 기록
-            meterRegistry.counter("rate_limit_log.batch.save.failure",
-                "count", String.valueOf(snapshot.size())
-            ).increment();
+            // 배치 작업 실패 횟수 기록
+            meterRegistry.counter("rate_limit_log.batch.save", "result", "failure").increment();
+            // 실패한 로그 수 기록
+            meterRegistry.summary("rate_limit_log.batch.save.size").record(snapshot.size());
             
             handleBatchSaveException(snapshot, e);
             // 예외 재던지기 - AsyncUncaughtExceptionHandler가 처리

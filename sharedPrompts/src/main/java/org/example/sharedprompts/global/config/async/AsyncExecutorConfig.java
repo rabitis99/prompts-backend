@@ -1,5 +1,7 @@
 package org.example.sharedprompts.global.config.async;
 
+import org.example.sharedprompts.global.config.async.config.AsyncConfig;
+import org.example.sharedprompts.global.config.async.security.SecurityContextTaskDecorator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;

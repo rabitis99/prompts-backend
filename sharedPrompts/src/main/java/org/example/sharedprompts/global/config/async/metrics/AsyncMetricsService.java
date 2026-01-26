@@ -2,6 +2,7 @@ package org.example.sharedprompts.global.config.async.metrics;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.global.config.async.util.AsyncParamFormatter;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Method;
@@ -28,21 +29,13 @@ public class AsyncMetricsService {
      * @param exception 발생한 예외
      */
     public void recordFailure(Method method, Throwable exception) {
-        String methodName = formatMethodName(method);
-        String exceptionName = exception.getClass().getSimpleName();
-        
+        String methodName = method != null ? AsyncParamFormatter.formatMethodName(method) : "unknown";
+        String exceptionName = exception != null ? exception.getClass().getSimpleName() : "unknown";
+
         meterRegistry.counter(METRIC_NAME_FAILURE,
             TAG_METHOD, methodName,
             TAG_EXCEPTION, exceptionName
         ).increment();
-    }
-    
-    /**
-     * 메서드 이름을 포맷팅
-     * 클래스명.메서드명 형태로 반환
-     */
-    private String formatMethodName(Method method) {
-        return method.getDeclaringClass().getSimpleName() + "." + method.getName();
     }
 }
 

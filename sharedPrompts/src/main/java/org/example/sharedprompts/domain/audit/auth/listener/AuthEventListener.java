@@ -51,13 +51,12 @@ public class AuthEventListener {
             log.debug("인증 이벤트 로그 저장 완료: eventType={}, provider={}, userId={}",
                     event.getEventType(), event.getProvider(), event.getUserId());
         } catch (Exception e) {
-            // 인증 이벤트 로그 기록 실패는 메인 트랜잭션에 영향을 주지 않도록 처리
+            //  실패 시 로깅 후 예외를 재던져 AsyncUncaughtExceptionHandler가 알람 및 메트릭을 처리합니다.
             log.error("인증 이벤트 로그 처리 실패: eventType={}, provider={}, userId={}",
                     event.getEventType(), event.getProvider(), event.getUserId(), e);
             // AsyncUncaughtExceptionHandler가 알람 발송 및 메트릭 기록을 수행하도록 예외 재던지기
             throw new RuntimeException("Failed to save auth audit log: eventType=" + 
-                    event.getEventType() + ", provider=" + event.getProvider() + 
-                    ", userId=" + event.getUserId(), e);
+                    event.getEventType() + ", provider=" + event.getProvider(), e);
         }
     }
 }

@@ -1,4 +1,4 @@
-package org.example.sharedprompts.global.config.async;
+package org.example.sharedprompts.global.config.async.security;
 
 import org.jetbrains.annotations.NotNull;
 import org.springframework.core.task.TaskDecorator;
