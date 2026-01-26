@@ -2,6 +2,7 @@ package org.example.sharedprompts.auth.security.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.auth.jwt.util.JwtErrorResponseWriter;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.security.core.AuthenticationException;
@@ -15,7 +16,10 @@ import java.io.IOException;
  * (예: 토큰 누락, 만료 등)
  */
 @Component
+@RequiredArgsConstructor
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
+
+    private final JwtErrorResponseWriter jwtErrorResponseWriter;
 
     @Override
     public void commence(
@@ -24,7 +28,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
             AuthenticationException authException) throws IOException {
 
         // 일관된 형식으로 에러 응답 작성
-        JwtErrorResponseWriter.writeErrorResponse(response, ErrorCode.UNAUTHORIZED);
+        jwtErrorResponseWriter.writeErrorResponse(response, ErrorCode.UNAUTHORIZED);
     }
 }
 
