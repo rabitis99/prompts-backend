@@ -44,13 +44,13 @@ public class SchedulerConfig {
             DataSource dataSource,
             @Value("${shedlock.table.auto-create:false}") boolean autoCreate) {
         log.info("DB LockProvider (fallback) initialized");
-        
+
         // 테이블 확인 및 필요시 생성
         ensureShedLockTable(dataSource, autoCreate);
-        
+
         return new JdbcTemplateLockProvider(dataSource);
     }
-    
+
     /**
      * ShedLock 테이블 존재 여부 확인 및 필요시 생성
      */
@@ -58,9 +58,9 @@ public class SchedulerConfig {
         try {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
             String sql = "SELECT COUNT(*) FROM information_schema.tables " +
-                        "WHERE table_schema = DATABASE() AND table_name = 'shedlock'";
+                    "WHERE table_schema = DATABASE() AND table_name = 'shedlock'";
             Integer count = jdbcTemplate.queryForObject(sql, Integer.class);
-            
+
             if (count == null || count == 0) {
                 if (autoCreate) {
                     log.info("ShedLock table not found, creating table...");
@@ -77,7 +77,7 @@ public class SchedulerConfig {
             log.warn("Failed to check/create ShedLock table", e);
         }
     }
-    
+
     /**
      * ShedLock 테이블 생성
      */
@@ -88,19 +88,13 @@ public class SchedulerConfig {
                     "lock_until TIMESTAMP(3) NOT NULL COMMENT '락 만료 시간', " +
                     "locked_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '락 획득 시간', " +
                     "locked_by VARCHAR(255) NOT NULL COMMENT '락을 획득한 인스턴스 식별자 (hostname:pid)', " +
-                    "PRIMARY KEY (name)" +
+                    "PRIMARY KEY (name), " +
+                    "INDEX idx_shedlock_lock_until (lock_until)" +
                     ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci " +
                     "COMMENT='ShedLock 분산 락 테이블 - Redis 장애 시 DB 기반 LockProvider 사용'";
-            
+
             jdbcTemplate.execute(createTableSql);
-            
-            // 인덱스 생성 (이미 존재하면 에러가 발생할 수 있으므로 try-catch)
-            try {
-                jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_shedlock_lock_until ON shedlock(lock_until)");
-            } catch (Exception e) {
-                log.debug("Index may already exist: {}", e.getMessage());
-            }
-            
+
             log.info("ShedLock table created successfully");
         } catch (Exception e) {
             log.error("Failed to create ShedLock table", e);
@@ -110,7 +104,7 @@ public class SchedulerConfig {
 
     /**
      * 메인 LockProvider Bean (Fallback 활성화 시)
-     * 
+     *
      * Redis 장애 시 자동으로 DB 기반 LockProvider로 전환하는 FallbackLockProvider 사용
      */
     @Bean
@@ -125,7 +119,7 @@ public class SchedulerConfig {
 
     /**
      * 메인 LockProvider Bean (Fallback 비활성화 시)
-     * 
+     *
      * Fallback이 비활성화된 경우 Redis LockProvider만 사용
      */
     @Bean
@@ -138,7 +132,7 @@ public class SchedulerConfig {
 
     /**
      * UTC 기준 Clock Bean
-     * 
+     *
      * 스케줄러에서 타임존을 명시적으로 제어하기 위해 UTC Clock을 제공합니다.
      * 클라우드 환경에서 컨테이너가 UTC이지만 애플리케이션이 다른 타임존을 기대할 경우,
      * 저장된 createdAt과 일치하도록 UTC를 사용합니다.

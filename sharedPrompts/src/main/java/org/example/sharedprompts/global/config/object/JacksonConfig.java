@@ -21,8 +21,6 @@ import java.time.format.DateTimeFormatter;
 @Configuration
 public class JacksonConfig {
 
-    private ObjectMapper objectMapper;
-
     /**
      * Spring 관리 ObjectMapper 빈 생성
      * 설정 드리프트를 방지하기 위해 일관된 설정을 적용합니다.
@@ -48,15 +46,6 @@ public class JacksonConfig {
     }
 
     /**
-     * ObjectMapper 빈 주입
-     * @Bean 메서드로 생성된 ObjectMapper를 주입받습니다.
-     */
-    @Autowired
-    public void setObjectMapper(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
-
-    /**
      * JwtErrorResponseWriter에 Spring 관리 ObjectMapper 주입
      * @PostConstruct를 사용하여 빈 초기화 완료 후 주입을 보장합니다.
      * 이 방식은 빈 초기화 순서에 의존하지 않고, 테스트 시 모킹이 용이합니다.
@@ -65,7 +54,7 @@ public class JacksonConfig {
      */
     @PostConstruct
     public void initializeJwtErrorResponseWriter() {
-        JwtErrorResponseWriter.setObjectMapper(objectMapper);
+        JwtErrorResponseWriter.setObjectMapper(objectMapper());
     }
 
     /**
