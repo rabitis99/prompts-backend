@@ -1,4 +1,4 @@
-package org.example.sharedprompts.global.config;
+package org.example.sharedprompts.global.config.redis;
 
 import org.example.sharedprompts.global.Lua.LuaScripts;
 import org.springframework.context.annotation.Bean;

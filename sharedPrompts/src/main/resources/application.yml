@@ -138,6 +138,24 @@ redis:
     max-consecutive-failures: ${REDIS_HEALTH_CHECK_MAX_CONSECUTIVE_FAILURES:3}
 
 # =========================
+# ShedLock 설정
+# =========================
+shedlock:
+  fallback:
+    # Redis 장애 시 DB 기반 LockProvider로 자동 전환 여부
+    # true: Redis 장애 시 자동으로 DB로 전환 (권장)
+    #   - DB LockProvider 사용 시 'shedlock' 테이블이 필요함
+    #   - 테이블 생성 SQL: src/main/resources/db/migration/shedlock.sql
+    # false: Redis만 사용 (Redis 장애 시 스케줄러 중단)
+    #   - DB 테이블이 없어도 됨
+    enabled: ${SHEDLOCK_FALLBACK_ENABLED:true}
+  table:
+    # ShedLock 테이블 자동 생성 여부
+    # true: 애플리케이션 시작 시 테이블이 없으면 자동 생성 (개발 환경용)
+    # false: 수동으로 테이블 생성 필요 (프로덕션 환경 권장)
+    auto-create: ${SHEDLOCK_TABLE_AUTO_CREATE:false}
+
+# =========================
 # JWT
 # =========================
 jwt:

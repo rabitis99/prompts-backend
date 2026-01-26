@@ -1,4 +1,4 @@
-package org.example.sharedprompts.global.config;
+package org.example.sharedprompts.global.config.object;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
