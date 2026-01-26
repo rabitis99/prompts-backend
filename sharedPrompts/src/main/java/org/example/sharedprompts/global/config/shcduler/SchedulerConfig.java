@@ -75,6 +75,9 @@ public class SchedulerConfig {
             }
         } catch (Exception e) {
             log.warn("Failed to check/create ShedLock table", e);
+            if (autoCreate){
+                throw new IllegalStateException("ShedLock table init failed while auto-create is enabled", e);
+            }
         }
     }
 
