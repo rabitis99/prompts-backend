@@ -27,6 +27,10 @@ public class AuthEventListener {
      * 인증 이벤트 처리
      * - AFTER_COMMIT: 트랜잭션 커밋 후 실행
      * - @Async: 비동기 처리로 메인 트랜잭션에 영향 없음
+     * 
+     * <p>예외 처리:
+     * - try-catch로 로깅은 유지하되, 예외를 재던져서 AsyncUncaughtExceptionHandler가 처리하도록 함
+     * - AsyncUncaughtExceptionHandler가 알람 발송 및 메트릭 기록을 수행
      */
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -50,6 +54,10 @@ public class AuthEventListener {
             // 인증 이벤트 로그 기록 실패는 메인 트랜잭션에 영향을 주지 않도록 처리
             log.error("인증 이벤트 로그 처리 실패: eventType={}, provider={}, userId={}",
                     event.getEventType(), event.getProvider(), event.getUserId(), e);
+            // AsyncUncaughtExceptionHandler가 알람 발송 및 메트릭 기록을 수행하도록 예외 재던지기
+            throw new RuntimeException("Failed to save auth audit log: eventType=" + 
+                    event.getEventType() + ", provider=" + event.getProvider() + 
+                    ", userId=" + event.getUserId(), e);
         }
     }
 }

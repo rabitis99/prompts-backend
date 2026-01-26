@@ -318,6 +318,19 @@ management:
         enabled: true
 
 # =========================
+# 비동기 예외 처리 설정
+# =========================
+async:
+  exception:
+    # 중요 비즈니스 로직 메서드 패턴 목록
+    # 메서드 이름(클래스명.메서드명)에 이 패턴이 포함되면 알람 발송
+    critical-method-patterns:
+      - AuthEventListener
+      - Payment
+      - Audit
+      - RateLimitLogBatchService
+
+# =========================
 # 로깅
 # =========================
 logging:

@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.rate.ratelimitlog.service.impl;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,8 @@ import java.util.List;
 
 /**
  * Rate Limit 로그 배치 저장 서비스 구현체
+ * 
+ * <p>비동기로 Rate Limit 로그를 배치 저장하며, 실패 시 메트릭 기록 및 예외 처리
  */
 @Slf4j
 @Service
@@ -28,6 +31,7 @@ public class RateLimitLogBatchServiceImpl implements RateLimitLogBatchService {
 
     private final RateLimitLogRepository repository;
     private final RateLimitLogExceptionHandler exceptionHandler;
+    private final MeterRegistry meterRegistry;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -44,8 +48,20 @@ public class RateLimitLogBatchServiceImpl implements RateLimitLogBatchService {
         try {
             int totalSaved = saveInChunks(snapshot);
             log.debug("Saved {} rate limit logs in batch (chunk size: {})", totalSaved, BATCH_SIZE);
+            
+            // 성공 메트릭 기록
+            meterRegistry.counter("rate_limit_log.batch.save.success", 
+                "count", String.valueOf(totalSaved)
+            ).increment();
         } catch (Exception e) {
+            // 실패 메트릭 기록
+            meterRegistry.counter("rate_limit_log.batch.save.failure",
+                "count", String.valueOf(snapshot.size())
+            ).increment();
+            
             handleBatchSaveException(snapshot, e);
+            // 예외 재던지기 - AsyncUncaughtExceptionHandler가 처리
+            throw new RuntimeException("Failed to save rate limit logs in batch: count=" + snapshot.size(), e);
         }
     }
 
@@ -71,7 +87,9 @@ public class RateLimitLogBatchServiceImpl implements RateLimitLogBatchService {
 
     /**
      * 배치 저장 중 발생한 예외를 처리합니다.
-     * RateLimitLogExceptionHandler로 위임하고 예외를 재던져 AsyncUncaughtExceptionHandler가 감지할 수 있도록 합니다.
+     * RateLimitLogExceptionHandler로 위임합니다.
+     * 
+     * <p>주의: 예외는 상위 메서드에서 재던지므로 여기서는 재던지지 않음
      *
      * @param snapshot 저장 시도한 로그 스냅샷
      * @param e 발생한 예외
@@ -80,8 +98,6 @@ public class RateLimitLogBatchServiceImpl implements RateLimitLogBatchService {
         // 예외를 RateLimitLogExceptionHandler로 위임하여 중앙 집중식 처리
         // 배치 저장이므로 ruleName은 "BATCH", key는 null로 전달
         exceptionHandler.handleException("BATCH", null, e);
-        // @Async 메서드에서 AsyncUncaughtExceptionHandler가 예외를 감지할 수 있도록 재던지기
-        throw new RuntimeException("Failed to save rate limit logs in batch: count=" + snapshot.size(), e);
     }
 }
 
