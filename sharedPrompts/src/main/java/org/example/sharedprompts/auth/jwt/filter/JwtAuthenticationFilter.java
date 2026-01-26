@@ -50,6 +50,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenService jwtTokenService;
     private final TokenRedisService tokenRedisService;
+    private final JwtErrorResponseWriter jwtErrorResponseWriter;
 
     @Override
     protected boolean shouldNotFilterAsyncDispatch() {
@@ -152,7 +153,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             log.debug("Redis 토큰 삭제 실패 (무시): token={}", SensitiveDataMasker.maskToken(token));
         }
-        JwtErrorResponseWriter.writeErrorResponse(response, ErrorCode.UNAUTHORIZED);
+        jwtErrorResponseWriter.writeErrorResponse(response, ErrorCode.UNAUTHORIZED);
     }
 }
 
