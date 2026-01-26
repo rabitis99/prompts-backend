@@ -40,11 +40,19 @@ public class CustomAsyncUncaughtExceptionHandler implements AsyncUncaughtExcepti
             methodName, formattedParams, ex);
         
         // 2. 메트릭 기록 (모니터링) - 위임
-        asyncMetricsService.recordFailure(method, ex);
-        
+        try {
+            asyncMetricsService.recordFailure(method, ex);
+        }catch (Exception metricEx) {
+            log.warn("Async metrics recording failed: method={}", methodName, metricEx);
+        }
+
         // 3. 중요 비즈니스 로직 실패 시 알람 발송 - 위임
         if (criticalMethodChecker.isCritical(method)) {
-            asyncExceptionNotifier.notify(ex, method, params);
+            try {
+                asyncExceptionNotifier.notify(ex, method, formattedParams);
+            }catch (Exception notifyEx) {
+                log.warn("Async alert notification failed: method={}", methodName, notifyEx);
+            }
         }
         
         // 4. Dead Letter Queue 또는 재시도 큐에 추가 (선택적)
