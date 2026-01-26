@@ -94,7 +94,7 @@ public class SecurityConfig {
         @Override
         public SecurityContext loadContext(HttpRequestResponseHolder requestResponseHolder) {
             // Spring Security 6+에서는 loadDeferredContext를 사용하므로 이 메서드는 사용되지 않습니다.
-            return null;
+            return loadDeferredContext(requestResponseHolder.getRequest()).get();
         }
 
         @Override

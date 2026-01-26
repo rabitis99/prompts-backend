@@ -41,6 +41,8 @@ public class WebAsyncSecurityConfig implements WebMvcConfigurer {
             SecurityContext context = (SecurityContext) httpRequest.getAttribute(SecurityConstants.SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME);
             if (context != null) {
                 SecurityContextHolder.setContext(context);
+            } else {
+                SecurityContextHolder.clearContext();
             }
         }
     }
