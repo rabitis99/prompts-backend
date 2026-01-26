@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import static org.springframework.transaction.annotation.Propagation.REQUIRES_NEW;
+
 @Service
 @RequiredArgsConstructor
 public class PromptPersistenceService {
@@ -28,7 +30,7 @@ public class PromptPersistenceService {
     /**
      * 프롬프트 저장과 태그 처리, 트랜잭션 관리를 담당한다.
      */
-    @Transactional
+    @Transactional(propagation=REQUIRES_NEW, timeout=30)
     public PromptResponseDto savePrompt(PromptRequestDto request, Long userId, String aiGeneratedContent) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
