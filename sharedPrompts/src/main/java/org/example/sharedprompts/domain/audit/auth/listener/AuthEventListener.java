@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.audit.auth.AuthAuditLog;
 import org.example.sharedprompts.domain.audit.auth.event.AuthEvent;
 import org.example.sharedprompts.domain.audit.auth.service.AuthAuditLogService;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -35,6 +36,7 @@ public class AuthEventListener {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleAuthEvent(AuthEvent event) {
+        String maskedUserId = SensitiveDataMasker.mask(String.valueOf(event.getUserId()));
         try {
             AuthAuditLog auditLog = AuthAuditLog.builder()
                     .eventType(event.getEventType())
@@ -49,13 +51,13 @@ public class AuthEventListener {
             authAuditLogService.saveLog(auditLog);
             
             log.debug("인증 이벤트 로그 저장 완료: eventType={}, provider={}, userId={}",
-                    event.getEventType(), event.getProvider(), event.getUserId());
+                    event.getEventType(), event.getProvider(), maskedUserId);
         } catch (Exception e) {
             //  실패 시 로깅 후 예외를 재던져 AsyncUncaughtExceptionHandler가 알람 및 메트릭을 처리합니다.
             log.error("인증 이벤트 로그 처리 실패: eventType={}, provider={}, userId={}",
-                    event.getEventType(), event.getProvider(), event.getUserId(), e);
+                    event.getEventType(), event.getProvider(), maskedUserId, e);
             // AsyncUncaughtExceptionHandler가 알람 발송 및 메트릭 기록을 수행하도록 예외 재던지기
-            throw new RuntimeException("Failed to save auth audit log: eventType=" + 
+            throw new RuntimeException("Failed to save auth audit log: eventType=" +
                     event.getEventType() + ", provider=" + event.getProvider(), e);
         }
     }

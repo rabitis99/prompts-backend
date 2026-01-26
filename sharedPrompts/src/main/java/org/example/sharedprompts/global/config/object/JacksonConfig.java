@@ -9,8 +9,6 @@ import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
-import org.example.sharedprompts.auth.jwt.util.JwtErrorResponseWriter;
-import jakarta.annotation.PostConstruct;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -45,18 +43,6 @@ public class JacksonConfig {
     }
 
     /**
-     * JwtErrorResponseWriter에 Spring 관리 ObjectMapper 주입
-     * @PostConstruct를 사용하여 빈 초기화 완료 후 주입을 보장합니다.
-     * 이 방식은 빈 초기화 순서에 의존하지 않고, 테스트 시 모킹이 용이합니다.
-     * 
-     * 참고: AuditLogPublisher는 생성자 주입을 사용하므로 여기서 별도 설정이 필요 없습니다.
-     */
-    @PostConstruct
-    public void initializeJwtErrorResponseWriter() {
-        JwtErrorResponseWriter.setObjectMapper(objectMapper());
-    }
-
-    /**
      * Redis 직렬화용 안전한 ObjectMapper
      * - BasicPolymorphicTypeValidator를 사용하여 신뢰할 수 있는 패키지만 허용
      * - LaissezFaireSubTypeValidator의 취약점 방지 (gadget 기반 역직렬화 공격 차단)
@@ -72,10 +58,10 @@ public class JacksonConfig {
                 .build();
 
         ObjectMapper mapper = new ObjectMapper();
-        
+
         // 다형성 타입 정보 활성화 (Redis 직렬화에 필요)
         mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL);
-        
+
         // JavaTime 모듈 등록
         JavaTimeModule javaTimeModule = new JavaTimeModule();
         javaTimeModule.addSerializer(LocalDateTime.class,

@@ -3,6 +3,7 @@ package org.example.sharedprompts.auth.security.handler;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.auth.jwt.util.JwtErrorResponseWriter;
 import org.example.sharedprompts.global.exception.ErrorCode;
@@ -19,7 +20,10 @@ import java.io.IOException;
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class AccessDeniedHandlerImpl implements AccessDeniedHandler {
+
+    private final JwtErrorResponseWriter jwtErrorResponseWriter;
 
     @Override
     public void handle(
@@ -33,7 +37,6 @@ public class AccessDeniedHandlerImpl implements AccessDeniedHandler {
                 request.getMethod(),
                 accessDeniedException.getMessage());
 
-        JwtErrorResponseWriter.writeErrorResponse(response, ErrorCode.FORBIDDEN);
+        jwtErrorResponseWriter.writeErrorResponse(response, ErrorCode.FORBIDDEN);
     }
 }
-

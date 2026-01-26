@@ -26,18 +26,18 @@ import org.example.sharedprompts.global.util.SensitiveDataMasker;
 
 /**
  * JWT 인증 필터
- * 
+ *
  * 2단계 토큰 검증 전략:
  * 1단계 (필수): JWT 서명 검증, 만료 시간 검증, Claim 파싱, tokenVersion 검증
  * 2단계 (선택적): Redis 토큰 검증 (Redis 장애 시 Fail-Open 정책 적용)
- * 
+ *
  * 책임:
  * - 토큰 서명 검증
  * - 만료 시간 검증
  * - Claim 파싱
  * - tokenVersion 검증 (soft delete, 차단 등 상태 변경 검증)
  * - Redis 토큰 검증 (Redis 장애 시 무시)
- * 
+ *
  * 금지:
  * - Repository/Service 호출
  * - DB 접근
@@ -50,6 +50,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenService jwtTokenService;
     private final TokenRedisService tokenRedisService;
+    private final JwtErrorResponseWriter jwtErrorResponseWriter;
 
     @Override
     protected boolean shouldNotFilterAsyncDispatch() {
@@ -108,7 +109,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Redis에서 토큰이 없거나 만료된 경우 (Redis가 정상 동작 중일 때만)
             // Circuit Breaker가 Open 상태이거나 Redis 장애 시에는 fallback에서 true를 반환하므로
             // 이 분기는 Redis가 정상 동작 중이고 토큰이 실제로 없거나 만료된 경우에만 실행됩니다.
-            log.warn("Redis 토큰 검증 실패: userId={}, token={}, 토큰이 Redis에 없거나 만료됨", 
+            log.warn("Redis 토큰 검증 실패: userId={}, token={}, 토큰이 Redis에 없거나 만료됨",
                     userId, SensitiveDataMasker.maskToken(token));
             handleInvalidToken(token, response, "Redis 토큰 검증 실패: userId=%s", userId);
             return;
@@ -134,9 +135,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     /**
      * 무효한 토큰 처리
-     * 
+     *
      * 토큰 삭제 및 에러 응답을 일관된 방식으로 처리합니다.
-     * 
+     *
      * @param token 무효한 토큰
      * @param response HTTP 응답
      * @param reason 무효화 사유 (포맷 문자열)
@@ -144,7 +145,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * @throws IOException 응답 작성 실패 시
      */
     private void handleInvalidToken(String token, HttpServletResponse response, String reason, Object... args) throws IOException {
-        log.warn("JWT 토큰 무효화: token={}, reason={}", 
+        log.warn("JWT 토큰 무효화: token={}, reason={}",
                 SensitiveDataMasker.maskToken(token), String.format(reason, args));
         // Redis 삭제는 실패해도 무시 (Fail-Open 정책)
         try {
@@ -152,7 +153,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             log.debug("Redis 토큰 삭제 실패 (무시): token={}", SensitiveDataMasker.maskToken(token));
         }
-        JwtErrorResponseWriter.writeErrorResponse(response, ErrorCode.UNAUTHORIZED);
+        jwtErrorResponseWriter.writeErrorResponse(response, ErrorCode.UNAUTHORIZED);
     }
 }
-
