@@ -9,8 +9,14 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.context.HttpRequestResponseHolder;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.cors.CorsConfigurationSource;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @RequiredArgsConstructor
@@ -39,6 +45,11 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        // SecurityContextRepository 설정: HttpServletRequest 속성에 SecurityContext 저장
+        // 비동기 응답 처리 시 SecurityContext를 유지하기 위해 필요
+        http.securityContext(securityContext -> securityContext
+                .securityContextRepository(new HttpServletRequestAttributeSecurityContextRepository()));
+
         // 기본 설정
         http
                 // CSRF, Session 사용 안 함 (JWT 기반 인증)
@@ -66,6 +77,38 @@ public class SecurityConfig {
         securityFilterConfig.configure(http);
 
         return http.build();
+    }
+
+    /**
+     * HttpServletRequest 속성에 SecurityContext를 저장하고 복원하는 SecurityContextRepository
+     * 비동기 응답 처리 시 SecurityContext를 유지하기 위해 사용
+     */
+    private static class HttpServletRequestAttributeSecurityContextRepository implements SecurityContextRepository {
+        private static final String SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME = "SPRING_SECURITY_CONTEXT";
+
+        @Override
+        public SecurityContext loadContext(HttpRequestResponseHolder requestResponseHolder) {
+            HttpServletRequest request = requestResponseHolder.getRequest();
+            SecurityContext context = (SecurityContext) request.getAttribute(SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME);
+            if (context == null) {
+                context = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
+            }
+            return context;
+        }
+
+        @Override
+        public void saveContext(SecurityContext context, HttpServletRequest request, HttpServletResponse response) {
+            if (context.getAuthentication() != null) {
+                request.setAttribute(SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME, context);
+            } else {
+                request.removeAttribute(SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME);
+            }
+        }
+
+        @Override
+        public boolean containsContext(HttpServletRequest request) {
+            return request.getAttribute(SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME) != null;
+        }
     }
 }
 

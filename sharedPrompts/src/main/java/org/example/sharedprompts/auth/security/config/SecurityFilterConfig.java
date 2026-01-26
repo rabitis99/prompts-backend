@@ -41,6 +41,8 @@ public class SecurityFilterConfig {
      * @param http HttpSecurity 객체
      */
     public void configure(HttpSecurity http) {
+        // AsyncSecurityContextRestoreFilter는 @Order(-300)으로 설정되어 자동으로 가장 먼저 실행됨
+        
         // 2. JWT 인증 필터를 먼저 추가 (표준 필터를 기준으로)
         //    @Order(-100)로 설정되어 있어 다른 커스텀 필터보다 나중에 실행됨
         http.addFilterBefore(
@@ -50,6 +52,7 @@ public class SecurityFilterConfig {
         
         // 1. IP 기반 Rate Limit (JWT 인증 전에 실행되도록)
         //    @Order(-200)로 설정되어 JwtAuthenticationFilter보다 먼저 실행됨
+        //    AsyncSecurityContextRestoreFilter(@Order(-300)) 다음으로 실행됨
         http.addFilterBefore(
                 ipRateLimitFilter,
                 JwtAuthenticationFilter.class
