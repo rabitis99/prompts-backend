@@ -1,4 +1,4 @@
-package org.example.sharedprompts.global.config.async;
+package org.example.sharedprompts.global.config.async.security;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
