@@ -2,6 +2,7 @@ package org.example.sharedprompts.global.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.auth.security.constant.SecurityConstants;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.core.context.SecurityContext;
@@ -24,16 +25,23 @@ import java.util.concurrent.Callable;
 @Configuration
 public class WebAsyncSecurityConfig implements WebMvcConfigurer {
 
-    /**
-     * SecurityContext를 저장하는 데 사용하는 HttpServletRequest 속성 키
-     * SecurityConfig의 HttpServletRequestAttributeSecurityContextRepository와 동일한 키 사용
-     */
-    private static final String SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME = "SPRING_SECURITY_CONTEXT";
-
     @Override
     public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
         configurer.registerCallableInterceptors(new SecurityContextCallableInterceptor());
         configurer.registerDeferredResultInterceptors(new SecurityContextDeferredResultInterceptor());
+    }
+
+    /**
+     * HttpServletRequest에서 SecurityContext를 복원합니다
+     */
+    private static void restoreSecurityContext(NativeWebRequest request) {
+        HttpServletRequest httpRequest = request.getNativeRequest(HttpServletRequest.class);
+        if (httpRequest != null) {
+            SecurityContext context = (SecurityContext) httpRequest.getAttribute(SecurityConstants.SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME);
+            if (context != null) {
+                SecurityContextHolder.setContext(context);
+            }
+        }
     }
 
     /**
@@ -47,7 +55,7 @@ public class WebAsyncSecurityConfig implements WebMvcConfigurer {
             if (context.getAuthentication() != null) {
                 HttpServletRequest httpRequest = request.getNativeRequest(HttpServletRequest.class);
                 if (httpRequest != null) {
-                    httpRequest.setAttribute(SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME, context);
+                    httpRequest.setAttribute(SecurityConstants.SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME, context);
                     if (log.isDebugEnabled()) {
                         log.debug("[WebAsyncSecurityConfig] SecurityContext 저장: thread={}, uri={}, hasAuth=true",
                                 Thread.currentThread().getName(), httpRequest.getRequestURI());
@@ -88,19 +96,6 @@ public class WebAsyncSecurityConfig implements WebMvcConfigurer {
             // 비동기 작업 완료 후 SecurityContext 정리
             SecurityContextHolder.clearContext();
         }
-
-        /**
-         * HttpServletRequest에서 SecurityContext를 복원합니다
-         */
-        private void restoreSecurityContext(NativeWebRequest request) {
-            HttpServletRequest httpRequest = request.getNativeRequest(HttpServletRequest.class);
-            if (httpRequest != null) {
-                SecurityContext context = (SecurityContext) httpRequest.getAttribute(SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME);
-                if (context != null) {
-                    SecurityContextHolder.setContext(context);
-                }
-            }
-        }
     }
 
     /**
@@ -114,7 +109,7 @@ public class WebAsyncSecurityConfig implements WebMvcConfigurer {
             if (context.getAuthentication() != null) {
                 HttpServletRequest httpRequest = request.getNativeRequest(HttpServletRequest.class);
                 if (httpRequest != null) {
-                    httpRequest.setAttribute(SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME, context);
+                    httpRequest.setAttribute(SecurityConstants.SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME, context);
                     if (log.isDebugEnabled()) {
                         log.debug("[WebAsyncSecurityConfig] SecurityContext 저장 (DeferredResult): thread={}, hasAuth=true",
                                 Thread.currentThread().getName());
@@ -146,19 +141,6 @@ public class WebAsyncSecurityConfig implements WebMvcConfigurer {
         public <T> void afterCompletion(NativeWebRequest request, org.springframework.web.context.request.async.DeferredResult<T> deferredResult) {
             // 비동기 작업 완료 후 SecurityContext 정리
             SecurityContextHolder.clearContext();
-        }
-
-        /**
-         * HttpServletRequest에서 SecurityContext를 복원합니다
-         */
-        private void restoreSecurityContext(NativeWebRequest request) {
-            HttpServletRequest httpRequest = request.getNativeRequest(HttpServletRequest.class);
-            if (httpRequest != null) {
-                SecurityContext context = (SecurityContext) httpRequest.getAttribute(SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME);
-                if (context != null) {
-                    SecurityContextHolder.setContext(context);
-                }
-            }
         }
     }
 }

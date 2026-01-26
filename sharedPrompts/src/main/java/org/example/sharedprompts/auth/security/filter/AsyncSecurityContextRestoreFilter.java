@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.example.sharedprompts.auth.security.constant.SecurityConstants;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.core.context.SecurityContext;
@@ -28,12 +29,6 @@ import java.io.IOException;
 @Order(-300)
 public class AsyncSecurityContextRestoreFilter extends OncePerRequestFilter {
 
-    /**
-     * SecurityContext를 저장하는 데 사용하는 HttpServletRequest 속성 키
-     * SecurityConfig의 HttpServletRequestAttributeSecurityContextRepository와 동일한 키 사용
-     */
-    private static final String SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME = "SPRING_SECURITY_CONTEXT";
-
     @Override
     protected boolean shouldNotFilterAsyncDispatch() {
         // 비동기 디스패치에서도 필터를 실행하여 SecurityContext를 복원합니다
@@ -48,7 +43,7 @@ public class AsyncSecurityContextRestoreFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         // HttpServletRequest에 저장된 SecurityContext를 복원
-        SecurityContext savedContext = (SecurityContext) request.getAttribute(SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME);
+        SecurityContext savedContext = (SecurityContext) request.getAttribute(SecurityConstants.SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME);
 
         if (savedContext != null) {
             SecurityContextHolder.setContext(savedContext);

@@ -1,20 +1,39 @@
 package org.example.sharedprompts.global.config;
 
-import org.jetbrains.annotations.NotNull;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.task.TaskDecorator;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.concurrent.Executor;
 
+/**
+ * @EnableAsync의 기본 Executor 설정
+ * 
+ * <p>이 클래스는 @EnableAsync 어노테이션으로 활성화된
+ * @Async 메서드의 기본 executor를 제공합니다.
+ * 
+ * <p>설정:
+ * <ul>
+ *   <li>Thread prefix: "async-"</li>
+ *   <li>Core pool size: 5</li>
+ *   <li>Max pool size: 20</li>
+ *   <li>Queue capacity: 100</li>
+ *   <li>Await termination: 60초</li>
+ *   <li>SecurityContext 전파: 포함 (TaskDecorator 방식)</li>
+ * </ul>
+ * 
+ * <p>참고: 전용 Executor가 필요한 경우 {@link AsyncExecutorConfig}를 참조하세요.
+ */
 @Configuration
 @EnableAsync
 public class AsyncConfig {
 
+    /**
+     * @EnableAsync의 기본 Executor
+     * - @Async 어노테이션이 명시된 메서드에서 사용
+     * - SecurityContext 자동 전파 포함
+     */
     @Bean(name = "taskExecutor")
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
@@ -27,25 +46,5 @@ public class AsyncConfig {
         executor.setTaskDecorator(new SecurityContextTaskDecorator());
         executor.initialize();
         return executor;
-    }
-
-    private static class SecurityContextTaskDecorator implements TaskDecorator {
-        @NotNull
-        @Override
-        public Runnable decorate(@NotNull Runnable runnable) {
-            SecurityContext context = SecurityContextHolder.getContext();
-            return () -> {
-                SecurityContext previousContext = SecurityContextHolder.getContext();
-                try {
-                    SecurityContextHolder.setContext(context);
-                    runnable.run();
-                } finally {
-                    SecurityContextHolder.clearContext();
-                    if (previousContext != null) {
-                        SecurityContextHolder.setContext(previousContext);
-                    }
-                }
-            };
-        }
     }
 }

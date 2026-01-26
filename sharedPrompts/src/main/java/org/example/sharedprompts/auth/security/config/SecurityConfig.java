@@ -2,6 +2,7 @@ package org.example.sharedprompts.auth.security.config;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.auth.oauth.config.OAuth2Components;
+import org.example.sharedprompts.auth.security.constant.SecurityConstants;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -84,12 +85,10 @@ public class SecurityConfig {
      * 비동기 응답 처리 시 SecurityContext를 유지하기 위해 사용
      */
     private static class HttpServletRequestAttributeSecurityContextRepository implements SecurityContextRepository {
-        private static final String SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME = "SPRING_SECURITY_CONTEXT";
-
         @Override
         public SecurityContext loadContext(HttpRequestResponseHolder requestResponseHolder) {
             HttpServletRequest request = requestResponseHolder.getRequest();
-            SecurityContext context = (SecurityContext) request.getAttribute(SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME);
+            SecurityContext context = (SecurityContext) request.getAttribute(SecurityConstants.SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME);
             if (context == null) {
                 context = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
             }
@@ -99,15 +98,15 @@ public class SecurityConfig {
         @Override
         public void saveContext(SecurityContext context, HttpServletRequest request, HttpServletResponse response) {
             if (context.getAuthentication() != null) {
-                request.setAttribute(SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME, context);
+                request.setAttribute(SecurityConstants.SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME, context);
             } else {
-                request.removeAttribute(SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME);
+                request.removeAttribute(SecurityConstants.SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME);
             }
         }
 
         @Override
         public boolean containsContext(HttpServletRequest request) {
-            return request.getAttribute(SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME) != null;
+            return request.getAttribute(SecurityConstants.SPRING_SECURITY_CONTEXT_ATTRIBUTE_NAME) != null;
         }
     }
 }
