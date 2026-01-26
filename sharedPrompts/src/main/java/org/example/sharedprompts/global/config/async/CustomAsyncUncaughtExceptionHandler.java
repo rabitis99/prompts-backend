@@ -32,8 +32,17 @@ public class CustomAsyncUncaughtExceptionHandler implements AsyncUncaughtExcepti
     
     @Override
     public void handleUncaughtException(Throwable ex, Method method, Object... params) {
-        String methodName = AsyncParamFormatter.formatMethodName(method);
-        String formattedParams = AsyncParamFormatter.formatParams(params);
+        String methodName;
+        String formattedParams;
+        try {
+            methodName = AsyncParamFormatter.formatMethodName(method);
+            formattedParams = AsyncParamFormatter.formatParams(params);
+        } catch (Exception formatEx) {
+            methodName = (method != null ? method.getName() : "unknown");
+            formattedParams = "[unavailable]";
+            log.warn("Async parameter formatting failed: method={}", methodName, formatEx);
+        }
+
         
         // 1. 에러 로깅 (상세 정보 포함)
         log.error("Async method execution failed: method={}, params={}", 
@@ -49,7 +58,7 @@ public class CustomAsyncUncaughtExceptionHandler implements AsyncUncaughtExcepti
         // 3. 중요 비즈니스 로직 실패 시 알람 발송 - 위임
         if (criticalMethodChecker.isCritical(method)) {
             try {
-                asyncExceptionNotifier.notify(ex, method, formattedParams);
+                asyncExceptionNotifier.notify(ex, method, params);
             }catch (Exception notifyEx) {
                 log.warn("Async alert notification failed: method={}", methodName, notifyEx);
             }

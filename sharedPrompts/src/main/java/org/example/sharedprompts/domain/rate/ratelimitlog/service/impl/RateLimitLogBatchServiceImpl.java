@@ -62,8 +62,6 @@ public class RateLimitLogBatchServiceImpl implements RateLimitLogBatchService {
                     .record(snapshot.size());
             
             handleBatchSaveException(snapshot, e);
-            // 예외 재던지기 - AsyncUncaughtExceptionHandler가 처리
-            throw new RuntimeException("Failed to save rate limit logs in batch: count=" + snapshot.size(), e);
         }
     }
 

@@ -27,7 +27,7 @@ public class AsyncExceptionNotifierImpl implements AsyncExceptionNotifier {
     @Override
     public void notify(Throwable ex, Method method, Object... params) {
         String methodName = AsyncParamFormatter.formatMethodName(method);
-        String safeMessage = SensitiveDataMasker.mask(ex.getMessage());
+        String safeMessage = SensitiveDataMasker.mask(String.valueOf(ex.getMessage()));
         // 현재는 로그만 기록
         // TODO: 실제 알람 시스템 연동 (Slack, PagerDuty 등)
         log.error("🚨 CRITICAL: Async method failure detected - method={}, exception={}, message={}", 

@@ -15,8 +15,7 @@ import java.util.stream.Collectors;
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AsyncParamFormatter {
-    
-    private static final int TOKEN_DETECTION_LENGTH = 20;
+
     private static final int LONG_STRING_THRESHOLD = 50;
     
     /**
@@ -63,8 +62,7 @@ public class AsyncParamFormatter {
 
         String lowerStr = str.toLowerCase();
         // 토큰 마스킹 (Bearer 토큰 또는 token 키워드 포함)
-        if (str.length() > TOKEN_DETECTION_LENGTH &&
-                (lowerStr.contains("bearer") || lowerStr.contains("token"))) {
+        if (lowerStr.contains("bearer") || lowerStr.contains("token")) {
             return SensitiveDataMasker.maskToken(str);
         }
         

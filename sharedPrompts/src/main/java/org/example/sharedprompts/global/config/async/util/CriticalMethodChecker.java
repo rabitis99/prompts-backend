@@ -41,6 +41,6 @@ public class CriticalMethodChecker {
     public boolean isCritical(Method method) {
         String methodName = method.getDeclaringClass().getSimpleName() + "." + method.getName();
         return criticalMethodPatterns.stream()
-                .anyMatch(pattern -> methodName.equals(pattern));
+                .anyMatch(pattern -> methodName.contains(pattern));
     }
 }
