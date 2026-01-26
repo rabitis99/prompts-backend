@@ -10,6 +10,48 @@ spring:
     hibernate:
       ddl-auto: update
 
+  # =========================
+  # 데이터베이스 커넥션 풀 (개발 환경)
+  # =========================
+  datasource:
+    hikari:
+      # 개발 환경: 작은 풀 크기로 리소스 절약
+      maximum-pool-size: ${HIKARI_MAXIMUM_POOL_SIZE:10}  # 최대 커넥션 수
+      minimum-idle: ${HIKARI_MINIMUM_IDLE:2}  # 최소 유휴 커넥션
+      connection-timeout: ${HIKARI_CONNECTION_TIMEOUT:10000}  # 커넥션 획득 타임아웃 (10초)
+      idle-timeout: ${HIKARI_IDLE_TIMEOUT:300000}  # 유휴 커넥션 타임아웃 (5분)
+      max-lifetime: ${HIKARI_MAX_LIFETIME:900000}  # 커넥션 최대 생존 시간 (15분)
+      leak-detection-threshold: ${HIKARI_LEAK_DETECTION_THRESHOLD:60000}  # 커넥션 누수 감지 (60초)
+
+  # =========================
+  # Redis 연결 풀 (개발 환경)
+  # =========================
+  data:
+    redis:
+      timeout: ${REDIS_TIMEOUT:2000ms}  # 연결 타임아웃
+      lettuce:
+        pool:
+          # 개발 환경: 작은 풀 크기
+          max-active: ${REDIS_POOL_MAX_ACTIVE:10}  # 최대 연결 수
+          max-idle: ${REDIS_POOL_MAX_IDLE:5}  # 최대 유휴 연결
+          min-idle: ${REDIS_POOL_MIN_IDLE:2}  # 최소 유휴 연결
+          max-wait: ${REDIS_POOL_MAX_WAIT:1000ms}  # 연결 대기 시간
+
+  # =========================
+  # RabbitMQ 연결 풀 (개발 환경)
+  # =========================
+  rabbitmq:
+    connection-timeout: ${RABBITMQ_CONNECTION_TIMEOUT:3000}  # 연결 타임아웃 (ms)
+    publisher-confirm-type: ${RABBITMQ_PUBLISHER_CONFIRM_TYPE:none}  # 개발 환경에서는 발행 확인 비활성화
+    publisher-returns: ${RABBITMQ_PUBLISHER_RETURNS:false}  # 개발 환경에서는 반환 비활성화
+    template:
+      mandatory: ${RABBITMQ_TEMPLATE_MANDATORY:false}  # 개발 환경에서는 라우팅 실패 시 반환 비활성화
+    cache:
+      connection:
+        size: ${RABBITMQ_CACHE_CONNECTION_SIZE:5}  # 연결 캐시 크기
+      channel:
+        size: ${RABBITMQ_CACHE_CHANNEL_SIZE:10}  # 채널 캐시 크기
+
 auth:
   cookie:
     # 개발 환경에서는 HTTP를 사용하므로 Secure 플래그를 false로 설정

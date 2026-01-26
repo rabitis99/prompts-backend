@@ -8,7 +8,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 
 @EnableJpaAuditing
 @EnableAsync
-@ConfigurationPropertiesScan("org.example.sharedprompts.global.redis")
+@ConfigurationPropertiesScan  // 전체 패키지 스캔 (환경별 설정 적용을 위해)
 @SpringBootApplication
 public class SharedPromptsApplication {
 
