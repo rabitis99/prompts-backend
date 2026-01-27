@@ -1,10 +1,10 @@
 package org.example.sharedprompts.global.config;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.ApplicationListener;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.env.EnvironmentPostProcessor;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,29 +14,34 @@ import java.util.List;
  * 
  * <p>프로덕션 환경에서 필수 환경 변수가 누락되거나 잘못된 프로필이 설정된 경우
  * 애플리케이션 시작을 중단합니다.
+ * 
+ * <p>EnvironmentPostProcessor를 사용하여 빈 생성 전에 검증을 수행합니다.
+ * 이를 통해 리소스(데이터베이스 연결, 포트 바인딩 등)가 할당되기 전에 
+ * 필수 환경 변수를 검증할 수 있습니다.
+ * 
+ * <p>이 클래스는 META-INF/spring/org.springframework.boot.env.EnvironmentPostProcessor 파일에
+ * 등록되어야 합니다.
  */
 @Slf4j
-@Component
-public class EnvironmentValidator implements ApplicationListener<ApplicationReadyEvent> {
+public class EnvironmentValidator implements EnvironmentPostProcessor {
 
     private static final String PROD_PROFILE = "prod";
     private static final String DEV_PROFILE = "dev";
 
     @Override
-    public void onApplicationEvent(ApplicationReadyEvent event) {
-        Environment env = event.getApplicationContext().getEnvironment();
-        String[] activeProfiles = env.getActiveProfiles();
+    public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
+        String[] activeProfiles = environment.getActiveProfiles();
         
         log.info("Active profiles: {}", String.join(", ", activeProfiles.length > 0 ? activeProfiles : new String[]{"default"}));
         
         // 프로필 검증
-        validateProfile(env, activeProfiles);
+        validateProfile(environment, activeProfiles);
         
         // 환경 변수 검증
-        validateEnvironmentVariables(env, activeProfiles);
+        validateEnvironmentVariables(environment, activeProfiles);
         
         // 설정 검증 (JPA DDL, 로깅 레벨 등)
-        validateConfiguration(env, activeProfiles);
+        validateConfiguration(environment, activeProfiles);
         
         log.info("✅ 환경 변수 및 프로필 검증 완료");
     }
