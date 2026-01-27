@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.admin.maintenance.rebuild;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +10,6 @@ import java.util.function.Supplier;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class RetryableRebuildService {
     
     private static final int DEFAULT_MAX_RETRIES = 3;
@@ -30,6 +28,9 @@ public class RetryableRebuildService {
         }
         if (retryDelayMs < 0){
             throw new IllegalArgumentException("retryDelayMs는 0 이상이어야 합니다.");
+        }
+        if (operation == null) {
+            throw new IllegalArgumentException("operation은 null일 수 없습니다.");
         }
         int attempt = 0;
         Exception lastException = null;

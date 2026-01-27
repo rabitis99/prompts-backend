@@ -37,9 +37,12 @@ public class GlobalRebuildStatusService implements RebuildStatusService {
             redisTemplate.opsForValue().set(REDIS_KEY, json, TTL);
             log.debug("글로벌 상태 저장 완료: {}", status);
         } catch (JsonProcessingException e) {
-            log.error("상태 저장 실패", e);
-            // Redis 실패 시 로컬 상태로 fallback하지 않고 예외를 던짐
+            log.warn("상태 저장 실패", e);
+            // JSON 직렬화 실패 시 예외를 던짐
             throw new RuntimeException("상태 저장 실패", e);
+        } catch (Exception e) {
+            log.error("Redis 상태 저장 실패", e);
+            throw new RuntimeException("Redis 상태 저장 실패", e);
         }
     }
     

@@ -54,7 +54,7 @@ public class AdminMaintenanceServiceImpl implements AdminMaintenanceService {
     @SchedulerLock(
             name = "AdminMaintenanceService_rebuildLikeCounts",
             lockAtMostFor = "1h",
-            lockAtLeastFor = "30m"
+            lockAtLeastFor = "5m"
     )
     public void rebuildLikeCountsFromDbAsync() {
         // 주의: @SchedulerLock의 값은 컴파일 타임에 평가되므로 동적 변경이 불가능합니다.
@@ -148,12 +148,17 @@ public class AdminMaintenanceServiceImpl implements AdminMaintenanceService {
             localStatusManager.updateFinishedAt(LocalDateTime.now());
             // 글로벌 상태 관리 사용 시 Redis에 상태 저장
             if (useGlobalStatus) {
-                rebuildStatusService.saveStatus(
-                        localStatusManager.getStatus(),
-                        localStatusManager.getStartedAt(),
-                        localStatusManager.getFinishedAt(),
-                        localStatusManager.getErrorMessage()
-                );
+                try {
+                    rebuildStatusService.saveStatus(
+                            localStatusManager.getStatus(),
+                            localStatusManager.getStartedAt(),
+                            localStatusManager.getFinishedAt(),
+                            localStatusManager.getErrorMessage()
+                    );
+                }catch (Exception ex) {
+                    log.error("글로벌 상태 저장 실패", ex);
+                }
+
             }
         }
     }
