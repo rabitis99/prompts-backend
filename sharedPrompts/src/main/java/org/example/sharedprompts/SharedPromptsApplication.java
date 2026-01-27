@@ -1,14 +1,17 @@
 package org.example.sharedprompts;
 
+import org.example.sharedprompts.global.config.PromptCreationProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 @EnableJpaAuditing
 @EnableAsync
 @ConfigurationPropertiesScan  // 전체 패키지 스캔 (환경별 설정 적용을 위해)
+@EnableConfigurationProperties(PromptCreationProperties.class)
 @SpringBootApplication
 public class SharedPromptsApplication {
 
