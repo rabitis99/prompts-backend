@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.tag.count;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.tag.config.TagRedisKey;
-import org.example.sharedprompts.global.Lua.LuaScripts;
+import org.example.sharedprompts.global.lua.LuaScripts;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
