@@ -1,7 +1,7 @@
 package org.example.sharedprompts.auth.rate;
 
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.global.Lua.LuaScripts;
+import org.example.sharedprompts.global.lua.LuaScripts;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;

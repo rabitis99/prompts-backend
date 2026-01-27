@@ -6,6 +6,7 @@ import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import org.example.sharedprompts.dto.prompt.request.PromptRequestDto;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
+import org.example.sharedprompts.global.config.PromptCreationProperties;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -27,10 +28,8 @@ import java.util.concurrent.TimeoutException;
 @RequiredArgsConstructor
 public class PromptFacade {
 
-    private static final long TIMEOUT_MS = 40_000L;
-    private static final long FUTURE_TIMEOUT_MS = TIMEOUT_MS - 1_000L;
-
     private final PromptCreationFlow promptCreationFlow;
+    private final PromptCreationProperties promptCreationProperties;
 
     @Qualifier("aiCallTaskExecutorWithSecurityContext")
     private final ExecutorService aiCallTaskExecutorWithSecurityContext;
@@ -40,6 +39,9 @@ public class PromptFacade {
             Long userId
     ) {
 
+        long timeoutMs = promptCreationProperties.getTimeoutMs();
+        long futureTimeoutMs = promptCreationProperties.getFutureTimeoutMs();
+        
         Callable<ResponseEntity<CustomResponse<PromptResponseDto>>> callable = () -> {
             try {
                 log.debug("프롬프트 생성 시작: userId={}, title={}", userId, request.getTitle());
@@ -48,7 +50,7 @@ public class PromptFacade {
                         () -> promptCreationFlow.create(request, userId)
                 );
 
-                PromptResponseDto result = future.get(FUTURE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                PromptResponseDto result = future.get(futureTimeoutMs, TimeUnit.MILLISECONDS);
 
                 log.info("프롬프트 생성 완료: userId={}, promptId={}", userId, result.getId());
                 
@@ -68,7 +70,7 @@ public class PromptFacade {
                 return createFailResponse(e);
 
             } catch (TimeoutException e) {
-                log.warn("프롬프트 생성 Future 타임아웃: userId={}, timeout={}ms", userId, FUTURE_TIMEOUT_MS, e);
+                log.warn("프롬프트 생성 Future 타임아웃: userId={}, timeout={}ms", userId, futureTimeoutMs, e);
                 return createFailResponse(new ApiException(
                         ErrorCode.AI_GENERATION_FAILED,
                         "프롬프트 생성이 시간 초과되었습니다. 잠시 후 다시 시도해주세요."
@@ -95,10 +97,10 @@ public class PromptFacade {
         };
 
         WebAsyncTask<ResponseEntity<CustomResponse<PromptResponseDto>>> asyncTask =
-                new WebAsyncTask<>(TIMEOUT_MS, callable);
+                new WebAsyncTask<>(timeoutMs, callable);
 
         asyncTask.onTimeout(() -> {
-            log.warn("프롬프트 생성 WebAsyncTask 타임아웃: userId={}, timeout={}ms", userId, TIMEOUT_MS);
+            log.warn("프롬프트 생성 WebAsyncTask 타임아웃: userId={}, timeout={}ms", userId, timeoutMs);
             return createFailResponse(new ApiException(
                     ErrorCode.AI_GENERATION_FAILED,
                     "프롬프트 생성이 시간 초과되었습니다. 잠시 후 다시 시도해주세요."

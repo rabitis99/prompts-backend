@@ -31,6 +31,7 @@ public final class SecurityPathConstants {
      *   <li>OAuth2 콜백: /auth/callback</li>
      *   <li>토큰 갱신: /auth/refresh</li>
      *   <li>OAuth2 로그인: /oauth2/**, /login/**</li>
+     *   <li>Actuator Health: /actuator/health (헬스 체크용)</li>
      * </ul>
      *
      * <p><strong>주의:</strong> context-path({@code /api})는 포함하지 않습니다.
@@ -47,7 +48,8 @@ public final class SecurityPathConstants {
             "/api/auth/callback",
             "/api/auth/refresh",
             "/oauth2/**",
-            "/login/**"
+            "/login/**",
+            "/actuator/health"  // 헬스 체크는 공개 접근 허용
     };
 
     /**
@@ -62,7 +64,10 @@ public final class SecurityPathConstants {
      * 반드시 servlet path인 {@code /admin/**}만 사용해야 합니다.
      */
     public static final String[] ADMIN_PATHS = {
-            "/admin/**"
+            "/admin/**",
+            "/actuator/info",      // Actuator info 엔드포인트 (관리자 전용)
+            "/actuator/metrics",   // Actuator metrics 엔드포인트 (관리자 전용)
+            "/actuator/prometheus" // Actuator prometheus 엔드포인트 (관리자 전용)
     };
 }
 

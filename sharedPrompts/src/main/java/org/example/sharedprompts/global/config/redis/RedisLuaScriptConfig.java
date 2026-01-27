@@ -1,6 +1,6 @@
 package org.example.sharedprompts.global.config.redis;
 
-import org.example.sharedprompts.global.Lua.LuaScripts;
+import org.example.sharedprompts.global.lua.LuaScripts;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
