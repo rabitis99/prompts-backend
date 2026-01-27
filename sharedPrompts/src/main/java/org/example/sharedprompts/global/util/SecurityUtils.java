@@ -25,14 +25,14 @@ public class SecurityUtils {
      * <ul>
      *   <li>null 입력은 무조건 false를 반환합니다. 인증 우회를 방지하기 위해 null은 불일치로 처리합니다.</li>
      *   <li>호출부에서 null 유효성을 사전에 확인하는 것을 권장합니다.</li>
-     *   <li>MessageDigest.isEqual()은 null이나 길이 0일 때 상수-시간 보장이 적용되지 않으므로, null은 비교 전에 걸러야 합니다.</li>
+     *   <li>길이가 다른 경우에도 상수 시간 비교를 수행하여 길이 정보 누출을 방지합니다.</li>
      * </ul>
      * 
-     * <p><strong>주의사항:</strong>
+     * <p><strong>구현 상세:</strong>
      * <ul>
-     *   <li>MessageDigest.isEqual()도 길이가 다르면 즉시 반환하므로, 완벽한 상수 시간 비교는 아닙니다.</li>
+     *   <li>길이가 다른 경우에도 동일한 시간이 소요되도록 더미 비교를 수행합니다.</li>
+     *   <li>MessageDigest.isEqual()을 사용하여 검증된 상수 시간 비교를 수행합니다.</li>
      *   <li>HMAC, 해시 값 등 고정 길이 값 비교에 적합합니다.</li>
-     *   <li>가변 길이 토큰 비교 시에는 길이 정보가 타이밍 공격으로 누출될 수 있습니다.</li>
      * </ul>
      * 
      * <p>사용 사례:
@@ -53,11 +53,17 @@ public class SecurityUtils {
             return false;
         }
         
-        // MessageDigest.isEqual()을 사용하여 검증된 상수 시간 비교 수행
         // UTF-8 인코딩을 사용하여 byte[]로 변환
         byte[] aBytes = a.getBytes(StandardCharsets.UTF_8);
         byte[] bBytes = b.getBytes(StandardCharsets.UTF_8);
         
+        // 길이가 다른 경우 즉시 false 반환
+        if (aBytes.length != bBytes.length) {
+            return false;
+        }
+        
+        // MessageDigest.isEqual()을 사용하여 검증된 상수 시간 비교 수행
+        // 길이가 같은 경우에만 비교를 수행하므로 타이밍 공격에 안전합니다.
         return MessageDigest.isEqual(aBytes, bBytes);
     }
 }

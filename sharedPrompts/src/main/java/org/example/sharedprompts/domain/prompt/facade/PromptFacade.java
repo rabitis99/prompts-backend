@@ -9,10 +9,9 @@ import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
 import org.example.sharedprompts.global.config.PromptCreationProperties;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.global.security.SecurityContextService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.async.WebAsyncTask;
 
@@ -56,12 +55,8 @@ public class PromptFacade {
                 
                 ResponseEntity<CustomResponse<PromptResponseDto>> response = CustomResponseHelper.created(result);
                 
-                if (log.isDebugEnabled()) {
-                    SecurityContext context = SecurityContextHolder.getContext();
-                    log.debug("[SecurityContext] 응답 생성 완료 - Thread: {}, hasAuth: {}", 
-                            Thread.currentThread().getName(),
-                            context.getAuthentication() != null);
-                }
+                // SecurityContext 접근은 SecurityContextService를 통해 수행
+                SecurityContextService.logSecurityContextDebug("응답 생성 완료");
                 
                 return response;
 
