@@ -7,7 +7,6 @@ import org.example.sharedprompts.domain.admin.maintenance.service.RebuildStatusS
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
@@ -16,30 +15,25 @@ import org.springframework.data.redis.core.StringRedisTemplate;
  */
 @Configuration
 public class RebuildStatusServiceConfig {
-    
+
     /**
      * 글로벌 상태 관리 서비스 (Redis 기반)
-     * useGlobalStatus가 true일 때만 활성화
      */
     @Bean
-    @Primary
     @ConditionalOnProperty(
             name = "admin.maintenance.rebuild.use-global-status",
-            havingValue = "true",
-            matchIfMissing = false
+            havingValue = "true"
     )
     public RebuildStatusService globalRebuildStatusService(
             StringRedisTemplate redisTemplate,
             ObjectMapper objectMapper) {
         return new GlobalRebuildStatusService(redisTemplate, objectMapper);
     }
-    
+
     /**
      * 로컬 상태 관리 서비스 (메모리 기반)
-     * useGlobalStatus가 false이거나 설정되지 않았을 때 사용
      */
     @Bean
-    @Primary
     @ConditionalOnProperty(
             name = "admin.maintenance.rebuild.use-global-status",
             havingValue = "false",

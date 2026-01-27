@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.enums.Provider;
+import org.example.sharedprompts.domain.user.enums.Role;
 
 @Getter
 @Builder
@@ -22,6 +23,7 @@ public class UserResponseDto {
     private String nickname;
     private Integer age;
     private String job;
+    private Role role;
     private String thumbnail;
     @JsonProperty("is_signup_completed")
     private boolean isSignupCompleted;
@@ -36,6 +38,7 @@ public class UserResponseDto {
                 .nickname(user.getNickname())
                 .age(user.getAge())
                 .job(user.getJob())
+                .role(user.getRole())
                 .thumbnail(user.getThumbnail())
                 .isSignupCompleted(user.isSignupCompleted())
                 .userTerms(UserTermsResponseDto.from(user.getTerms()))
