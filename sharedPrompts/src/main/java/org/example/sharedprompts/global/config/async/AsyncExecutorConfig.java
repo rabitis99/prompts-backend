@@ -56,10 +56,9 @@ public class AsyncExecutorConfig {
                 DEFAULT_AWAIT_TERMINATION_SECONDS, createCallerThreadRejectionHandler());
     }
 
-    /** SecurityContext 없는 일반 Executor */
-    private Executor createExecutor(String prefix, int core, int max, int queue, int awaitSec,
-                                    RejectedExecutionHandler rejectedHandler) {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    /** 공통 Executor 설정 로직 */
+    private void configureExecutor(ThreadPoolTaskExecutor executor, String prefix, int core, int max, int queue,
+                                   int awaitSec, RejectedExecutionHandler rejectedHandler) {
         executor.setThreadNamePrefix(prefix);
         executor.setCorePoolSize(core);
         executor.setMaxPoolSize(max);
@@ -67,6 +66,13 @@ public class AsyncExecutorConfig {
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(awaitSec);
         executor.setRejectedExecutionHandler(rejectedHandler);
+    }
+
+    /** SecurityContext 없는 일반 Executor */
+    private Executor createExecutor(String prefix, int core, int max, int queue, int awaitSec,
+                                    RejectedExecutionHandler rejectedHandler) {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        configureExecutor(executor, prefix, core, max, queue, awaitSec, rejectedHandler);
         executor.initialize();
         return executor;
     }
@@ -75,13 +81,7 @@ public class AsyncExecutorConfig {
     private Executor createExecutorWithSecurityContext(String prefix, int core, int max, int queue,
                                                        int awaitSec, RejectedExecutionHandler rejectedHandler) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setThreadNamePrefix(prefix);
-        executor.setCorePoolSize(core);
-        executor.setMaxPoolSize(max);
-        executor.setQueueCapacity(queue);
-        executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(awaitSec);
-        executor.setRejectedExecutionHandler(rejectedHandler);
+        configureExecutor(executor, prefix, core, max, queue, awaitSec, rejectedHandler);
         executor.setTaskDecorator(new SecurityContextTaskDecorator());
         executor.initialize();
         return executor;
