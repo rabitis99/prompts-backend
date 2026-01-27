@@ -24,7 +24,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * </ul>
  * 
  * <p>개인 통계 캐시({@code "my:{userId}"})는 사용자별로 관리되므로
- * 프롬프트 생성/삭제 시에는 전체 통계만 무효화합니다.
+ * 프롬프트 생성/삭제 시 해당 사용자의 개인 통계 캐시도 함께 무효화합니다.
  */
 @Slf4j
 @Component
@@ -50,6 +50,7 @@ public class StatisticsCacheEventListener {
         log.debug("Prompt created event received: promptId={}, userId={}", 
                 event.promptId(), event.userId());
         evictStatisticsCache();
+        evictUserStatisticsCache(event.userId());
     }
 
     /**
@@ -61,6 +62,7 @@ public class StatisticsCacheEventListener {
         log.debug("Prompt deleted event received: promptId={}, userId={}", 
                 event.promptId(), event.userId());
         evictStatisticsCache();
+        evictUserStatisticsCache(event.userId());
     }
 
     /**
@@ -87,6 +89,41 @@ public class StatisticsCacheEventListener {
                     CACHE_KEY_ALL, CACHE_KEY_USER, CACHE_KEY_PROMPT, CACHE_KEY_AI_CALL);
         } catch (Exception e) {
             log.error("Failed to evict statistics cache: {}", e.getMessage(), e);
+            // 예외를 전파하지 않아 이벤트 처리 실패가 다른 로직에 영향을 주지 않도록 함
+        }
+    }
+
+    /**
+     * 개인 통계 캐시 무효화
+     * 프롬프트 생성/삭제 시 해당 사용자의 개인 통계 캐시를 무효화합니다.
+     * 
+     * <p>개인 통계는 사용자의 프롬프트 수를 기반으로 계산되므로,
+     * 프롬프트 생성/삭제 시 해당 사용자의 캐시("my:{userId}")도 함께 무효화해야 합니다.
+     * 
+     * <p>에러 발생 시에도 로그만 남기고 예외를 전파하지 않아
+     * 이벤트 처리 실패가 다른 비즈니스 로직에 영향을 주지 않도록 합니다.
+     * 
+     * @param userId 사용자 ID
+     */
+    private void evictUserStatisticsCache(Long userId) {
+        if (userId == null) {
+            log.warn("Cannot evict user statistics cache: userId is null");
+            return;
+        }
+
+        Cache cache = cacheManager.getCache(CACHE_NAME);
+        if (cache == null) {
+            log.warn("Statistics cache not found: cacheName={}", CACHE_NAME);
+            return;
+        }
+
+        try {
+            String cacheKey = "my:" + userId.toString();
+            cache.evictIfPresent(cacheKey);
+            log.debug("User statistics cache evicted: userId={}, cacheKey={}", userId, cacheKey);
+        } catch (Exception e) {
+            log.error("Failed to evict user statistics cache: userId={}, error={}", 
+                    userId, e.getMessage(), e);
             // 예외를 전파하지 않아 이벤트 처리 실패가 다른 로직에 영향을 주지 않도록 함
         }
     }
