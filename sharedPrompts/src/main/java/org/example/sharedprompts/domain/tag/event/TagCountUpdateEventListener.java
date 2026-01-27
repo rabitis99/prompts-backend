@@ -18,6 +18,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * 태그 카운트 업데이트 이벤트 리스너
@@ -50,7 +51,7 @@ public class TagCountUpdateEventListener {
      * 태그 카운트 업데이트 이벤트 처리
      * 트랜잭션 커밋 후 비동기로 처리
      */
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     @Async("tagCountUpdateExecutor")
     public void handleTagCountUpdate(TagCountUpdateEvent event) {
         Timer.Sample timer = metricService.startTimer();
@@ -149,7 +150,7 @@ public class TagCountUpdateEventListener {
      */
     private void addToDeadLetterQueue(TagCountUpdateEvent event, Exception e) {
         try {
-            String dlqKey = TagRedisKey.dlqKeyPrefix() + System.currentTimeMillis();
+            String dlqKey = TagRedisKey.dlqKeyPrefix() + System.currentTimeMillis() + ":" + UUID.randomUUID();
             
             DlqItem dlqItem = new DlqItem(
                     event.getTagsToDecrease(),
@@ -157,7 +158,7 @@ public class TagCountUpdateEventListener {
                     e.getMessage(),
                     event.getOccurredAt(),
                     event.getRetryCount(),
-                    null // 초기 DLQ 추가 시에는 scheduledTime 없음
+                    null // 초기 DLQ 추가 시에는 scheduledTimeMillis 없음
             );
             
             String dlqValue = objectMapper.writeValueAsString(dlqItem);

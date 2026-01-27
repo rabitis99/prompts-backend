@@ -15,7 +15,7 @@ import java.util.Set;
 /**
  * 태그 카운트 업데이트 전용 서비스
  * - Redis 원자 연산 보장
- * - Redis Pipeline을 통한 배치 처리로 성능 향상
+ * - 태그별 원자 연산을 순차적으로 수행
  * - 실패 시 모니터링 및 재시도 로직
  */
 @Slf4j
@@ -133,7 +133,7 @@ public class TagCountUpdateService {
             try {
                 decrementTagCount(tagName);
                 // 태그별 메트릭 기록 (tag_name 레이블 포함)
-                metricService.recordTagSuccess(tagName, "decrease");
+                metricService.recordTagSuccess("decrease");
             } catch (Exception e) {
                 log.error("Failed to decrement tag count for {}: {}", tagName, e.getMessage(), e);
                 failedDecreases.add(tagName);
@@ -148,7 +148,7 @@ public class TagCountUpdateService {
             try {
                 incrementTagCount(tagName);
                 // 태그별 메트릭 기록 (tag_name 레이블 포함)
-                metricService.recordTagSuccess(tagName, "increase");
+                metricService.recordTagSuccess("increase");
             } catch (Exception e) {
                 log.error("Failed to increment tag count for {}: {}", tagName, e.getMessage(), e);
                 failedIncreases.add(tagName);

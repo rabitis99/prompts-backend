@@ -135,14 +135,16 @@ public class PromptTagServiceImpl implements PromptTagService {
                 .map(this::getOrCreateTag)
                 .toList();
 
-        tagsToAdd.forEach(tag -> attachPromptTag(prompt, tag));
+        Set<String> tagsToIncrease = new HashSet<>();
+        for (Tag tag : tagsToAdd) {
+            if (attachPromptTag(prompt, tag)) {
+                tagsToIncrease.add(tag.getName());
+            }
+        }
 
         // 4. 트랜잭션 커밋 후 이벤트 발행
         // DB 변경이 성공적으로 커밋된 후에만 이벤트 발행
         // 파사드를 통해 트랜잭션 처리 로직 캡슐화
-        Set<String> tagsToIncrease = tagsToAdd.stream()
-                .map(Tag::getName)
-                .collect(Collectors.toSet());
         
         tagCountFacade.publishTagCountUpdate(toRemove, tagsToIncrease);
     }

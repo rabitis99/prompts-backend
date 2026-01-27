@@ -27,9 +27,11 @@ public class TagCountDlqProcessor {
     private static final int MAX_DLQ_RETRY = 5;
 
     private static final long[] BACKOFF_MILLIS = {
-            5 * 60_000L,   // 5분
-            15 * 60_000L,  // 15분
-            30 * 60_000L   // 30분
+            5 * 60_000L,    // retryCount 1: 5분
+            15 * 60_000L,   // retryCount 2: 15분
+            30 * 60_000L,   // retryCount 3: 30분
+            60 * 60_000L,   // retryCount 4: 1시간
+            120 * 60_000L   // retryCount 5: 2시간
     };
 
     private final StringRedisTemplate redisTemplate;
@@ -67,7 +69,7 @@ public class TagCountDlqProcessor {
                         continue;
                     }
 
-                    long executeAt = item.getScheduledTime() != null ? item.getScheduledTime() : System.currentTimeMillis();
+                    long executeAt = item.getScheduledTimeMillis() != null ? item.getScheduledTimeMillis() : System.currentTimeMillis();
                     if (executeAt > System.currentTimeMillis()) {
                         log.debug("DLQ item not ready yet: key={}, executeAt={}, currentTime={}",
                                 dlqKey, executeAt, System.currentTimeMillis());
@@ -83,6 +85,7 @@ public class TagCountDlqProcessor {
 
                 } catch (Exception e) {
                     log.error("Failed to process DLQ item {}: {}", dlqKey, e.getMessage(), e);
+                    metricService.recordFailure(e.getClass().getSimpleName());
                     // 이미 파싱된 item을 재사용하여 데이터 불일치 방지
                     if (item != null) {
                         rescheduleDlqItem(dlqKey, item);

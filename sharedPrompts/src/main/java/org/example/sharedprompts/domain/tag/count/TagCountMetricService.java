@@ -35,7 +35,7 @@ public class TagCountMetricService {
      * Note: tag_name 레이블은 높은 카디널리티 문제를 유발할 수 있어 제거했습니다.
      * 태그별 메트릭이 필요한 경우, 상위 N개 태그로 제한하거나 다른 방식으로 집계하세요.
      */
-    public void recordTagSuccess(String tagName, String operation) {
+    public void recordTagSuccess(String operation) {
         // 높은 카디널리티 문제를 방지하기 위해 tag_name 레이블 제거
         Counter.builder("tag_count_update_tags_total")
                 .tag("operation", operation)

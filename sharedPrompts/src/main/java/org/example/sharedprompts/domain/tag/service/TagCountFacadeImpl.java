@@ -29,13 +29,13 @@ public class TagCountFacadeImpl implements TagCountFacade {
 
     /**
      * 단일 태그 카운트 즉시 증가
-     * 
+     *
      * ⚠️ 주의: 이 메서드는 트랜잭션 커밋 여부와 관계없이 Redis 카운트를 즉시 증가시킵니다.
      * 트랜잭션이 롤백되면 DB와 Redis 간 불일치가 발생할 수 있습니다.
-     * 
+     *
      * 권장: 트랜잭션 내부에서 사용하는 경우 {@link #publishTagCountUpdate(Set, Set)}를 사용하세요.
      * 이 메서드는 비트랜잭션 컨텍스트(예: 배치 작업, 수동 동기화)에서만 사용해야 합니다.
-     * 
+     *
      * @param tagName 태그 이름
      * @deprecated 트랜잭션 안전성을 위해 {@link #publishTagCountUpdate(Set, Set)} 사용을 권장합니다.
      */
@@ -48,16 +48,20 @@ public class TagCountFacadeImpl implements TagCountFacade {
 
     @Override
     public void publishTagCountUpdate(Set<String> tagsToDecrease, Set<String> tagsToIncrease) {
+        // 호출 시점에 Set이 변경될 수 있으므로 스냅샷 복사
+        Set<String> decreaseSnapshot = Set.copyOf(tagsToDecrease);
+        Set<String> increaseSnapshot = Set.copyOf(tagsToIncrease);
+
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             // 트랜잭션이 있는 경우: 커밋 후 비동기 처리
             TransactionSynchronizationManager.registerSynchronization(
                     new TransactionSynchronization() {
                         @Override
                         public void afterCommit() {
-                            tagEventPublisher.publishTagCountUpdate(tagsToDecrease, tagsToIncrease);
+                            tagEventPublisher.publishTagCountUpdate(decreaseSnapshot, increaseSnapshot);
                             log.debug("Tag count update event published after commit: " +
-                                    "decrease={}, increase={}", 
-                                    tagsToDecrease.size(), tagsToIncrease.size());
+                                            "decrease={}, increase={}",
+                                    decreaseSnapshot.size(), increaseSnapshot.size());
                         }
                     }
             );
@@ -66,13 +70,12 @@ public class TagCountFacadeImpl implements TagCountFacade {
             if (syncFallback) {
                 // 동기 처리 모드: 즉시 처리 (테스트/배치 환경)
                 log.debug("Sync fallback mode: processing tag count update synchronously");
-                tagCountUpdateService.updateTagCounts(tagsToDecrease, tagsToIncrease);
+                tagCountUpdateService.updateTagCounts(decreaseSnapshot, increaseSnapshot);
             } else {
                 // 비동기 처리 모드: 이벤트 발행 (기본값)
                 log.debug("Async fallback mode: publishing tag count update event");
-                tagEventPublisher.publishTagCountUpdate(tagsToDecrease, tagsToIncrease);
+                tagEventPublisher.publishTagCountUpdate(decreaseSnapshot, increaseSnapshot);
             }
         }
     }
 }
-
