@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.follow.policy.FollowBlockPolicy;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.like.service.LikeCountService;
+import org.example.sharedprompts.domain.prompt.event.PromptEventPublisher;
 import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
 import org.example.sharedprompts.domain.tag.PromptTag;
 import org.example.sharedprompts.domain.tag.Tag;
@@ -37,6 +38,7 @@ public class PromptServiceImpl implements PromptService {
     private final PromptTagService promptTagService;
     private final LikeCountService likeCountService;
     private final PromptSanitizationService promptSanitizationService;
+    private final PromptEventPublisher promptEventPublisher;
 
     // ============ 조회 ===============
     @Override
@@ -103,8 +105,13 @@ public class PromptServiceImpl implements PromptService {
             throw new ApiException(ErrorCode.PROMPT_FORBIDDEN);
         }
 
+        Long authorId = prompt.getAuthor().getId();
+        
         promptTagService.updateTags(prompt, List.of());
         promptRepository.delete(prompt);
+        
+        // 통계 캐시 무효화를 위한 이벤트 발행 (트랜잭션 내부에서 발행, 커밋 후 처리됨)
+        promptEventPublisher.publishPromptDeleted(promptId, authorId);
     }
 
     // ============ 내 프롬프트 조회 ===============
