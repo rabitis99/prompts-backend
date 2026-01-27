@@ -5,6 +5,7 @@ server:
   port: ${SERVER_PORT:8080}
   servlet:
     context-path: /api
+  shutdown: graceful
 
 # =========================
 # Spring Config
@@ -16,6 +17,9 @@ spring:
   web:
     resources:
       add-mappings: false
+
+  lifecycle:
+    timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:30s}
 
   # =========================
   # OAuth2 클라이언트
@@ -126,6 +130,8 @@ spring:
   # =========================
   ai:
     openai:
+      # ⚠️ 경고: 프로덕션 환경에서는 반드시 실제 API 키를 설정해야 합니다.
+      # 더미 키로는 실제 API 호출이 실패합니다.
       api-key: ${SPRING_AI_OPENAI_API_KEY:dummy-openai-api-key}
 
 # =========================
@@ -300,6 +306,10 @@ rate-limit:
 app:
   redis:
     hot-ttl-seconds: ${APP_REDIS_HOT_TTL_SECONDS:86400}
+  prompt:
+    creation:
+      # 프롬프트 생성 타임아웃 설정 (밀리초)
+      timeout-ms: ${APP_PROMPT_CREATION_TIMEOUT_MS:40000}
 
 # =========================
 # 관리자 유지보수 작업 설정
@@ -339,6 +349,8 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
+      # ⚠️ 보안: 프로덕션 환경에서는 Actuator 엔드포인트에 인증을 추가해야 합니다.
+      # SecurityConfig에서 Actuator 엔드포인트 보안 설정을 확인하세요.
   endpoint:
     health:
       show-details: when-authorized
