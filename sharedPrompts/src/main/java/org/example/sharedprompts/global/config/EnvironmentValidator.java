@@ -3,6 +3,8 @@ package org.example.sharedprompts.global.config;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
 
@@ -23,6 +25,7 @@ import java.util.List;
  * 등록되어야 합니다.
  */
 @Slf4j
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class EnvironmentValidator implements EnvironmentPostProcessor {
 
     private static final String PROD_PROFILE = "prod";
