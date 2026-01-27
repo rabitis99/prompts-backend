@@ -16,7 +16,6 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
 
@@ -40,7 +39,6 @@ public class TagCountUpdateEventListener {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
-    //TODO: 모니터링 시스템에 알림
     @Value("${tag.count.update.enable-monitoring:true}")
     private boolean enableMonitoring;
 
@@ -55,9 +53,9 @@ public class TagCountUpdateEventListener {
     @Async("tagCountUpdateExecutor")
     public void handleTagCountUpdate(TagCountUpdateEvent event) {
         Timer.Sample timer = metricService.startTimer();
-        
+
         log.debug("Processing TagCountUpdateEvent: decrease={}, increase={}, retryCount={}",
-                event.getTagsToDecrease().size(), 
+                event.getTagsToDecrease().size(),
                 event.getTagsToIncrease().size(),
                 event.getRetryCount());
 
@@ -82,22 +80,18 @@ public class TagCountUpdateEventListener {
         } catch (Exception e) {
             log.error("Failed to update tag counts: {}", e.getMessage(), e);
 
-            // 실패 메트릭 기록
             metricService.recordFailure(e.getClass().getSimpleName());
             metricService.recordDuration(timer);
 
-            // TODO: 모니터링 시스템에 알림 (Sentry, NewRelic 등)
-            // - Sentry 알림 연동
-            // - NewRelic 메트릭 기록
-            // - Slack/PagerDuty 알림 연동
-
-            // 재시도 로직 (큐 기반)
+            // 재시도 로직
             if (event.getRetryCount() < MAX_RETRY_COUNT) {
                 scheduleRetry(event);
             } else {
-                // 최대 재시도 횟수 초과 시 Dead Letter Queue에 추가
                 if (enableDlq) {
                     addToDeadLetterQueue(event, e);
+                } else {
+                    log.warn("Max retry exceeded and DLQ disabled. Event dropped: decrease={}, increase={}",
+                            event.getTagsToDecrease().size(), event.getTagsToIncrease().size());
                 }
             }
         }
@@ -105,7 +99,6 @@ public class TagCountUpdateEventListener {
 
     /**
      * 큐 기반 재시도 스케줄링
-     * CompletableFuture 재귀 구조 대신 Redis List를 사용하여 안전하게 처리
      */
     private void scheduleRetry(TagCountUpdateEvent event) {
         int newRetryCount = event.getRetryCount() + 1;
@@ -113,10 +106,9 @@ public class TagCountUpdateEventListener {
                 newRetryCount, MAX_RETRY_COUNT, RETRY_DELAY.toMillis());
 
         try {
-            // 재시도 메트릭 기록
             metricService.recordRetry(newRetryCount);
 
-            // 지연 이벤트 큐에 추가 (Redis List 사용)
+            // 방어적 복사 적용
             TagCountUpdateEvent retryEvent = TagCountUpdateEvent.builder()
                     .tagsToDecrease(event.getTagsToDecrease())
                     .tagsToIncrease(event.getTagsToIncrease())
@@ -126,21 +118,37 @@ public class TagCountUpdateEventListener {
 
             String queueKey = TagRedisKey.retryQueueKey();
             String eventJson = objectMapper.writeValueAsString(retryEvent);
-            
-            // 지연 시간을 점수로 사용하여 정렬된 집합에 추가
-            // 또는 간단하게 List에 추가하고 스케줄러가 처리
+
             long delayTimestamp = System.currentTimeMillis() + RETRY_DELAY.toMillis();
             String delayedEvent = delayTimestamp + ":" + eventJson;
-            
+
             redisTemplate.opsForList().rightPush(queueKey, delayedEvent);
-            
+
+            // 큐 TTL 설정: 최초 추가 시 TTL 설정
+            redisTemplate.expire(queueKey, TagRedisKey.retryQueueTtl());
+
+            // 큐 길이 모니터링
+            monitorQueueSize(queueKey);
+
             log.debug("Retry event added to queue: retryCount={}", newRetryCount);
 
         } catch (Exception e) {
             log.error("Failed to schedule retry: {}", e.getMessage(), e);
-            // 재시도 스케줄링 실패 시 DLQ에 추가
             if (enableDlq) {
                 addToDeadLetterQueue(event, e);
+            }
+        }
+    }
+
+    /**
+     * 큐 길이 모니터링 + 알림
+     */
+    private void monitorQueueSize(String queueKey) {
+        Long queueSize = redisTemplate.opsForList().size(queueKey);
+        if (queueSize != null && queueSize > 1000) { // 임계치 예시
+            log.warn("Retry queue size exceeded threshold: size={}", queueSize);
+            if (enableMonitoring) {
+                // Slack, Sentry 등 알림 연동
             }
         }
     }
@@ -151,26 +159,24 @@ public class TagCountUpdateEventListener {
     private void addToDeadLetterQueue(TagCountUpdateEvent event, Exception e) {
         try {
             String dlqKey = TagRedisKey.dlqKeyPrefix() + System.currentTimeMillis() + ":" + UUID.randomUUID();
-            
+
             DlqItem dlqItem = new DlqItem(
                     event.getTagsToDecrease(),
                     event.getTagsToIncrease(),
                     e.getMessage(),
                     event.getOccurredAt(),
                     event.getRetryCount(),
-                    null // 초기 DLQ 추가 시에는 scheduledTimeMillis 없음
+                    null
             );
-            
+
             String dlqValue = objectMapper.writeValueAsString(dlqItem);
 
-            // DLQ에 저장 (TTL 적용)
             redisTemplate.opsForValue().set(
                     dlqKey,
                     dlqValue,
                     TagRedisKey.dlqTtl()
             );
 
-            // DLQ 메트릭 기록
             metricService.recordDlq();
 
             log.error("Tag count update event added to DLQ: key={}, retryCount={}",
@@ -181,4 +187,3 @@ public class TagCountUpdateEventListener {
         }
     }
 }
-

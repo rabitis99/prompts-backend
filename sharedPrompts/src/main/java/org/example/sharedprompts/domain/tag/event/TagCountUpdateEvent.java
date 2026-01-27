@@ -4,6 +4,8 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -36,5 +38,19 @@ public class TagCountUpdateEvent {
      */
     @Builder.Default
     int retryCount = 0;
+
+    @Builder
+    public TagCountUpdateEvent(Set<String> tagsToDecrease,
+                               Set<String> tagsToIncrease,
+                               int retryCount,
+                               LocalDateTime occurredAt) {
+        this.tagsToDecrease = tagsToDecrease == null ? Collections.emptySet()
+                : Set.copyOf(tagsToDecrease);
+        this.tagsToIncrease = tagsToIncrease == null ? Collections.emptySet()
+                : Set.copyOf(tagsToIncrease);
+        this.retryCount = retryCount;
+        this.occurredAt = occurredAt;
+    }
+
 }
 

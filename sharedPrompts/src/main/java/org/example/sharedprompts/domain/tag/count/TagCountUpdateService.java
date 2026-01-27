@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.tag.count;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.tag.config.TagRedisKey;
+import org.example.sharedprompts.global.Lua.LuaScripts;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import java.util.Set;
  * - Redis 원자 연산 보장
  * - 태그별 원자 연산을 순차적으로 수행
  * - 실패 시 모니터링 및 재시도 로직
+ * - 중앙화된 Lua 스크립트 사용
  */
 @Slf4j
 @Service
@@ -26,25 +28,12 @@ public class TagCountUpdateService {
     private final StringRedisTemplate redisTemplate;
     private final TagCountMetricService metricService;
     
-    // Redis Lua 스크립트를 통한 원자적 증가/감소 연산
-    private static final String INCREMENT_SCRIPT = 
-            "local key = KEYS[1]\n" +
-            "local current = redis.call('GET', key) or '0'\n" +
-            "local result = redis.call('INCR', key)\n" +
-            "redis.call('EXPIRE', key, ARGV[1])\n" +
-            "return result";
+    // 중앙화된 Lua 스크립트 사용
+    private static final DefaultRedisScript<Long> INCREMENT_SCRIPT = 
+            new DefaultRedisScript<>(LuaScripts.TAG_COUNT_INCREMENT, Long.class);
     
-    private static final String DECREMENT_SCRIPT = 
-            "local key = KEYS[1]\n" +
-            "local current = redis.call('GET', key) or '0'\n" +
-            "if tonumber(current) > 0 then\n" +
-            "    local result = redis.call('DECR', key)\n" +
-            "    redis.call('EXPIRE', key, ARGV[1])\n" +
-            "    return result\n" +
-            "else\n" +
-            "    redis.call('EXPIRE', key, ARGV[1])\n" +
-            "    return 0\n" +
-            "end";
+    private static final DefaultRedisScript<Long> DECREMENT_SCRIPT = 
+            new DefaultRedisScript<>(LuaScripts.TAG_COUNT_DECREMENT, Long.class);
 
     /**
      * 태그 카운트 증가 (원자 연산)
@@ -57,9 +46,9 @@ public class TagCountUpdateService {
             String key = TagRedisKey.countKey(tagName);
             long ttlSeconds = TagRedisKey.countTtl().getSeconds();
             
-            // Redis 원자 연산 사용 (TTL 설정 포함)
+            // 중앙화된 Lua 스크립트를 통한 Redis 원자 연산 (TTL 설정 포함)
             Long result = redisTemplate.execute(
-                    new DefaultRedisScript<>(INCREMENT_SCRIPT, Long.class),
+                    INCREMENT_SCRIPT,
                     Collections.singletonList(key),
                     String.valueOf(ttlSeconds)
             );
@@ -90,9 +79,9 @@ public class TagCountUpdateService {
             String key = TagRedisKey.countKey(tagName);
             long ttlSeconds = TagRedisKey.countTtl().getSeconds();
             
-            // Redis 원자 연산 사용 (0 이하로 내려가지 않음, TTL 설정 포함)
+            // 중앙화된 Lua 스크립트를 통한 Redis 원자 연산 (0 이하로 내려가지 않음, TTL 설정 포함)
             Long result = redisTemplate.execute(
-                    new DefaultRedisScript<>(DECREMENT_SCRIPT, Long.class),
+                    DECREMENT_SCRIPT,
                     Collections.singletonList(key),
                     String.valueOf(ttlSeconds)
             );

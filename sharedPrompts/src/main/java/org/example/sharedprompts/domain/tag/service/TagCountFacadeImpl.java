@@ -49,8 +49,12 @@ public class TagCountFacadeImpl implements TagCountFacade {
     @Override
     public void publishTagCountUpdate(Set<String> tagsToDecrease, Set<String> tagsToIncrease) {
         // 호출 시점에 Set이 변경될 수 있으므로 스냅샷 복사
-        Set<String> decreaseSnapshot = Set.copyOf(tagsToDecrease);
-        Set<String> increaseSnapshot = Set.copyOf(tagsToIncrease);
+        Set<String> decreaseSnapshot = (tagsToDecrease == null) ? Set.of() : Set.copyOf(tagsToDecrease);
+        Set<String> increaseSnapshot = (tagsToIncrease == null) ? Set.of() : Set.copyOf(tagsToIncrease);
+
+        if (decreaseSnapshot.isEmpty() && increaseSnapshot.isEmpty()) {
+            return;
+        }
 
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             // 트랜잭션이 있는 경우: 커밋 후 비동기 처리

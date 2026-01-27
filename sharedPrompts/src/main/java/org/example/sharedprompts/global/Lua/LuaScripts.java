@@ -235,4 +235,43 @@ public class LuaScripts {
         return deletedCount
         """;
 
+    /**
+     * 태그 카운트 증가 스크립트 (TTL 포함)
+     * INCR + EXPIRE를 원자적으로 처리합니다.
+     *
+     * KEYS[1] : 태그 카운트 키
+     * ARGV[1] : TTL (seconds)
+     *
+     * 반환값: 증가된 카운트 값
+     */
+    public static final String TAG_COUNT_INCREMENT = """
+        local key = KEYS[1]
+        local current = redis.call('GET', key) or '0'
+        local result = redis.call('INCR', key)
+        redis.call('EXPIRE', key, ARGV[1])
+        return result
+        """;
+
+    /**
+     * 태그 카운트 감소 스크립트 (TTL 포함)
+     * 0 이하로 내려가지 않도록 보장하며, EXPIRE를 원자적으로 처리합니다.
+     *
+     * KEYS[1] : 태그 카운트 키
+     * ARGV[1] : TTL (seconds)
+     *
+     * 반환값: 감소된 카운트 값 (0 이상)
+     */
+    public static final String TAG_COUNT_DECREMENT = """
+        local key = KEYS[1]
+        local current = redis.call('GET', key) or '0'
+        if tonumber(current) > 0 then
+            local result = redis.call('DECR', key)
+            redis.call('EXPIRE', key, ARGV[1])
+            return result
+        else
+            redis.call('EXPIRE', key, ARGV[1])
+            return 0
+        end
+        """;
+
 }

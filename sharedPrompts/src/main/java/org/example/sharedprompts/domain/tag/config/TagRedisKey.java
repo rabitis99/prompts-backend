@@ -51,6 +51,10 @@ public final class TagRedisKey {
     public static Duration dlqTtl() {
         return Duration.ofDays(7);
     }
+
+    public static Duration retryQueueTtl() {
+        return Duration.ofDays(1); // 예: 1일 TTL
+    }
     
     private TagRedisKey() {
         throw new UnsupportedOperationException("Utility class");

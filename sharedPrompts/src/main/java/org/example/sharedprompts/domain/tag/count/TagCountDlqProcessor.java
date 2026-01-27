@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.tag.count;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.tag.config.TagRedisKey;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.ScanOptions;
@@ -40,6 +41,11 @@ public class TagCountDlqProcessor {
     private final ObjectMapper objectMapper;
 
     @Scheduled(fixedDelayString = "${tag.count.dlq.process-interval:3600000}")
+    @SchedulerLock(
+            name = "TagCountDlqProcessor",
+            lockAtMostFor = "55m",
+            lockAtLeastFor = "1m"
+    )
     public void processDeadLetterQueue() {
         log.info("Starting DLQ processing for tag count updates");
 
