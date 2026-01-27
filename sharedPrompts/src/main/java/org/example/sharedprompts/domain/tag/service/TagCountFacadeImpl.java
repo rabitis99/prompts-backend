@@ -27,9 +27,22 @@ public class TagCountFacadeImpl implements TagCountFacade {
     @Value("${tag.count.update.sync-fallback:false}")
     private boolean syncFallback;
 
+    /**
+     * 단일 태그 카운트 즉시 증가
+     * 
+     * ⚠️ 주의: 이 메서드는 트랜잭션 커밋 여부와 관계없이 Redis 카운트를 즉시 증가시킵니다.
+     * 트랜잭션이 롤백되면 DB와 Redis 간 불일치가 발생할 수 있습니다.
+     * 
+     * 권장: 트랜잭션 내부에서 사용하는 경우 {@link #publishTagCountUpdate(Set, Set)}를 사용하세요.
+     * 이 메서드는 비트랜잭션 컨텍스트(예: 배치 작업, 수동 동기화)에서만 사용해야 합니다.
+     * 
+     * @param tagName 태그 이름
+     * @deprecated 트랜잭션 안전성을 위해 {@link #publishTagCountUpdate(Set, Set)} 사용을 권장합니다.
+     */
     @Override
+    @Deprecated
     public void incrementTagCount(String tagName) {
-        // 트랜잭션 내부에서 즉시 처리
+        // 트랜잭션 내부에서 즉시 처리 (주의: 롤백 시 불일치 가능)
         tagCountUpdateService.incrementTagCount(tagName);
     }
 
@@ -53,7 +66,7 @@ public class TagCountFacadeImpl implements TagCountFacade {
             if (syncFallback) {
                 // 동기 처리 모드: 즉시 처리 (테스트/배치 환경)
                 log.debug("Sync fallback mode: processing tag count update synchronously");
-                tagEventPublisher.publishTagCountUpdate(tagsToDecrease, tagsToIncrease);
+                tagCountUpdateService.updateTagCounts(tagsToDecrease, tagsToIncrease);
             } else {
                 // 비동기 처리 모드: 이벤트 발행 (기본값)
                 log.debug("Async fallback mode: publishing tag count update event");

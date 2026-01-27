@@ -38,6 +38,7 @@ public class PromptTagServiceImpl implements PromptTagService {
 
         List<String> processedNames = TagNormalizer.normalizeTags(tagNames);
         List<Tag> tags = new ArrayList<>(processedNames.size());
+        Set<String> tagsToIncrease = new HashSet<>();
 
         for (String name : processedNames) {
             Tag tag = getOrCreateTag(name);
@@ -45,12 +46,16 @@ public class PromptTagServiceImpl implements PromptTagService {
             boolean attached = attachPromptTag(prompt, tag);
 
             if (attached) {
-                // 즉시 업데이트 (트랜잭션 내부이므로 안전)
-                // 단일 태그는 개별 처리, 배치는 updateTags에서 처리
-                tagCountFacade.incrementTagCount(tag.getName());
+                // 트랜잭션 커밋 후 처리를 위해 태그 이름 수집
+                tagsToIncrease.add(tag.getName());
             }
 
             tags.add(tag);
+        }
+
+        // 트랜잭션 커밋 후 이벤트 발행 (updateTags와 동일한 패턴)
+        if (!tagsToIncrease.isEmpty()) {
+            tagCountFacade.publishTagCountUpdate(Set.of(), tagsToIncrease);
         }
 
         return tags;

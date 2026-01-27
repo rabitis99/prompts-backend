@@ -7,7 +7,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -63,8 +65,10 @@ public class TagCountUpdateService {
             );
             
             if (result == null) {
-                log.warn("Failed to increment tag count for {}: result is null", tagName);
-                return 0;
+                throw new TagCountUpdateException(
+                        "Redis script returned null for tag: " + tagName,
+                        new IllegalStateException("Null result from Redis script")
+                );
             }
             
             log.debug("Tag count incremented: {} -> {}", tagName, result);
@@ -94,8 +98,10 @@ public class TagCountUpdateService {
             );
             
             if (result == null) {
-                log.warn("Failed to decrement tag count for {}: result is null", tagName);
-                return 0;
+                throw new TagCountUpdateException(
+                        "Redis script returned null for tag: " + tagName,
+                        new IllegalStateException("Null result from Redis script")
+                );
             }
             
             log.debug("Tag count decremented: {} -> {}", tagName, result);
@@ -111,11 +117,16 @@ public class TagCountUpdateService {
      * 
      * @param tagsToDecrease 감소할 태그 목록
      * @param tagsToIncrease 증가할 태그 목록
+     * @throws TagCountUpdateException 부분 실패 시 예외 발생 (재시도/DLQ 활성화)
      */
     public void updateTagCounts(Set<String> tagsToDecrease, Set<String> tagsToIncrease) {
         if (tagsToDecrease.isEmpty() && tagsToIncrease.isEmpty()) {
             return;
         }
+
+        List<String> failedDecreases = new ArrayList<>();
+        List<String> failedIncreases = new ArrayList<>();
+        Exception firstException = null;
 
         // 감소 처리
         for (String tagName : tagsToDecrease) {
@@ -125,7 +136,10 @@ public class TagCountUpdateService {
                 metricService.recordTagSuccess(tagName, "decrease");
             } catch (Exception e) {
                 log.error("Failed to decrement tag count for {}: {}", tagName, e.getMessage(), e);
-                // 개별 실패는 로깅만 하고 계속 진행
+                failedDecreases.add(tagName);
+                if (firstException == null) {
+                    firstException = e;
+                }
             }
         }
         
@@ -137,8 +151,20 @@ public class TagCountUpdateService {
                 metricService.recordTagSuccess(tagName, "increase");
             } catch (Exception e) {
                 log.error("Failed to increment tag count for {}: {}", tagName, e.getMessage(), e);
-                // 개별 실패는 로깅만 하고 계속 진행
+                failedIncreases.add(tagName);
+                if (firstException == null) {
+                    firstException = e;
+                }
             }
+        }
+
+        // 부분 실패가 있으면 예외를 발생시켜 재시도/DLQ 메커니즘 활성화
+        if (!failedDecreases.isEmpty() || !failedIncreases.isEmpty()) {
+            throw new TagCountUpdateException(
+                    String.format("Tag count update failed. decrease=%s, increase=%s", 
+                            failedDecreases, failedIncreases),
+                    firstException
+            );
         }
 
         log.debug("Tag count batch update completed: decrease={}, increase={}",

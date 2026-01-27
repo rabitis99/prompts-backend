@@ -16,6 +16,11 @@ public final class TagRedisKey {
      * 형식: sharedprompts:tag:count:<tagName>
      */
     public static String countKey(String tagName) {
+
+        if (tagName == null || tagName.isBlank()) {
+            throw new IllegalArgumentException("tagName must not be null or blank");
+        }
+
         return String.format("%s:count:%s", PREFIX, tagName);
     }
     

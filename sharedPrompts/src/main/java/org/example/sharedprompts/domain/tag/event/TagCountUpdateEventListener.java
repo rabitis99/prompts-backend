@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.tag.config.TagRedisKey;
+import org.example.sharedprompts.domain.tag.count.DlqItem;
 import org.example.sharedprompts.domain.tag.count.TagCountMetricService;
 import org.example.sharedprompts.domain.tag.count.TagCountUpdateService;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,6 +39,7 @@ public class TagCountUpdateEventListener {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
+    //TODO: 모니터링 시스템에 알림
     @Value("${tag.count.update.enable-monitoring:true}")
     private boolean enableMonitoring;
 
@@ -175,24 +177,6 @@ public class TagCountUpdateEventListener {
 
         } catch (Exception dlqException) {
             log.error("Failed to add event to DLQ: {}", dlqException.getMessage(), dlqException);
-        }
-    }
-
-    /**
-     * DLQ 항목 DTO
-     */
-    private record DlqItem(
-            Set<String> tagsToDecrease,
-            Set<String> tagsToIncrease,
-            String error,
-            LocalDateTime occurredAt,
-            int retryCount,
-            Long scheduledTime  // backoff 적용 시 실행 예정 시간 (nullable)
-    ) {
-        // scheduledTime 없이 생성하는 편의 생성자
-        public DlqItem(Set<String> tagsToDecrease, Set<String> tagsToIncrease,
-                      String error, LocalDateTime occurredAt, int retryCount) {
-            this(tagsToDecrease, tagsToIncrease, error, occurredAt, retryCount, null);
         }
     }
 }

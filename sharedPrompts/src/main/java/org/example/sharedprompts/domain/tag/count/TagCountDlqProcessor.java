@@ -4,10 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.tag.config.TagRedisKey;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -22,11 +25,7 @@ import java.util.Set;
 public class TagCountDlqProcessor {
 
     private static final int MAX_DLQ_RETRY = 5;
-    
-    /**
-     * retryCount 기반 점진적 backoff (밀리초)
-     * 1회차 → 5분, 2회차 → 15분, 3회차 → 30분, 이후 → 30분 고정
-     */
+
     private static final long[] BACKOFF_MILLIS = {
             5 * 60_000L,   // 5분
             15 * 60_000L,  // 15분
@@ -38,17 +37,13 @@ public class TagCountDlqProcessor {
     private final TagCountMetricService metricService;
     private final ObjectMapper objectMapper;
 
-    /**
-     * DLQ 처리 (매 1시간마다 실행)
-     */
     @Scheduled(fixedDelayString = "${tag.count.dlq.process-interval:3600000}")
     public void processDeadLetterQueue() {
         log.info("Starting DLQ processing for tag count updates");
 
         try {
-            String dlqKeyPrefix = TagRedisKey.dlqKeyPrefix();
-            Set<String> dlqKeys = redisTemplate.keys(dlqKeyPrefix + "*");
-            if (dlqKeys == null || dlqKeys.isEmpty()) {
+            Set<String> dlqKeys = scanDlqKeys(TagRedisKey.dlqKeyPrefix());
+            if (dlqKeys.isEmpty()) {
                 log.debug("No items in DLQ");
                 return;
             }
@@ -58,97 +53,50 @@ public class TagCountDlqProcessor {
             int failureCount = 0;
 
             for (String dlqKey : dlqKeys) {
+                DlqItem item = null;
                 try {
                     String dlqValue = redisTemplate.opsForValue().get(dlqKey);
-                    if (dlqValue == null) {
-                        continue;
-                    }
+                    if (dlqValue == null) continue;
 
-                    // JSON 파싱 및 재처리
-                    DlqItem item = objectMapper.readValue(dlqValue, DlqItem.class);
-                    
-                    if (item.retryCount >= MAX_DLQ_RETRY) {
-                        log.warn("DLQ item exceeded max retry count, removing: {} (error: {}, occurredAt: {})", 
-                                dlqKey, item.error, item.occurredAt);
+                    item = objectMapper.readValue(dlqValue, DlqItem.class);
+
+                    if (item.getRetryCount() >= MAX_DLQ_RETRY) {
+                        log.warn("DLQ item exceeded max retry count, removing: {} (error: {}, occurredAt: {})",
+                                dlqKey, item.getError(), item.getOccurredAt());
                         redisTemplate.delete(dlqKey);
                         continue;
                     }
 
-                    // backoff 적용: retryCount 기반 지연 시간 계산
-                    long backoffDelay = calculateBackoff(item.retryCount);
-                    long executeAt = item.scheduledTime != null ? item.scheduledTime : System.currentTimeMillis();
-                    
-                    // 아직 실행 시간이 되지 않았으면 스킵
+                    long executeAt = item.getScheduledTime() != null ? item.getScheduledTime() : System.currentTimeMillis();
                     if (executeAt > System.currentTimeMillis()) {
-                        log.debug("DLQ item not ready yet: key={}, executeAt={}, currentTime={}", 
+                        log.debug("DLQ item not ready yet: key={}, executeAt={}, currentTime={}",
                                 dlqKey, executeAt, System.currentTimeMillis());
                         continue;
                     }
 
-                    log.debug("Processing DLQ item: key={}, error={}, occurredAt={}, retryCount={}, backoffDelay={}ms", 
-                            dlqKey, item.error, item.occurredAt, item.retryCount, backoffDelay);
+                    tagCountUpdateService.updateTagCounts(item.getTagsToDecrease(), item.getTagsToIncrease());
 
-                    // 재처리 시도
-                    tagCountUpdateService.updateTagCounts(
-                            item.tagsToDecrease,
-                            item.tagsToIncrease
-                    );
-
-                    // 성공 시 DLQ에서 제거
                     redisTemplate.delete(dlqKey);
                     successCount++;
-                    metricService.recordSuccess(
-                            item.tagsToDecrease.size(),
-                            item.tagsToIncrease.size()
-                    );
+                    metricService.recordSuccess(item.getTagsToDecrease().size(), item.getTagsToIncrease().size());
                     log.info("Successfully reprocessed DLQ item: {}", dlqKey);
 
                 } catch (Exception e) {
                     log.error("Failed to process DLQ item {}: {}", dlqKey, e.getMessage(), e);
-                    
-                    // 실패 시 backoff 적용하여 재등록
-                    try {
-                        DlqItem item = objectMapper.readValue(
-                                redisTemplate.opsForValue().get(dlqKey), 
-                                DlqItem.class
-                        );
-                        
-                        if (item != null && item.retryCount < MAX_DLQ_RETRY) {
-                            int newRetryCount = item.retryCount + 1;
-                            long backoffDelay = calculateBackoff(newRetryCount);
-                            long executeAt = System.currentTimeMillis() + backoffDelay;
-                            
-                            DlqItem updatedItem = new DlqItem(
-                                    item.tagsToDecrease,
-                                    item.tagsToIncrease,
-                                    item.error,
-                                    item.occurredAt,
-                                    newRetryCount,
-                                    executeAt
-                            );
-                            
-                            String updatedValue = objectMapper.writeValueAsString(updatedItem);
-                            redisTemplate.opsForValue().set(
-                                    dlqKey,
-                                    updatedValue,
-                                    TagRedisKey.dlqTtl()
-                            );
-                            
-                            log.warn("DLQ item rescheduled with backoff: key={}, retryCount={}, executeAt={} (delay={}ms)", 
-                                    dlqKey, newRetryCount, executeAt, backoffDelay);
-                        }
-                    } catch (Exception rescheduleException) {
-                        log.error("Failed to reschedule DLQ item {}: {}", dlqKey, rescheduleException.getMessage(), rescheduleException);
+                    // 이미 파싱된 item을 재사용하여 데이터 불일치 방지
+                    if (item != null) {
+                        rescheduleDlqItem(dlqKey, item);
+                    } else {
+                        // 파싱 실패 시에만 Redis에서 재조회
+                        rescheduleDlqItem(dlqKey, null);
                     }
-                    
                     failureCount++;
                 }
 
                 processedCount++;
             }
 
-            log.info("DLQ processing completed: processed={}, success={}, failure={}",
-                    processedCount, successCount, failureCount);
+            log.info("DLQ processing completed: processed={}, success={}, failure={}", processedCount, successCount, failureCount);
 
         } catch (Exception e) {
             log.error("Error during DLQ processing: {}", e.getMessage(), e);
@@ -157,48 +105,66 @@ public class TagCountDlqProcessor {
 
     /**
      * retryCount 기반 backoff 시간 계산
-     * 
-     * @param retryCount 현재 재시도 횟수
-     * @return backoff 지연 시간 (밀리초)
      */
     private long calculateBackoff(int retryCount) {
-        if (retryCount <= 0) {
-            return BACKOFF_MILLIS[0];
-        }
-        
+        if (retryCount <= 0) return BACKOFF_MILLIS[0];
         int index = retryCount - 1;
-        if (index < BACKOFF_MILLIS.length) {
-            return BACKOFF_MILLIS[index];
-        }
-        
-        // 최대 backoff 시간 반환
-        return BACKOFF_MILLIS[BACKOFF_MILLIS.length - 1];
+        return index < BACKOFF_MILLIS.length ? BACKOFF_MILLIS[index] : BACKOFF_MILLIS[BACKOFF_MILLIS.length - 1];
     }
 
     /**
-     * DLQ 항목 DTO
+     * SCAN을 이용하여 DLQ 키 조회
      */
-    private static class DlqItem {
-        public Set<String> tagsToDecrease;
-        public Set<String> tagsToIncrease;
-        public String error;
-        public String occurredAt;
-        public int retryCount = 0;
-        public Long scheduledTime; // backoff 적용 시 실행 예정 시간
-        
-        // 기본 생성자 (Jackson용)
-        public DlqItem() {}
-        
-        // 전체 생성자
-        public DlqItem(Set<String> tagsToDecrease, Set<String> tagsToIncrease, 
-                      String error, String occurredAt, int retryCount, Long scheduledTime) {
-            this.tagsToDecrease = tagsToDecrease;
-            this.tagsToIncrease = tagsToIncrease;
-            this.error = error;
-            this.occurredAt = occurredAt;
-            this.retryCount = retryCount;
-            this.scheduledTime = scheduledTime;
+    private Set<String> scanDlqKeys(String prefix) {
+        Set<String> dlqKeys = new HashSet<>();
+        ScanOptions scanOptions = ScanOptions.scanOptions().match(prefix + "*").count(100).build();
+        try (Cursor<String> cursor = redisTemplate.scan(scanOptions)) {
+            while (cursor.hasNext()) {
+                dlqKeys.add(cursor.next());
+            }
+        } catch (Exception e) {
+            log.error("Error scanning DLQ keys with prefix {}: {}", prefix, e.getMessage(), e);
+        }
+        return dlqKeys;
+    }
+
+    /**
+     * 실패한 DLQ 아이템 재등록
+     * 
+     * @param dlqKey DLQ 키
+     * @param item 이미 파싱된 아이템 (null이면 Redis에서 재조회)
+     */
+    private void rescheduleDlqItem(String dlqKey, DlqItem item) {
+        try {
+            // 이미 파싱된 item이 없으면 Redis에서 재조회 (파싱 실패 케이스)
+            if (item == null) {
+                String dlqValue = redisTemplate.opsForValue().get(dlqKey);
+                if (dlqValue == null) return;
+                item = objectMapper.readValue(dlqValue, DlqItem.class);
+            }
+            
+            if (item.getRetryCount() >= MAX_DLQ_RETRY) return;
+
+            int newRetryCount = item.getRetryCount() + 1;
+            long backoffDelay = calculateBackoff(newRetryCount);
+            long executeAt = System.currentTimeMillis() + backoffDelay;
+
+            DlqItem updatedItem = new DlqItem(
+                    item.getTagsToDecrease(),
+                    item.getTagsToIncrease(),
+                    item.getError(),
+                    item.getOccurredAt(),
+                    newRetryCount,
+                    executeAt
+            );
+
+            String updatedValue = objectMapper.writeValueAsString(updatedItem);
+            redisTemplate.opsForValue().set(dlqKey, updatedValue, TagRedisKey.dlqTtl());
+
+            log.warn("DLQ item rescheduled with backoff: key={}, retryCount={}, executeAt={} (delay={}ms)",
+                    dlqKey, newRetryCount, executeAt, backoffDelay);
+        } catch (Exception e) {
+            log.error("Failed to reschedule DLQ item {}: {}", dlqKey, e.getMessage(), e);
         }
     }
 }
-
