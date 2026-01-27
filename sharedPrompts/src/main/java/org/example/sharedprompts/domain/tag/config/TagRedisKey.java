@@ -12,6 +12,21 @@ public final class TagRedisKey {
     private static final String PREFIX = "sharedprompts:tag";
     
     /**
+     * 태그 카운트 TTL (30일)
+     */
+    private static final Duration COUNT_TTL = Duration.ofDays(30);
+    
+    /**
+     * DLQ TTL (7일)
+     */
+    private static final Duration DLQ_TTL = Duration.ofDays(7);
+    
+    /**
+     * 지연 이벤트 큐 TTL (1일)
+     */
+    private static final Duration RETRY_QUEUE_TTL = Duration.ofDays(1);
+    
+    /**
      * 태그 카운트 키
      * 형식: sharedprompts:tag:count:<tagName>
      */
@@ -26,7 +41,7 @@ public final class TagRedisKey {
      * 태그 카운트 TTL (30일)
      */
     public static Duration countTtl() {
-        return Duration.ofDays(30);
+        return COUNT_TTL;
     }
     
     /**
@@ -49,11 +64,14 @@ public final class TagRedisKey {
      * DLQ TTL (7일)
      */
     public static Duration dlqTtl() {
-        return Duration.ofDays(7);
+        return DLQ_TTL;
     }
 
+    /**
+     * 지연 이벤트 큐 TTL (1일)
+     */
     public static Duration retryQueueTtl() {
-        return Duration.ofDays(1); // 예: 1일 TTL
+        return RETRY_QUEUE_TTL;
     }
     
     private TagRedisKey() {

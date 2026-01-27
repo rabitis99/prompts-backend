@@ -49,7 +49,7 @@ public class TagCountUpdateEvent {
         this.tagsToIncrease = tagsToIncrease == null ? Collections.emptySet()
                 : Set.copyOf(tagsToIncrease);
         this.retryCount = retryCount;
-        this.occurredAt = occurredAt;
+        this.occurredAt = occurredAt != null ? occurredAt : LocalDateTime.now();
     }
 
 }

@@ -12,8 +12,8 @@ import java.util.Set;
 
 /**
  * 태그 카운트 업데이트 관련 메트릭 중앙 관리 컴포넌트
- * - 모든 메트릭을 사전 등록하여 일관성 있는 관리
- * - 인라인 Counter.builder().register() 호출 방지
+ * - 정적 태그를 가진 메트릭은 사전 등록하여 일관성 있는 관리
+ * - 동적 태그(error_type, retry_count)가 필요한 메트릭은 recordFailure(), recordRetry()에서 생성
  */
 @Component
 @RequiredArgsConstructor
@@ -24,14 +24,12 @@ public class TagCountMetrics {
 
     // 성공/실패 메트릭
     private Counter successCounter;
-    private Counter failureCounter;
     
     // 태그별 증가/감소 메트릭
     private Counter decreaseCounter;
     private Counter increaseCounter;
     
     // 재시도 및 DLQ 메트릭
-    private Counter retryCounter;
     private Counter dlqCounter;
     
     // 처리 시간 메트릭
@@ -41,6 +39,28 @@ public class TagCountMetrics {
     private static final Set<String> KNOWN_ERROR_TYPES = Set.of(
             "TagCountUpdateException", "RedisConnectionException", "JsonProcessingException"
     );
+    
+    /**
+     * 재시도 횟수를 버킷으로 변환하여 메트릭 카디널리티 폭발 방지
+     * 
+     * @param retryCount 원본 재시도 횟수
+     * @return 버킷팅된 재시도 횟수 문자열
+     */
+    private static String bucketizeRetryCount(int retryCount) {
+        if (retryCount <= 0) {
+            return "0";
+        } else if (retryCount == 1) {
+            return "1";
+        } else if (retryCount <= 3) {
+            return "2-3";
+        } else if (retryCount <= 5) {
+            return "4-5";
+        } else if (retryCount <= 10) {
+            return "6-10";
+        } else {
+            return "11+";
+        }
+    }
 
     @PostConstruct
     public void initCounters() {
@@ -48,12 +68,6 @@ public class TagCountMetrics {
         this.successCounter = Counter.builder(METRIC_PREFIX + "_total")
                 .tag("status", "success")
                 .description("Total number of successful tag count updates")
-                .register(meterRegistry);
-
-        // 실패 메트릭 (error_type 태그는 동적으로 추가)
-        this.failureCounter = Counter.builder(METRIC_PREFIX + "_total")
-                .tag("status", "failure")
-                .description("Total number of failed tag count updates")
                 .register(meterRegistry);
 
         // 태그별 증가/감소 메트릭
@@ -65,11 +79,6 @@ public class TagCountMetrics {
         this.increaseCounter = Counter.builder(METRIC_PREFIX + "_tags_total")
                 .tag("operation", "increase")
                 .description("Total number of tags increased")
-                .register(meterRegistry);
-
-        // 재시도 메트릭 (retry_count 태그는 동적으로 추가)
-        this.retryCounter = Counter.builder(METRIC_PREFIX + "_retry_total")
-                .description("Total number of retry attempts")
                 .register(meterRegistry);
 
         // DLQ 메트릭
@@ -97,11 +106,15 @@ public class TagCountMetrics {
     }
 
     /**
-     * 재시도 메트릭 기록 (retry_count 태그 포함)
+     * 재시도 메트릭 기록 (retry_count 태그 포함, 버킷팅 적용)
+     * 
+     * 카디널리티 폭발을 방지하기 위해 재시도 횟수를 버킷으로 변환합니다.
+     * 버킷: "1", "2-3", "4-5", "6-10", "11+"
      */
     public void recordRetry(int retryCount) {
+        String bucket = bucketizeRetryCount(retryCount);
         Counter.builder(METRIC_PREFIX + "_retry_total")
-                .tag("retry_count", String.valueOf(retryCount))
+                .tag("retry_count", bucket)
                 .description("Total number of retry attempts")
                 .register(meterRegistry)
                 .increment();

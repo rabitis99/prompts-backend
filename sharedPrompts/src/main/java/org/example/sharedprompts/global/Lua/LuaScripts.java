@@ -246,9 +246,11 @@ public class LuaScripts {
      */
     public static final String TAG_COUNT_INCREMENT = """
         local key = KEYS[1]
-        local current = redis.call('GET', key) or '0'
+        local ttl = tonumber(ARGV[1])
         local result = redis.call('INCR', key)
-        redis.call('EXPIRE', key, ARGV[1])
+        if ttl and ttl > 0 then
+            redis.call('EXPIRE', key, ttl)
+        end
         return result
         """;
 
@@ -263,15 +265,20 @@ public class LuaScripts {
      */
     public static final String TAG_COUNT_DECREMENT = """
         local key = KEYS[1]
-        local current = redis.call('GET', key) or '0'
-        if tonumber(current) > 0 then
-            local result = redis.call('DECR', key)
-            redis.call('EXPIRE', key, ARGV[1])
-            return result
-        else
-            redis.call('EXPIRE', key, ARGV[1])
+        local ttl = tonumber(ARGV[1])
+        local val = redis.call('GET', key)
+        if not val then
             return 0
         end
+        local num = tonumber(val)
+        if not num or num <= 0 then
+            return 0
+        end
+        local result = redis.call('DECR', key)
+        if ttl and ttl > 0 then
+            redis.call('EXPIRE', key, ttl)
+        end
+        return result
         """;
 
 }
