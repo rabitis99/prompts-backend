@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.notification.service;
+package org.example.sharedprompts.domain.notification.service.batch;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +30,7 @@ public class NotificationBatchService {
      */
     @Transactional
     public List<Notification> saveBatch(List<Notification> notifications) {
-        if (notifications.isEmpty()) {
+        if (notifications == null || notifications.isEmpty()) {
             return List.of();
         }
 

@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.notification.factory.PromptCreatedSsePayloadFactory;
 import org.example.sharedprompts.domain.notification.message.PromptCreatedMessage;
 import org.example.sharedprompts.domain.notification.metrics.NotificationMetrics;
-import org.example.sharedprompts.domain.notification.service.SseBatchSender;
+import org.example.sharedprompts.domain.notification.service.sse.SseBatchSender;
 import org.example.sharedprompts.domain.notification.validator.PromptCreatedMessageValidator;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;

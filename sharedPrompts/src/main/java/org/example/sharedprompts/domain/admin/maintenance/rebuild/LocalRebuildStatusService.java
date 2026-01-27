@@ -1,21 +1,22 @@
 package org.example.sharedprompts.domain.admin.maintenance.rebuild;
 
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.admin.enums.MaintenanceJobStatus;
 import org.example.sharedprompts.domain.admin.maintenance.service.RebuildStatusService;
 import org.example.sharedprompts.dto.admin.response.RebuildLikeCountsStatusResponseDto;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 
 /**
  * 로컬 메모리 기반 상태 관리 서비스
  * 단일 인스턴스 환경에서 사용합니다.
+ * 
+ * Note: 이 클래스는 @Service 어노테이션이 없습니다.
+ * RebuildStatusServiceConfig에서 조건부로 빈으로 등록됩니다.
  */
 @Slf4j
-@Service
-@RequiredArgsConstructor
+@NoArgsConstructor
 public class LocalRebuildStatusService implements RebuildStatusService {
     
     private volatile MaintenanceJobStatus status = MaintenanceJobStatus.IDLE;

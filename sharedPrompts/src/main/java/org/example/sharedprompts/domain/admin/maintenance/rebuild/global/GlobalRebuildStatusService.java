@@ -8,17 +8,17 @@ import org.example.sharedprompts.domain.admin.enums.MaintenanceJobStatus;
 import org.example.sharedprompts.domain.admin.maintenance.service.RebuildStatusService;
 import org.example.sharedprompts.dto.admin.response.RebuildLikeCountsStatusResponseDto;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Service;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 
 /**
  * Redis 기반 글로벌 상태 관리 서비스
  * 멀티 인스턴스 환경에서 상태를 공유합니다.
+ * 
+ * Note: 이 클래스는 @Service 어노테이션이 없습니다.
+ * RebuildStatusServiceConfig에서 조건부로 빈으로 등록됩니다.
  */
 @Slf4j
-@Service
 @RequiredArgsConstructor
 public class GlobalRebuildStatusService implements RebuildStatusService {
     

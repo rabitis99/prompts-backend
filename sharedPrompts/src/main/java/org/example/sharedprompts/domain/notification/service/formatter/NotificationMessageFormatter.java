@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.notification.service;
+package org.example.sharedprompts.domain.notification.service.formatter;
 
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.global.exception.ApiException;
@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
@@ -23,7 +24,7 @@ public class NotificationMessageFormatter {
      * - 알림 타입별 포맷팅 함수를 저장
      * - 동적 추가 가능한 mutable Map 사용
      */
-    private final Map<String, Function<User, String>> messageTemplates = new HashMap<>();
+    private final Map<String, Function<User, String>> messageTemplates = new ConcurrentHashMap<>();
 
     /**
      * 기본 템플릿 초기화

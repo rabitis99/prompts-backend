@@ -1,33 +1,26 @@
-package org.example.sharedprompts.domain.notification.service;
+package org.example.sharedprompts.domain.notification.service.sse;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.dto.notification.response.NotificationResponseDto;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import java.io.IOException;
-import java.time.Duration;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * SSE (Server-Sent Events)를 통한 실시간 알림 전송 서비스
  * - 로컬 메모리에 SseEmitter 저장 (HTTP 연결 객체이므로 필수)
- * - Redis Pub/Sub을 통한 분산 환경 지원
+ * - Redis를 통한 분산 환경 지원 및 연결 상태 관리
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationSseService {
 
-    private static final String SSE_CONNECTION_PREFIX = "sse:connection:";
     // 향후 Redis Pub/Sub을 통한 분산 환경 지원 시 사용 예정
     @SuppressWarnings("unused")
     private static final String SSE_PUBSUB_CHANNEL = "sse:notification";
@@ -35,30 +28,10 @@ public class NotificationSseService {
     // 사용자 ID별로 SseEmitter를 관리 (로컬 메모리)
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
 
-    private final StringRedisTemplate redisTemplate;
+    private final SseConnectionRedisService redisService;
 
     @Value("${notification.sse.timeout:1800000}")
     private long sseTimeout;
-
-    @PostConstruct
-    public void init() {
-        // Redis Pub/Sub은 필요시 구현
-        // 현재는 로컬 메모리 기반으로 동작
-        log.debug("NotificationSseService initialized");
-    }
-
-    @PreDestroy
-    public void cleanup() {
-        // 모든 연결 정리
-        emitters.values().forEach(emitter -> {
-            try {
-                emitter.complete();
-            } catch (Exception e) {
-                log.warn("Failed to complete emitter during cleanup: {}", e.getMessage());
-            }
-        });
-        emitters.clear();
-    }
 
     /**
      * SSE 구독
@@ -84,7 +57,7 @@ public class NotificationSseService {
         emitter.onCompletion(() -> {
             log.debug("SSE connection completed for user: {}", userId);
             if (emitters.remove(userId, emitter)) {
-                redisTemplate.delete(SSE_CONNECTION_PREFIX + userId);
+                redisService.deleteConnection(userId);
             }
         });
 
@@ -92,7 +65,7 @@ public class NotificationSseService {
         emitter.onTimeout(() -> {
             log.debug("SSE connection timeout for user: {}", userId);
             if (emitters.remove(userId, emitter)) {
-                redisTemplate.delete(SSE_CONNECTION_PREFIX + userId);
+                redisService.deleteConnection(userId);
             }
             try {
                 emitter.complete();
@@ -105,7 +78,7 @@ public class NotificationSseService {
         emitter.onError((ex) -> {
             log.error("SSE connection error for user {}: {}", userId, ex.getMessage(), ex);
             if (emitters.remove(userId, emitter)) {
-                redisTemplate.delete(SSE_CONNECTION_PREFIX + userId);
+                redisService.deleteConnection(userId);
             }
             try {
                 emitter.completeWithError(ex);
@@ -117,8 +90,7 @@ public class NotificationSseService {
         emitters.put(userId, emitter);
 
         // Redis에 연결 정보 저장 (TTL: 타임아웃 시간과 동일)
-        String connectionKey = SSE_CONNECTION_PREFIX + userId;
-        redisTemplate.opsForValue().set(connectionKey, "connected", Duration.ofMillis(sseTimeout));
+        redisService.saveConnection(userId, sseTimeout);
 
         // 연결 확인 메시지 전송
         try {
@@ -128,7 +100,7 @@ public class NotificationSseService {
         } catch (IOException e) {
             log.error("Failed to send initial SSE message to user {}: {}", userId, e.getMessage(), e);
             if (emitters.remove(userId, emitter)) {
-                redisTemplate.delete(connectionKey);
+                redisService.deleteConnection(userId);
             }
             try {
                 emitter.completeWithError(e);
@@ -159,7 +131,7 @@ public class NotificationSseService {
             } catch (IOException e) {
                 log.error("Failed to send notification to user {}: {}", userId, e.getMessage(), e);
                 if (emitters.remove(userId, emitter)) {
-                    redisTemplate.delete(SSE_CONNECTION_PREFIX + userId);
+                    redisService.deleteConnection(userId);
                 }
                 try {
                     emitter.completeWithError(e);
@@ -189,7 +161,7 @@ public class NotificationSseService {
             } catch (IOException e) {
                 log.error("Failed to send prompt-created SSE to user {}: {}", userId, e.getMessage(), e);
                 if (emitters.remove(userId, emitter)) {
-                    redisTemplate.delete(SSE_CONNECTION_PREFIX + userId);
+                    redisService.deleteConnection(userId);
                 }
                 try {
                     emitter.completeWithError(e);
@@ -209,8 +181,7 @@ public class NotificationSseService {
      */
     private void checkRedisConnection(Long userId) {
         // 로컬에 연결이 없으면 Redis에서 다른 서버 인스턴스 연결 확인
-        String connectionKey = SSE_CONNECTION_PREFIX + userId;
-        if (Boolean.TRUE.equals(redisTemplate.hasKey(connectionKey))) {
+        if (redisService.hasConnection(userId)) {
             log.debug("SSE connection exists on another server instance for user: {}", userId);
             // 향후 Redis Pub/Sub을 통한 분산 환경 지원 가능
         } else {
@@ -228,7 +199,7 @@ public class NotificationSseService {
         if (emitter != null && emitters.remove(userId, emitter)) {
             try {
                 emitter.complete();
-                redisTemplate.delete(SSE_CONNECTION_PREFIX + userId);
+                redisService.deleteConnection(userId);
                 log.info("SSE connection closed for user: {}", userId);
             } catch (Exception e) {
                 log.warn("Failed to complete emitter for user {}: {}", userId, e.getMessage());
@@ -246,45 +217,26 @@ public class NotificationSseService {
     }
 
     /**
-     * 주기적으로 비활성 SSE 연결 정리
-     * - 메모리 누수 방지
-     * - 설정된 간격마다 실행
+     * emitters Map 조회 (SseConnectionCleanupService에서 사용)
+     * 
+     * @return emitters Map
      */
-    @Scheduled(fixedDelayString = "${notification.sse.cleanup-interval:300000}")
-    public void cleanupInactiveConnections() {
-        int cleanedCount = 0;
-        Iterator<Map.Entry<Long, SseEmitter>> iterator = emitters.entrySet().iterator();
+    Map<Long, SseEmitter> getEmitters() {
+        return emitters;
+    }
 
-        while (iterator.hasNext()) {
-            Map.Entry<Long, SseEmitter> entry = iterator.next();
-            Long userId = entry.getKey();
-            SseEmitter emitter = entry.getValue();
-
+    /**
+     * 모든 연결 정리 (SseConnectionCleanupService에서 사용)
+     */
+    void cleanupAllConnections() {
+        emitters.values().forEach(emitter -> {
             try {
-                // 연결이 이미 완료되었거나 타임아웃된 경우 정리
-                // SseEmitter의 상태를 직접 확인할 수 없으므로, Redis 키 존재 여부로 확인
-                String connectionKey = SSE_CONNECTION_PREFIX + userId;
-                if (!Boolean.TRUE.equals(redisTemplate.hasKey(connectionKey))) {
-                    // Redis에 키가 없으면 연결이 끊어진 것으로 간주
-                    iterator.remove();
-                    try {
-                        emitter.complete();
-                    } catch (Exception e) {
-                        log.debug("Emitter already completed for user: {}", userId);
-                    }
-                    cleanedCount++;
-                }
+                emitter.complete();
             } catch (Exception e) {
-                log.warn("Error during SSE connection cleanup for user {}: {}", userId, e.getMessage());
-                // 에러 발생 시에도 제거하여 메모리 누수 방지
-                iterator.remove();
-                cleanedCount++;
+                log.warn("Failed to complete emitter during cleanup: {}", e.getMessage());
             }
-        }
-
-        if (cleanedCount > 0) {
-            log.info("Cleaned up {} inactive SSE connections", cleanedCount);
-        }
+        });
+        emitters.clear();
     }
 }
 
