@@ -331,6 +331,27 @@ async:
       - RateLimitLogBatchService
 
 # =========================
+# 태그 카운트 업데이트 설정
+# =========================
+tag:
+  count:
+    update:
+      # 모니터링 활성화 여부
+      enable-monitoring: ${TAG_COUNT_UPDATE_ENABLE_MONITORING:true}
+      # Dead Letter Queue 활성화 여부
+      enable-dlq: ${TAG_COUNT_UPDATE_ENABLE_DLQ:true}
+      # 트랜잭션 없는 환경에서 동기 처리 여부
+      # true: 즉시 동기 처리 (테스트/배치 환경)
+      # false: 비동기 이벤트 발행 (기본값, 운영 환경)
+      sync-fallback: ${TAG_COUNT_UPDATE_SYNC_FALLBACK:false}
+    # 재시도 큐 처리 간격 (밀리초)
+    retry:
+      process-interval: ${TAG_COUNT_RETRY_PROCESS_INTERVAL:5000}  # 5초
+    # DLQ 처리 간격 (밀리초)
+    dlq:
+      process-interval: ${TAG_COUNT_DLQ_PROCESS_INTERVAL:3600000}  # 1시간
+
+# =========================
 # 로깅
 # =========================
 logging:

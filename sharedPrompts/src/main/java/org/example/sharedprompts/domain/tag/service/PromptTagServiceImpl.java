@@ -17,7 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.core.NestedExceptionUtils;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -27,6 +30,7 @@ public class PromptTagServiceImpl implements PromptTagService {
 
     private final PromptTagRepository promptTagRepository;
     private final TagRepository tagRepository;
+    private final TagCountFacade tagCountFacade;
 
     @Override
     public List<Tag> addTags(Prompt prompt, List<String> tagNames) {
@@ -34,6 +38,7 @@ public class PromptTagServiceImpl implements PromptTagService {
 
         List<String> processedNames = TagNormalizer.normalizeTags(tagNames);
         List<Tag> tags = new ArrayList<>(processedNames.size());
+        Set<String> tagsToIncrease = new HashSet<>();
 
         for (String name : processedNames) {
             Tag tag = getOrCreateTag(name);
@@ -41,10 +46,16 @@ public class PromptTagServiceImpl implements PromptTagService {
             boolean attached = attachPromptTag(prompt, tag);
 
             if (attached) {
-                increaseTagCount(tag.getName());
+                // 트랜잭션 커밋 후 처리를 위해 태그 이름 수집
+                tagsToIncrease.add(tag.getName());
             }
 
             tags.add(tag);
+        }
+
+        // 트랜잭션 커밋 후 이벤트 발행 (updateTags와 동일한 패턴)
+        if (!tagsToIncrease.isEmpty()) {
+            tagCountFacade.publishTagCountUpdate(Set.of(), tagsToIncrease);
         }
 
         return tags;
@@ -97,25 +108,45 @@ public class PromptTagServiceImpl implements PromptTagService {
         }
     }
 
-    private void increaseTagCount(String name) {
-        tagRepository.incrementCount(name);
-    }
-
-    private void decreaseTagCount(String name) {
-        tagRepository.decrementCount(name);
-    }
-
     @Override
     public void updateTags(Prompt prompt, List<String> tagNames) {
-        // 1 기존 태그들 count 감소
+        // 1. 기존 태그와 새 태그 비교
         List<PromptTag> existing = promptTagRepository.findPromptTagByPrompt(prompt);
-        existing.forEach(pt -> decreaseTagCount(pt.getTag().getName()));
+        Set<String> existingTagNames = existing.stream()
+                .map(pt -> pt.getTag().getName())
+                .collect(Collectors.toSet());
 
-        // 2 기존 PromptTag 제거
-        promptTagRepository.deletePromptTagByPrompt(prompt);
+        List<String> processedNames = TagNormalizer.normalizeTags(tagNames);
+        Set<String> newTagNames = new HashSet<>(processedNames);
 
-        // 3 새 태그 적용
-        addTags(prompt, tagNames);
+        // 2. 제거할 태그와 추가할 태그 계산
+        Set<String> toRemove = new HashSet<>(existingTagNames);
+        toRemove.removeAll(newTagNames);
+
+        Set<String> toAdd = new HashSet<>(newTagNames);
+        toAdd.removeAll(existingTagNames);
+
+        // 3. DB 변경 먼저 수행 (트랜잭션 내부)
+        existing.stream()
+                .filter(pt -> toRemove.contains(pt.getTag().getName()))
+                .forEach(promptTagRepository::delete);
+
+        List<Tag> tagsToAdd = toAdd.stream()
+                .map(this::getOrCreateTag)
+                .toList();
+
+        Set<String> tagsToIncrease = new HashSet<>();
+        for (Tag tag : tagsToAdd) {
+            if (attachPromptTag(prompt, tag)) {
+                tagsToIncrease.add(tag.getName());
+            }
+        }
+
+        // 4. 트랜잭션 커밋 후 이벤트 발행
+        // DB 변경이 성공적으로 커밋된 후에만 이벤트 발행
+        // 파사드를 통해 트랜잭션 처리 로직 캡슐화
+        
+        tagCountFacade.publishTagCountUpdate(toRemove, tagsToIncrease);
     }
 
     @Override
