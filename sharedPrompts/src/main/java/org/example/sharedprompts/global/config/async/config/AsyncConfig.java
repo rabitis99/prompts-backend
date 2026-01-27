@@ -19,19 +19,16 @@ import java.util.concurrent.ThreadPoolExecutor;
 /**
  * @EnableAsync의 기본 Executor 설정
  */
-@Slf4j
+@RequiredArgsConstructor
 @Configuration
 @EnableAsync
-@RequiredArgsConstructor
 public class AsyncConfig implements AsyncConfigurer {
 
+    private final Executor taskExecutor; // Bean 주입
     private final AsyncMetricsService asyncMetricsService;
     private final AsyncExceptionNotifier asyncExceptionNotifier;
     private final CriticalMethodChecker criticalMethodChecker;
 
-    /**
-     * @EnableAsync의 기본 Executor
-     */
     @Bean(name = "taskExecutor")
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
@@ -49,7 +46,7 @@ public class AsyncConfig implements AsyncConfigurer {
 
     @Override
     public Executor getAsyncExecutor() {
-        return taskExecutor();
+        return taskExecutor;
     }
 
     @Override
@@ -61,3 +58,4 @@ public class AsyncConfig implements AsyncConfigurer {
         );
     }
 }
+
