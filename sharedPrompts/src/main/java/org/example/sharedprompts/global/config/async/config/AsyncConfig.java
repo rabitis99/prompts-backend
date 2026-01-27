@@ -75,4 +75,21 @@ public class AsyncConfig implements AsyncConfigurer {
             criticalMethodChecker
         );
     }
+
+    /**
+     * 태그 카운트 업데이트 전용 실행자
+     */
+    @Bean(name = "tagCountUpdateExecutor")
+    public Executor tagCountUpdateExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(5);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("tag-count-update-");
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(60);
+        executor.setTaskDecorator(new SecurityContextTaskDecorator());
+        executor.initialize();
+        return executor;
+    }
 }
