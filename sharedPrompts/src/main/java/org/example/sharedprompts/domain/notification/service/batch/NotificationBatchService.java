@@ -30,7 +30,7 @@ public class NotificationBatchService {
      */
     @Transactional
     public List<Notification> saveBatch(List<Notification> notifications) {
-        if (notifications.isEmpty()) {
+        if (notifications == null || notifications.isEmpty()) {
             return List.of();
         }
 

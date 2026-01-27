@@ -8,6 +8,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -28,12 +29,14 @@ public class SseConnectionCleanupService {
 
     @PostConstruct
     public void init() {
-        // 서버 시작 시 Redis에 남아있는 모든 SSE 연결 키 제거
+        // 서버 시작 시 현재 인스턴스의 SSE 연결 키만 제거
+        // 멀티 인스턴스 환경에서 다른 인스턴스의 키를 삭제하지 않도록 보호
         // 서버 재시작 시 stale 키 정리로 불일치 방지
         try {
-            int deletedCount = redisService.deleteAllConnections();
+            int deletedCount = redisService.deleteInstanceConnections();
             if (deletedCount > 0) {
-                log.info("Cleaned up {} stale SSE connection keys on startup", deletedCount);
+                log.info("Cleaned up {} stale SSE connection keys for instance {} on startup", 
+                        deletedCount, redisService.getInstanceId());
             }
         } catch (Exception e) {
             log.warn("Failed to clean up stale SSE connection keys on startup: {}", e.getMessage(), e);
@@ -45,11 +48,13 @@ public class SseConnectionCleanupService {
         // 모든 연결 정리
         sseService.cleanupAllConnections();
 
-        // Redis 키도 정리
+        // 현재 인스턴스의 Redis 키만 정리
+        // 멀티 인스턴스 환경에서 다른 인스턴스의 키를 삭제하지 않도록 보호
         try {
-            int deletedCount = redisService.deleteAllConnections();
+            int deletedCount = redisService.deleteInstanceConnections();
             if (deletedCount > 0) {
-                log.info("Cleaned up {} SSE connection keys on shutdown", deletedCount);
+                log.info("Cleaned up {} SSE connection keys for instance {} on shutdown", 
+                        deletedCount, redisService.getInstanceId());
             }
         } catch (Exception e) {
             log.warn("Failed to clean up SSE connection keys on shutdown: {}", e.getMessage(), e);
@@ -82,6 +87,7 @@ public class SseConnectionCleanupService {
 
     /**
      * 메모리에만 있는 연결 정리
+     * Redis 오류 발생 시에는 연결을 제거하지 않고 다음 주기에 재시도
      * 
      * @param iterator emitters iterator
      * @param emitters emitters map
@@ -89,6 +95,7 @@ public class SseConnectionCleanupService {
      */
     private int cleanupMemoryOnlyConnections(Iterator<Map.Entry<Long, SseEmitter>> iterator, Map<Long, SseEmitter> emitters) {
         int cleanedCount = 0;
+        Set<Long> toRemove = new HashSet<>();
 
         while (iterator.hasNext()) {
             Map.Entry<Long, SseEmitter> entry = iterator.next();
@@ -98,18 +105,27 @@ public class SseConnectionCleanupService {
             try {
                 if (!redisService.hasConnection(userId)) {
                     // Redis에 키가 없으면 연결이 끊어진 것으로 간주
-                    iterator.remove();
-                    try {
-                        emitter.complete();
-                    } catch (Exception e) {
-                        log.debug("Emitter already completed for user: {}", userId);
-                    }
-                    cleanedCount++;
+                    // 즉시 제거하지 않고 수집 후 일괄 처리
+                    toRemove.add(userId);
                 }
             } catch (Exception e) {
-                log.warn("Error during SSE connection cleanup for user {}: {}", userId, e.getMessage());
-                // 에러 발생 시에도 제거하여 메모리 누수 방지
-                iterator.remove();
+                // Redis 오류 발생 시에는 연결을 제거하지 않음
+                // 임시적 Redis 장애 시 정상 사용자의 SSE 연결이 손실되는 것을 방지
+                log.warn("Error checking Redis connection for user {}: {}. Skipping cleanup for this cycle.", 
+                        userId, e.getMessage());
+                // 다음 정리 주기에 재시도하도록 보류
+            }
+        }
+
+        // 수집된 연결들을 일괄 제거
+        for (Long userId : toRemove) {
+            SseEmitter emitter = emitters.remove(userId);
+            if (emitter != null) {
+                try {
+                    emitter.complete();
+                } catch (Exception e) {
+                    log.debug("Emitter already completed for user: {}", userId);
+                }
                 cleanedCount++;
             }
         }
@@ -118,7 +134,8 @@ public class SseConnectionCleanupService {
     }
 
     /**
-     * Redis에만 남아있는 키 정리
+     * Redis에만 남아있는 키 정리 (현재 인스턴스의 키만)
+     * 멀티 인스턴스 환경에서 다른 인스턴스의 키를 삭제하지 않도록 보호
      * 
      * @param emitters emitters map
      * @return 정리된 키 수
@@ -127,12 +144,21 @@ public class SseConnectionCleanupService {
         int cleanedCount = 0;
 
         try {
-            Set<String> redisKeys = redisService.getAllConnectionKeys();
+            // 현재 인스턴스의 키만 조회
+            Set<String> redisKeys = redisService.getInstanceConnectionKeys();
             if (redisKeys != null && !redisKeys.isEmpty()) {
+                String currentInstanceId = redisService.getInstanceId();
                 for (String key : redisKeys) {
+                    // 키가 현재 인스턴스의 것인지 확인
+                    String keyInstanceId = redisService.extractInstanceIdFromKey(key);
+                    if (keyInstanceId == null || !keyInstanceId.equals(currentInstanceId)) {
+                        // 다른 인스턴스의 키이거나 잘못된 형식이면 건너뜀
+                        continue;
+                    }
+
                     Long userId = redisService.extractUserIdFromKey(key);
                     if (userId == null) {
-                        // 잘못된 형식의 키는 삭제 (userId가 null이므로 직접 키 삭제)
+                        // 잘못된 형식의 키는 삭제 (현재 인스턴스의 키만)
                         redisService.deleteKey(key);
                         cleanedCount++;
                         continue;
@@ -142,7 +168,7 @@ public class SseConnectionCleanupService {
                     if (!emitters.containsKey(userId)) {
                         redisService.deleteConnection(userId);
                         cleanedCount++;
-                        log.debug("Removed orphaned Redis key for user: {}", userId);
+                        log.debug("Removed orphaned Redis key for user: {} (instance: {})", userId, currentInstanceId);
                     }
                 }
             }

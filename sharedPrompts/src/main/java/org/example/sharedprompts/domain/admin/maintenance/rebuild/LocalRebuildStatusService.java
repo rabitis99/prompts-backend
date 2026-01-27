@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.admin.maintenance.rebuild;
 
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.admin.enums.MaintenanceJobStatus;
@@ -15,7 +16,7 @@ import java.time.LocalDateTime;
  * RebuildStatusServiceConfig에서 조건부로 빈으로 등록됩니다.
  */
 @Slf4j
-@RequiredArgsConstructor
+@NoArgsConstructor
 public class LocalRebuildStatusService implements RebuildStatusService {
     
     private volatile MaintenanceJobStatus status = MaintenanceJobStatus.IDLE;
