@@ -2,6 +2,8 @@ package org.example.sharedprompts.global.config;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 import javax.validation.constraints.Min;
 
@@ -10,6 +12,8 @@ import javax.validation.constraints.Min;
  */
 @Getter
 @Setter
+@Component
+@ConfigurationProperties(prefix = "app.prompt.creation")
 public class PromptCreationProperties {
     /**
      * 프롬프트 생성 타임아웃 (밀리초)
