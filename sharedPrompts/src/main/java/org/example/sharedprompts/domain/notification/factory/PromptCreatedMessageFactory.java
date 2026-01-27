@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.notification.factory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.notification.message.PromptCreatedMessage;
-import org.example.sharedprompts.domain.notification.service.NotificationTargetService;
+import org.example.sharedprompts.domain.notification.service.target.NotificationTargetService;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.user.User;
 import org.springframework.stereotype.Component;

@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.notification.service;
+package org.example.sharedprompts.domain.notification.service.batch;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.notification.Notification;

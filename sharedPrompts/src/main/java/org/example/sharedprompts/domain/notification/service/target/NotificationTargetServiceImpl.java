@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.notification.service;
+package org.example.sharedprompts.domain.notification.service.target;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.follow.FollowStatus;

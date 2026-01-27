@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.notification.service;
+package org.example.sharedprompts.domain.notification.service.formatter;
 
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.global.exception.ApiException;

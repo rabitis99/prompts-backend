@@ -14,8 +14,8 @@ import org.example.sharedprompts.domain.notification.message.NotificationMessage
 import org.example.sharedprompts.domain.notification.producer.NotificationProducer;
 import org.example.sharedprompts.domain.notification.repository.NotificationRepository;
 import org.example.sharedprompts.domain.notification.setting.repository.UserNotificationSettingRepository;
-import org.example.sharedprompts.domain.notification.service.NotificationGroupingService;
-import org.example.sharedprompts.domain.notification.service.NotificationMessageFormatter;
+import org.example.sharedprompts.domain.notification.service.batch.NotificationGroupingService;
+import org.example.sharedprompts.domain.notification.service.formatter.NotificationMessageFormatter;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
 import org.example.sharedprompts.domain.user.User;

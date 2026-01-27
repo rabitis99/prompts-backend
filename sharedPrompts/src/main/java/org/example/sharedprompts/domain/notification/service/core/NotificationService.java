@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.notification.service;
+package org.example.sharedprompts.domain.notification.service.core;
 
 import org.example.sharedprompts.dto.notification.response.NotificationResponseDto;
 import org.example.sharedprompts.dto.notification.response.NotificationSummaryDto;
