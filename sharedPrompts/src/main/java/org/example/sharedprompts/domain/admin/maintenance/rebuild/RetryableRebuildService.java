@@ -25,6 +25,12 @@ public class RetryableRebuildService {
      * @return 작업 결과
      */
     public <T> T executeWithRetry(Supplier<T> operation, int maxRetries, long retryDelayMs) {
+        if (maxRetries <= 0){
+            throw new IllegalArgumentException("maxRetries는 1 이상이어야 합니다.");
+        }
+        if (retryDelayMs < 0){
+            throw new IllegalArgumentException("retryDelayMs는 0 이상이어야 합니다.");
+        }
         int attempt = 0;
         Exception lastException = null;
         

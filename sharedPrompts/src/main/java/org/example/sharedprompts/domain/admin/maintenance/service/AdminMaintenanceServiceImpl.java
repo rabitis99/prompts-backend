@@ -88,6 +88,14 @@ public class AdminMaintenanceServiceImpl implements AdminMaintenanceService {
         RebuildResult result;
         
         try {
+            if (useGlobalStatus) {
+                rebuildStatusService.saveStatus(
+                        localStatusManager.getStatus(),
+                        localStatusManager.getStartedAt(),
+                        null,
+                        null
+                );
+            }
             log.info("좋아요 카운트 재빌드 작업 시작");
             
             // 재시도 메커니즘 적용
@@ -127,7 +135,7 @@ public class AdminMaintenanceServiceImpl implements AdminMaintenanceService {
             Duration duration = Duration.between(startTime, LocalDateTime.now());
             sample.stop(rebuildMetrics.getDurationTimer());
             rebuildMetrics.getFailureCounter().increment();
-            
+
             log.error("좋아요 카운트 재빌드 작업 중 오류 발생 - 소요 시간: {}초", duration.getSeconds(), e);
             localStatusManager.updateStatusToFailed(e);
             

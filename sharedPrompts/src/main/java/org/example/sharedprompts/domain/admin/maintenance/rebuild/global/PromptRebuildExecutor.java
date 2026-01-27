@@ -9,6 +9,7 @@ import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -59,7 +60,7 @@ public class PromptRebuildExecutor {
         Page<Prompt> promptPage;
         
         do {
-            promptPage = promptRepository.findAll(PageRequest.of(page, pageSize));
+            promptPage = promptRepository.findAll(PageRequest.of(page, pageSize, Sort.by("id")));;
             int totalPages = promptPage.getTotalPages();
             
             log.info("프롬프트 Like count 재빌드 진행 중 - 페이지: {}/{}", page + 1, totalPages);
@@ -98,7 +99,7 @@ public class PromptRebuildExecutor {
         List<Map.Entry<Long, Long>> batch = new ArrayList<>();
         
         do {
-            promptPage = promptRepository.findAll(PageRequest.of(page, pageSize));
+            promptPage = promptRepository.findAll(PageRequest.of(page, pageSize, Sort.by("id")));
             int totalPages = promptPage.getTotalPages();
             
             log.info("프롬프트 Like count 재빌드 진행 중 - 페이지: {}/{}", page + 1, totalPages);

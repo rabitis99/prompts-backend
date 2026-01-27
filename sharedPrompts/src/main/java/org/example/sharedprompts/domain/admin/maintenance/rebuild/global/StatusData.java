@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class StatusData {
-    public MaintenanceJobStatus status;
-    public LocalDateTime startedAt;
-    public LocalDateTime finishedAt;
-    public String errorMessage;
+    private MaintenanceJobStatus status;
+    private LocalDateTime startedAt;
+    private LocalDateTime finishedAt;
+    private String errorMessage;
 
     public StatusData(MaintenanceJobStatus status, LocalDateTime startedAt,
                       LocalDateTime finishedAt, String errorMessage) {

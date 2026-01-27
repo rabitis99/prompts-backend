@@ -24,8 +24,8 @@ public class LocalRebuildStatusService implements RebuildStatusService {
     private volatile String errorMessage;
     
     @Override
-    public void saveStatus(MaintenanceJobStatus status, LocalDateTime startedAt, 
-                          LocalDateTime finishedAt, String errorMessage) {
+    public synchronized void saveStatus(MaintenanceJobStatus status, LocalDateTime startedAt,
+                                        LocalDateTime finishedAt, String errorMessage) {
         this.status = status;
         this.startedAt = startedAt;
         this.finishedAt = finishedAt;
@@ -34,7 +34,7 @@ public class LocalRebuildStatusService implements RebuildStatusService {
     }
     
     @Override
-    public RebuildLikeCountsStatusResponseDto getStatus() {
+    public synchronized RebuildLikeCountsStatusResponseDto getStatus() {
         return RebuildLikeCountsStatusResponseDto.builder()
                 .status(status)
                 .startedAt(startedAt)
@@ -49,7 +49,7 @@ public class LocalRebuildStatusService implements RebuildStatusService {
     }
     
     @Override
-    public void reset() {
+    public synchronized void reset() {
         status = MaintenanceJobStatus.IDLE;
         startedAt = null;
         finishedAt = null;

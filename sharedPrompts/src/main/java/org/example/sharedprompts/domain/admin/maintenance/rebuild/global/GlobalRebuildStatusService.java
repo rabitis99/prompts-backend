@@ -55,10 +55,10 @@ public class GlobalRebuildStatusService implements RebuildStatusService {
         try {
             StatusData data = objectMapper.readValue(json, StatusData.class);
             return RebuildLikeCountsStatusResponseDto.builder()
-                    .status(data.status)
-                    .startedAt(data.startedAt)
-                    .finishedAt(data.finishedAt)
-                    .errorMessage(data.errorMessage)
+                    .status(data.getStatus())
+                    .startedAt(data.getStartedAt())
+                    .finishedAt(data.getFinishedAt())
+                    .errorMessage(data.getErrorMessage())
                     .build();
         } catch (JsonProcessingException e) {
             log.error("상태 조회 실패", e);

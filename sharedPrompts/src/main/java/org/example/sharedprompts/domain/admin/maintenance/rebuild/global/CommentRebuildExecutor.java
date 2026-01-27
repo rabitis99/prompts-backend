@@ -95,7 +95,7 @@ public class CommentRebuildExecutor {
     private void executeWithBatch(int pageSize, int batchSize, AtomicLong totalProcessed) {
         int page = 0;
         Page<Comment> commentPage;
-        List<Map.Entry<Long, Long>> batch = new ArrayList<>();
+        List<Map.Entry<Long, Long>> batch = new ArrayList<>(batchSize);
         
         do {
             commentPage = commentRepository.findAll(PageRequest.of(page, pageSize));
