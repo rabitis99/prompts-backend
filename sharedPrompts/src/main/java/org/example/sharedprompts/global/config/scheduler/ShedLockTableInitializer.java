@@ -1,4 +1,4 @@
-package org.example.sharedprompts.global.config.shcduler;
+package org.example.sharedprompts.global.config.scheduler;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
