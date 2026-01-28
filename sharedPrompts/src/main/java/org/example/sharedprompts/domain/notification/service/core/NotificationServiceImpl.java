@@ -1,68 +1,71 @@
 package org.example.sharedprompts.domain.notification.service.core;
 
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.domain.notification.Notification;
-import org.example.sharedprompts.domain.notification.repository.NotificationRepository;
+import org.example.sharedprompts.domain.notification.service.core.strategy.NotificationQueryStrategy;
+import org.example.sharedprompts.domain.notification.service.core.strategy.NotificationReadStrategy;
+import org.example.sharedprompts.domain.notification.service.core.strategy.NotificationServiceFactory;
 import org.example.sharedprompts.domain.user.User;
-import org.example.sharedprompts.domain.user.repository.UserRepository;
+import org.example.sharedprompts.domain.user.service.UserLookupService;
 import org.example.sharedprompts.dto.notification.response.NotificationResponseDto;
 import org.example.sharedprompts.dto.notification.response.NotificationSummaryDto;
-import org.example.sharedprompts.global.exception.ApiException;
-import org.example.sharedprompts.global.exception.ErrorCode;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 알림 서비스 구현체
+ * 
+ * 전략 패턴을 사용하여 조회 및 읽음 처리 로직을 분리하여 확장성을 제공합니다.
+ * - 조회 전략: NotificationQueryStrategy (읽지 않은 알림만, 전체 알림 등)
+ * - 읽음 처리 전략: NotificationReadStrategy (단일/전체 읽음 처리 등)
+ * 
+ * 책임 분리:
+ * - User 조회: UserLookupService에 위임
+ * - 조회 로직: NotificationQueryStrategy에 위임
+ * - 읽음 처리: NotificationReadStrategy에 위임
+ * - 전략 선택: NotificationServiceFactory에 위임
+ * 
+ * 새로운 조회 방식이나 읽음 처리 방식을 추가하려면 해당 전략 인터페이스를 구현하고
+ * 팩토리에 등록하면 됩니다.
+ */
 @Service
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
-    private final NotificationRepository notificationRepository;
-    private final UserRepository userRepository;
+    private final UserLookupService userLookupService;
+    private final NotificationServiceFactory serviceFactory;
 
     @Override
     @Transactional(readOnly = true)
     public Page<NotificationResponseDto> getNotifications(Long userId, Pageable pageable) {
-        User user = getUser(userId);
-        // 읽지 않은 알림만 조회
-        Page<Notification> notifications = notificationRepository.findByUserAndIsReadFalseOrderByCreatedAtDesc(user, pageable);
-        return notifications.map(NotificationResponseDto::from);
+        User user = userLookupService.findById(userId);
+        NotificationQueryStrategy queryStrategy = serviceFactory.getDefaultQueryStrategy();
+        return queryStrategy.getNotifications(user, pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "unreadNotificationCount", key = "#userId", unless = "#result.unreadCount == 0")
     public NotificationSummaryDto getUnreadCount(Long userId) {
-        User user = getUser(userId);
-        long unreadCount = notificationRepository.countByUserAndIsReadFalse(user);
-        return new NotificationSummaryDto(unreadCount);
+        User user = userLookupService.findById(userId);
+        NotificationQueryStrategy queryStrategy = serviceFactory.getDefaultQueryStrategy();
+        return queryStrategy.getUnreadCount(user);
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "unreadNotificationCount", key = "#userId")
     public void markAsRead(Long userId, Long notificationId) {
-        User user = getUser(userId);
-        int updatedRows = notificationRepository.markAsReadByIdAndUser(notificationId, user);
-        if (updatedRows == 0) {
-            throw new ApiException(ErrorCode.NOTIFICATION_NOT_FOUND);
-        }
+        User user = userLookupService.findById(userId);
+        NotificationReadStrategy readStrategy = serviceFactory.getDefaultReadStrategy();
+        readStrategy.markAsRead(user, notificationId);
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "unreadNotificationCount", key = "#userId")
     public void markAllAsRead(Long userId) {
-        User user = getUser(userId);
-        notificationRepository.markAllAsReadByUser(user);
-    }
-
-    private User getUser(Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+        User user = userLookupService.findById(userId);
+        NotificationReadStrategy readStrategy = serviceFactory.getDefaultReadStrategy();
+        readStrategy.markAllAsRead(user);
     }
 }
 
