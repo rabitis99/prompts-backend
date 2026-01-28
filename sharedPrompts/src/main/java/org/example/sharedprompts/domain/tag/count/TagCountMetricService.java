@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.tag.count;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.domain.tag.enums.TagCountOperation;
 import org.springframework.stereotype.Service;
 
 /**
@@ -32,12 +33,8 @@ public class TagCountMetricService {
      * Note: tag_name 레이블은 높은 카디널리티 문제를 유발할 수 있어 제거했습니다.
      * 태그별 메트릭이 필요한 경우, 상위 N개 태그로 제한하거나 다른 방식으로 집계하세요.
      */
-    public void recordTagSuccess(String operation) {
-        if ("decrease".equals(operation)) {
-            metrics.getDecreaseCounter().increment();
-        } else if ("increase".equals(operation)) {
-            metrics.getIncreaseCounter().increment();
-        }
+    public void recordTagSuccess(TagCountOperation operation) {
+        operation.record(metrics);
     }
 
     /**

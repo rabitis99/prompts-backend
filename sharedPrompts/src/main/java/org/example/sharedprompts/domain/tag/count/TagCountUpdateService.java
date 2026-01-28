@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.tag.count;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.tag.config.TagRedisKey;
+import org.example.sharedprompts.domain.tag.enums.TagCountOperation;
 import org.example.sharedprompts.global.lua.LuaScripts;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -37,11 +38,10 @@ public class TagCountUpdateService {
 
     /**
      * 태그 카운트 증가 (원자 연산)
-     * 
+     *
      * @param tagName 태그 이름
-     * @return 업데이트된 카운트
      */
-    public long incrementTagCount(String tagName) {
+    public void incrementTagCount(String tagName) {
         try {
             String key = TagRedisKey.countKey(tagName);
             long ttlSeconds = TagRedisKey.countTtl().getSeconds();
@@ -61,7 +61,6 @@ public class TagCountUpdateService {
             }
             
             log.debug("Tag count incremented: {} -> {}", tagName, result);
-            return result;
         } catch (Exception e) {
             log.error("Failed to increment tag count for {}: {}", tagName, e.getMessage(), e);
             throw new TagCountUpdateException("Failed to increment tag count: " + tagName, e);
@@ -70,11 +69,10 @@ public class TagCountUpdateService {
 
     /**
      * 태그 카운트 감소 (원자 연산)
-     * 
+     *
      * @param tagName 태그 이름
-     * @return 업데이트된 카운트
      */
-    public long decrementTagCount(String tagName) {
+    public void decrementTagCount(String tagName) {
         try {
             String key = TagRedisKey.countKey(tagName);
             long ttlSeconds = TagRedisKey.countTtl().getSeconds();
@@ -94,7 +92,6 @@ public class TagCountUpdateService {
             }
             
             log.debug("Tag count decremented: {} -> {}", tagName, result);
-            return result;
         } catch (Exception e) {
             log.error("Failed to decrement tag count for {}: {}", tagName, e.getMessage(), e);
             throw new TagCountUpdateException("Failed to decrement tag count: " + tagName, e);
@@ -122,7 +119,7 @@ public class TagCountUpdateService {
             try {
                 decrementTagCount(tagName);
                 // 태그별 메트릭 기록 (tag_name 레이블 포함)
-                metricService.recordTagSuccess("decrease");
+                metricService.recordTagSuccess(TagCountOperation.DECREASE);
             } catch (Exception e) {
                 log.error("Failed to decrement tag count for {}: {}", tagName, e.getMessage(), e);
                 failedDecreases.add(tagName);
@@ -137,7 +134,7 @@ public class TagCountUpdateService {
             try {
                 incrementTagCount(tagName);
                 // 태그별 메트릭 기록 (tag_name 레이블 포함)
-                metricService.recordTagSuccess("increase");
+                metricService.recordTagSuccess(TagCountOperation.INCREASE);
             } catch (Exception e) {
                 log.error("Failed to increment tag count for {}: {}", tagName, e.getMessage(), e);
                 failedIncreases.add(tagName);

@@ -4,6 +4,7 @@ import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import jakarta.persistence.OptimisticLockException;
+import org.example.sharedprompts.global.exception.enums.OptimisticLockEntityType;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
@@ -51,15 +52,15 @@ public class GlobalExceptionHandler {
     // 낙관적 락 예외 처리 (동시 수정 감지)
     @ExceptionHandler(OptimisticLockException.class)
     public ResponseEntity<?> handleOptimisticLockException(OptimisticLockException e) {
-        Object entity = e.getEntity();
-        String entityType = entity != null ? entity.getClass().getSimpleName() : "unknown";
-        log.warn("OptimisticLockException: 동시 수정이 감지되었습니다. (entityType={})", entityType);
-        
-        // 엔티티 타입에 따라 적절한 에러 코드 반환
-        if (entity != null && entity.getClass().getSimpleName().equals("Report")) {
-            return CustomResponseHelper.fail(new ApiException(ErrorCode.REPORT_ALREADY_PROCESSED));
-        }
-        return CustomResponseHelper.fail(new ApiException(ErrorCode.DATA_INTEGRITY_VIOLATION));
+        OptimisticLockEntityType type =
+                OptimisticLockEntityType.fromEntity(e.getEntity());
+
+        ErrorCode errorCode = (type != null)
+                ? type.getErrorCode()
+                : ErrorCode.DATA_INTEGRITY_VIOLATION;
+
+        log.warn("OptimisticLockException: entityType={}", type);
+        return CustomResponseHelper.fail(new ApiException(errorCode));
     }
 
     // DB 제약 조건 위반 예외 처리 (UNIQUE 제약 등)
