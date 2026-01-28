@@ -112,6 +112,10 @@ public class SseConnectionRedisService {
             while (cursor.hasNext()) {
                 keys.add(cursor.next());
             }
+        } catch (IllegalStateException e) {
+            // Redis connection factory가 이미 중지된 경우 (종료 중)
+            log.debug("Redis connection factory stopped, cannot retrieve connection keys: {}", e.getMessage());
+            return keys; // 빈 Set 반환
         }
         return keys;
     }
@@ -133,6 +137,10 @@ public class SseConnectionRedisService {
             while (cursor.hasNext()) {
                 keys.add(cursor.next());
             }
+        } catch (IllegalStateException e) {
+            // Redis connection factory가 이미 중지된 경우 (종료 중)
+            log.debug("Redis connection factory stopped, cannot retrieve connection keys: {}", e.getMessage());
+            return keys; // 빈 Set 반환
         }
         return keys;
     }
@@ -144,11 +152,17 @@ public class SseConnectionRedisService {
      * @return 삭제된 키 개수
      */
     public int deleteInstanceConnections() {
-        Set<String> keys = getInstanceConnectionKeys();
-        if (keys != null && !keys.isEmpty()) {
-            redisTemplate.delete(keys);
-            log.info("Deleted {} SSE connection keys for instance: {}", keys.size(), instanceId);
-            return keys.size();
+        try {
+            Set<String> keys = getInstanceConnectionKeys();
+            if (keys != null && !keys.isEmpty()) {
+                redisTemplate.delete(keys);
+                log.info("Deleted {} SSE connection keys for instance: {}", keys.size(), instanceId);
+                return keys.size();
+            }
+        } catch (IllegalStateException e) {
+            // Redis connection factory가 이미 중지된 경우 (종료 중)
+            log.debug("Redis connection factory stopped, cannot delete connection keys: {}", e.getMessage());
+            return 0;
         }
         return 0;
     }

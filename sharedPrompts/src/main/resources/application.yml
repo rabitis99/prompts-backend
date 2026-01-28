@@ -85,11 +85,13 @@ spring:
 
   jpa:
     show-sql: ${JPA_SHOW_SQL:false}
+    open-in-view: false  # N+1 쿼리 방지 및 성능 최적화
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:none}
     properties:
       hibernate:
-        dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.MySQL8Dialect}
+        # MySQL 8.0+ 자동 감지되므로 명시 불필요, 하지만 명시 시 최신 MySQLDialect 사용
+        dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.MySQLDialect}
         jdbc:
           batch_size: ${HIBERNATE_BATCH_SIZE:50}
 
@@ -124,6 +126,12 @@ spring:
           initial-interval: 1000
           max-attempts: 3
           multiplier: 2
+
+  # =========================
+  # Thymeleaf
+  # =========================
+  thymeleaf:
+    check-template-location: false  # 템플릿 위치 확인 비활성화 (REST API만 사용 시)
 
   # =========================
   # Spring AI
