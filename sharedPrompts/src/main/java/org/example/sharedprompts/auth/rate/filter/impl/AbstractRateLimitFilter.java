@@ -11,11 +11,14 @@ import org.example.sharedprompts.auth.rate.filter.model.RateLimitResultWithKey;
 import org.example.sharedprompts.auth.rate.filter.metrics.RateLimitMetricsCollector;
 import org.example.sharedprompts.auth.rate.filter.service.facade.RateLimitFacade;
 import org.example.sharedprompts.auth.rate.filter.strategy.RateLimitKeyStrategy;
+import org.example.sharedprompts.auth.rate.filter.util.RateLimitHeaderUtil;
 import org.example.sharedprompts.auth.rate.policy.RateLimitProperties;
 import org.example.sharedprompts.auth.rate.policy.RateLimitRule;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -32,6 +35,22 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
     protected final RateLimitKeyStrategy keyStrategy;
     protected final RateLimitProperties rateLimitProperties;
     protected final RateLimitMetricsCollector metricsCollector;
+    @Nullable
+    protected final RedisTemplate<String, Object> redisTemplate;
+
+    protected AbstractRateLimitFilter(
+            RateLimitFacade facade,
+            RateLimitKeyStrategy keyStrategy,
+            RateLimitProperties rateLimitProperties,
+            RateLimitMetricsCollector metricsCollector,
+            @Nullable RedisTemplate<String, Object> redisTemplate
+    ) {
+        this.facade = facade;
+        this.keyStrategy = keyStrategy;
+        this.rateLimitProperties = rateLimitProperties;
+        this.metricsCollector = metricsCollector;
+        this.redisTemplate = redisTemplate;
+    }
 
     protected AbstractRateLimitFilter(
             RateLimitFacade facade,
@@ -39,10 +58,7 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             RateLimitProperties rateLimitProperties,
             RateLimitMetricsCollector metricsCollector
     ) {
-        this.facade = facade;
-        this.keyStrategy = keyStrategy;
-        this.rateLimitProperties = rateLimitProperties;
-        this.metricsCollector = metricsCollector;
+        this(facade, keyStrategy, rateLimitProperties, metricsCollector, null);
     }
 
     @Override
@@ -75,8 +91,31 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
         if (result.isExceeded()) {
             handleRateLimitExceeded(result, context, request, response);
         } else {
+            // 성공 응답에도 RateLimit 헤더 추가 (요구사항)
+            addRateLimitHeaders(response, result);
             filterChain.doFilter(request, response);
         }
+    }
+
+    /**
+     * 성공 응답에 RateLimit 헤더를 추가합니다.
+     * 
+     * @param response HttpServletResponse
+     * @param result RateLimitResultWithKey
+     */
+    private void addRateLimitHeaders(
+            HttpServletResponse response,
+            RateLimitResultWithKey result
+    ) {
+        // Redis 키를 사용하여 정확한 TTL 조회
+        String rateLimitKey = result.getKey() != null ? result.getKey().value() : null;
+        RateLimitHeaderUtil.addRateLimitHeaders(
+                response,
+                result.getRule(),
+                result.getResult(),
+                redisTemplate,
+                rateLimitKey
+        );
     }
 
     /**
@@ -98,12 +137,17 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
         );
 
         // Exceeded 응답 처리 (중복 로깅 방지를 위해 빈 콜백 전달)
+        // Redis 키를 사용하여 정확한 TTL 조회
+        String rateLimitKey = result.getKey() != null ? result.getKey().value() : null;
         facade.getExceededFacade().handle(
                 result.getRule(),
                 result.getKey(),
                 result.getResult(),
                 response,
-                (k, r) -> {}
+                (k, r) -> {},
+                null, // errorCode
+                redisTemplate,
+                rateLimitKey
         );
     }
 

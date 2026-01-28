@@ -14,6 +14,7 @@ import org.example.sharedprompts.auth.rate.filter.util.auth.AuthenticationHelper
 import org.example.sharedprompts.auth.rate.policy.RateLimitProperties;
 import org.example.sharedprompts.auth.rate.policy.RateLimitRule;
 import org.springframework.core.annotation.Order;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
@@ -38,9 +39,10 @@ public class UserRateLimitFilter extends AbstractRateLimitFilter {
             RateLimitFacade facade,
             UserRateLimitKeyStrategy keyStrategy,
             RateLimitProperties rateLimitProperties,
-            RateLimitMetricsCollector metricsCollector
+            RateLimitMetricsCollector metricsCollector,
+            RedisTemplate<String, Object> redisTemplate
     ) {
-        super(facade, keyStrategy, rateLimitProperties, metricsCollector);
+        super(facade, keyStrategy, rateLimitProperties, metricsCollector, redisTemplate);
     }
 
     @Override

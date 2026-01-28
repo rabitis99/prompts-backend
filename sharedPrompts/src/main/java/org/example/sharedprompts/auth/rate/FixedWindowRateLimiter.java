@@ -58,13 +58,25 @@ public class FixedWindowRateLimiter implements RateLimiter {
             boolean allowed = currentCount <= capacity;
 
             long retryAfter = 0L;
+            
             if (!allowed) {
-                Long ttl = redisTemplate.getExpire(key, TimeUnit.SECONDS);
-                if (ttl == null || ttl < 0) {
-                    ttl = windowSeconds;
+                // 초과 시: TTL을 조회하여 정확한 retryAfter 계산
+                // 예외 발생 시 windowSeconds를 폴백으로 사용
+                try {
+                    Long ttl = redisTemplate.getExpire(key, TimeUnit.SECONDS);
+                    if (ttl != null && ttl > 0) {
+                        retryAfter = ttl;
+                    } else {
+                        // TTL 조회 실패 시 windowSeconds 사용
+                        retryAfter = windowSeconds;
+                    }
+                } catch (Exception e) {
+                    // TTL 조회 실패 시 windowSeconds 사용
+                    retryAfter = windowSeconds;
                 }
-                retryAfter = ttl;
             }
+            // 성공 시: retryAfter는 0으로 유지
+            // reset timestamp는 RateLimitHeaderUtil에서 Redis TTL을 직접 조회하여 계산
 
             return new RateLimitResult(allowed, currentCount, retryAfter);
         } catch (Exception e) {
