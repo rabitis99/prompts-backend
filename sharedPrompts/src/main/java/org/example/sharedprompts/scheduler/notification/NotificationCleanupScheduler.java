@@ -2,6 +2,7 @@ package org.example.sharedprompts.scheduler.notification;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.notification.repository.NotificationRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +40,7 @@ public class NotificationCleanupScheduler {
             lockAtMostFor = "30m",
             lockAtLeastFor = "5m"
     )
+    @LockProviderToUse("fallbackLockProvider")
     @Transactional
     public void cleanupOldNotifications() {
         if (!cleanupEnabled) {

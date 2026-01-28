@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.tag.count;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.tag.config.TagRedisKey;
 import org.springframework.data.redis.core.Cursor;
@@ -46,6 +47,7 @@ public class TagCountDlqProcessor {
             lockAtMostFor = "55m",
             lockAtLeastFor = "1m"
     )
+    @LockProviderToUse("fallbackLockProvider")
     public void processDeadLetterQueue() {
         log.info("Starting DLQ processing for tag count updates");
 

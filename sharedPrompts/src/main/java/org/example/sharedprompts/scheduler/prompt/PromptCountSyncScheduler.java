@@ -2,6 +2,7 @@ package org.example.sharedprompts.scheduler.prompt;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,6 +23,7 @@ public class PromptCountSyncScheduler {
 
     @Scheduled(fixedDelay = SCHEDULE_DELAY_MS)
     @SchedulerLock(name = "PromptCountSyncScheduler", lockAtMostFor = "15m", lockAtLeastFor = "1m")
+    @LockProviderToUse("fallbackLockProvider")
     public void syncPromptCommentCounts() {
         log.info("PromptCountSyncScheduler started");
 

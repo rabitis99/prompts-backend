@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.admin.maintenance.config.AdminMaintenanceProperties;
 import org.example.sharedprompts.domain.admin.maintenance.metrics.RebuildMetrics;
@@ -56,6 +57,7 @@ public class AdminMaintenanceServiceImpl implements AdminMaintenanceService {
             lockAtMostFor = "1h",
             lockAtLeastFor = "5m"
     )
+    @LockProviderToUse("fallbackLockProvider")
     public void rebuildLikeCountsFromDbAsync() {
         // 주의: @SchedulerLock의 값은 컴파일 타임에 평가되므로 동적 변경이 불가능합니다.
         // Properties의 값은 다른 용도(로깅, 검증 등)로 사용하고,

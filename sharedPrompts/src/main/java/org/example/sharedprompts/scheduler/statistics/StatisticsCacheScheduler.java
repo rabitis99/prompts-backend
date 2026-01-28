@@ -2,6 +2,7 @@ package org.example.sharedprompts.scheduler.statistics;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.statistics.service.StatisticsService;
 import org.springframework.cache.CacheManager;
@@ -27,6 +28,7 @@ public class StatisticsCacheScheduler {
      */
     @Scheduled(fixedRate = 5 * 60 * 1000L) // 5분
     @SchedulerLock(name = "StatisticsCacheScheduler", lockAtMostFor = "10m", lockAtLeastFor = "1m")
+    @LockProviderToUse("fallbackLockProvider")
     public void refreshStatisticsCache() {
         log.info("StatisticsCacheScheduler started - refreshing statistics cache");
 
