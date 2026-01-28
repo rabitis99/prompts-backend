@@ -41,5 +41,17 @@ public class PromptEventPublisher {
         eventPublisher.publishEvent(event);
         log.debug("Published PromptEvent.Deleted: promptId={}, userId={}", promptId, userId);
     }
+
+    /**
+     * 프롬프트 조회 이벤트 발행
+     * 
+     * @param promptId 조회된 프롬프트 ID
+     * @param viewerId 조회자 ID (nullable - 비로그인 사용자)
+     */
+    public void publishPromptViewed(Long promptId, Long viewerId) {
+        PromptEvent.Viewed event = new PromptEvent.Viewed(promptId, viewerId);
+        eventPublisher.publishEvent(event);
+        log.debug("Published PromptEvent.Viewed: promptId={}, viewerId={}", promptId, viewerId);
+    }
 }
 
