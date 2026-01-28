@@ -24,11 +24,11 @@ public class PromptLikeDomainService {
     @Transactional
     public PromptLike like(Long userId, Long promptId) {
         validateIdsNotNull(userId, promptId);
-        validateUserExists(userId);
-        validatePromptExists(promptId);
 
         PromptLikeId id = new PromptLikeId(promptId, userId);
 
+        // getReferenceById()는 프록시를 반환하므로 불필요한 existsById() 호출 제거
+        // 엔티티가 존재하지 않으면 나중에 예외가 발생하므로 별도 존재 확인 불필요
         User user = userRepository.getReferenceById(userId);
         Prompt prompt = promptRepository.getReferenceById(promptId);
 
@@ -56,18 +56,6 @@ public class PromptLikeDomainService {
     private void validateIdsNotNull(Long userId, Long promptId) {
         if (userId == null || promptId == null) {
             throw new ApiException(ErrorCode.INVALID_INPUT_VALUE);
-        }
-    }
-
-    private void validateUserExists(Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new ApiException(ErrorCode.USER_NOT_FOUND);
-        }
-    }
-
-    private void validatePromptExists(Long promptId) {
-        if (!promptRepository.existsById(promptId)) {
-            throw new ApiException(ErrorCode.PROMPT_NOT_FOUND);
         }
     }
 
