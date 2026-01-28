@@ -10,6 +10,7 @@ import org.example.sharedprompts.auth.rate.filter.strategy.IpRateLimitKeyStrateg
 import org.example.sharedprompts.auth.rate.policy.RateLimitProperties;
 import org.example.sharedprompts.auth.rate.policy.RateLimitRule;
 import org.springframework.core.annotation.Order;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 /**
@@ -32,9 +33,10 @@ public class IpRateLimitFilter extends AbstractRateLimitFilter {
             RateLimitFacade facade,
             IpRateLimitKeyStrategy keyStrategy,
             RateLimitProperties rateLimitProperties,
-            RateLimitMetricsCollector metricsCollector
+            RateLimitMetricsCollector metricsCollector,
+            RedisTemplate<String, Object> redisTemplate
     ) {
-        super(facade, keyStrategy, rateLimitProperties, metricsCollector);
+        super(facade, keyStrategy, rateLimitProperties, metricsCollector, redisTemplate);
     }
 
     @Override

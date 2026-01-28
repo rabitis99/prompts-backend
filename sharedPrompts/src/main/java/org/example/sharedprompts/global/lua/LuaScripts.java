@@ -27,6 +27,10 @@ public class LuaScripts {
     /**
      * INCR + EXPIRE 를 하나의 Lua 스크립트에서 처리하여
      * TTL 설정까지 원자적으로 보장하기 위한 스크립트입니다.
+     * 
+     * Fixed Window Rate Limiting을 위해:
+     * - 키가 없을 때만 EXPIRE를 설정합니다 (TTL 갱신 방지)
+     * - 키가 이미 있으면 TTL을 변경하지 않아 윈도우가 정확히 리셋됩니다.
      *
      * KEYS[1] : 대상 key
      * ARGV[1] : TTL (seconds)
@@ -37,7 +41,9 @@ public class LuaScripts {
 
         local newVal = redis.call('INCR', key)
 
-        if ttl and ttl > 0 then
+        -- Fixed Window: 키가 없을 때만 TTL 설정 (키가 이미 있으면 TTL 유지)
+        -- newVal == 1이면 키가 방금 생성된 것이므로 TTL 설정
+        if newVal == 1 and ttl and ttl > 0 then
             redis.call('EXPIRE', key, ttl)
         end
 

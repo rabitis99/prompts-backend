@@ -9,12 +9,12 @@ import org.example.sharedprompts.auth.rate.filter.metrics.RateLimitMetricsCollec
 import org.example.sharedprompts.auth.rate.filter.model.RateLimitKey;
 import org.example.sharedprompts.auth.rate.policy.RateLimitRule;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.jetbrains.annotations.Nullable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.function.BiConsumer;
-
-import static org.example.sharedprompts.auth.rate.policy.RateLimitConstants.Response;
 
 /**
  * Rate Limit 초과 처리 Facade
@@ -56,44 +56,28 @@ public class RateLimitExceededFacade {
             RateLimiter.RateLimitResult result,
             HttpServletResponse response,
             BiConsumer<RateLimitKey, RateLimiter.RateLimitResult> logCallback,
-            ErrorCode errorCode
+            ErrorCode errorCode,
+            @Nullable RedisTemplate<String, Object> redisTemplate,
+            @Nullable String rateLimitKey
     ) throws IOException {
-        long retryAfter = result.getRetryAfter(Response.MIN_RETRY_AFTER_SECONDS);
-
         // 1. 메트릭 수집 (Observer 패턴)
         recordMetrics(rule, result);
 
         // 2. 로그 기록 (콜백을 통해)
         recordLog(key, result, logCallback);
 
-        // 3. HTTP 응답 작성
-        writeResponse(response, retryAfter, errorCode);
+        // 3. HTTP 응답 작성 (rule과 result를 직접 전달하여 헤더 포함)
+        RateLimitResponseWriter.writeTooManyRequests(
+                response,
+                objectMapper,
+                rule,
+                result,
+                errorCode,
+                redisTemplate,
+                rateLimitKey
+        );
     }
 
-    /**
-     * Rate Limit 초과를 처리합니다. (기본 에러 코드 사용)
-     * 
-     * @param rule RateLimitRule
-     * @param key Rate Limit 키 (타입 정보 포함)
-     * @param result RateLimitResult
-     * @param response HttpServletResponse
-     * @param logCallback 로그 기록 콜백 (key, result)
-     *                    주의: 이 콜백은 handle() 메서드 내부의 recordLog()에서 호출됩니다.
-     *                    AbstractRateLimitFilter에서는 이미 logRateLimitExceeded()를 통해
-     *                    로깅이 완료되므로, 중복 로깅을 방지하기 위해 빈 람다 (k, r) -> {}를
-     *                    전달하는 것이 일반적입니다. 필요시 추가적인 로깅이나 후처리를
-     *                    수행할 수 있는 확장 포인트로 활용할 수 있습니다.
-     * @throws IOException 응답 작성 실패 시
-     */
-    public void handle(
-            RateLimitRule rule,
-            RateLimitKey key,
-            RateLimiter.RateLimitResult result,
-            HttpServletResponse response,
-            BiConsumer<RateLimitKey, RateLimiter.RateLimitResult> logCallback
-    ) throws IOException {
-        handle(rule, key, result, response, logCallback, null);
-    }
 
     /**
      * 메트릭을 수집합니다.
@@ -120,20 +104,5 @@ public class RateLimitExceededFacade {
         logCallback.accept(key, result);
     }
 
-    /**
-     * HTTP 응답을 작성합니다.
-     * 
-     * @param response HttpServletResponse
-     * @param retryAfter Retry-After 값 (초)
-     * @param errorCode 사용할 에러 코드
-     * @throws IOException 응답 작성 실패 시
-     */
-    private void writeResponse(
-            HttpServletResponse response,
-            long retryAfter,
-            ErrorCode errorCode
-    ) throws IOException {
-        RateLimitResponseWriter.writeTooManyRequests(response, objectMapper, retryAfter, errorCode);
-    }
 }
 
