@@ -28,15 +28,13 @@ public class PromptViewedEventListener {
      */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handlePromptViewed(PromptEvent.Viewed event) {
-        try {
-            promptUsageCountService.incrementUsageCount(event.promptId());
-            log.debug("Incremented usage count in Redis. promptId={}, viewerId={}", 
-                    event.promptId(), event.viewerId());
-        } catch (Exception e) {
-            // Redis 장애 시에도 조회 API는 이미 성공했으므로 조용히 무시
-            log.warn("Failed to increment usage count after prompt view. promptId={}, viewerId={}, error={}", 
-                    event.promptId(), event.viewerId(), e.getMessage());
-        }
+        promptUsageCountService.incrementUsageCount(event.promptId());
+
+        log.debug(
+                "Prompt viewed event processed. promptId={}, viewerId={}",
+                event.promptId(),
+                event.viewerId()
+        );
     }
 }
 
