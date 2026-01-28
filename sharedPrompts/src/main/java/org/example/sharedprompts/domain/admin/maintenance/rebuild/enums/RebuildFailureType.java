@@ -75,6 +75,9 @@ public enum RebuildFailureType {
      * 예외 메시지와 타입을 결합한 에러 메시지 생성
      */
     public String buildErrorMessage(Exception e) {
+        if (e == null) {
+            return String.format("[%s] %s", typeName, description);
+        }
         String message = e.getMessage();
         if (message != null && !message.isBlank()) {
             return String.format("[%s] %s", typeName, message);
