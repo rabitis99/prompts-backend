@@ -17,8 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-import static org.springframework.transaction.annotation.Propagation.REQUIRES_NEW;
-
 @Service
 @RequiredArgsConstructor
 public class PromptPersistenceService {
@@ -33,14 +31,10 @@ public class PromptPersistenceService {
      * 프롬프트 저장과 태그 처리, 트랜잭션 관리를 담당한다.
      * 
      * <p><strong>트랜잭션 전파 전략:</strong>
-     * {@code REQUIRES_NEW}를 사용하여 외부 트랜잭션과 독립적으로 동작합니다.
-     * 이는 프롬프트 저장이 실패해도 외부 트랜잭션이 롤백되지 않도록 하기 위함입니다.
-     * 
-     * <p><strong>주의:</strong> 이로 인해 데이터 일관성 문제가 발생할 수 있습니다.
-     * 프롬프트 저장이 실패해도 외부 트랜잭션이 커밋될 수 있으므로,
-     * 비즈니스 요구사항에 따라 전파 전략을 재검토해야 할 수 있습니다.
+     * 기본 전략({@code REQUIRED})을 사용하여 상위 트랜잭션에 참여합니다.
+     * 프롬프트 저장이 실패하면 상위 트랜잭션도 함께 롤백되어 데이터 일관성을 보장합니다.
      */
-    @Transactional(propagation=REQUIRES_NEW, timeout=30)
+    @Transactional(timeout=30)
     public PromptResponseDto savePrompt(PromptRequestDto request, Long userId, String aiGeneratedContent) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
