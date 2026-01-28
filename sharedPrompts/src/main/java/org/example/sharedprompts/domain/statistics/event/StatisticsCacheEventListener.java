@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.statistics.event;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.prompt.event.PromptEvent;
+import org.example.sharedprompts.domain.statistics.constants.StatisticsCacheKeys;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
@@ -15,7 +16,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * <p>프롬프트 생성/삭제 시 통계 캐시를 즉시 무효화하여 데이터 일관성을 보장합니다.
  * 트랜잭션 커밋 후 처리하여 롤백 시 캐시 무효화가 발생하지 않도록 합니다.
  * 
- * <p>무효화되는 캐시 키:
+ * <p>무효화되는 캐시 키는 {@link StatisticsCacheKeys}에서 중앙 관리됩니다:
  * <ul>
  *   <li>{@code "all"} - 전체 통계</li>
  *   <li>{@code "user"} - 사용자 통계</li>
@@ -30,14 +31,6 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Component
 @RequiredArgsConstructor
 public class StatisticsCacheEventListener {
-
-    private static final String CACHE_NAME = "statistics";
-    
-    // 통계 캐시 키 상수
-    private static final String CACHE_KEY_ALL = "all";
-    private static final String CACHE_KEY_USER = "user";
-    private static final String CACHE_KEY_PROMPT = "prompt";
-    private static final String CACHE_KEY_AI_CALL = "ai-call";
 
     private final CacheManager cacheManager;
 
@@ -73,20 +66,21 @@ public class StatisticsCacheEventListener {
      * 이벤트 처리 실패가 다른 비즈니스 로직에 영향을 주지 않도록 합니다.
      */
     private void evictStatisticsCache() {
-        Cache cache = cacheManager.getCache(CACHE_NAME);
+        Cache cache = cacheManager.getCache(StatisticsCacheKeys.CACHE_NAME);
         if (cache == null) {
-            log.warn("Statistics cache not found: cacheName={}", CACHE_NAME);
+            log.warn("Statistics cache not found: cacheName={}", StatisticsCacheKeys.CACHE_NAME);
             return;
         }
 
         try {
-            cache.evictIfPresent(CACHE_KEY_ALL);
-            cache.evictIfPresent(CACHE_KEY_USER);
-            cache.evictIfPresent(CACHE_KEY_PROMPT);
-            cache.evictIfPresent(CACHE_KEY_AI_CALL);
+            cache.evictIfPresent(StatisticsCacheKeys.ALL);
+            cache.evictIfPresent(StatisticsCacheKeys.USER);
+            cache.evictIfPresent(StatisticsCacheKeys.PROMPT);
+            cache.evictIfPresent(StatisticsCacheKeys.AI_CALL);
             
             log.debug("Statistics cache evicted after prompt change: keys=[{}, {}, {}, {}]", 
-                    CACHE_KEY_ALL, CACHE_KEY_USER, CACHE_KEY_PROMPT, CACHE_KEY_AI_CALL);
+                    StatisticsCacheKeys.ALL, StatisticsCacheKeys.USER, 
+                    StatisticsCacheKeys.PROMPT, StatisticsCacheKeys.AI_CALL);
         } catch (Exception e) {
             log.error("Failed to evict statistics cache: {}", e.getMessage(), e);
             // 예외를 전파하지 않아 이벤트 처리 실패가 다른 로직에 영향을 주지 않도록 함
@@ -111,14 +105,14 @@ public class StatisticsCacheEventListener {
             return;
         }
 
-        Cache cache = cacheManager.getCache(CACHE_NAME);
+        Cache cache = cacheManager.getCache(StatisticsCacheKeys.CACHE_NAME);
         if (cache == null) {
-            log.warn("Statistics cache not found: cacheName={}", CACHE_NAME);
+            log.warn("Statistics cache not found: cacheName={}", StatisticsCacheKeys.CACHE_NAME);
             return;
         }
 
         try {
-            String cacheKey = "my:" + userId.toString();
+            String cacheKey = StatisticsCacheKeys.userStatistics(userId);
             cache.evictIfPresent(cacheKey);
             log.debug("User statistics cache evicted: userId={}, cacheKey={}", userId, cacheKey);
         } catch (Exception e) {
