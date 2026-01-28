@@ -24,13 +24,13 @@ public class PromptLikeDomainService {
     @Transactional
     public PromptLike like(Long userId, Long promptId) {
         validateIdsNotNull(userId, promptId);
-        validateUserExists(userId);
-        validatePromptExists(promptId);
 
         PromptLikeId id = new PromptLikeId(promptId, userId);
 
-        User user = userRepository.getReferenceById(userId);
-        Prompt prompt = promptRepository.getReferenceById(promptId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new ApiException(ErrorCode.USER_NOT_FOUND));
+        Prompt prompt = promptRepository.findById(promptId)
+                .orElseThrow(()-> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
 
         PromptLike promptLike = PromptLike.builder()
                 .id(id)
@@ -56,18 +56,6 @@ public class PromptLikeDomainService {
     private void validateIdsNotNull(Long userId, Long promptId) {
         if (userId == null || promptId == null) {
             throw new ApiException(ErrorCode.INVALID_INPUT_VALUE);
-        }
-    }
-
-    private void validateUserExists(Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new ApiException(ErrorCode.USER_NOT_FOUND);
-        }
-    }
-
-    private void validatePromptExists(Long promptId) {
-        if (!promptRepository.existsById(promptId)) {
-            throw new ApiException(ErrorCode.PROMPT_NOT_FOUND);
         }
     }
 

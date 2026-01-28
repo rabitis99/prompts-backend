@@ -1,6 +1,7 @@
 package org.example.sharedprompts.global.exception;
 
 import io.jsonwebtoken.JwtException;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import jakarta.persistence.OptimisticLockException;
@@ -47,6 +48,13 @@ public class GlobalExceptionHandler {
         log.warn("JWT 인증 실패: {}", e.getMessage());
         return CustomResponseHelper.fail(new ApiException(ErrorCode.UNAUTHORIZED));
     }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<?> handleEntityNotFoundException(EntityNotFoundException e) {
+        log.warn("EntityNotFoundException: {}", e.getMessage());
+        return CustomResponseHelper.fail(new ApiException(ErrorCode.NOT_FOUND));
+    }
+
 
     // 낙관적 락 예외 처리 (동시 수정 감지)
     @ExceptionHandler(OptimisticLockException.class)
