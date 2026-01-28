@@ -38,6 +38,7 @@ public class PromptServiceImpl implements PromptService {
     private final FollowBlockPolicy followBlockPolicy;
     private final PromptTagService promptTagService;
     private final LikeCountService likeCountService;
+    private final PromptUsageService promptUsageService;
     private final PromptSanitizationService promptSanitizationService;
     private final PromptEventPublisher promptEventPublisher;
 
@@ -65,23 +66,13 @@ public class PromptServiceImpl implements PromptService {
         }
 
         // 조회 후 사용 횟수 증가는 별도 트랜잭션으로 분리
-        incrementUsageCount(promptId);
+        promptUsageService.incrementUsageCount(promptId);
 
         List<Tag> tags = promptTagService.getTags(prompt);
         Long likeCount = likeCountService
                 .getPromptLikeCounts(List.of(promptId))
                 .getOrDefault(promptId, prompt.getLikeCount());
         return PromptResponseDto.from(prompt, tags, likeCount);
-    }
-
-    /**
-     * 사용 횟수 증가를 별도 트랜잭션으로 처리합니다.
-     * 조회 성능에 영향을 주지 않도록 조회 트랜잭션과 분리되었습니다.
-     * REQUIRES_NEW를 사용하여 같은 클래스 내 호출에서도 새로운 트랜잭션이 시작되도록 합니다.
-     */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void incrementUsageCount(Long promptId) {
-        promptRepository.incrementUsageCount(promptId);
     }
 
     // ============ 수정 ===============
