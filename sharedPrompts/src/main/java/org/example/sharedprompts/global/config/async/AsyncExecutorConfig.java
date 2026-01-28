@@ -56,6 +56,22 @@ public class AsyncExecutorConfig {
                 DEFAULT_AWAIT_TERMINATION_SECONDS, createCallerThreadRejectionHandler());
     }
 
+    /** @EnableAsync의 기본 Executor */
+    @Bean(name = "taskExecutor")
+    public Executor taskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setThreadNamePrefix("async-");
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(20);
+        executor.setQueueCapacity(100);
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(60);
+        executor.setTaskDecorator(new SecurityContextTaskDecorator());
+        executor.setRejectedExecutionHandler(createCallerThreadRejectionHandler());
+        executor.initialize();
+        return executor;
+    }
+
     /** 공통 Executor 설정 로직 */
     private void configureExecutor(ThreadPoolTaskExecutor executor, String prefix, int core, int max, int queue,
                                    int awaitSec, RejectedExecutionHandler rejectedHandler) {

@@ -18,6 +18,7 @@ import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.dto.common.PageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -52,7 +53,7 @@ public class PromptServiceImpl implements PromptService {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public PromptResponseDto getPromptDetail(Long promptId, Long viewerId) {
         Prompt prompt = promptRepository.findById(promptId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
@@ -63,13 +64,24 @@ public class PromptServiceImpl implements PromptService {
             throw new ApiException(ErrorCode.PROMPT_BLOCKED_VIEW);
         }
 
-        promptRepository.incrementUsageCount(promptId);
+        // 조회 후 사용 횟수 증가는 별도 트랜잭션으로 분리
+        incrementUsageCount(promptId);
 
         List<Tag> tags = promptTagService.getTags(prompt);
         Long likeCount = likeCountService
                 .getPromptLikeCounts(List.of(promptId))
                 .getOrDefault(promptId, prompt.getLikeCount());
         return PromptResponseDto.from(prompt, tags, likeCount);
+    }
+
+    /**
+     * 사용 횟수 증가를 별도 트랜잭션으로 처리합니다.
+     * 조회 성능에 영향을 주지 않도록 조회 트랜잭션과 분리되었습니다.
+     * REQUIRES_NEW를 사용하여 같은 클래스 내 호출에서도 새로운 트랜잭션이 시작되도록 합니다.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void incrementUsageCount(Long promptId) {
+        promptRepository.incrementUsageCount(promptId);
     }
 
     // ============ 수정 ===============
