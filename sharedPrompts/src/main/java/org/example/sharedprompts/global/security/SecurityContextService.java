@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 /**
  * SecurityContext 접근 서비스
  * 
@@ -20,8 +20,11 @@ public class SecurityContextService {
 
     /**
      * 현재 SecurityContext 조회
-     * 
-     * @return SecurityContext (없으면 null)
+     *
+     * <p>Spring Security 명세상 {@link SecurityContextHolder#getContext()} 는
+     * 컨텍스트가 없어도 null이 아닌 빈 {@link SecurityContext} 를 반환합니다.
+     *
+     * @return SecurityContext (기본 전략에서는 항상 non-null)
      */
     public static SecurityContext getContext() {
         return SecurityContextHolder.getContext();
@@ -36,7 +39,6 @@ public class SecurityContextService {
         SecurityContext context = getContext();
         return context != null ? context.getAuthentication() : null;
     }
-
     /**
      * 현재 인증 여부 확인
      * 
@@ -44,7 +46,9 @@ public class SecurityContextService {
      */
     public static boolean isAuthenticated() {
         Authentication authentication = getAuthentication();
-        return authentication != null && authentication.isAuthenticated();
+        return authentication != null
+                && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken);
     }
 
     /**

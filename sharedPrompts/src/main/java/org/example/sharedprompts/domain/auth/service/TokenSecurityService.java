@@ -2,7 +2,6 @@ package org.example.sharedprompts.domain.auth.service;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.auth.security.token.TokenSecurityCheckResult;
 import org.example.sharedprompts.auth.security.token.TokenSecurityResultHandler;
 import org.example.sharedprompts.auth.security.token.TokenSecurityValidator;
@@ -14,7 +13,6 @@ import org.springframework.stereotype.Service;
  * 
  * Refresh Token의 IP/User-Agent 검증 및 결과 처리를 담당합니다.
  */
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TokenSecurityService {

@@ -4,11 +4,10 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 
 /**
  * 보안 관련 유틸리티 클래스
- * 
+ *
  * 보안에 중요한 연산들을 제공합니다.
  * 모든 메서드는 static이므로 인스턴스화를 방지합니다.
  */
@@ -17,54 +16,50 @@ public class SecurityUtils {
 
     /**
      * 상수 시간 문자열 비교 (타이밍 공격 방지)
-     * 
+     *
      * <p>String.equals()는 첫 번째 불일치 문자에서 즉시 반환하므로 타이밍 공격에 취약합니다.
-     * 이 메서드는 MessageDigest.isEqual()을 사용하여 검증된 상수 시간 비교를 제공합니다.
-     * 
+     * 이 메서드는 길이 불일치 여부와 관계없이 동일한 연산 경로를 유지하여
+     * 길이 정보 및 비교 결과에 대한 타이밍 정보 누출을 방지합니다.
+     *
      * <p><strong>보안 고려사항:</strong>
      * <ul>
      *   <li>null 입력은 무조건 false를 반환합니다. 인증 우회를 방지하기 위해 null은 불일치로 처리합니다.</li>
-     *   <li>호출부에서 null 유효성을 사전에 확인하는 것을 권장합니다.</li>
-     *   <li>길이가 다른 경우에도 상수 시간 비교를 수행하여 길이 정보 누출을 방지합니다.</li>
+     *   <li>길이가 다른 경우에도 더미 비교를 수행하여 조기 반환을 방지합니다.</li>
+     *   <li>HMAC, 해시 값, 고정 길이 인증 토큰 비교에 적합합니다.</li>
      * </ul>
-     * 
+     *
      * <p><strong>구현 상세:</strong>
      * <ul>
-     *   <li>길이가 다른 경우에도 동일한 시간이 소요되도록 더미 비교를 수행합니다.</li>
-     *   <li>MessageDigest.isEqual()을 사용하여 검증된 상수 시간 비교를 수행합니다.</li>
-     *   <li>HMAC, 해시 값 등 고정 길이 값 비교에 적합합니다.</li>
+     *   <li>두 입력의 최대 길이를 기준으로 루프를 수행합니다.</li>
+     *   <li>길이가 짧은 쪽은 0 바이트로 패딩하여 비교합니다.</li>
+     *   <li>길이 차이 및 바이트 차이를 XOR 누적 방식으로 계산합니다.</li>
      * </ul>
-     * 
-     * <p>사용 사례:
-     * <ul>
-     *   <li>HMAC 값 비교 (권장)</li>
-     *   <li>해시 값 비교</li>
-     *   <li>고정 길이 인증 토큰 비교</li>
-     * </ul>
-     * 
+     *
      * @param a 첫 번째 문자열 (null이면 false 반환)
      * @param b 두 번째 문자열 (null이면 false 반환)
      * @return 두 문자열이 동일하면 true, 그렇지 않으면 false (null 입력은 항상 false)
      */
     public static boolean constantTimeEquals(String a, String b) {
         // null 입력은 무조건 false 반환 (보안 우회 방지)
-        // OWASP 지침: 인증 비교에서 null 입력은 불일치로 처리해야 함
         if (a == null || b == null) {
             return false;
         }
-        
-        // UTF-8 인코딩을 사용하여 byte[]로 변환
+
         byte[] aBytes = a.getBytes(StandardCharsets.UTF_8);
         byte[] bBytes = b.getBytes(StandardCharsets.UTF_8);
-        
-        // 길이가 다른 경우 즉시 false 반환
-        if (aBytes.length != bBytes.length) {
-            return false;
+
+        int maxLen = Math.max(aBytes.length, bBytes.length);
+
+        // 길이 차이를 결과에 반영 (길이 정보도 비교에 포함)
+        int result = aBytes.length ^ bBytes.length;
+
+        // 길이가 달라도 동일한 횟수로 비교 수행
+        for (int i = 0; i < maxLen; i++) {
+            byte x = i < aBytes.length ? aBytes[i] : 0;
+            byte y = i < bBytes.length ? bBytes[i] : 0;
+            result |= x ^ y;
         }
-        
-        // MessageDigest.isEqual()을 사용하여 검증된 상수 시간 비교 수행
-        // 길이가 같은 경우에만 비교를 수행하므로 타이밍 공격에 안전합니다.
-        return MessageDigest.isEqual(aBytes, bBytes);
+
+        return result == 0;
     }
 }
-

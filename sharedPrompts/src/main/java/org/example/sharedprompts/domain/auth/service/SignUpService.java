@@ -1,7 +1,6 @@
 package org.example.sharedprompts.domain.auth.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.enums.Provider;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
@@ -20,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
  * 
  * 비밀번호 검증, 인코딩, 사용자 등록을 담당합니다.
  */
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SignUpService {
