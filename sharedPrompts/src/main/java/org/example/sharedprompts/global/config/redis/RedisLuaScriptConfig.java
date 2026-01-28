@@ -130,5 +130,25 @@ public class RedisLuaScriptConfig {
         script.setResultType(resultType);
         return script;
     }
+
+    /**
+     * GET_AND_RESET_USAGE_COUNTS 스크립트
+     * 
+     * 사용처:
+     * - PromptUsageCountServiceImpl: 프롬프트 조회수 배치 처리
+     * 
+     * 기능: 여러 키의 조회수를 원자적으로 조회하고 0으로 리셋
+     * 반환값: List<Long> [value1, value2, ...] (각 키의 조회수)
+     */
+    @Bean
+    public DefaultRedisScript<List<Long>> getAndResetUsageCountsScript() {
+        DefaultRedisScript<List<Long>> script = new DefaultRedisScript<>();
+        script.setScriptText(LuaScripts.GET_AND_RESET_USAGE_COUNTS);
+        // Spring Data Redis는 런타임에 제네릭 타입 정보를 잃어버리므로 raw type을 사용
+        @SuppressWarnings("unchecked")
+        Class<List<Long>> resultType = (Class<List<Long>>) (Class<?>) List.class;
+        script.setResultType(resultType);
+        return script;
+    }
 }
 

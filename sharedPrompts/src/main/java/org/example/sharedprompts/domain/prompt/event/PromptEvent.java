@@ -26,5 +26,13 @@ public final class PromptEvent {
      * @param userId 프롬프트 작성자 ID
      */
     public record Deleted(Long promptId, Long userId) {}
+
+    /**
+     * 프롬프트 조회 이벤트
+     * 
+     * @param promptId 조회된 프롬프트 ID
+     * @param viewerId 조회자 ID (nullable - 비로그인 사용자)
+     */
+    public record Viewed(Long promptId, Long viewerId) {}
 }
 

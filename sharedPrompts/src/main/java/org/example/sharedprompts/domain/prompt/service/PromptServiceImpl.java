@@ -18,7 +18,6 @@ import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.dto.common.PageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -38,7 +37,6 @@ public class PromptServiceImpl implements PromptService {
     private final FollowBlockPolicy followBlockPolicy;
     private final PromptTagService promptTagService;
     private final LikeCountService likeCountService;
-    private final PromptUsageService promptUsageService;
     private final PromptSanitizationService promptSanitizationService;
     private final PromptEventPublisher promptEventPublisher;
 
@@ -65,8 +63,9 @@ public class PromptServiceImpl implements PromptService {
             throw new ApiException(ErrorCode.PROMPT_BLOCKED_VIEW);
         }
 
-        // 조회 후 사용 횟수 증가는 별도 트랜잭션으로 분리
-        promptUsageService.incrementUsageCount(promptId);
+        // 조회 이벤트 발행 (AFTER_COMMIT 단계에서 Redis에 조회수 증가)
+        // 조회 API는 readOnly 트랜잭션을 유지하며, 조회 직후 DB UPDATE는 발생하지 않음
+        promptEventPublisher.publishPromptViewed(promptId, viewerId);
 
         List<Tag> tags = promptTagService.getTags(prompt);
         Long likeCount = likeCountService

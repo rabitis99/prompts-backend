@@ -281,4 +281,41 @@ public class LuaScripts {
         return result
         """;
 
+    /**
+     * 여러 키의 조회수를 원자적으로 조회하고 0으로 리셋하는 스크립트입니다.
+     * 배치 처리 시 조회와 리셋을 원자적으로 처리하여 데이터 유실을 방지합니다.
+     *
+     * KEYS[1..N] : 조회수 키 목록 (prompt:usage:{promptId})
+     *
+     * 반환값: 각 키의 조회수 값 배열 [value1, value2, ...]
+     * - 키가 존재하지 않으면 0 반환
+     * - 조회 후 해당 키의 값을 0으로 설정 (SET key 0)
+     *
+     * <p>동작 방식:
+     * <ol>
+     *   <li>각 키의 현재 값을 조회</li>
+     *   <li>값이 없거나 0이면 0 반환</li>
+     *   <li>값이 있으면 해당 값을 반환하고 키를 0으로 설정</li>
+     * </ol>
+     */
+    public static final String GET_AND_RESET_USAGE_COUNTS = """
+        local results = {}
+        for i = 1, #KEYS do
+            local key = KEYS[i]
+            local val = redis.call('GET', key)
+            if not val then
+                results[i] = 0
+            else
+                local num = tonumber(val)
+                if not num or num <= 0 then
+                    results[i] = 0
+                else
+                    results[i] = num
+                    redis.call('SET', key, 0)
+                end
+            end
+        end
+        return results
+        """;
+
 }

@@ -4,7 +4,6 @@ import org.example.sharedprompts.domain.prompt.Prompt;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -26,13 +25,6 @@ public interface PromptRepository extends JpaRepository<Prompt, Long>,CustomProm
                 PageRequest.of(0, batchSize)
         );
     }
-
-    @Modifying(clearAutomatically = false, flushAutomatically = true)
-    @Query(
-            value = "UPDATE prompts SET view_count = view_count + 1 WHERE id = :id",
-            nativeQuery = true
-    )
-    void incrementUsageCount(@Param("id") Long id);
 
     /**
      * 특정 기간 내 생성된 프롬프트 수 조회
