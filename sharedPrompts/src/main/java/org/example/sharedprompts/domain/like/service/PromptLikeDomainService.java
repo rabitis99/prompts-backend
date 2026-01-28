@@ -27,10 +27,10 @@ public class PromptLikeDomainService {
 
         PromptLikeId id = new PromptLikeId(promptId, userId);
 
-        // getReferenceById()는 프록시를 반환하므로 불필요한 existsById() 호출 제거
-        // 엔티티가 존재하지 않으면 나중에 예외가 발생하므로 별도 존재 확인 불필요
-        User user = userRepository.getReferenceById(userId);
-        Prompt prompt = promptRepository.getReferenceById(promptId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new ApiException(ErrorCode.USER_NOT_FOUND));
+        Prompt prompt = promptRepository.findById(promptId)
+                .orElseThrow(()-> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
 
         PromptLike promptLike = PromptLike.builder()
                 .id(id)
