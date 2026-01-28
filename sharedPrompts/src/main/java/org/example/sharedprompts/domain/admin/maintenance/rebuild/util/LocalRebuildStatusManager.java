@@ -1,7 +1,9 @@
 package org.example.sharedprompts.domain.admin.maintenance.rebuild.util;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.admin.enums.MaintenanceJobStatus;
+import org.example.sharedprompts.domain.admin.maintenance.rebuild.enums.RebuildFailureType;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -9,6 +11,7 @@ import java.time.LocalDateTime;
 /**
  * 로컬 메모리 기반 상태 관리 매니저
  */
+@Getter
 @Slf4j
 @Component
 public class LocalRebuildStatusManager {
@@ -43,12 +46,12 @@ public class LocalRebuildStatusManager {
     
     /**
      * 상태를 FAILED로 업데이트
+     * 예외 타입을 enum 기반으로 관리하여 타입 안전성 확보
      */
     public synchronized void updateStatusToFailed(Exception e) {
         status = MaintenanceJobStatus.FAILED;
-        errorMessage = e.getMessage() != null 
-                ? e.getMessage() 
-                : e.getClass().getSimpleName();
+        RebuildFailureType failureType = RebuildFailureType.from(e);
+        errorMessage = failureType.buildErrorMessage(e);
     }
     
     /**
@@ -57,21 +60,6 @@ public class LocalRebuildStatusManager {
     public synchronized void updateFinishedAt(LocalDateTime finishedAt) {
         this.finishedAt = finishedAt;
     }
-    
-    public MaintenanceJobStatus getStatus() {
-        return status;
-    }
-    
-    public LocalDateTime getStartedAt() {
-        return startedAt;
-    }
-    
-    public LocalDateTime getFinishedAt() {
-        return finishedAt;
-    }
-    
-    public String getErrorMessage() {
-        return errorMessage;
-    }
+
 }
 
