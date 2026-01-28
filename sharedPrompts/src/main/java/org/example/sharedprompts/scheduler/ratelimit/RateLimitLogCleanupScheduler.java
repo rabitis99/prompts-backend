@@ -2,6 +2,7 @@ package org.example.sharedprompts.scheduler.ratelimit;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.rate.ratelimitlog.repository.RateLimitLogRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,6 +47,7 @@ public class RateLimitLogCleanupScheduler {
             lockAtMostFor = "30m",
             lockAtLeastFor = "5m"
     )
+    @LockProviderToUse("fallbackLockProvider")
     @Transactional
     public void cleanupOldLogs() {
         if (!cleanupEnabled) {
