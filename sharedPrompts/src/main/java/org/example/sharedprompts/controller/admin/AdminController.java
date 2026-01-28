@@ -33,6 +33,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.example.sharedprompts.global.util.StringUtils;
 
 import java.time.LocalDateTime;
 
@@ -58,8 +59,8 @@ public class AdminController {
             @RequestParam(required = false) String keyword,
             @PageableDefault(size = 20) Pageable pageable
     ) {
-        String trimmedKeyword = (keyword != null) ? keyword.trim() : null;
-        Page<AdminUserResponseDto> page = (trimmedKeyword != null && !trimmedKeyword.isEmpty())
+        String trimmedKeyword = StringUtils.trimToNull(keyword);
+        Page<AdminUserResponseDto> page = (trimmedKeyword != null)
                 ? adminService.searchUsers(trimmedKeyword, pageable)
                 : adminService.getUsers(pageable);
         return CustomResponseHelper.ok(PageResponse.of(page));
@@ -135,8 +136,8 @@ public class AdminController {
             @RequestParam(required = false) String keyword,
             @PageableDefault(size = 20) Pageable pageable
     ) {
-        String trimmedKeyword = (keyword != null) ? keyword.trim() : null;
-        Page<AdminPromptResponseDto> page = (trimmedKeyword != null && !trimmedKeyword.isEmpty())
+        String trimmedKeyword = StringUtils.trimToNull(keyword);
+        Page<AdminPromptResponseDto> page = (trimmedKeyword != null)
                 ? adminService.searchPrompts(trimmedKeyword, pageable)
                 : adminService.getPrompts(pageable);
         return CustomResponseHelper.ok(PageResponse.of(page));
