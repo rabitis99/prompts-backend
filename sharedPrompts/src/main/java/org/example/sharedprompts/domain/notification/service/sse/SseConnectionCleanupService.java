@@ -56,6 +56,10 @@ public class SseConnectionCleanupService {
                 log.info("Cleaned up {} SSE connection keys for instance {} on shutdown", 
                         deletedCount, redisService.getInstanceId());
             }
+        } catch (IllegalStateException e) {
+            // Redis connection factory가 이미 중지된 경우 (정상적인 종료 시나리오)
+            // 애플리케이션 종료 중이므로 Redis 정리는 건너뛰어도 됨
+            log.debug("Redis connection factory already stopped during shutdown, skipping cleanup: {}", e.getMessage());
         } catch (Exception e) {
             log.warn("Failed to clean up SSE connection keys on shutdown: {}", e.getMessage(), e);
         }
@@ -100,7 +104,6 @@ public class SseConnectionCleanupService {
         while (iterator.hasNext()) {
             Map.Entry<Long, SseEmitter> entry = iterator.next();
             Long userId = entry.getKey();
-            SseEmitter emitter = entry.getValue();
 
             try {
                 if (!redisService.hasConnection(userId)) {
