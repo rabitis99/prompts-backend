@@ -6,94 +6,56 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.auth.audit.AuthAuditPublisher;
 import org.example.sharedprompts.auth.storage.RefreshTokenMetadata;
 import org.example.sharedprompts.auth.storage.RefreshTokenStore;
-import org.example.sharedprompts.auth.security.token.TokenSecurityCheckResult;
-import org.example.sharedprompts.auth.security.token.TokenSecurityValidator;
 import org.example.sharedprompts.domain.audit.auth.enums.AuthFailReason;
 import org.example.sharedprompts.domain.auth.service.OAuthLoginFlow.OAuthLoginPayload;
-import org.example.sharedprompts.domain.user.PasswordVerifier;
 import org.example.sharedprompts.domain.user.User;
-import org.example.sharedprompts.domain.user.enums.Provider;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
-import org.example.sharedprompts.domain.user.validator.PasswordStrengthValidator;
 import org.example.sharedprompts.dto.auth.request.LoginRequestDto;
 import org.example.sharedprompts.dto.auth.request.LogoutRequestDto;
 import org.example.sharedprompts.dto.auth.request.RefreshRequestDto;
 import org.example.sharedprompts.dto.auth.request.SignUpRequestDto;
-import org.example.sharedprompts.domain.user.service.UserRegistrationService;
-import org.example.sharedprompts.domain.user.service.UserValidationService;
 import org.example.sharedprompts.dto.auth.response.AuthResponseDto;
 import org.example.sharedprompts.dto.auth.response.TokenResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
-import org.example.sharedprompts.global.util.SensitiveDataMasker;
-import org.example.sharedprompts.global.util.RandomGenerator;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 인증 서비스 구현체
+ * 
+ * 회원가입, 로그인, 토큰 갱신, 로그아웃 등의 인증 흐름을 조율합니다.
+ * 세부 로직은 SignUpService, LoginService, TokenSecurityService 등으로 위임합니다.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final PasswordVerifier passwordVerifier;
-    private final PasswordStrengthValidator passwordStrengthValidator;
-    private final UserRegistrationService userRegistrationService;
-    private final UserValidationService userValidationService;
     private final AuthAuditPublisher authAuditPublisher;
     private final OAuthLoginFlow oAuthLoginFlow;
     private final AuthTokenService authTokenService;
     private final RefreshTokenStore refreshTokenStore;
-    private final TokenSecurityValidator tokenSecurityValidator;
+    private final SignUpService signUpService;
+    private final LoginService loginService;
+    private final TokenSecurityService tokenSecurityService;
 
     @Override
     @Transactional
     public AuthResponseDto signUp(SignUpRequestDto dto) {
-        if (userRepository.existsByProviderAndProviderId(Provider.LOCAL, dto.getEmail())) {
-            throw new ApiException(ErrorCode.CONFLICT_EMAIL);
-        }
-
-        // 비밀번호 강도 검증
-        passwordStrengthValidator.validate(dto.getPassword());
-
-        String encodedPassword = passwordEncoder.encode(dto.getPassword());
-        String nickname = RandomGenerator.randomNickname();
-
-        // UserRegistrationService로 위임 (사용자 생성 + tokenVersion 초기화 + 이벤트 발행)
-        User user = userRegistrationService.registerLocalUser(dto, encodedPassword, nickname);
-        
+        User user = signUpService.signUp(dto);
         return AuthResponseDto.from(user);
     }
 
     @Override
     @Transactional
     public TokenResponseDto login(LoginRequestDto dto, HttpServletRequest request) {
-        String email = dto.getEmail();
+        // 로그인 인증 (감사 로그는 LoginService에서 처리)
+        User user = loginService.authenticate(dto, request);
 
-        User user = userRepository.findByProviderAndProviderId(Provider.LOCAL, email)
-                .orElseThrow(() -> {
-                    log.warn("Login failed - reason=USER_NOT_FOUND, email={}", SensitiveDataMasker.maskEmail(email));
-
-                    authAuditPublisher.loginFailByEmail(Provider.LOCAL, email, AuthFailReason.USER_NOT_FOUND);
-
-                    return new ApiException(ErrorCode.LOGIN_FAILED);
-                });
-
-        if (!user.verifyPassword(dto.getPassword(), passwordVerifier)) {
-            log.warn("Login failed - reason=INVALID_PASSWORD, email={}", SensitiveDataMasker.maskEmail(email));
-
-            authAuditPublisher.loginFailByUser(user, AuthFailReason.INVALID_PASSWORD, request);
-
-            throw new ApiException(ErrorCode.LOGIN_FAILED);
-        }
-
-        // 사용자 상태 검증 (차단, 삭제 등)
-        userValidationService.validate(user);
-
+        // 로그인 성공 처리
         TokenResponseDto tokenResponseDto = authTokenService.issue(user, request);
-
         authAuditPublisher.loginSuccessByUser(user, request);
 
         return tokenResponseDto;
@@ -124,9 +86,8 @@ public class AuthServiceImpl implements AuthService {
             throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
         
-        // 2. IP/User-Agent 보안 검증
-        TokenSecurityCheckResult checkResult = tokenSecurityValidator.validate(metadata, request);
-        handleSecurityCheckResult(checkResult, metadata, request);
+        // 2. IP/User-Agent 보안 검증 및 결과 처리
+        tokenSecurityService.validateAndHandle(metadata, request);
         
         // 3. 사용자 조회
         User user = userRepository.findById(metadata.getUserId())
@@ -146,23 +107,6 @@ public class AuthServiceImpl implements AuthService {
         return tokenResponseDto;
     }
     
-    /**
-     * 보안 검증 결과 처리
-     */
-    private void handleSecurityCheckResult(TokenSecurityCheckResult checkResult, RefreshTokenMetadata metadata, HttpServletRequest request) {
-        if (checkResult == TokenSecurityCheckResult.MISMATCH) {
-            // 보안 로그 + 전체 세션 무효화
-            log.warn("Token refresh security alert - userId={}, storedIp={}, storedUa={}",
-                    metadata.getUserId(), metadata.getIp(), metadata.getUserAgent());
-            refreshTokenStore.deleteAllByUser(metadata.getUserId());
-            authAuditPublisher.tokenRefreshFailByUserId(metadata.getUserId(), AuthFailReason.INVALID_REFRESH_TOKEN, request);
-            throw new ApiException(ErrorCode.REFRESH_TOKEN_SECURITY_MISMATCH);
-        } else if (checkResult == TokenSecurityCheckResult.SUSPICIOUS) {
-            // 경고 로그만
-            log.warn("Suspicious token refresh: userId={}, ip={}, ua={}",
-                    metadata.getUserId(), metadata.getIp(), metadata.getUserAgent());
-        }
-    }
 
     @Override
     @Transactional
