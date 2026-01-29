@@ -44,9 +44,10 @@ public class AuthController {
     public ResponseEntity<CustomResponse<TokenResponseDto>> callback(
             @RequestParam("key") String key,
             @RequestParam("state") String state,
+            @RequestParam(value = "device_token", required = false) String deviceToken,
             HttpServletRequest request
     ) {
-        return CustomResponseHelper.ok(authService.callback(key, state, request));
+        return CustomResponseHelper.ok(authService.callback(key, state, deviceToken, request));
     }
 
     @PostMapping("/refresh")

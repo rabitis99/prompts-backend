@@ -54,6 +54,13 @@ public class AuthServiceImpl implements AuthService {
         // 로그인 인증 (감사 로그는 LoginService에서 처리)
         User user = loginService.authenticate(dto, request);
 
+        // deviceToken 업데이트 (제공된 경우)
+        if (dto.getDeviceToken() != null && !dto.getDeviceToken().isEmpty()) {
+            user.updateDeviceToken(dto.getDeviceToken());
+            userRepository.save(user);
+            log.debug("로그인 시 deviceToken 업데이트: userId={}", user.getId());
+        }
+
         // 로그인 성공 처리
         TokenResponseDto tokenResponseDto = authTokenService.issue(user, request);
         authAuditPublisher.loginSuccessByUser(user, request);
@@ -63,10 +70,18 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public TokenResponseDto callback(String key, String state, HttpServletRequest request) {
+    public TokenResponseDto callback(String key, String state, String deviceToken, HttpServletRequest request) {
         OAuthLoginPayload payload = oAuthLoginFlow.validate(key, state);
 
         User user = payload.user();
+        
+        // deviceToken 업데이트 (제공된 경우)
+        if (deviceToken != null && !deviceToken.isEmpty()) {
+            user.updateDeviceToken(deviceToken);
+            userRepository.save(user);
+            log.debug("OAuth 로그인 시 deviceToken 업데이트: userId={}", user.getId());
+        }
+        
         // authTokenService.issue()는 Redis에 토큰을 저장하므로 쓰기 작업이 필요합니다.
         TokenResponseDto tokenResponseDto = authTokenService.issue(user, request);
 

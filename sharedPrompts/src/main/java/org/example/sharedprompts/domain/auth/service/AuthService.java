@@ -11,7 +11,7 @@ import org.example.sharedprompts.dto.auth.response.TokenResponseDto;
 public interface AuthService {
     AuthResponseDto signUp(SignUpRequestDto dto);
     TokenResponseDto login(LoginRequestDto dto, HttpServletRequest request);
-    TokenResponseDto callback(String key, String state, HttpServletRequest request);
+    TokenResponseDto callback(String key, String state, String deviceToken, HttpServletRequest request);
     TokenResponseDto refresh(RefreshRequestDto dto, HttpServletRequest request);
     void logout(Long userId, LogoutRequestDto dto, String accessToken);
 }
