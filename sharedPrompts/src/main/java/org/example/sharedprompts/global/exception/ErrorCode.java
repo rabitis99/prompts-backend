@@ -155,7 +155,29 @@ public enum ErrorCode {
     SAME_VISIBILITY("AD00409", HttpStatus.BAD_REQUEST, "현재 공개 상태와 동일한 상태로 변경할 수 없습니다."),
     FOLLOW_STATUS_REQUIRED("AD00410", HttpStatus.BAD_REQUEST, "팔로우 상태는 필수입니다."),
 
+    // ==========================
+    // 🔹 PAYMENT
+    // ==========================
+    PAYMENT_NOT_FOUND("PY00701", HttpStatus.NOT_FOUND, "결제를 찾을 수 없습니다."),
+    PAYMENT_FORBIDDEN("PY00601", HttpStatus.FORBIDDEN, "해당 결제에 대한 접근 권한이 없습니다."),
+    PAYMENT_ALREADY_COMPLETED("PY00401", HttpStatus.BAD_REQUEST, "이미 완료된 결제입니다."),
+    PAYMENT_ALREADY_CANCELED("PY00402", HttpStatus.BAD_REQUEST, "이미 취소된 결제입니다."),
+    PAYMENT_ALREADY_REFUNDED("PY00403", HttpStatus.BAD_REQUEST, "이미 환불된 결제입니다."),
+    PAYMENT_DAILY_LIMIT_EXCEEDED("PY00404", HttpStatus.BAD_REQUEST, "일일 결제 횟수 제한을 초과했습니다."),
+    PAYMENT_INVALID_STATUS("PY00405", HttpStatus.BAD_REQUEST, "유효하지 않은 결제 상태입니다."),
+    PAYMENT_REFUND_AMOUNT_EXCEEDED("PY00406", HttpStatus.BAD_REQUEST, "환불 금액이 환불 가능 금액을 초과했습니다."),
+    PAYMENT_PROVIDER_ERROR("PY01001", HttpStatus.INTERNAL_SERVER_ERROR, "결제사 연동 중 오류가 발생했습니다."),
+    PAYMENT_WEBHOOK_VERIFICATION_FAILED("PY00407", HttpStatus.BAD_REQUEST, "Webhook 서명 검증에 실패했습니다."),
+    PAYMENT_RETRY_EXCEEDED("PY00408", HttpStatus.BAD_REQUEST, "최대 재시도 횟수를 초과했습니다."),
+    TIER_NOT_FOUND("PY00702", HttpStatus.NOT_FOUND, "티어를 찾을 수 없습니다."),
+    TIER_CHANGE_FORBIDDEN("PY00602", HttpStatus.FORBIDDEN, "티어 변경 권한이 없습니다."),
+    SAME_TIER("PY00409", HttpStatus.BAD_REQUEST, "현재 티어와 동일한 티어로 변경할 수 없습니다."),
+    EXCHANGE_RATE_ERROR("PY01002", HttpStatus.INTERNAL_SERVER_ERROR, "환율 조회 중 오류가 발생했습니다."),
+    POINT_INSUFFICIENT("PY00410", HttpStatus.BAD_REQUEST, "포인트 잔액이 부족합니다."),
+    POINT_NOT_FOUND("PY00703", HttpStatus.NOT_FOUND, "포인트 내역을 찾을 수 없습니다."),
+
     ;
+
     private final String code;
     private final HttpStatus httpStatus;
     private final String message;

@@ -55,6 +55,20 @@ spring:
       channel:
         size: ${RABBITMQ_CACHE_CHANNEL_SIZE:50}  # 채널 캐시 크기 (운영 환경에서는 더 크게)
 
+  # =========================
+  # Spring AI (운영 환경)
+  # =========================
+  ai:
+    openai:
+      # ⚠️ 프로덕션 환경 필수 설정
+      # 운영 환경에서는 반드시 SPRING_AI_OPENAI_API_KEY 환경 변수를 설정해야 합니다.
+      # API 키가 없으면 Spring AI가 동작하지 않으며, Google Gemini로 fallback됩니다.
+      api-key: ${SPRING_AI_OPENAI_API_KEY}
+      chat:
+        options:
+          model: ${SPRING_AI_OPENAI_MODEL:gpt-4o-mini}
+          temperature: ${SPRING_AI_OPENAI_TEMPERATURE:0.7}
+
 auth:
   cookie:
     # 운영 환경에서는 반드시 true로 설정 (HTTPS 필수)

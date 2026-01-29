@@ -136,11 +136,15 @@ spring:
   # =========================
   # Spring AI
   # =========================
+  # 개발 환경에서는 선택적, 프로덕션 환경에서는 필수
+  # 프로덕션 환경에서는 application-prod.yml에서 명시적으로 설정됩니다.
   ai:
     openai:
-      # ⚠️ 경고: 프로덕션 환경에서는 반드시 실제 API 키를 설정해야 합니다.
-      # 더미 키로는 실제 API 호출이 실패합니다.
-      api-key: ${SPRING_AI_OPENAI_API_KEY:dummy-openai-api-key}
+      api-key: ${SPRING_AI_OPENAI_API_KEY:}  # 개발 환경: 선택적, 프로덕션: 필수
+      chat:
+        options:
+          model: ${SPRING_AI_OPENAI_MODEL:gpt-4o-mini}
+          temperature: ${SPRING_AI_OPENAI_TEMPERATURE:0.7}
 
 # =========================
 # Redis Health Check 설정
@@ -402,8 +406,45 @@ tag:
       process-interval: ${TAG_COUNT_DLQ_PROCESS_INTERVAL:3600000}  # 1시간
 
 # =========================
+# 결제 설정
+# =========================
+payment:
+  kakao:
+    secret: ${KAKAO_SECRET:}
+    cid: ${KAKAO_CID:TC0ONETIME}
+  toss:
+    api-key: ${TOSS_API_KEY:}
+    secret-key: ${TOSS_SECRET:}
+    base-url: ${TOSS_BASE_URL:https://api.tosspayments.com/v1/payments}
+    confirm-endpoint: ${TOSS_CONFIRM_ENDPOINT:/confirm}
+  paypal:
+    client-id: ${PAYPAL_CLIENT_ID:}
+    client-secret: ${PAYPAL_CLIENT_SECRET:}
+  exchange-rate:
+    api-key: ${EXCHANGE_RATE_API_KEY:}
+    api-url: ${EXCHANGE_RATE_API_URL:https://api.exchangerate-api.com/v4/latest/}
+  webhook:
+    secret: ${PAYMENT_WEBHOOK_SECRET:}
+  retry:
+    max-attempts: ${PAYMENT_RETRY_MAX_ATTEMPTS:3}
+    delay-ms: ${PAYMENT_RETRY_DELAY_MS:1000}
+  cashback:
+    rate: ${PAYMENT_CASHBACK_RATE:0.01}  # 1%
+  point:
+    rate: ${PAYMENT_POINT_RATE:0.005}  # 0.5%
+  fcm:
+  enabled: ${PAYMENT_FCM_ENABLED:true}
+  project-id: ${PAYMENT_FCM_PROJECT_ID:sharedprompt-8ed9d}
+  credentials-path: ${PAㅈYMENT_FCM_CREDENTIALS_PATH}
+
+# =========================
+# 이메일 설정
+# =========================
+
+# =========================
 # 로깅
 # =========================
 logging:
   level:
     root: ${LOG_LEVEL_ROOT:INFO}
+    org.example.sharedprompts.domain.payment: ${PAYMENT_LOG_LEVEL:DEBUG}  # 결제 관련 상세 로깅
