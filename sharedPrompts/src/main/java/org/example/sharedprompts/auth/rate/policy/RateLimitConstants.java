@@ -16,6 +16,7 @@ public final class RateLimitConstants {
         public static final String API_PREFIX = "/api";
         public static final String AUTH_LOGIN = "/api/auth/login";
         public static final String AUTH_SIGNUP = "/api/auth/signup";
+        public static final String AUTH_CONFIRM = "/api/auth/confirm";
         public static final String PROMPTS = "/api/prompts";
 
         private ApiPaths() {
@@ -28,6 +29,7 @@ public final class RateLimitConstants {
     public static final class RuleNames {
         public static final String LOGIN = "login";
         public static final String SIGNUP = "signup";
+        public static final String CONFIRM = "confirm";
         public static final String PROMPT_CREATE = "prompt_create";
         public static final String GENERAL = "general";
 

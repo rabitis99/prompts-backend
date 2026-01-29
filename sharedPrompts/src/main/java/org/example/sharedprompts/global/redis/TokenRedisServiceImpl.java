@@ -39,26 +39,10 @@ public class TokenRedisServiceImpl implements TokenRedisService {
     private final TokenTtlProperties ttlProperties;
     private final RedisExecutor redisExecutor;
     
-    /**
-     * GET_AND_DELETE_TEMP_TOKEN Lua 스크립트
-     * 
-     * 책임 분리:
-     * - 스크립트 정의: RedisLuaScriptConfig
-     * - 스크립트 실행: 이 클래스 (Service 책임)
-     * 
-     * 운영 원칙:
-     * - @PostConstruct에서 초기화하지 않음 (외부 리소스 접근 위험 제거)
-     * - Bean 주입으로 스크립트 사용 (애플리케이션 기동 안정성 보장)
-     */
     private final DefaultRedisScript<List<String>> getAndDeleteTempTokenScript;
 
     // ==================== Access Token 관리 ====================
 
-    /**
-     * Access Token 저장
-     * 
-     * 쓰기 작업이므로 Redis 장애 시 예외 발생 (데이터 일관성 보장)
-     */
     @Override
     @CircuitBreaker(name = "tokenRedis", fallbackMethod = "saveAccessTokenFallback")
     public void saveAccessToken(String token, Long userId) {
@@ -73,28 +57,12 @@ public class TokenRedisServiceImpl implements TokenRedisService {
         );
     }
     
-    /**
-     * Access Token 저장 Fallback (Circuit Breaker Open 상태)
-     */
     private void saveAccessTokenFallback(String token, Long userId, Exception e) {
         log.error("Circuit Breaker Open: Access Token 저장 실패 (Redis 장애) - userId={}, token={}", 
                 userId, SensitiveDataMasker.maskToken(token), e);
         throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, "Redis 장애로 인해 토큰 저장에 실패했습니다.");
     }
 
-    /**
-     * Access Token 유효성 검증
-     * 
-     * 읽기 작업이므로 Redis 장애 시 Fail-Open 정책 적용 (토큰을 유효한 것으로 간주)
-     * JWT 서명 검증은 이미 통과한 상태이므로, Redis 장애 시에도 인증을 허용하여 서비스 연속성 보장
-     * 
-     * <p>자동 Fail-Open 정책:
-     * <ul>
-     *   <li>Redis Health Check가 장애를 감지한 경우, Redis 호출 전에 미리 Fail-Open 적용</li>
-     *   <li>Redis 호출 중 DataAccessException 발생 시에도 Fail-Open 적용</li>
-     *   <li>Circuit Breaker가 Open 상태일 때도 Fallback에서 Fail-Open 적용</li>
-     * </ul>
-     */
     @Override
     @CircuitBreaker(name = "tokenRedis", fallbackMethod = "isAccessTokenValidFallback")
     public boolean isAccessTokenValid(String token) {
@@ -108,20 +76,10 @@ public class TokenRedisServiceImpl implements TokenRedisService {
         );
     }
     
-    /**
-     * Access Token 유효성 검증 Fallback (Circuit Breaker Open 상태)
-     * 
-     * Redis 장애 시 토큰을 유효한 것으로 간주하여 서비스 연속성 보장
-     */
     private boolean isAccessTokenValidFallback(String token, Exception e) {
         return true; // Fail-Open
     }
 
-    /**
-     * Access Token 삭제
-     * 
-     * 쓰기 작업이지만, 삭제 실패는 치명적이지 않으므로 장애 시에도 예외를 던지지 않음
-     */
     @Override
     @CircuitBreaker(name = "tokenRedis", fallbackMethod = "deleteAccessTokenFallback")
     public void deleteAccessToken(String token) {
@@ -138,100 +96,67 @@ public class TokenRedisServiceImpl implements TokenRedisService {
         );
     }
 
-    /**
-     * Access Token 삭제 Fallback (Circuit Breaker Open 상태)
-     */
     private void deleteAccessTokenFallback(String token, Exception e) {
-        // 삭제 실패는 치명적이지 않으므로 예외를 던지지 않음
     }
 
-    // ==================== OAuth2 임시 토큰 관리 ====================
-
-    /**
-     * OAuth2 임시 토큰 저장
-     * 
-     * 쓰기 작업이므로 Redis 장애 시 예외 발생
-     */
     @Override
-    @CircuitBreaker(name = "tokenRedis", fallbackMethod = "saveTempTokenFallback")
-    public void saveTempToken(String key, String accessToken, String refreshToken, String state,
-                              String provider, String providerId, Duration ttl) {
+    @CircuitBreaker(name = "tokenRedis", fallbackMethod = "saveOAuth2TempSessionFallback")
+    public void saveOAuth2TempSession(String tempKey, String provider, String providerId, String state, Duration ttl) {
         redisExecutor.executeWrite(
                 () -> {
-                    String redisKey = RedisKeyFactory.oauthTemp(key);
-                    Map<String, String> tokenData = new HashMap<>();
-                    tokenData.put(Constant.ACCESS_TOKEN_KEY, accessToken != null ? accessToken : "");
-                    tokenData.put(Constant.REFRESH_TOKEN_KEY, refreshToken != null ? refreshToken : "");
-                    tokenData.put(Constant.STATE_KEY, state != null ? state : "");
-                    tokenData.put(Constant.PROVIDER_KEY, provider != null ? provider : "");
-                    tokenData.put(Constant.PROVIDER_ID_KEY, providerId != null ? providerId : "");
+                    String redisKey = RedisKeyFactory.oauthTemp(tempKey);
+                    Map<String, String> sessionData = new HashMap<>();
+                    sessionData.put(Constant.PROVIDER_KEY, provider != null ? provider : "");
+                    sessionData.put(Constant.PROVIDER_ID_KEY, providerId != null ? providerId : "");
+                    sessionData.put(Constant.STATE_KEY, state != null ? state : "");
                     
-                    redisTemplate.opsForHash().putAll(redisKey, tokenData);
+                    redisTemplate.opsForHash().putAll(redisKey, sessionData);
                     redisTemplate.expire(redisKey, ttl);
                     
-                    log.debug("OAuth2 임시 토큰 저장 완료: key={}", key);
+                    log.debug("OAuth2 임시 인증 세션 저장 완료: tempKey={}, provider={}", tempKey, provider);
                 },
-                "OAuth2 임시 토큰 저장: key=" + key
+                "OAuth2 임시 인증 세션 저장: tempKey=" + tempKey
         );
     }
     
-    /**
-     * OAuth2 임시 토큰 저장 Fallback (Circuit Breaker Open 상태)
-     */
-    private void saveTempTokenFallback(String key, String accessToken, String refreshToken, 
-                                       String state, String provider, String providerId, 
-                                       Duration ttl, Exception e) {
-        log.error("Circuit Breaker Open: OAuth2 임시 토큰 저장 실패 (Redis 장애) - key={}", key, e);
-        throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, "Redis 장애로 인해 OAuth2 토큰 저장에 실패했습니다.");
+    private void saveOAuth2TempSessionFallback(String tempKey, String provider, String providerId, 
+                                                String state, Duration ttl, Exception e) {
+        log.error("Circuit Breaker Open: OAuth2 임시 인증 세션 저장 실패 (Redis 장애) - tempKey={}", tempKey, e);
+        throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, "Redis 장애로 인해 OAuth2 임시 인증 세션 저장에 실패했습니다.");
     }
 
-    /**
-     * OAuth2 임시 토큰 조회 및 삭제
-     * 
-     * 읽기+쓰기 작업이므로 executeReadWrite()를 사용합니다.
-     * Lua 스크립트가 DEL 명령을 실행하므로 master에 연결되어야 합니다.
-     * TOCTOU 문제를 방지하기 위해 조회와 삭제를 원자적으로 처리합니다.
-     */
     @Override
-    @CircuitBreaker(name = "tokenRedis", fallbackMethod = "getAndDeleteTempTokenFallback")
-    public Map<String, String> getAndDeleteTempToken(String key) {
+    @CircuitBreaker(name = "tokenRedis", fallbackMethod = "getAndDeleteOAuth2TempSessionFallback")
+    public Map<String, String> getAndDeleteOAuth2TempSession(String tempKey) {
         Map<String, String> result = redisExecutor.executeReadWrite(
                 () -> {
-                    String redisKey = RedisKeyFactory.oauthTemp(key);
-                    
-                    // Lua 스크립트를 사용하여 원자적으로 조회 및 삭제
-                    // 스크립트는 평탄화된 배열 [field1, value1, field2, value2, ...]을 반환
+                    String redisKey = RedisKeyFactory.oauthTemp(tempKey);
                     List<String> entries = redisTemplate.execute(
                             getAndDeleteTempTokenScript,
                             List.of(redisKey)
                     );
                     
                     if (entries == null || entries.isEmpty()) {
-                        return Map.of(); // 토큰이 없거나 이미 사용됨
+                        return Map.of();
                     }
                     
-                    // 평탄화된 배열을 Map으로 변환
-                    Map<String, String> tokenData = new HashMap<>();
+                    Map<String, String> sessionData = new HashMap<>();
                     for (int i = 0; i < entries.size(); i += 2) {
                         if (i + 1 < entries.size()) {
-                            tokenData.put(entries.get(i), entries.get(i + 1));
+                            sessionData.put(entries.get(i), entries.get(i + 1));
                         }
                     }
                     
-                    log.debug("OAuth2 임시 토큰 조회 및 삭제 완료: key={}", key);
-                    return tokenData;
+                    log.debug("OAuth2 임시 인증 세션 조회 및 삭제 완료: tempKey={}", tempKey);
+                    return sessionData;
                 },
-                "OAuth2 임시 토큰 조회/삭제: key=" + key
+                "OAuth2 임시 인증 세션 조회/삭제: tempKey=" + tempKey
         );
         
-        // executeReadWrite는 장애 시 null을 반환할 수 있으므로 빈 Map으로 변환
         return result != null ? result : Map.of();
     }
     
-    /**
-     * OAuth2 임시 토큰 조회 및 삭제 Fallback (Circuit Breaker Open 상태)
-     */
-    private Map<String, String> getAndDeleteTempTokenFallback(String key, Exception e) {
-        return Map.of(); // Fail-Open
+    private Map<String, String> getAndDeleteOAuth2TempSessionFallback(String tempKey, Exception e) {
+        return Map.of();
     }
 }

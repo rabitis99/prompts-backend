@@ -295,6 +295,7 @@ rate-limit:
   rules:
     login: ${RATE_LIMIT_LOGIN:5}
     signup: ${RATE_LIMIT_SIGNUP:3}
+    confirm: ${RATE_LIMIT_CONFIRM:5}
     promptCreate: ${RATE_LIMIT_PROMPT_CREATE:10}
     general: ${RATE_LIMIT_GENERAL:100}
   windows:

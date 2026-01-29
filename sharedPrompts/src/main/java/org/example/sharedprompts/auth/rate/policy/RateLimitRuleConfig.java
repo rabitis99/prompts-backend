@@ -44,6 +44,11 @@ public class RateLimitRuleConfig {
                 createSignupRule()
         ));
         matchers.add(new ExactPathMatcher(
+                ApiPaths.AUTH_CONFIRM,
+                HttpMethod.POST,
+                createConfirmRule()
+        ));
+        matchers.add(new ExactPathMatcher(
                 ApiPaths.PROMPTS,
                 HttpMethod.POST,
                 createPromptCreateRule()
@@ -77,6 +82,17 @@ public class RateLimitRuleConfig {
                 RateLimitConstants.RuleNames.SIGNUP,
                 properties.getRules().getSignup(),
                 properties.getWindows().getSignupSeconds()
+        );
+    }
+
+    /**
+     * OAuth2 로그인 확정 Rate Limit 규칙 생성
+     */
+    private RateLimitRule createConfirmRule() {
+        return new RateLimitRule(
+                RateLimitConstants.RuleNames.CONFIRM,
+                properties.getRules().getConfirm(),
+                properties.getWindows().getConfirmSeconds()
         );
     }
 

@@ -12,9 +12,8 @@ public interface TokenRedisService {
     
     void deleteAccessToken(String token);
 
-    // OAuth2 임시 토큰 관리
-    void saveTempToken(String key, String accessToken, String refreshToken, String state,
-                       String provider, String providerId, Duration ttl);
+    // OAuth2 임시 인증 세션 관리
+    void saveOAuth2TempSession(String tempKey, String provider, String providerId, String state, Duration ttl);
     
-    Map<String, String> getAndDeleteTempToken(String key);
+    Map<String, String> getAndDeleteOAuth2TempSession(String tempKey);
 }

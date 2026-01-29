@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.auth.service.AuthService;
+import org.example.sharedprompts.dto.auth.request.ConfirmRequestDto;
 import org.example.sharedprompts.dto.auth.request.LoginRequestDto;
 import org.example.sharedprompts.dto.auth.request.LogoutRequestDto;
 import org.example.sharedprompts.dto.auth.request.RefreshRequestDto;
@@ -40,14 +41,12 @@ public class AuthController {
         return CustomResponseHelper.ok(authService.login(dto, request));
     }
 
-    @GetMapping("/callback")
-    public ResponseEntity<CustomResponse<TokenResponseDto>> callback(
-            @RequestParam("key") String key,
-            @RequestParam("state") String state,
-            @RequestParam(value = "device_token", required = false) String deviceToken,
+    @PostMapping("/confirm")
+    public ResponseEntity<CustomResponse<TokenResponseDto>> confirm(
+            @Valid @RequestBody ConfirmRequestDto dto,
             HttpServletRequest request
     ) {
-        return CustomResponseHelper.ok(authService.callback(key, state, deviceToken, request));
+        return CustomResponseHelper.ok(authService.confirm(dto, request));
     }
 
     @PostMapping("/refresh")
