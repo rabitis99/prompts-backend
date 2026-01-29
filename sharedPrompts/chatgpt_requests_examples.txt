@@ -1,0 +1,360 @@
+# ChatGPT 프롬프트 생성 요청 예시
+
+각 카테고리를 복사해서 ChatGPT에 붙여넣고 사용하세요.
+
+---
+
+## 1. PRODUCTIVITY (생산성)
+
+다음 요구사항에 맞춰 PRODUCTIVITY 카테고리로 700개의 AI 프롬프트를 생성해주세요.
+
+카테고리: PRODUCTIVITY
+카테고리 설명: 업무 효율 향상, 시간 관리, 자동화 등 생산성을 높이는 전략과 아이디어를 제공합니다.
+가이드라인: Focus on improving productivity through workflow optimization, time management, and automation strategies.
+
+주제 예시:
+- 업무 자동화 및 효율화
+- 시간 관리 및 일정 관리
+- 우선순위 설정 및 작업 관리
+- 집중력 향상 및 방해 요소 제거a
+- 습관 형성 및 루틴 구축
+- 업무 프로세스 개선
+- 협업 효율화
+- 스트레스 관리 및 워라밸
+
+요구사항:
+1. 제목: 10-50자, 명확하고 간결하게
+2. 설명: 50-300자, 프롬프트의 목적과 사용 방법 설명
+3. 내용: 20-500자, 실제 AI에게 전달할 프롬프트 (주로 영어)
+4. 다양성: 다양한 생산성 향상 주제 포함
+5. 실용성: 실제로 사용 가능한 구체적인 프롬프트
+
+JSON 형식으로 출력:
+```json
+[
+  {
+    "title": "프롬프트 제목",
+    "description": "프롬프트 설명",
+    "content": "실제 프롬프트 내용",
+    "category": "PRODUCTIVITY"
+  }
+]
+```
+
+---
+
+## 2. DEVELOPMENT (개발)
+
+다음 요구사항에 맞춰 DEVELOPMENT 카테고리로 700개의 AI 프롬프트를 생성해주세요.
+
+카테고리: DEVELOPMENT
+카테고리 설명: 소프트웨어 개발 관련 지식, 기술 스택, 프로젝트 구조와 최적화 방법을 다룹니다.
+가이드라인: Provide expertise on software development, including technology stacks, system architecture, and optimization techniques.
+
+주제 예시:
+- 시스템 아키텍처 설계
+- 기술 스택 선택 및 비교
+- 성능 최적화
+- 개발 방법론 (애자일, 스크럼 등)
+- 코드 리뷰 및 품질 관리
+- 테스트 전략 및 자동화
+- DevOps 및 CI/CD
+- 인프라 관리 및 클라우드
+
+요구사항: (위와 동일)
+
+---
+
+## 3. CODING (코딩)
+
+다음 요구사항에 맞춰 CODING 카테고리로 700개의 AI 프롬프트를 생성해주세요.
+
+카테고리: CODING
+카테고리 설명: 깨끗하고 유지보수 가능한 코드를 작성하며, 모범 사례와 디자인 패턴에 정통합니다. 복잡한 기술적 문제를 단순하고 우아하게 해결합니다.
+가이드라인: Write clean, maintainable code while applying best practices and design patterns to solve complex technical problems elegantly.
+
+주제 예시:
+- 코드 리팩토링
+- 디자인 패턴 적용
+- 알고리즘 구현 및 최적화
+- 버그 수정 및 디버깅
+- 코드 가독성 향상
+- 특정 언어/프레임워크별 코딩
+- 코드 리뷰 및 개선
+- 성능 최적화 기법
+
+요구사항: (위와 동일)
+
+---
+
+## 4. PROGRAMMING (프로그래밍)
+
+다음 요구사항에 맞춰 PROGRAMMING 카테고리로 700개의 AI 프롬프트를 생성해주세요.
+
+카테고리: PROGRAMMING
+카테고리 설명: 프로그래밍 언어, 알고리즘, 자료구조 등 개발 전반에 대한 실용적 지식을 제공합니다.
+가이드라인: Provide practical knowledge across programming languages, algorithms, and data structures.
+
+주제 예시:
+- 프로그래밍 언어 학습
+- 알고리즘 문제 해결
+- 자료구조 이해 및 활용
+- 프로그래밍 개념 설명
+- 코드 예제 생성
+- 문법 및 API 질문
+- 문제 해결 접근법
+- 다양한 언어 비교
+
+요구사항: (위와 동일)
+
+---
+
+## 5. ANALYSIS (분석)
+
+다음 요구사항에 맞춰 ANALYSIS 카테고리로 700개의 AI 프롬프트를 생성해주세요.
+
+카테고리: ANALYSIS
+카테고리 설명: 데이터 분석, 통계, 인사이트 도출 등 정보 해석과 문제 해결을 위한 분석적 접근을 다룹니다.
+가이드라인: Apply analytical approaches to data analysis, statistics, and insight extraction for problem solving.
+
+주제 예시:
+- 데이터 분석 및 시각화
+- 통계 해석 및 검증
+- 트렌드 분석 및 예측
+- 비즈니스 인사이트 도출
+- 시장 분석 및 경쟁 분석
+- 성과 평가 및 KPI 분석
+- 문제 해결 접근법
+- 의사결정 지원
+
+요구사항: (위와 동일)
+
+---
+
+## 6. MARKETING (마케팅)
+
+다음 요구사항에 맞춰 MARKETING 카테고리로 700개의 AI 프롬프트를 생성해주세요.
+
+카테고리: MARKETING
+카테고리 설명: 마케팅 전략, 브랜딩, 광고, 시장 조사 등을 포함하여 고객과 비즈니스 성장을 지원합니다.
+가이드라인: Support business growth through marketing strategies, branding, advertising, and market research.
+
+주제 예시:
+- 마케팅 전략 수립
+- 브랜드 포지셔닝 및 아이덴티티
+- 광고 카피 및 메시지 작성
+- 타겟 고객 분석
+- 경쟁사 분석
+- 마케팅 캠페인 기획
+- SEO 및 디지털 마케팅
+- 고객 유지 및 리텐션 전략
+
+요구사항: (위와 동일)
+
+---
+
+## 7. CONTENT (콘텐츠 제작)
+
+다음 요구사항에 맞춰 CONTENT 카테고리로 700개의 AI 프롬프트를 생성해주세요.
+
+카테고리: CONTENT
+카테고리 설명: 블로그, SNS, 영상 등 다양한 매체에 맞는 콘텐츠 기획과 작성법, 아이디어 개발을 안내합니다.
+가이드라인: Guide content planning, writing, and idea generation tailored to blogs, social media, and video platforms.
+
+주제 예시:
+- 블로그 포스트 작성
+- SNS 콘텐츠 기획 및 작성
+- 영상 스크립트 및 기획
+- 콘텐츠 아이디어 생성
+- 에디토리얼 캘린더
+- 콘텐츠 전략 수립
+- 매체별 최적화
+- 바이럴 콘텐츠 및 스토리텔링
+
+요구사항: (위와 동일)
+
+---
+
+## 8. CREATIVE (창작)
+
+다음 요구사항에 맞춰 CREATIVE 카테고리로 700개의 AI 프롬프트를 생성해주세요.
+
+카테고리: CREATIVE
+카테고리 설명: 예술적, 창의적 아이디어와 창작물 개발에 관한 조언과 실습 가이드를 제공합니다.
+가이드라인: Provide guidance and practical advice for developing creative and artistic ideas.
+
+주제 예시:
+- 창의적 아이디어 발상
+- 스토리 및 시나리오 창작
+- 캐릭터 디자인 및 개발
+- 예술 작품 기획
+- 창작 과정 가이드
+- 영감 얻기 및 브레인스토밍
+- 다양한 예술 분야별 창작
+- 창의적 문제 해결
+
+요구사항: (위와 동일)
+
+---
+
+## 9. STUDY (학습)
+
+다음 요구사항에 맞춰 STUDY 카테고리로 700개의 AI 프롬프트를 생성해주세요.
+
+카테고리: STUDY
+카테고리 설명: 효율적인 학습 방법, 자료 정리, 이해력 향상 및 학습 계획 수립을 돕습니다.
+가이드라인: Help design effective study methods, learning plans, and knowledge organization.
+
+주제 예시:
+- 학습 방법론 및 기법
+- 암기 전략 및 기억법
+- 노트 정리 및 정리법
+- 학습 계획 수립
+- 집중력 향상
+- 복습 전략 및 간격 반복
+- 과목별 학습 가이드
+- 시험 대비 및 지식 정리
+
+요구사항: (위와 동일)
+
+---
+
+## 10. EDUCATION (교육)
+
+다음 요구사항에 맞춰 EDUCATION 카테고리로 700개의 AI 프롬프트를 생성해주세요.
+
+카테고리: EDUCATION
+카테고리 설명: 교육 자료 설계, 교수법, 학습자 맞춤형 교육 전략을 제공합니다.
+가이드라인: Design educational materials and teaching strategies tailored to learners.
+
+주제 예시:
+- 교육 커리큘럼 설계
+- 교수법 개발 및 개선
+- 학습자 맞춤 교육 전략
+- 교육 자료 제작
+- 평가 방법 및 도구
+- 학습 동기 부여
+- 연령대별 교육 전략
+- 주제별 교육 가이드
+
+요구사항: (위와 동일)
+
+---
+
+## 11. RESEARCH (연구)
+
+다음 요구사항에 맞춰 RESEARCH 카테고리로 700개의 AI 프롬프트를 생성해주세요.
+
+카테고리: RESEARCH
+카테고리 설명: 과학적, 학문적 연구 방법, 실험 설계, 논문 작성과 데이터 해석을 지원합니다.
+가이드라인: Support academic and scientific research including methodology, experiment design, and paper writing.
+
+주제 예시:
+- 연구 방법론 및 설계
+- 실험 설계 및 실행
+- 논문 작성 및 구조화
+- 데이터 수집 및 분석
+- 문헌 조사 및 리뷰
+- 연구 계획 수립
+- 학술적 글쓰기
+- 연구 결과 해석 및 발표
+
+요구사항: (위와 동일)
+
+---
+
+## 12. BUSINESS (비즈니스)
+
+다음 요구사항에 맞춰 BUSINESS 카테고리로 700개의 AI 프롬프트를 생성해주세요.
+
+카테고리: BUSINESS
+카테고리 설명: 기획서 작성, 보고서, 사업 전략, 프로젝트 관리 등 실무 비즈니스 활동을 지원합니다.
+가이드라인: Assist with business activities such as proposals, reports, strategy planning, and project management.
+
+주제 예시:
+- 비즈니스 기획서 작성
+- 보고서 및 문서 작성
+- 사업 계획 수립
+- 프로젝트 관리
+- 리스크 관리 및 대응
+- 의사결정 지원
+- 협상 전략 및 기법
+- 경영 전략 및 프레젠테이션
+
+요구사항: (위와 동일)
+
+---
+
+## 13. DESIGN (디자인)
+
+다음 요구사항에 맞춰 DESIGN 카테고리로 700개의 AI 프롬프트를 생성해주세요.
+
+카테고리: DESIGN
+카테고리 설명: UI/UX, 그래픽 디자인, 제품 디자인 등 사용자 경험을 고려한 설계를 다룹니다.
+가이드라인: Focus on user-centered design including UI/UX, graphic, and product design.
+
+주제 예시:
+- UI/UX 디자인 및 개선
+- 사용자 경험 설계
+- 인터페이스 설계
+- 그래픽 디자인
+- 브랜드 아이덴티티
+- 시각적 커뮤니케이션
+- 제품 디자인
+- 사용성 테스트 및 디자인 시스템
+
+요구사항: (위와 동일)
+
+---
+
+## 14. WRITING (글쓰기)
+
+다음 요구사항에 맞춰 WRITING 카테고리로 700개의 AI 프롬프트를 생성해주세요.
+
+카테고리: WRITING
+카테고리 설명: 다양한 형식의 글 작성과 효과적인 메시지 전달 방법을 안내합니다.
+가이드라인: Guide writing across formats with an emphasis on clarity and persuasive messaging.
+
+주제 예시:
+- 에세이 및 논설문 작성
+- 보고서 및 문서 작성
+- 문체 개선 및 다듬기
+- 논리적 글쓰기
+- 설득력 있는 글쓰기
+- 형식별 글쓰기 가이드
+- 문장 구조 개선
+- 스토리텔링 및 서사 구조
+
+요구사항: (위와 동일)
+
+---
+
+## 15. ETC (기타)
+
+다음 요구사항에 맞춰 ETC 카테고리로 700개의 AI 프롬프트를 생성해주세요.
+
+카테고리: ETC
+카테고리 설명: 위 카테고리에 속하지 않는 다양한 주제와 아이디어를 포괄적으로 다룹니다.
+가이드라인: Handle a wide range of topics that do not fall into predefined categories.
+
+주제 예시:
+- 일상 생활 및 라이프스타일
+- 취미 및 관심사
+- 건강 및 웰빙
+- 여행 및 문화
+- 요리 및 음식
+- 개인 발전 및 자기계발
+- 인간관계 및 소통
+- 심리 및 철학
+
+요구사항: (위와 동일)
+
+---
+
+## 사용 팁
+
+1. 한 번에 하나의 카테고리씩 요청하세요 (품질 유지)
+2. 생성된 JSON을 파일로 저장하세요
+3. 필요시 프롬프트를 검토하고 수정하세요
+4. 각 카테고리당 500-700개씩 생성하면 총 10,000개에 근접합니다
+

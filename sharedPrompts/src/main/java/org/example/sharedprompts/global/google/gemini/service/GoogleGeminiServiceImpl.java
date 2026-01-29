@@ -41,6 +41,7 @@ public class GoogleGeminiServiceImpl implements GoogleGeminiService {
         GeminiRequest request = GeminiRequest.fromUserPrompt(prompt);
         Timer.Sample sample = Timer.start(meterRegistry);
 
+        // 기본 API 호출 체인 (retry, timeout 포함)
         Mono<String> chatCall = webClient.post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/models/{model}:generateContent")
@@ -65,12 +66,12 @@ public class GoogleGeminiServiceImpl implements GoogleGeminiService {
                 .timeout(Duration.ofSeconds(properties.getTimeoutSeconds()))
                 .doOnError(e -> log.error("GoogleGemini API error", e));
 
-        // CircuitBreaker 적용 (timeout/retry 이후)
-        Mono<String> protectedCall = chatCall.transformDeferred(
-                CircuitBreakerOperator.of(googleGeminiCircuitBreaker)
-        );
+        // CircuitBreaker를 먼저 적용 (retry 이전)
+        // CircuitBreaker가 실패를 정확히 추적할 수 있도록 retry를 내부에 포함
+        Mono<String> protectedCall = chatCall
+                .transformDeferred(CircuitBreakerOperator.of(googleGeminiCircuitBreaker));
 
-        // Fallback 적용: 모든 에러와 빈 응답에 대해 Fallback 반환
+        // Fallback 적용: CircuitBreaker Open 상태 및 모든 에러에 대해 Fallback 반환
         return protectedCall
                 .onErrorResume(e -> {
                     log.warn("AI 호출 실패, fallback 사용. Error: {}", e.getClass().getSimpleName(), e);
