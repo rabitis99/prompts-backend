@@ -2,7 +2,6 @@ package org.example.sharedprompts.dto.payment.request;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,9 +21,8 @@ public class PaymentRefundRequestDto {
     @NotBlank(message = "결제 ID를 입력해주세요.")
     private String paymentId;
 
-    @NotNull(message = "환불 금액을 입력해주세요.")
     @DecimalMin(value = "0.01", message = "환불 금액은 0.01 이상이어야 합니다.")
-    private BigDecimal amount; // null이면 전체 환불
+    private BigDecimal amount; // null이면 전체 환불, 값이 있으면 부분 환불
 
     private String reason; // 환불 사유
 
