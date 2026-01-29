@@ -26,8 +26,10 @@ public class PointController {
     private final PointService pointService;
 
     /**
-     * 포인트 잔액 조회
-     * GET /points/balance
+     * Retrieves the authenticated user's point balance details.
+     *
+     * @param authUser the currently authenticated user
+     * @return a CustomResponse containing the user's PointBalanceResponseDto
      */
     @GetMapping("/balance")
     public ResponseEntity<CustomResponse<PointBalanceResponseDto>> getBalance(
@@ -38,8 +40,9 @@ public class PointController {
     }
 
     /**
-     * 포인트 내역 조회
-     * GET /points/history
+     * Retrieves the authenticated user's point transaction history.
+     *
+     * @return a CustomResponse containing a list of PointResponseDto for the authenticated user's point transactions.
      */
     @GetMapping("/history")
     public ResponseEntity<CustomResponse<List<PointResponseDto>>> getPointHistory(
@@ -50,8 +53,11 @@ public class PointController {
     }
 
     /**
-     * 포인트 사용
-     * POST /points/use
+     * Use points for the authenticated user and return the updated balance.
+     *
+     * @param request  contains the amount of points to use and an optional description of the operation
+     * @param authUser the authenticated user performing the point usage
+     * @return the updated point balance details wrapped in a CustomResponse
      */
     @PostMapping("/use")
     public ResponseEntity<CustomResponse<PointBalanceResponseDto>> usePoints(
@@ -64,8 +70,10 @@ public class PointController {
     }
 
     /**
-     * 결제와 연관된 포인트 조회
-     * GET /points/payment/{paymentId}
+     * Retrieve points associated with a specific payment.
+     *
+     * @param paymentId the identifier of the payment whose associated points should be fetched
+     * @return a CustomResponse containing a list of PointResponseDto objects linked to the specified payment
      */
     @GetMapping("/payment/{paymentId}")
     public ResponseEntity<CustomResponse<List<PointResponseDto>>> getPointsByPayment(
@@ -76,4 +84,3 @@ public class PointController {
         return CustomResponseHelper.ok(response);
     }
 }
-

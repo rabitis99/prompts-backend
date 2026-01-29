@@ -35,7 +35,13 @@ public class TierInfoResponseDto {
     private int remainingCount;
 
     /**
-     * 사용자 티어 정보를 DTO로 변환
+     * Create a TierInfoResponseDto populated from the given User and usage counts.
+     *
+     * @param user            the domain User whose id, tier, and tier description will be used
+     * @param dailyLimit      the total allowed uses per day for the user's tier
+     * @param todayUsedCount  the number of uses consumed today
+     * @param remainingCount  the number of remaining uses available today
+     * @return                a TierInfoResponseDto populated with the user's id, tier, tier description, and provided counts
      */
     public static TierInfoResponseDto from(User user, int dailyLimit, int todayUsedCount, int remainingCount) {
         return TierInfoResponseDto.builder()
@@ -48,4 +54,3 @@ public class TierInfoResponseDto {
                 .build();
     }
 }
-

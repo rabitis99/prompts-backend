@@ -51,6 +51,16 @@ public class AdminAccountInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final Environment environment;
 
+    /**
+     * Ensures an administrator account exists when the application starts.
+     *
+     * Reads ADMIN_EMAIL (default "admin@sharedprompts.com"), ADMIN_PASSWORD, and ADMIN_NICKNAME
+     * (default "관리자") from the environment. In production, if ADMIN_PASSWORD is missing or empty
+     * it logs a warning and verifies whether a suitable existing admin account is present without
+     * creating a new one. In non-production, if ADMIN_PASSWORD is missing it logs a warning and uses
+     * a development default password. If password and email are available, creates a new admin account
+     * or updates an existing account to have administrative privileges.
+     */
     @Override
     @Transactional
     public void run(String... args) {
@@ -80,7 +90,15 @@ public class AdminAccountInitializer implements CommandLineRunner {
     }
 
     /**
-     * 어드민 계정이 없으면 생성, 있으면 Role 확인 및 업데이트
+     * Ensure a LOCAL admin account exists for the given email by creating one or updating an existing account's role.
+     *
+     * If no account exists, creates a new user with ROLE_ADMIN, the encoded password, required and privacy terms accepted,
+     * marketing set to false, signupCompleted true, and blocked false. If an existing account is marked deleted, it is left
+     * unchanged. If an existing, non-deleted account does not have ROLE_ADMIN, its role is changed to ROLE_ADMIN and saved.
+     *
+     * @param email    the admin's email used as the provider ID for LOCAL provider
+     * @param password the plain-text password to encode for a newly created admin account
+     * @param nickname the display name to assign when creating a new admin account
      */
     private void createAdminIfNotExists(String email, String password, String nickname) {
         Optional<User> existingAdmin = userRepository.findByProviderAndProviderId(
@@ -129,7 +147,11 @@ public class AdminAccountInitializer implements CommandLineRunner {
     }
 
     /**
-     * 기존 어드민 계정 확인 및 Role 업데이트 (프로덕션 환경에서 비밀번호가 없을 때)
+     * Verifies whether a non-deleted LOCAL account exists for the given email and ensures it has the `ROLE_ADMIN` role; if no suitable account is found, reports a production-config error about a missing admin password.
+     *
+     * If an existing, non-deleted account is found and its role is not `ROLE_ADMIN`, the role is updated and persisted.
+     *
+     * @param email the providerId/email of the LOCAL account to verify
      */
     private void checkExistingAdmin(String email) {
         Optional<User> existingAdmin = userRepository.findByProviderAndProviderId(
@@ -153,6 +175,13 @@ public class AdminAccountInitializer implements CommandLineRunner {
         }
     }
 
+    /**
+     * Checks whether the specified profile is present in the given array of profiles.
+     *
+     * @param profiles the array of active profiles to search
+     * @param profile  the profile name to look for
+     * @return `true` if the profile exists in the array, `false` otherwise
+     */
     private boolean containsProfile(String[] profiles, String profile) {
         for (String p : profiles) {
             if (p.equals(profile)) {
@@ -162,4 +191,3 @@ public class AdminAccountInitializer implements CommandLineRunner {
         return false;
     }
 }
-

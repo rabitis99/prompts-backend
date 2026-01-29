@@ -37,6 +37,12 @@ public class PaymentStatusResponseDto {
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 
+    /**
+     * Creates a PaymentStatusResponseDto populated with fields from the given Payment.
+     *
+     * @param payment the Payment domain object to convert
+     * @return a PaymentStatusResponseDto containing id, status, externalPaymentId, failureReason, approvedAt, createdAt, and updatedAt copied from {@code payment}
+     */
     public static PaymentStatusResponseDto from(Payment payment) {
         return PaymentStatusResponseDto.builder()
                 .id(payment.getId())
@@ -49,4 +55,3 @@ public class PaymentStatusResponseDto {
                 .build();
     }
 }
-

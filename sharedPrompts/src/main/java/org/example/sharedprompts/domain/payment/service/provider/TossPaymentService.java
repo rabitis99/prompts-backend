@@ -40,11 +40,23 @@ public class TossPaymentService implements PaymentProviderService {
     private static final String TOSS_PAYMENTS_STATUS_URL = TOSS_PAYMENTS_API_URL;
     private static final String TOSS_PAYMENTS_CANCEL_URL = TOSS_PAYMENTS_API_URL + "/";
 
+    /**
+     * Identifies which payment provider this service implements.
+     *
+     * @return the `PaymentMethod` constant representing Toss
+     */
     @Override
     public PaymentMethod getPaymentMethod() {
         return PaymentMethod.TOSS;
     }
 
+    /**
+     * Confirms the given payment with Toss Payments and returns the resulting Toss payment key.
+     *
+     * @param payment the payment to confirm (provides id, amount, and optional externalPaymentId)
+     * @return the Toss payment key returned after successful confirmation
+     * @throws RuntimeException if the Toss confirmation request fails or the response is missing
+     */
     @Override
     public String approvePayment(Payment payment) {
         try {
@@ -83,6 +95,13 @@ public class TossPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Determines the internal payment status for a Toss payment identified by its external payment ID.
+     *
+     * @param externalPaymentId the Toss external payment identifier to query
+     * @return `SUCCESS` if Toss reports "DONE", `CANCELED` if "CANCELED", `PARTIALLY_REFUNDED` if "PARTIAL_CANCELED",
+     *         `PENDING` for any other Toss status, when the response body is missing, or if an error occurs while querying
+     */
     @Override
     public PaymentStatus checkPaymentStatus(String externalPaymentId) {
         try {
@@ -115,6 +134,15 @@ public class TossPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Cancels an existing Toss payment identified by the given external payment ID.
+     *
+     * Sends a cancellation request to Toss containing the provided reason.
+     *
+     * @param externalPaymentId the Toss payment identifier to cancel
+     * @param reason            the cancellation reason to send to Toss (stored or displayed by the provider)
+     * @throws RuntimeException if the cancellation request fails or the Toss API returns a non-OK response
+     */
     @Override
     public void cancelPayment(String externalPaymentId, String reason) {
         try {
@@ -144,6 +172,14 @@ public class TossPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Initiates a refund for a Toss payment identified by the given external payment ID.
+     *
+     * @param externalPaymentId the Toss payment identifier to refund
+     * @param amount the refund amount
+     * @param reason a human-readable reason for the refund
+     * @throws RuntimeException if the refund request fails or an error occurs while contacting Toss
+     */
     @Override
     public void refundPayment(String externalPaymentId, BigDecimal amount, String reason) {
         try {
@@ -174,6 +210,13 @@ public class TossPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Verifies a Toss Payments webhook payload by comparing its HMAC-SHA256 signature to the provided signature.
+     *
+     * @param payload   the raw webhook request body
+     * @param signature the signature value received from Toss (Base64-encoded HMAC-SHA256)
+     * @return `true` if the calculated signature matches `signature`; `true` if the configured webhook secret is missing or if an error occurs during verification; `false` if the signatures do not match
+     */
     @Override
     public boolean verifyWebhookSignature(String payload, String signature) {
         try {
@@ -197,6 +240,14 @@ public class TossPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Processes a Toss Payments webhook payload and updates internal payment state based on the event.
+     *
+     * <p>Parses the JSON payload to extract the event type and associated data, then performs the corresponding handling.
+     *
+     * @param payload the raw JSON webhook payload sent by Toss Payments
+     * @throws RuntimeException if the payload cannot be parsed or processing fails
+     */
     @Override
     public void processWebhook(String payload) {
         try {
@@ -215,6 +266,13 @@ public class TossPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Create HTTP headers for Toss API requests, setting Content-Type to application/json
+     * and adding a Basic Authorization header when an API key and secret are configured.
+     *
+     * @return HttpHeaders containing Content-Type `application/json` and, if available,
+     *         a `Authorization: Basic <base64(key:secret)>` header.
+     */
     private HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -232,6 +290,14 @@ public class TossPaymentService implements PaymentProviderService {
         return headers;
     }
 
+    /**
+     * Generate a unique payment key for Toss integration.
+     *
+     * The key embeds the payment's id and the current epoch milliseconds to ensure uniqueness.
+     *
+     * @param payment the Payment whose id will be included in the key
+     * @return the generated key in the format {@code TOSS_<paymentId>_<timestamp>}
+     */
     private String generatePaymentKey(Payment payment) {
         return "TOSS_" + payment.getId() + "_" + System.currentTimeMillis();
     }

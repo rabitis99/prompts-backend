@@ -41,11 +41,24 @@ public class KakaoPayPaymentService implements PaymentProviderService {
     private static final String KAKAO_PAY_CANCEL_URL = KAKAO_PAY_API_URL + "/cancel";
     private static final String KAKAO_PAY_REFUND_URL = KAKAO_PAY_API_URL + "/refund";
 
+    /**
+     * Identifies the payment provider implemented by this service as KakaoPay.
+     *
+     * @return `PaymentMethod.KAKAO_PAY`
+     */
     @Override
     public PaymentMethod getPaymentMethod() {
         return PaymentMethod.KAKAO_PAY;
     }
 
+    /**
+     * Initiates a KakaoPay approval request for the provided payment and returns the resulting transaction ID.
+     *
+     * @param payment the payment to approve; its id is used as partner_order_id, payment.user.id as partner_user_id,
+     *                payment.amount as total_amount, and payment.getExternalPaymentId() as the tid when present
+     * @return the KakaoPay transaction id (tid) returned by the approval API
+     * @throws RuntimeException if the KakaoPay approval request fails or the response is not successful
+     */
     @Override
     public String approvePayment(Payment payment) {
         try {
@@ -83,6 +96,13 @@ public class KakaoPayPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Checks the KakaoPay transaction status for the given external payment id.
+     *
+     * @param externalPaymentId the KakaoPay transaction id (tid) to query
+     * @return `PaymentStatus.SUCCESS` if the payment succeeded, `PaymentStatus.CANCELED` if fully canceled,
+     *         `PaymentStatus.PARTIALLY_REFUNDED` if partially refunded, `PaymentStatus.PENDING` otherwise
+     */
     @Override
     public PaymentStatus checkPaymentStatus(String externalPaymentId) {
         try {
@@ -115,6 +135,13 @@ public class KakaoPayPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Cancels a KakaoPay payment.
+     *
+     * @param externalPaymentId the KakaoPay transaction ID
+     * @param reason the reason for cancellation
+     * @throws RuntimeException if the cancellation request fails
+     */
     @Override
     public void cancelPayment(String externalPaymentId, String reason) {
         try {
@@ -148,6 +175,16 @@ public class KakaoPayPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Initiates a refund for a KakaoPay payment.
+     *
+     * Sends a refund request to the KakaoPay API for the payment identified by {@code externalPaymentId}.
+     *
+     * @param externalPaymentId the KakaoPay transaction id (tid) of the payment to refund
+     * @param amount            the refund amount in KRW
+     * @param reason            a human-readable reason for the refund
+     * @throws RuntimeException if the KakaoPay API responds with a non-OK status or if an error occurs while performing the refund
+     */
     @Override
     public void refundPayment(String externalPaymentId, BigDecimal amount, String reason) {
         try {
@@ -181,6 +218,13 @@ public class KakaoPayPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Validate a KakaoPay webhook payload by comparing its HMAC-SHA256 signature to the provided signature.
+     *
+     * @param payload   the raw webhook request body to verify
+     * @param signature the signature value supplied by KakaoPay (header) to compare against
+     * @return `true` if the calculated HMAC-SHA256 (Base64-encoded) of the payload matches `signature`; `true` if no webhook secret is configured or if an internal error occurs during verification, `false` otherwise
+     */
     @Override
     public boolean verifyWebhookSignature(String payload, String signature) {
         try {
@@ -204,6 +248,15 @@ public class KakaoPayPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Processes a raw KakaoPay webhook JSON payload and handles the contained event.
+     *
+     * Parses the payload to extract the webhook "event" and its "data", then performs application-level handling
+     * (for example, updating payment status or publishing a payment event).
+     *
+     * @param payload the raw JSON payload received from KakaoPay webhook
+     * @throws RuntimeException if the payload cannot be parsed or processing fails
+     */
     @Override
     public void processWebhook(String payload) {
         try {
@@ -223,6 +276,11 @@ public class KakaoPayPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Create HTTP headers required for KakaoPay API requests.
+     *
+     * @return HttpHeaders containing an Authorization header with the Kakao secret and a Content-Type of "application/json".
+     */
     private HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "SECRET_KEY " + paymentProperties.getKakaoSecret());
@@ -230,6 +288,12 @@ public class KakaoPayPaymentService implements PaymentProviderService {
         return headers;
     }
 
+    /**
+     * Generate a temporary transaction identifier for the given payment.
+     *
+     * @param payment the payment whose id is included in the generated transaction id
+     * @return the transaction id in the format `TID_<paymentId>_<timestampMillis>`
+     */
     private String generateTid(Payment payment) {
         return "TID_" + payment.getId() + "_" + System.currentTimeMillis();
     }

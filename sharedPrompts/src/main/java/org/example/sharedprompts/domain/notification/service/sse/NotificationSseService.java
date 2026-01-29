@@ -145,10 +145,13 @@ public class NotificationSseService {
     }
 
     /**
-     * 프롬프트 생성 SSE 알림 전송
-     * 
-     * @param userId 알림 대상 사용자 ID
-     * @param payload 프롬프트 생성 알림 페이로드
+     * Send a "prompt-created" server-sent event to a user's active SSE connection.
+     *
+     * If a local emitter exists for the user, sends an SSE event named "prompt-created"
+     * with the provided payload; otherwise checks Redis for a connection on another instance.
+     *
+     * @param userId  the target user's ID
+     * @param payload the event payload to send as SSE data
      */
     public void sendPromptCreated(Long userId, Object payload) {
         SseEmitter emitter = emitters.get(userId);
@@ -175,10 +178,13 @@ public class NotificationSseService {
     }
 
     /**
-     * 결제 알림 SSE 전송
-     * 
-     * @param userId 알림 대상 사용자 ID
-     * @param payload 결제 알림 페이로드
+     * Send a payment-related Server-Sent Event to the specified user's active SSE connection.
+     *
+     * If a local emitter exists for the user the event named "payment-notification" is sent;
+     * otherwise the service checks for a connection in Redis.
+     *
+     * @param userId  the target user's identifier
+     * @param payload the payload to deliver with the payment notification event
      */
     public void sendPaymentNotification(Long userId, Object payload) {
         SseEmitter emitter = emitters.get(userId);
@@ -269,4 +275,3 @@ public class NotificationSseService {
         emitters.clear();
     }
 }
-

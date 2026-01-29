@@ -27,8 +27,10 @@ public class CashbackController {
     private final CashbackRepository cashbackRepository;
 
     /**
-     * 사용자의 캐시백 내역 조회
-     * GET /cashbacks/history
+     * Retrieve the authenticated user's cashback history.
+     *
+     * @param authUser the authenticated user whose cashback records are requested
+     * @return a CustomResponse containing a list of CashbackResponseDto ordered by creation date descending
      */
     @GetMapping("/history")
     public ResponseEntity<CustomResponse<List<CashbackResponseDto>>> getCashbackHistory(
@@ -42,8 +44,10 @@ public class CashbackController {
     }
 
     /**
-     * 미지급 캐시백 총액 조회
-     * GET /cashbacks/unpaid-total
+     * Retrieve the total unpaid cashback amount for the authenticated user.
+     *
+     * @param authUser the authenticated user whose unpaid cashback total will be computed
+     * @return the total unpaid cashback amount for the user
      */
     @GetMapping("/unpaid-total")
     public ResponseEntity<CustomResponse<BigDecimal>> getUnpaidCashbackTotal(
@@ -54,8 +58,10 @@ public class CashbackController {
     }
 
     /**
-     * 미지급 캐시백 목록 조회
-     * GET /cashbacks/unpaid
+     * Retrieve unpaid cashback records for the authenticated user.
+     *
+     * @param authUser the currently authenticated user
+     * @return a CustomResponse containing a list of unpaid CashbackResponseDto objects for the user, ordered by creation time ascending
      */
     @GetMapping("/unpaid")
     public ResponseEntity<CustomResponse<List<CashbackResponseDto>>> getUnpaidCashbacks(
@@ -69,8 +75,11 @@ public class CashbackController {
     }
 
     /**
-     * 캐시백 지급 요청
-     * POST /cashbacks/{cashbackId}/pay
+     * Request payment of the specified cashback for the authenticated user.
+     *
+     * @param cashbackId the ID of the cashback to be paid
+     * @param authUser the authenticated user initiating the payment
+     * @return a CustomResponse containing the success message "캐시백 지급이 완료되었습니다."
      */
     @PostMapping("/{cashbackId}/pay")
     public ResponseEntity<CustomResponse<String>> payCashback(
@@ -81,4 +90,3 @@ public class CashbackController {
         return CustomResponseHelper.ok("캐시백 지급이 완료되었습니다.");
     }
 }
-

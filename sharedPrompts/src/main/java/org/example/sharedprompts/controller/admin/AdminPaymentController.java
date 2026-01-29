@@ -27,8 +27,12 @@ public class AdminPaymentController {
     private final UserTierService userTierService;
 
     /**
-     * 사용자 티어 변경 (관리자용)
-     * POST /admin/payments/users/{userId}/tier
+     * Change a user's subscription tier (admin only).
+     *
+     * @param userId   the ID of the user whose tier will be changed
+     * @param request  details of the tier change (target tier and related metadata)
+     * @param authUser the currently authenticated admin performing the change
+     * @return         a CustomResponse with a null payload indicating the operation succeeded
      */
     @PostMapping("/users/{userId}/tier")
     public ResponseEntity<CustomResponse<Void>> changeTier(
@@ -41,4 +45,3 @@ public class AdminPaymentController {
         return CustomResponseHelper.ok(null);
     }
 }
-

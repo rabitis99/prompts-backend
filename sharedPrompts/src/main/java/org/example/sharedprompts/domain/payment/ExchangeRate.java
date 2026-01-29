@@ -42,11 +42,13 @@ public class ExchangeRate extends BaseEntity {
     private LocalDateTime lastFetchedAt; // 마지막 환율 API 호출 시간
 
     /**
-     * 환율 업데이트
+     * Update the stored exchange rate and the timestamp when it was fetched.
+     *
+     * @param newRate  the new exchange rate (how many units of toCurrency equal one unit of fromCurrency)
+     * @param fetchedAt the timestamp when the rate was retrieved
      */
     public void updateRate(BigDecimal newRate, LocalDateTime fetchedAt) {
         this.rate = newRate;
         this.lastFetchedAt = fetchedAt;
     }
 }
-

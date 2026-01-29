@@ -42,12 +42,12 @@ public class ExchangeRateScheduler {
     private static final List<String> SUPPORTED_CURRENCIES = List.of("KRW", "EUR", "JPY", "CNY", "GBP");
 
     /**
-     * 애플리케이션 시작 시 환율 초기 로드
-     * PostConstruct로 시작 시 한 번 실행
-     * 
-     * 주의: PostConstruct에서는 @Transactional과 @SchedulerLock을 사용하지 않음
-     * 트랜잭션과 락은 updateExchangeRates() 내부에서 처리됨
-     */
+         * Performs a one-time exchange-rate load when the application starts.
+         *
+         * <p>This method is invoked once after bean construction. The initial load runs without a
+         * transaction or distributed lock; failures are caught and logged so scheduled retries can
+         * handle subsequent attempts.</p>
+         */
     @PostConstruct
     public void initializeExchangeRates() {
         log.info("애플리케이션 시작 시 환율 초기 로드 시작");
@@ -60,7 +60,9 @@ public class ExchangeRateScheduler {
     }
 
     /**
-     * 환율 업데이트 (매일 새벽 2시에 실행)
+     * Fetches exchange rates from the configured external API and updates or creates local ExchangeRate records.
+     *
+     * Reads the exchange rate API URL and optional API key from PaymentProperties, requests rates using USD as the base currency, and for each supported target currency updates an existing ExchangeRate's rate and lastFetchedAt or creates a new ExchangeRate. If the API URL is missing or the response does not contain rates, a warning is logged; other failures are logged as errors.
      */
     @Scheduled(cron = "${payment.exchange-rate.schedule:0 0 2 * * ?}")
     @SchedulerLock(
@@ -148,7 +150,11 @@ public class ExchangeRateScheduler {
     }
 
     /**
-     * 객체를 BigDecimal로 변환
+     * Convert a numeric or numeric-string value to a BigDecimal.
+     *
+     * @param value a Number or a String containing a numeric representation
+     * @return a BigDecimal representing the numeric value
+     * @throws IllegalArgumentException if the value is neither a Number nor a String
      */
     private BigDecimal convertToBigDecimal(Object value) {
         if (value instanceof Number) {
@@ -159,4 +165,3 @@ public class ExchangeRateScheduler {
         throw new IllegalArgumentException("환율 값을 BigDecimal로 변환할 수 없습니다: " + value);
     }
 }
-

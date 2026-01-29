@@ -24,10 +24,11 @@ public class TierChangeRequestDto {
     private String reason; // 변경 사유
 
     /**
-     * 변경 사유 반환 (null인 경우 기본값)
+     * Obtain the reason for the tier change, or a default if none is set.
+     *
+     * @return the provided reason, or "티어 변경" if no reason is set
      */
     public String getReasonOrDefault() {
         return this.reason != null ? this.reason : "티어 변경";
     }
 }
-

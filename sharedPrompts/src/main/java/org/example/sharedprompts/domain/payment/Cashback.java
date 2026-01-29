@@ -56,11 +56,12 @@ public class Cashback extends BaseEntity {
     private LocalDateTime paidAt; // 지급 시간
 
     /**
-     * 캐시백 지급 처리
+     * Marks the cashback as paid and records the payout timestamp.
+     *
+     * Sets the entity's `paid` flag to `true` and updates `paidAt` with the current date and time.
      */
     public void markAsPaid() {
         this.paid = true;
         this.paidAt = LocalDateTime.now();
     }
 }
-

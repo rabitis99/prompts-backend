@@ -90,7 +90,12 @@ public class Payment extends BaseEntity {
     private String metadata; // 추가 메타데이터 (JSON 형태)
 
     /**
-     * 결제 승인 처리
+     * Mark the payment approved and record the external payment identifier.
+     *
+     * Sets the payment status to SUCCESS, stores the external payment provider's ID,
+     * records the approval timestamp, and clears any recorded failure reason.
+     *
+     * @param externalPaymentId the identifier issued by the external payment provider
      */
     public void approve(String externalPaymentId) {
         this.status = PaymentStatus.SUCCESS;
@@ -100,7 +105,9 @@ public class Payment extends BaseEntity {
     }
 
     /**
-     * 결제 실패 처리
+     * Mark the payment as failed and record the failure reason.
+     *
+     * @param reason the human-readable reason for the failure to store on the payment
      */
     public void fail(String reason) {
         this.status = PaymentStatus.FAILED;
@@ -108,7 +115,9 @@ public class Payment extends BaseEntity {
     }
 
     /**
-     * 결제 취소 처리
+     * Mark this payment as canceled.
+     *
+     * Sets the payment status to {@code CANCELED} and records the cancellation time.
      */
     public void cancel() {
         this.status = PaymentStatus.CANCELED;
@@ -116,7 +125,12 @@ public class Payment extends BaseEntity {
     }
 
     /**
-     * 환불 처리
+     * Apply a refund amount to the payment, updating the cumulative refunded amount and the payment status.
+     *
+     * @param refundAmount the amount to refund; added to the current refunded amount
+     *                      — if the cumulative refunded amount is greater than or equal to the original payment amount,
+     *                      the refunded amount is set to the original amount and the status becomes `REFUNDED`;
+     *                      otherwise the refunded amount is updated to the cumulative total and the status becomes `PARTIALLY_REFUNDED`.
      */
     public void refund(BigDecimal refundAmount) {
         BigDecimal newRefundedAmount = this.refundedAmount.add(refundAmount);
@@ -133,17 +147,18 @@ public class Payment extends BaseEntity {
     }
 
     /**
-     * 재시도 횟수 증가
+     * Increment the retry count for this payment by one.
      */
     public void incrementRetryCount() {
         this.retryCount++;
     }
 
     /**
-     * 환불 가능한 금액 계산
+     * Calculates the remaining amount that can be refunded.
+     *
+     * @return the refundable amount calculated as amount minus refundedAmount
      */
     public BigDecimal getRefundableAmount() {
         return this.amount.subtract(this.refundedAmount);
     }
 }
-

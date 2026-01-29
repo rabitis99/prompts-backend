@@ -29,7 +29,11 @@ public class PointUseRequestDto {
     private String description;
 
     /**
-     * Point 엔티티 빌더 생성 (사용)
+     * Create a Point builder preconfigured for a point usage transaction.
+     *
+     * @param user    the owner of the point entry
+     * @param balance the resulting balance to set on the Point
+     * @return        a Point.PointBuilder initialized for a usage transaction with the amount stored as negative, type set to "USE", the provided description and balance, and expired set to false
      */
     public Point.PointBuilder toPointBuilder(User user, BigDecimal balance) {
         return Point.builder()
@@ -41,4 +45,3 @@ public class PointUseRequestDto {
                 .expired(false);
     }
 }
-

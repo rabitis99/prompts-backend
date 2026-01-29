@@ -24,8 +24,12 @@ public class FcmTokenService {
     private long tokenExpirationTime = 0;
 
     /**
-     * 유효한 액세스 토큰을 반환합니다.
-     * 토큰이 만료되었거나 없으면 새로 발급받습니다.
+     * Provide a valid access token for the FCM HTTP v1 API.
+     *
+     * Ensures credentials are available and refreshed if necessary, then returns the token value.
+     *
+     * @return the access token string used to authenticate FCM HTTP v1 requests
+     * @throws RuntimeException if a token cannot be obtained or refreshed
      */
     public String getAccessToken() {
         try {
@@ -44,11 +48,15 @@ public class FcmTokenService {
     }
 
     /**
-     * Google Credentials를 초기화하거나 새로고침합니다.
-     * 우선순위:
-     * 1. 환경 변수 GOOGLE_APPLICATION_CREDENTIALS
-     * 2. application.yml의 payment.fcm.credentials-path
-     * 3. 클래스 경로의 credentials 파일
+     * Initialize or refresh the GoogleCredentials used to obtain FCM access tokens.
+     *
+     * Attempts to load credentials in the following order: (1) the GOOGLE_APPLICATION_CREDENTIALS
+     * environment variable, (2) the configured payment.fcm.credentials-path, (3) classpath credential
+     * files (firebase/sharedprompt-8ed9d-firebase-adminsdk-fbsvc-601af9062b.json or fcm-credentials.json),
+     * and finally (4) Application Default Credentials when running in a GCP environment.
+     *
+     * @throws IllegalStateException if FCM is disabled or no credentials can be located from any source
+     * @throws IOException if an I/O error occurs while reading credential files or streams
      */
     private void refreshCredentials() throws IOException {
         if (!paymentProperties.isFcmEnabled()) {
@@ -121,10 +129,11 @@ public class FcmTokenService {
     }
 
     /**
-     * 토큰이 만료되었는지 확인합니다.
+     * Check whether the cached access token is expired.
+     *
+     * @return `true` if the current system time is greater than or equal to the token expiration timestamp, `false` otherwise.
      */
     private boolean isTokenExpired() {
         return System.currentTimeMillis() >= tokenExpirationTime;
     }
 }
-

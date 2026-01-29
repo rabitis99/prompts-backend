@@ -23,7 +23,11 @@ public class PaymentProviderServiceFactory {
     private Map<PaymentMethod, PaymentProviderService> serviceMap;
 
     /**
-     * 결제 수단에 맞는 서비스 조회
+     * Selects the PaymentProviderService that corresponds to the given payment method.
+     *
+     * @param paymentMethod the payment method to look up a provider for
+     * @return the PaymentProviderService associated with the specified payment method
+     * @throws ApiException if no provider is registered for the given payment method (ErrorCode.PAYMENT_PROVIDER_ERROR)
      */
     public PaymentProviderService getService(PaymentMethod paymentMethod) {
         if (serviceMap == null) {
@@ -42,4 +46,3 @@ public class PaymentProviderServiceFactory {
         return service;
     }
 }
-

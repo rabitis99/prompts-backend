@@ -23,9 +23,15 @@ public class ExchangeRateWebhookController {
     private final PaymentLoggingService loggingService;
 
     /**
-     * 환율 업데이트 웹훅 수신
-     * POST /webhooks/exchange-rates
-     */
+         * Handle incoming exchange-rate update webhook requests.
+         *
+         * Logs the incoming payload, triggers an exchange-rate update, and responds with a JSON object
+         * indicating whether the update completed successfully or failed.
+         *
+         * @param payload the raw request body sent by the webhook; may be null
+         * @return a map with keys "status" and "message" — "status" is `"success"` if the update completed,
+         *         `"error"` otherwise; "message" contains a short human-readable description
+         */
     @PostMapping
     public ResponseEntity<Map<String, String>> receiveExchangeRateWebhook(
             @RequestBody(required = false) String payload
@@ -44,4 +50,3 @@ public class ExchangeRateWebhookController {
         }
     }
 }
-

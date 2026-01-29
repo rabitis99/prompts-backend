@@ -13,38 +13,58 @@ import java.math.BigDecimal;
 public interface PaymentProviderService {
 
     /**
-     * 이 서비스가 처리할 결제 수단 반환
-     */
+ * Identifies the payment method handled by this service.
+ *
+ * @return the PaymentMethod this service handles
+ */
     PaymentMethod getPaymentMethod();
 
     /**
-     * 결제 승인 요청
-     */
+ * Initiates an approval request for the given Payment with the provider.
+ *
+ * @param payment the payment to be approved, containing amount and payer details
+ * @return the provider's external payment identifier or confirmation token
+ */
     String approvePayment(Payment payment);
 
     /**
-     * 결제 상태 조회
-     */
+ * Retrieves the current status of a payment identified by the provider's external payment ID.
+ *
+ * @param externalPaymentId the payment identifier issued by the external payment provider
+ * @return the current PaymentStatus of the referenced payment
+ */
     PaymentStatus checkPaymentStatus(String externalPaymentId);
 
     /**
-     * 결제 취소
-     */
+ * Cancels a payment identified by the external payment identifier.
+ *
+ * @param externalPaymentId the provider's external identifier for the payment to cancel
+ * @param reason a short description of why the payment is being cancelled
+ */
     void cancelPayment(String externalPaymentId, String reason);
 
     /**
-     * 결제 환불
-     */
+ * Initiates a refund for a previously created external payment.
+ *
+ * @param externalPaymentId the external payment identifier to refund
+ * @param amount the amount to refund (in the payment's currency)
+ * @param reason a short description explaining the refund's purpose
+ */
     void refundPayment(String externalPaymentId, BigDecimal amount, String reason);
 
     /**
-     * Webhook 서명 검증
-     */
+ * Validates the authenticity of a webhook payload using its signature.
+ *
+ * @param payload   the raw webhook request body to verify
+ * @param signature the signature provided with the webhook (e.g., header value)
+ * @return          `true` if the signature is valid for the given payload, `false` otherwise
+ */
     boolean verifyWebhookSignature(String payload, String signature);
 
     /**
-     * Webhook 처리
-     */
+ * Processes an incoming webhook payload and performs actions based on its content.
+ *
+ * @param payload the raw webhook request body to parse and handle
+ */
     void processWebhook(String payload);
 }
-

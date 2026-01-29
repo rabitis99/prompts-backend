@@ -48,6 +48,16 @@ public class AuthServiceImpl implements AuthService {
         return AuthResponseDto.from(user);
     }
 
+    /**
+     * Authenticates the user and issues authentication tokens.
+     *
+     * If the request contains a device token, the user's device token is updated and persisted.
+     * A login success audit event is published for the authenticated user.
+     *
+     * @param dto     login request containing credentials and an optional deviceToken; when present the user's device token is updated
+     * @param request the HTTP servlet request providing context for authentication and token issuance
+     * @return        a TokenResponseDto containing the issued access and refresh tokens and related metadata
+     */
     @Override
     @Transactional
     public TokenResponseDto login(LoginRequestDto dto, HttpServletRequest request) {
@@ -68,6 +78,15 @@ public class AuthServiceImpl implements AuthService {
         return tokenResponseDto;
     }
 
+    /**
+     * Completes an OAuth login flow, issues authentication tokens for the resulting user, and records a successful login audit.
+     *
+     * @param key         the OAuth provider's temporary key used to validate the callback
+     * @param state       the OAuth state value used to verify the callback originated from the initiated flow
+     * @param deviceToken an optional device push token to associate with the user; ignored if null or empty
+     * @param request     the incoming HTTP request associated with the callback
+     * @return            a TokenResponseDto containing issued access and refresh token information and related metadata
+     */
     @Override
     @Transactional
     public TokenResponseDto callback(String key, String state, String deviceToken, HttpServletRequest request) {
@@ -144,4 +163,3 @@ public class AuthServiceImpl implements AuthService {
         authAuditPublisher.logoutSuccessByUser(user);
     }
 }
-

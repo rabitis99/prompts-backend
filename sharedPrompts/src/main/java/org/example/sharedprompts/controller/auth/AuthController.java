@@ -40,6 +40,15 @@ public class AuthController {
         return CustomResponseHelper.ok(authService.login(dto, request));
     }
 
+    /**
+     * Handles an external authentication callback and issues tokens.
+     *
+     * @param key the external provider's callback key
+     * @param state the opaque state value used to validate the authentication flow
+     * @param deviceToken optional device push token provided by the client
+     * @param request the current HTTP request, used to derive client context
+     * @return a CustomResponse containing issued access and refresh tokens
+     */
     @GetMapping("/callback")
     public ResponseEntity<CustomResponse<TokenResponseDto>> callback(
             @RequestParam("key") String key,
@@ -50,6 +59,12 @@ public class AuthController {
         return CustomResponseHelper.ok(authService.callback(key, state, deviceToken, request));
     }
 
+    /**
+     * Refreshes authentication tokens using the provided refresh token.
+     *
+     * @param dto request DTO containing the refresh token and any required fields
+     * @return CustomResponse<TokenResponseDto> containing refreshed access and refresh tokens
+     */
     @PostMapping("/refresh")
     public ResponseEntity<CustomResponse<TokenResponseDto>> refresh(
             @Valid @RequestBody RefreshRequestDto dto,

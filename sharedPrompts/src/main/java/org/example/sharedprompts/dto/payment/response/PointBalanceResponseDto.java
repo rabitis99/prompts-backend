@@ -30,7 +30,13 @@ public class PointBalanceResponseDto {
     private BigDecimal expiringSoon; // 곧 만료될 포인트 (30일 이내)
 
     /**
-     * 포인트 잔액 정보를 DTO로 변환
+     * Create a PointBalanceResponseDto from the provided user ID and point amounts.
+     *
+     * @param userId the user's identifier
+     * @param currentBalance the user's total point balance
+     * @param availableBalance points that are currently available (not expired)
+     * @param expiringSoon points that will expire soon (within 30 days)
+     * @return a PointBalanceResponseDto populated with the given values
      */
     public static PointBalanceResponseDto from(Long userId, BigDecimal currentBalance, BigDecimal availableBalance, BigDecimal expiringSoon) {
         return PointBalanceResponseDto.builder()
@@ -41,4 +47,3 @@ public class PointBalanceResponseDto {
                 .build();
     }
 }
-

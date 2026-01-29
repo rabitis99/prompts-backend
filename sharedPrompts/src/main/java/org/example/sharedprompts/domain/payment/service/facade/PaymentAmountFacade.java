@@ -33,6 +33,14 @@ public class PaymentAmountFacade {
         private final BigDecimal usedPointAmount;
         private final BigDecimal actualPaymentAmount;
 
+        /**
+         * Creates a result container for payment amount processing.
+         *
+         * @param originalAmount      the amount provided in the payment request (in the request currency)
+         * @param convertedAmount     the amount after currency conversion (KRW when conversion was applied)
+         * @param usedPointAmount     the amount of points applied to the payment
+         * @param actualPaymentAmount the final payable amount after applying points
+         */
         public AmountProcessingResult(BigDecimal originalAmount, BigDecimal convertedAmount, 
                                      BigDecimal usedPointAmount, BigDecimal actualPaymentAmount) {
             this.originalAmount = originalAmount;
@@ -41,25 +49,54 @@ public class PaymentAmountFacade {
             this.actualPaymentAmount = actualPaymentAmount;
         }
 
+        /**
+         * The original payment amount as supplied in the request.
+         *
+         * @return the original amount from the payment request.
+         */
         public BigDecimal getOriginalAmount() {
             return originalAmount;
         }
 
+        /**
+         * The payment amount after currency conversion (to KRW when conversion was required).
+         *
+         * @return the converted amount
+         */
         public BigDecimal getConvertedAmount() {
             return convertedAmount;
         }
 
+        /**
+         * The amount of points applied to the payment.
+         *
+         * @return the amount of points applied to the payment
+         */
         public BigDecimal getUsedPointAmount() {
             return usedPointAmount;
         }
 
+        /**
+         * Get the final payment amount after currency conversion and point deduction.
+         *
+         * @return the final payable amount (in KRW) after applied points
+         */
         public BigDecimal getActualPaymentAmount() {
             return actualPaymentAmount;
         }
     }
 
     /**
-     * 결제 금액 처리 (환율 변환 + 포인트 사용)
+     * Convert the requested amount to KRW if necessary and apply user points to determine the final payable amount.
+     *
+     * Processes currency conversion, validates and consumes requested points (capped to the converted amount), and
+     * computes the actual payment amount after point deduction.
+     *
+     * @param userId  the identifier of the user making the payment
+     * @param request the payment request containing amount, currency, and optional usePointAmount
+     * @return an AmountProcessingResult containing originalAmount, convertedAmount (in KRW when conversion occurred),
+     *         usedPointAmount, and actualPaymentAmount
+     * @throws ApiException if the user does not have enough point balance to cover the requested usePointAmount
      */
     public AmountProcessingResult processPaymentAmount(Long userId, PaymentRequestDto request) {
         BigDecimal originalAmount = request.getAmount();
@@ -102,7 +139,16 @@ public class PaymentAmountFacade {
     }
 
     /**
-     * 환불 시 포인트 환불 금액 계산
+     * Calculate how many points should be refunded for a given refund amount.
+     *
+     * If no points were used, returns BigDecimal.ZERO. For full refunds (refundAmount >= originalAmount)
+     * returns the entire usedPointAmount. For partial refunds returns the proportional share of used points
+     * based on refundAmount/originalAmount, rounded down to a whole point.
+     *
+     * @param usedPointAmount the amount of points originally applied to the payment
+     * @param originalAmount the original payment amount
+     * @param refundAmount the amount being refunded
+     * @return the amount of points to refund (whole points), or `BigDecimal.ZERO` if no points were used
      */
     public BigDecimal calculateRefundPointAmount(BigDecimal usedPointAmount, BigDecimal originalAmount, BigDecimal refundAmount) {
         if (usedPointAmount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -121,4 +167,3 @@ public class PaymentAmountFacade {
         }
     }
 }
-

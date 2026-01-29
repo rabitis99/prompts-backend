@@ -38,6 +38,12 @@ public class UserTierHistoryResponseDto {
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
 
+    /**
+     * Create a UserTierHistoryResponseDto populated from a UserTierHistory domain object.
+     *
+     * @param history the domain object containing user tier change details
+     * @return a UserTierHistoryResponseDto populated with values from {@code history}
+     */
     public static UserTierHistoryResponseDto from(UserTierHistory history) {
         return UserTierHistoryResponseDto.builder()
                 .id(history.getId())
@@ -50,4 +56,3 @@ public class UserTierHistoryResponseDto {
                 .build();
     }
 }
-

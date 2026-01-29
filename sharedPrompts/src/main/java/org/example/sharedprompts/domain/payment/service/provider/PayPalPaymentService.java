@@ -42,11 +42,23 @@ public class PayPalPaymentService implements PaymentProviderService {
     private static final String PAYPAL_OAUTH_URL = PAYPAL_API_URL + "/v1/oauth2/token";
     private static final String PAYPAL_ORDERS_URL = PAYPAL_API_URL + "/v2/checkout/orders";
 
+    /**
+     * Identify the payment method supported by this service.
+     *
+     * @return the supported PaymentMethod PAYPAL
+     */
     @Override
     public PaymentMethod getPaymentMethod() {
         return PaymentMethod.PAYPAL;
     }
 
+    /**
+     * Creates a PayPal order for the given payment, captures the order, and returns the PayPal order ID.
+     *
+     * @param payment the internal Payment containing the amount and currency to be charged
+     * @return the PayPal order ID for the captured order
+     * @throws RuntimeException if order creation, capture, or the PayPal API call fails
+     */
     @Override
     public String approvePayment(Payment payment) {
         try {
@@ -96,6 +108,14 @@ public class PayPalPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Maps a PayPal order's remote status to the application's PaymentStatus.
+     *
+     * @param externalPaymentId the PayPal order ID to query
+     * @return {@code PaymentStatus.SUCCESS} for PayPal "COMPLETED", {@code PaymentStatus.CANCELED} for "CANCELLED",
+     *         {@code PaymentStatus.PARTIALLY_REFUNDED} for "PARTIALLY_REFUNDED", {@code PaymentStatus.REFUNDED} for "REFUNDED",
+     *         and {@code PaymentStatus.PENDING} for any other status or when the status cannot be determined
+     */
     @Override
     public PaymentStatus checkPaymentStatus(String externalPaymentId) {
         try {
@@ -132,6 +152,13 @@ public class PayPalPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Cancels the PayPal order identified by the given external payment ID using the provided reason.
+     *
+     * @param externalPaymentId the PayPal order ID to cancel
+     * @param reason             a textual reason for the cancellation (may be null or empty)
+     * @throws RuntimeException if the cancellation request fails or an error occurs while calling PayPal
+     */
     @Override
     public void cancelPayment(String externalPaymentId, String reason) {
         try {
@@ -163,6 +190,14 @@ public class PayPalPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Issue a refund for a captured PayPal payment identified by an external payment ID.
+     *
+     * @param externalPaymentId the PayPal order ID used to locate the capture to refund
+     * @param amount            the refund amount in KRW
+     * @param reason            a note explaining the reason for the refund to the payer
+     * @throws RuntimeException if the capture ID cannot be retrieved, the refund request fails, or any other error occurs during the refund process
+     */
     @Override
     public void refundPayment(String externalPaymentId, BigDecimal amount, String reason) {
         try {
@@ -201,6 +236,13 @@ public class PayPalPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Validates a PayPal webhook payload against the configured webhook secret.
+     *
+     * @param payload   the raw webhook request body to verify
+     * @param signature the Base64-encoded signature provided with the webhook
+     * @return {@code true} if the webhook secret is not configured or if the signature matches; {@code false} if the signature does not match
+     */
     @Override
     public boolean verifyWebhookSignature(String payload, String signature) {
         try {
@@ -225,6 +267,14 @@ public class PayPalPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Process a PayPal webhook JSON payload and act on the event.
+     *
+     * Parses the raw JSON payload, extracts the `event_type` and `resource`, and performs processing (currently logs the event).
+     *
+     * @param payload the raw JSON webhook payload received from PayPal
+     * @throws RuntimeException if the payload cannot be parsed or processing fails
+     */
     @Override
     public void processWebhook(String payload) {
         try {
@@ -243,6 +293,12 @@ public class PayPalPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * Retrieves an OAuth 2.0 access token from PayPal using the configured client credentials.
+     *
+     * @return the PayPal access token string
+     * @throws RuntimeException if the token cannot be retrieved or the response is invalid
+     */
     private String getAccessToken() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -267,6 +323,12 @@ public class PayPalPaymentService implements PaymentProviderService {
         throw new RuntimeException("페이팔 액세스 토큰 획득 실패");
     }
 
+    /**
+     * Captures a PayPal order identified by the given orderId using the provided OAuth access token.
+     *
+     * @param orderId the PayPal order ID to capture
+     * @param accessToken OAuth bearer token with permission to capture the order
+     */
     private void captureOrder(String orderId, String accessToken) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
@@ -282,6 +344,14 @@ public class PayPalPaymentService implements PaymentProviderService {
         );
     }
 
+    /**
+     * Retrieve the PayPal capture ID for the given order.
+     *
+     * @param orderId     the PayPal order ID to query
+     * @param accessToken the OAuth bearer token used for the request
+     * @return the capture ID associated with the order
+     * @throws RuntimeException if the capture ID cannot be retrieved (missing response body, purchase units, or captures)
+     */
     private String getCaptureId(String orderId, String accessToken) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);

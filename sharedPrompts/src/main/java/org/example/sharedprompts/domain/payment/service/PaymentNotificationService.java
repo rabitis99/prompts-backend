@@ -26,7 +26,14 @@ public class PaymentNotificationService {
     private final UserRepository userRepository;
 
     /**
-     * 결제 실패 알림 발송
+     * Sends payment failure notifications (server-sent event and optional push) to the specified user.
+     *
+     * Attempts to deliver an SSE payload with type "PAYMENT_FAILED" containing payment details and, if the user has a device token, a push notification; if the user is not found the method returns without sending notifications and delivery errors are logged.
+     *
+     * @param paymentId     the identifier of the failed payment
+     * @param userId        the recipient user's identifier
+     * @param reason        a human-readable reason for the payment failure
+     * @param paymentMethod the payment method used for the attempted payment
      */
     public void sendPaymentFailureNotification(Long paymentId, Long userId, String reason, String paymentMethod) {
         log.info("결제 실패 알림 발송 시작: paymentId={}, userId={}, reason={}, paymentMethod={}",
@@ -66,7 +73,15 @@ public class PaymentNotificationService {
     }
 
     /**
-     * 결제 성공 알림 발송
+     * Send payment success notifications to the specified user via SSE and push (if the user has a device token).
+     *
+     * Attempts to deliver an SSE payload containing payment details and, when a non-empty device token exists,
+     * sends a push notification. Exceptions during delivery are logged and do not propagate.
+     *
+     * @param paymentId     the identifier of the successful payment
+     * @param userId        the recipient user's identifier
+     * @param paymentMethod the payment method used (e.g., card, bank transfer)
+     * @param amount        the payment amount as a formatted string (e.g., "10,000")
      */
     public void sendPaymentSuccessNotification(Long paymentId, Long userId, String paymentMethod, String amount) {
         log.info("결제 성공 알림 발송 시작: paymentId={}, userId={}, paymentMethod={}, amount={}",

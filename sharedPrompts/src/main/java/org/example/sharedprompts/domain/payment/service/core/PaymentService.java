@@ -12,29 +12,45 @@ import org.example.sharedprompts.dto.payment.response.PaymentStatusResponseDto;
 public interface PaymentService {
 
     /**
-     * 결제 요청
-     * 티어 기반 일일 제한 체크 포함
-     */
+ * Initiates a payment for the specified user and enforces tier-based daily limits.
+ *
+ * @param userId the identifier of the user initiating the payment
+ * @param request details of the payment to be processed (amount, method, metadata)
+ * @return a PaymentResponseDto containing the payment identifier, status, processed amount, and any failure reason
+ */
     PaymentResponseDto requestPayment(Long userId, PaymentRequestDto request);
 
     /**
-     * 결제 상태 조회
-     */
+ * Retrieve the current status of a payment by its identifier.
+ *
+ * @param paymentId the unique identifier of the payment to query
+ * @return the payment's current status and associated details as a PaymentStatusResponseDto
+ */
     PaymentStatusResponseDto checkPaymentStatus(String paymentId);
 
     /**
-     * 결제 취소
-     */
+ * Cancel a previously submitted payment for the specified user.
+ *
+ * @param userId the identifier of the user who owns the payment
+ * @param request cancellation details required to identify and process the payment cancellation
+ * @return a PaymentResponseDto containing the updated payment status and related metadata
+ */
     PaymentResponseDto cancelPayment(Long userId, PaymentCancelRequestDto request);
 
     /**
-     * 결제 환불 (부분/전체)
-     */
+ * Processes a partial or full refund for a user's payment.
+ *
+ * @param userId the ID of the user who owns the payment to be refunded
+ * @param request details of the refund operation (including payment identifier and refund amount)
+ * @return a PaymentResponseDto containing the updated payment status and refund details
+ */
     PaymentResponseDto refundPayment(Long userId, PaymentRefundRequestDto request);
 
     /**
-     * 사용자의 결제 내역 조회
-     */
+ * Retrieves the payment history for the specified user.
+ *
+ * @param userId the identifier of the user whose payment history is requested
+ * @return a list of PaymentResponseDto objects representing the user's past payments
+ */
     java.util.List<PaymentResponseDto> getPaymentHistory(Long userId);
 }
-

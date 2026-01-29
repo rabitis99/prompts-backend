@@ -29,7 +29,16 @@ public class PaymentPostProcessFacade {
     private final PaymentLoggingService loggingService;
 
     /**
-     * 결제 성공 후처리
+     * Perform post-processing steps for a successful payment.
+     *
+     * Coordinates logging of approval and status change, accrues points and cashback,
+     * records success and amount metrics, and publishes a payment-succeeded event.
+     *
+     * @param payment the completed Payment entity
+     * @param userId the identifier of the user who made the payment
+     * @param actualPaymentAmount the actual charged amount used for point accrual
+     * @param originalAmount the original payment amount used for cashback accrual and amount metrics
+     * @param processingTime the payment processing duration in milliseconds
      */
     public void processPaymentSuccess(Payment payment, Long userId, BigDecimal actualPaymentAmount, 
                                      BigDecimal originalAmount, long processingTime) {
@@ -52,7 +61,13 @@ public class PaymentPostProcessFacade {
     }
 
     /**
-     * 결제 실패 후처리
+     * Handle post-processing after a payment failure: log the failure, record metrics, and publish a failure event.
+     *
+     * @param payment      the Payment that failed
+     * @param userId       the ID of the user associated with the payment; may be null if unknown
+     * @param errorMessage a human-readable error message describing the failure
+     * @param exception    the exception that caused or accompanied the failure, if available
+     * @param processingTime time taken (in milliseconds) to process the payment attempt
      */
     public void processPaymentFailure(Payment payment, Long userId, String errorMessage, 
                                      Exception exception, long processingTime) {
@@ -72,7 +87,15 @@ public class PaymentPostProcessFacade {
     }
 
     /**
-     * 결제 취소 후처리
+     * Handle post-processing for a canceled payment.
+     *
+     * <p>If the payment used points, refunds those points to the user, records cancellation metrics,
+     * logs the cancellation and the status transition, and publishes a payment-canceled event.</p>
+     *
+     * @param payment   the payment that was canceled
+     * @param userId    the id of the user associated with the payment
+     * @param reason    the reason for the cancellation
+     * @param oldStatus the payment status prior to cancellation
      */
     public void processPaymentCancel(Payment payment, Long userId, String reason, PaymentStatus oldStatus) {
         // 포인트 환불 처리
@@ -94,7 +117,16 @@ public class PaymentPostProcessFacade {
     }
 
     /**
-     * 결제 환불 후처리
+     * Handle post-processing after a payment refund.
+     *
+     * Performs point refunds when applicable, records refund metrics, logs the refund and status change, and publishes a payment-refunded event.
+     *
+     * @param payment           the payment being refunded
+     * @param userId            the ID of the user receiving the refund
+     * @param refundAmount      the monetary amount refunded
+     * @param refundPointAmount the amount of points to refund to the user
+     * @param reason            the reason for the refund
+     * @param oldStatus         the payment status before the refund was applied
      */
     public void processPaymentRefund(Payment payment, Long userId, BigDecimal refundAmount, 
                                     BigDecimal refundPointAmount, String reason, PaymentStatus oldStatus) {
@@ -116,4 +148,3 @@ public class PaymentPostProcessFacade {
         eventPublisher.publishPaymentRefunded(payment.getId(), userId, reason);
     }
 }
-

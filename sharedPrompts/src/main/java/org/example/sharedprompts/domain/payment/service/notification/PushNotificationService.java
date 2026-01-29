@@ -26,7 +26,14 @@ public class PushNotificationService {
     private final FcmTokenService fcmTokenService;
 
     /**
-     * 결제 실패 푸시 알림 발송
+     * Send a payment-failure push notification to a device.
+     *
+     * Constructs a notification (title and body) and a data payload (paymentId, type, reason),
+     * sends them via FCM, and logs success or any error without throwing.
+     *
+     * @param deviceToken the target device's FCM token
+     * @param paymentId   the identifier of the failed payment
+     * @param reason      a human-readable reason for the failure
      */
     public void sendPaymentFailurePush(String deviceToken, Long paymentId, String reason) {
         try {
@@ -48,7 +55,11 @@ public class PushNotificationService {
     }
 
     /**
-     * 결제 성공 푸시 알림 발송
+     * Sends a payment-success push notification to the specified FCM device token.
+     *
+     * @param deviceToken the target device's Firebase Cloud Messaging registration token
+     * @param paymentId the payment identifier
+     * @param amount the payment amount as a string (e.g., "1000")
      */
     public void sendPaymentSuccessPush(String deviceToken, Long paymentId, String amount) {
         try {
@@ -69,6 +80,18 @@ public class PushNotificationService {
         }
     }
 
+    /**
+     * Sends a push notification to the given device using Firebase Cloud Messaging (HTTP v1).
+     *
+     * If FCM is disabled or the configured project ID is missing, the method logs a debug message and returns without sending.
+     * Notification entries for `title` and `body` are taken from the provided `notification` map. All values in `data`
+     * are converted to strings before being sent. The method logs success or non-standard responses and suppresses exceptions
+     * so callers are not interrupted by push failures.
+     *
+     * @param deviceToken the target device's FCM registration token
+     * @param notification a map containing notification fields; expected keys: `"title"` and `"body"`
+     * @param data a map of additional key/value pairs to include in the message; values will be converted to strings
+     */
     private void sendPushNotification(String deviceToken, Map<String, Object> notification, Map<String, Object> data) {
         // FCM이 비활성화되어 있거나 프로젝트 ID가 없으면 로그만 남기고 종료
         if (!paymentProperties.isFcmEnabled() || 
@@ -125,4 +148,3 @@ public class PushNotificationService {
         }
     }
 }
-

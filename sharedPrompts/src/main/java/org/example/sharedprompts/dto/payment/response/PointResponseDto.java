@@ -46,6 +46,12 @@ public class PointResponseDto {
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 
+    /**
+     * Creates a PointResponseDto representing the provided Point entity.
+     *
+     * @param point the Point domain object to convert
+     * @return a PointResponseDto containing the point's id, user id, payment id, amount, type, description, balance, expired flag, and timestamps
+     */
     public static PointResponseDto from(Point point) {
         return PointResponseDto.builder()
                 .id(point.getId())
@@ -62,4 +68,3 @@ public class PointResponseDto {
                 .build();
     }
 }
-

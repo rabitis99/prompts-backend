@@ -29,24 +29,30 @@ public class PaymentRefundRequestDto {
     private String reason; // 환불 사유
 
     /**
-     * 결제 ID를 Long으로 변환
+     * Convert the stored payment identifier to a numeric ID.
+     *
+     * @return the parsed payment identifier as a Long
+     * @throws NumberFormatException if the payment identifier is not a valid numeric string
      */
     public Long getPaymentIdAsLong() {
         return Long.parseLong(this.paymentId);
     }
 
     /**
-     * 환불 금액 반환 (null인 경우 null 반환 - 전체 환불)
+     * Get the refund amount or null to indicate a full refund.
+     *
+     * @return the refund amount, or null if the request indicates a full refund
      */
     public BigDecimal getAmountOrNull() {
         return this.amount;
     }
 
     /**
-     * 환불 사유 반환 (null인 경우 기본값)
+     * Return the refund reason, or the default "사용자 요청" when none is set.
+     *
+     * @return the refund reason, or "사용자 요청" if no reason was provided
      */
     public String getReasonOrDefault() {
         return this.reason != null ? this.reason : "사용자 요청";
     }
 }
-

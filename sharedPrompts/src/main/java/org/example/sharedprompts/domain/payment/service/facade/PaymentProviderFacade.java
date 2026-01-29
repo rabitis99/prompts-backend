@@ -24,7 +24,11 @@ public class PaymentProviderFacade {
     private final PaymentLoggingService loggingService;
 
     /**
-     * 결제 승인 처리
+     * Approves a payment using the specified actual charge amount.
+     *
+     * @param payment               the original Payment whose details (id, user, payment method, currency, metadata, etc.) are used to build the provider request
+     * @param actualPaymentAmount   the amount to be charged after adjustments (for example, after point deductions)
+     * @return                      the approval identifier returned by the payment provider
      */
     public String approvePayment(Payment payment, BigDecimal actualPaymentAmount) {
         PaymentProviderService providerService = providerServiceFactory.getService(payment.getPaymentMethod());
@@ -48,7 +52,13 @@ public class PaymentProviderFacade {
     }
 
     /**
-     * 결제 취소 처리
+     * Cancel the external payment associated with the given Payment if an external payment ID exists.
+     *
+     * If the payment has an external payment ID, the cancellation is delegated to the provider for the
+     * payment's method; otherwise no action is taken.
+     *
+     * @param payment the payment containing (optionally) an external payment identifier
+     * @param reason  the reason for cancellation to pass to the payment provider
      */
     public void cancelPayment(Payment payment, String reason) {
         if (payment.getExternalPaymentId() != null) {
@@ -58,7 +68,13 @@ public class PaymentProviderFacade {
     }
 
     /**
-     * 결제 환불 처리
+     * Issue a refund with the payment provider for the given payment.
+     *
+     * If the payment does not have an external payment ID, no provider call is made.
+     *
+     * @param payment the payment to refund; the provider refund is performed only if `externalPaymentId` is present
+     * @param refundAmount the amount to refund
+     * @param reason a human-readable reason for the refund
      */
     public void refundPayment(Payment payment, BigDecimal refundAmount, String reason) {
         if (payment.getExternalPaymentId() != null) {
@@ -68,7 +84,10 @@ public class PaymentProviderFacade {
     }
 
     /**
-     * 결제 상태 조회
+     * Determine the current status of a payment, preferring the provider-reported status when available.
+     *
+     * @param payment the payment to check; if it has an externalPaymentId the provider will be queried
+     * @return the provider-reported PaymentStatus when available and retrievable, otherwise the payment's current status
      */
     public PaymentStatus checkPaymentStatus(Payment payment) {
         if (payment.getExternalPaymentId() == null) {
@@ -84,4 +103,3 @@ public class PaymentProviderFacade {
         }
     }
 }
-

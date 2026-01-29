@@ -17,10 +17,11 @@ public enum UserTier {
     private final int dailyPaymentLimit; // 일일 최대 결제 횟수
 
     /**
-     * 티어에 따른 일일 결제 제한 횟수를 반환합니다.
+     * Maximum number of payments allowed per day for this user tier.
+     *
+     * @return the maximum number of payments allowed per day
      */
     public int getDailyLimit() {
         return dailyPaymentLimit;
     }
 }
-

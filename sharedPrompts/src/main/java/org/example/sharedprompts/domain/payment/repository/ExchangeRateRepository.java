@@ -13,7 +13,11 @@ import java.util.Optional;
 public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long> {
 
     /**
-     * 통화 쌍으로 환율 조회
+     * Finds the exchange rate for a given currency pair.
+     *
+     * @param fromCurrency the source currency code (e.g., "USD")
+     * @param toCurrency   the target currency code (e.g., "KRW")
+     * @return             an Optional containing the matching ExchangeRate, or empty if none exists
      */
     @Query("SELECT e FROM ExchangeRate e WHERE e.fromCurrency = :fromCurrency AND e.toCurrency = :toCurrency")
     Optional<ExchangeRate> findByCurrencyPair(
@@ -22,8 +26,11 @@ public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long
     );
 
     /**
-     * 통화 쌍으로 환율 존재 여부 확인
-     */
+ * Checks whether an exchange rate exists for the specified currency pair.
+ *
+ * @param fromCurrency the source currency code (e.g., "USD")
+ * @param toCurrency the target currency code (e.g., "KRW")
+ * @return `true` if an ExchangeRate for the given currency pair exists, `false` otherwise
+ */
     boolean existsByFromCurrencyAndToCurrency(String fromCurrency, String toCurrency);
 }
-

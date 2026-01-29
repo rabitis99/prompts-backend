@@ -123,18 +123,38 @@ public class User extends BaseEntity {
         this.blocked = false;
     }
 
+    /**
+     * Change the user's role.
+     *
+     * @param role the new role to assign to the user
+     */
     public void changeRole(Role role) {
         this.role = role;
     }
 
+    /**
+     * Change the user's subscription tier.
+     *
+     * @param tier the new tier to assign to the user
+     */
     public void changeTier(UserTier tier) {
         this.tier = tier;
     }
 
+    /**
+     * Updates the user's device token used for push notifications.
+     *
+     * @param deviceToken the push notification device token (e.g., FCM/APNs); may be null to clear the stored token
+     */
     public void updateDeviceToken(String deviceToken) {
         this.deviceToken = deviceToken;
     }
 
+    /**
+     * Marks the user as deleted without removing the entity from the database.
+     *
+     * Sets the `deletedAt` timestamp to the current time.
+     */
     public void softDelete() {
         this.deletedAt = LocalDateTime.now();
     }

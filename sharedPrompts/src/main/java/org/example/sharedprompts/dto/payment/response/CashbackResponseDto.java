@@ -47,6 +47,13 @@ public class CashbackResponseDto {
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 
+    /**
+     * Create a CashbackResponseDto from a Cashback domain object.
+     *
+     * @param cashback the Cashback domain instance to convert
+     * @return a CashbackResponseDto populated with the cashback's id, user id, payment id, amount, rate,
+     *         payment amount, description, paid flag, and timestamp fields
+     */
     public static CashbackResponseDto from(Cashback cashback) {
         return CashbackResponseDto.builder()
                 .id(cashback.getId())
@@ -63,4 +70,3 @@ public class CashbackResponseDto {
                 .build();
     }
 }
-

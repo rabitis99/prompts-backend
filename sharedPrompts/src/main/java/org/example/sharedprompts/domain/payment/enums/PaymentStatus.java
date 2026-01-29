@@ -19,17 +19,20 @@ public enum PaymentStatus {
     private final String description;
 
     /**
-     * 결제가 완료된 상태인지 확인합니다.
+     * Determines whether the payment status represents a completed payment.
+     *
+     * @return true if the status is SUCCESS, false otherwise.
      */
     public boolean isCompleted() {
         return this == SUCCESS;
     }
 
     /**
-     * 결제가 취소/환불 가능한 상태인지 확인합니다.
+     * Determines whether the payment status permits a refund or cancellation.
+     *
+     * @return `true` if the status is `SUCCESS` or `PARTIALLY_REFUNDED`, `false` otherwise.
      */
     public boolean isRefundable() {
         return this == SUCCESS || this == PARTIALLY_REFUNDED;
     }
 }
-

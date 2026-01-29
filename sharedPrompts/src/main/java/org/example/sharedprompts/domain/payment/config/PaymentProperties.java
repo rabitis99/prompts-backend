@@ -45,6 +45,31 @@ public class PaymentProperties {
     private final String fcmCredentialsPath;
     private final boolean fcmEnabled;
 
+    /**
+     * Construct a PaymentProperties object with values sourced from Spring configuration properties.
+     *
+     * Values are injected from the environment using the corresponding property keys; specified defaults
+     * are applied when a property is not provided.
+     *
+     * @param kakaoSecret         KakaoPay secret key (property: payment.kakao.secret).
+     * @param kakaoCid            KakaoPay CID, default "TC0ONETIME" (property: payment.kakao.cid).
+     * @param tossApiKey          Toss Payments API key (property: payment.toss.api-key).
+     * @param tossSecret          Toss Payments secret key (property: payment.toss.secret-key).
+     * @param tossBaseUrl         Toss Payments base URL, default "https://api.tosspayments.com/v1/payments" (property: payment.toss.base-url).
+     * @param tossConfirmEndpoint Toss Payments confirm endpoint, default "/confirm" (property: payment.toss.confirm-endpoint).
+     * @param paypalClientId      PayPal client ID (property: payment.paypal.client-id).
+     * @param paypalClientSecret  PayPal client secret (property: payment.paypal.client-secret).
+     * @param exchangeRateApiKey  Exchange rate API key (property: payment.exchange-rate.api-key).
+     * @param exchangeRateApiUrl  Exchange rate API URL, default "https://api.exchangerate-api.com/v4/latest/" (property: payment.exchange-rate.api-url).
+     * @param webhookSecret       Secret used to validate incoming webhooks (property: payment.webhook.secret).
+     * @param maxRetryAttempts    Maximum number of retry attempts for transient operations, default 3 (property: payment.retry.max-attempts).
+     * @param retryDelayMs        Delay between retry attempts in milliseconds, default 1000 (property: payment.retry.delay-ms).
+     * @param cashbackRate        Cashback rate applied to transactions, default 0.01 (property: payment.cashback.rate).
+     * @param pointRate           Point accrual rate applied to transactions, default 0.005 (property: payment.point.rate).
+     * @param fcmProjectId        Firebase Cloud Messaging project ID for HTTP v1 API (property: payment.fcm.project-id).
+     * @param fcmCredentialsPath  File system path to FCM service account credentials (property: payment.fcm.credentials-path).
+     * @param fcmEnabled          Whether FCM integration is enabled, default true (property: payment.fcm.enabled).
+     */
     public PaymentProperties(
             @Value("${payment.kakao.secret:}") String kakaoSecret,
             @Value("${payment.kakao.cid:TC0ONETIME}") String kakaoCid,
@@ -84,4 +109,3 @@ public class PaymentProperties {
         this.fcmEnabled = fcmEnabled;
     }
 }
-

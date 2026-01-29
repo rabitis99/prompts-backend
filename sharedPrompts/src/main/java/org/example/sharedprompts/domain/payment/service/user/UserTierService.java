@@ -10,28 +10,42 @@ import org.example.sharedprompts.dto.payment.response.TierInfoResponseDto;
 public interface UserTierService {
 
     /**
-     * 사용자 티어 조회
-     */
+ * Retrieve the tier assigned to a user.
+ *
+ * @param userId the identifier of the user whose tier is requested
+ * @return the user's current UserTier
+ */
     UserTier getTier(Long userId);
 
     /**
-     * 사용자 티어 정보 조회 (티어, 일일 제한, 오늘 사용한 횟수, 남은 횟수)
-     */
+ * Retrieve detailed tier information for the specified user, including tier, daily limit, uses today, and remaining uses.
+ *
+ * @param userId the id of the user whose tier information to retrieve
+ * @return a TierInfoResponseDto containing the user's tier, daily limit, number of uses today, and remaining uses
+ */
     TierInfoResponseDto getTierInfo(Long userId);
 
     /**
-     * 사용자 티어 변경 (관리자용)
-     */
+ * Change a user's tier (administrative operation).
+ *
+ * @param userId  the identifier of the user whose tier will be changed
+ * @param request details of the requested tier change
+ * @param changedBy the identifier of the administrator performing the change
+ */
     void changeTier(Long userId, TierChangeRequestDto request, Long changedBy);
 
     /**
-     * 티어 변경 시 일일 제한 재계산
-     */
+ * Recalculates a user's daily usage limit after their tier changes.
+ *
+ * @param userId the ID of the user whose daily limit will be recalculated
+ */
     void recalculateDailyLimit(Long userId);
 
     /**
-     * 사용자의 티어 변경 이력 조회
-     */
+ * Retrieve the tier change history for the specified user.
+ *
+ * @param userId the identifier of the user whose tier history to retrieve
+ * @return a list of UserTierHistoryResponseDto entries representing the user's past tier changes
+ */
     java.util.List<org.example.sharedprompts.dto.payment.response.UserTierHistoryResponseDto> getTierHistory(Long userId);
 }
-

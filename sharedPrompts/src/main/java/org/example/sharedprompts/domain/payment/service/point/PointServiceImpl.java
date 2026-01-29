@@ -32,6 +32,18 @@ public class PointServiceImpl implements PointService {
     private final PaymentProperties paymentProperties;
     private final UserRepository userRepository;
 
+    /**
+     * Accumulates loyalty points for a payment by calculating points from the payment amount and persisting a Point record.
+     *
+     * If the computed point amount (paymentAmount × configured point rate, rounded down to an integer) is greater than zero,
+     * the method loads the user, computes the new balance, creates a Point entry with type "PAYMENT" and description "결제 포인트 적립",
+     * and saves it. If the computed point amount is zero or less, the method does nothing.
+     *
+     * @param userId        the ID of the user who should receive points
+     * @param paymentId     the ID of the payment that generated the points
+     * @param paymentAmount the total payment amount used to calculate points
+     * @throws ApiException if the user with the given ID does not exist (ErrorCode.USER_NOT_FOUND)
+     */
     @Override
     @Transactional
     public void accumulatePoints(Long userId, Long paymentId, BigDecimal paymentAmount) {
@@ -62,6 +74,15 @@ public class PointServiceImpl implements PointService {
         }
     }
 
+    /**
+     * Consume the specified amount of points from a user's balance and persist a deduction record.
+     *
+     * @param userId      the identifier of the user whose points will be used
+     * @param amount      the amount of points to deduct
+     * @param description a description stored with the deduction record
+     * @throws ApiException if the user is not found (ErrorCode.USER_NOT_FOUND)
+     * @throws ApiException if the user's current balance is less than {@code amount} (ErrorCode.POINT_INSUFFICIENT)
+     */
     @Override
     @Transactional
     public void usePoints(Long userId, BigDecimal amount, String description) {
@@ -89,12 +110,24 @@ public class PointServiceImpl implements PointService {
         pointRepository.save(point);
     }
 
+    /**
+     * Retrieve the user's current point balance.
+     *
+     * @param userId the identifier of the user
+     * @return the user's current point balance, or {@code BigDecimal.ZERO} if no balance exists
+     */
     @Override
     public BigDecimal getCurrentBalance(Long userId) {
         return pointRepository.getCurrentBalance(userId)
                 .orElse(BigDecimal.ZERO);
     }
 
+    /**
+     * Provides detailed point balances for a user including current, available, and soon-to-expire amounts.
+     *
+     * @param userId the id of the user whose balances are requested
+     * @return a PointBalanceResponseDto containing the current balance, the available (non-expired positive) balance, and the amount expiring within 30 days
+     */
     @Override
     public PointBalanceResponseDto getBalanceDetail(Long userId) {
         // 현재 잔액 조회 (만료되지 않은 포인트의 amount 합계)
@@ -118,6 +151,12 @@ public class PointServiceImpl implements PointService {
         return PointBalanceResponseDto.from(userId, currentBalance, availableBalance, expiringSoon);
     }
 
+    /**
+     * Retrieve the point transaction history for a user in reverse-chronological order.
+     *
+     * @param userId the identifier of the user whose point history to retrieve
+     * @return a list of PointResponseDto representing the user's point transactions ordered by creation time descending; empty if the user has no points
+     */
     @Override
     public List<PointResponseDto> getPointHistory(Long userId) {
         return pointRepository.findByUser_IdOrderByCreatedAtDesc(userId)
@@ -126,6 +165,12 @@ public class PointServiceImpl implements PointService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Retrieve point records associated with a specific payment.
+     *
+     * @param paymentId the identifier of the payment whose points should be retrieved
+     * @return a list of PointResponseDto representing points linked to the payment; empty if none exist
+     */
     @Override
     public List<PointResponseDto> getPointsByPayment(Long paymentId) {
         return pointRepository.findByPaymentId(paymentId)
@@ -134,4 +179,3 @@ public class PointServiceImpl implements PointService {
                 .collect(Collectors.toList());
     }
 }
-

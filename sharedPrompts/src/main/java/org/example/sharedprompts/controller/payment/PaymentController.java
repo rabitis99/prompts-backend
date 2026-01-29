@@ -35,8 +35,11 @@ public class PaymentController {
     private final UserTierService userTierService;
 
     /**
-     * 결제 요청
-     * POST /payments
+     * Initiates a payment for the authenticated user.
+     *
+     * @param request the payment details required to create the payment
+     * @param authUser the authenticated user performing the request
+     * @return a `CustomResponse` containing the created `PaymentResponseDto`, returned with HTTP 201 Created
      */
     @PostMapping
     public ResponseEntity<CustomResponse<PaymentResponseDto>> requestPayment(
@@ -48,9 +51,11 @@ public class PaymentController {
     }
 
     /**
-     * 결제 상태 조회
-     * GET /payments/{paymentId}/status
-     */
+         * Retrieve the current status of a payment.
+         *
+         * @param paymentId the identifier of the payment to query
+         * @return the payment status information wrapped in a CustomResponse
+         */
     @GetMapping("/{paymentId}/status")
     public ResponseEntity<CustomResponse<PaymentStatusResponseDto>> checkPaymentStatus(
             @PathVariable String paymentId
@@ -60,8 +65,11 @@ public class PaymentController {
     }
 
     /**
-     * 결제 취소
-     * POST /payments/cancel
+     * Cancels a previously created payment for the authenticated user.
+     *
+     * @param request details required to identify and cancel the payment
+     * @param authUser the authenticated user performing the cancellation
+     * @return a CustomResponse containing the PaymentResponseDto reflecting the cancellation result
      */
     @PostMapping("/cancel")
     public ResponseEntity<CustomResponse<PaymentResponseDto>> cancelPayment(
@@ -73,8 +81,11 @@ public class PaymentController {
     }
 
     /**
-     * 결제 환불 (부분/전체)
-     * POST /payments/refund
+     * Process a partial or full refund for the authenticated user's payment.
+     *
+     * @param request  details of the refund to perform (amounts, payment identifiers, etc.)
+     * @param authUser the authenticated user initiating the refund
+     * @return a CustomResponse wrapping a PaymentResponseDto with updated payment details after the refund
      */
     @PostMapping("/refund")
     public ResponseEntity<CustomResponse<PaymentResponseDto>> refundPayment(
@@ -86,8 +97,10 @@ public class PaymentController {
     }
 
     /**
-     * 사용자 티어 조회
-     * GET /users/{userId}/tier
+     * Retrieve the tier for the specified user.
+     *
+     * @param userId the ID of the user whose tier is retrieved
+     * @return the user's tier information wrapped in a CustomResponse
      */
     @GetMapping("/users/{userId}/tier")
     public ResponseEntity<CustomResponse<UserTier>> getTier(
@@ -98,9 +111,13 @@ public class PaymentController {
     }
 
     /**
-     * 사용자 티어 정보 조회 (티어, 일일 제한, 오늘 사용한 횟수, 남은 횟수)
-     * GET /users/{userId}/tier-info
-     */
+         * Retrieve the authenticated user's tier overview, including tier, daily limit, uses today, and remaining uses.
+         *
+         * @param userId   the ID of the user whose tier info is requested; must equal the authenticated user's ID
+         * @param authUser the authenticated user making the request
+         * @return         a CustomResponse containing a TierInfoResponseDto with tier details, daily limit, today's usage, and remaining uses
+         * @throws ApiException with ErrorCode.FORBIDDEN if the authenticated user is not the same as the requested user
+         */
     @GetMapping("/users/{userId}/tier-info")
     public ResponseEntity<CustomResponse<TierInfoResponseDto>> getTierInfo(
             @PathVariable Long userId,
@@ -115,9 +132,11 @@ public class PaymentController {
     }
 
     /**
-     * 사용자의 결제 내역 조회
-     * GET /payments/history
-     */
+         * Retrieves the authenticated user's payment history.
+         *
+         * @param authUser the currently authenticated user
+         * @return a CustomResponse wrapping a list of PaymentResponseDto representing the user's payment history
+         */
     @GetMapping("/history")
     public ResponseEntity<CustomResponse<List<PaymentResponseDto>>> getPaymentHistory(
             @CurrentUser AuthUser authUser
@@ -127,8 +146,11 @@ public class PaymentController {
     }
 
     /**
-     * 사용자의 티어 변경 이력 조회
-     * GET /payments/users/{userId}/tier-history
+     * Retrieve a user's tier change history; only the requesting user may access their own history.
+     *
+     * @param userId the ID of the user whose tier history is requested; must equal the authenticated user's ID
+     * @return a ResponseEntity containing a CustomResponse with a list of UserTierHistoryResponseDto entries
+     * @throws ApiException with ErrorCode.FORBIDDEN if the authenticated user is not the same as {@code userId}
      */
     @GetMapping("/users/{userId}/tier-history")
     public ResponseEntity<CustomResponse<List<UserTierHistoryResponseDto>>> getTierHistory(
@@ -143,4 +165,3 @@ public class PaymentController {
         return CustomResponseHelper.ok(response);
     }
 }
-

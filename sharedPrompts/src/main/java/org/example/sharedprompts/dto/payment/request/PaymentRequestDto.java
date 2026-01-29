@@ -50,7 +50,13 @@ public class PaymentRequestDto {
     private String metadata; // 추가 메타데이터 (JSON 형태)
 
     /**
-     * Payment 엔티티 빌더 생성
+     * Create a Payment builder pre-populated from this DTO and the provided values.
+     *
+     * @param user the owner of the payment
+     * @param tier the user's tier to associate with the payment
+     * @param convertedAmount the payment amount converted to the target currency
+     * @param usedPointAmount the amount of points to apply to the payment
+     * @return a Payment.PaymentBuilder preconfigured with user, amount, currency, paymentMethod, userType, tier, status set to {@code PaymentStatus.PENDING}, usedPointAmount, and metadata
      */
     public Payment.PaymentBuilder toPaymentBuilder(User user, UserTier tier, BigDecimal convertedAmount, BigDecimal usedPointAmount) {
         return Payment.builder()
@@ -65,4 +71,3 @@ public class PaymentRequestDto {
                 .metadata(this.metadata);
     }
 }
-

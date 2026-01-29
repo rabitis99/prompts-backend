@@ -30,6 +30,13 @@ public class UserTierServiceImpl implements UserTierService {
     private final PaymentRepository paymentRepository;
     private final UserTierHistoryRepository tierHistoryRepository;
 
+    /**
+     * Retrieve the current tier for the specified user.
+     *
+     * @param userId the ID of the user
+     * @return the user's current {@link UserTier}
+     * @throws ApiException if no user exists for the given ID (ErrorCode.USER_NOT_FOUND)
+     */
     @Override
     public UserTier getTier(Long userId) {
         User user = userRepository.findById(userId)
@@ -37,6 +44,16 @@ public class UserTierServiceImpl implements UserTierService {
         return user.getTier();
     }
 
+    /**
+     * Retrieves tier details and today's usage for the specified user.
+     *
+     * Returns a DTO containing the user's current tier, the tier's daily limit,
+     * the count of successful payments made today, and the remaining allowed uses for today.
+     *
+     * @param userId the identifier of the user
+     * @return a TierInfoResponseDto with tier, daily limit, today's successful payment count, and remaining count
+     * @throws ApiException if the user does not exist (ErrorCode.USER_NOT_FOUND)
+     */
     @Override
     public TierInfoResponseDto getTierInfo(Long userId) {
         User user = userRepository.findById(userId)
@@ -50,6 +67,15 @@ public class UserTierServiceImpl implements UserTierService {
         return TierInfoResponseDto.from(user, dailyLimit, (int) todayUsedCount, remainingCount);
     }
 
+    /**
+     * Change a user's tier, persist the change and its history, and trigger recalculation of daily limits.
+     *
+     * @param userId   the id of the user whose tier will be changed
+     * @param request  DTO containing the target tier and an optional reason for the change
+     * @param changedBy the id of the actor who initiated the tier change
+     * @throws ApiException if the user does not exist (ErrorCode.USER_NOT_FOUND)
+     * @throws ApiException if the requested tier is the same as the user's current tier (ErrorCode.SAME_TIER)
+     */
     @Override
     @Transactional
     public void changeTier(Long userId, TierChangeRequestDto request, Long changedBy) {
@@ -82,6 +108,13 @@ public class UserTierServiceImpl implements UserTierService {
         recalculateDailyLimit(userId);
     }
 
+    /**
+     * Recomputes and applies the user's daily payment limit after a tier change.
+     *
+     * Re-evaluates today's successful payment count and updates the user's effective daily limit or quota state so the new tier's limits take effect.
+     *
+     * @param userId the ID of the user whose daily limit should be recalculated
+     */
     @Override
     @Transactional
     public void recalculateDailyLimit(Long userId) {
@@ -90,6 +123,12 @@ public class UserTierServiceImpl implements UserTierService {
         // 실제 구현에서는 필요에 따라 추가 로직을 수행할 수 있습니다.
     }
 
+    /**
+     * Retrieve a user's tier change history in reverse chronological order.
+     *
+     * @param userId the ID of the user whose tier history to retrieve
+     * @return a list of UserTierHistoryResponseDto ordered by createdAt descending (newest first)
+     */
     @Override
     public List<UserTierHistoryResponseDto> getTierHistory(Long userId) {
         List<UserTierHistory> histories = tierHistoryRepository.findByUser_IdOrderByCreatedAtDesc(userId);
@@ -98,4 +137,3 @@ public class UserTierServiceImpl implements UserTierService {
                 .collect(Collectors.toList());
     }
 }
-

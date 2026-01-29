@@ -11,8 +11,10 @@ import java.util.List;
 public interface UserTierHistoryRepository extends JpaRepository<UserTierHistory, Long> {
 
     /**
-     * 사용자의 티어 변경 이력 조회
-     */
+ * Retrieve a user's tier change history ordered by creation time, newest first.
+ *
+ * @param userId the identifier of the user whose tier history to retrieve
+ * @return a list of UserTierHistory records for the given user, ordered by createdAt in descending order
+ */
     List<UserTierHistory> findByUser_IdOrderByCreatedAtDesc(Long userId);
 }
-

@@ -16,32 +16,46 @@ import java.util.Optional;
 public interface PointRepository extends JpaRepository<Point, Long> {
 
     /**
-     * 사용자의 현재 포인트 잔액 조회
-     * 최신 거래의 balance를 조회하거나, amount의 합계를 계산
+     * Compute the user's current point balance from non-expired points.
+     *
+     * @param userId ID of the user whose balance to compute
+     * @return an Optional containing the sum of amounts for the user's non-expired points; defaults to 0 when no matching points exist
      */
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Point p WHERE p.user.id = :userId AND p.expired = false")
     Optional<BigDecimal> getCurrentBalance(@Param("userId") Long userId);
     
     /**
-     * 사용자의 최신 포인트 잔액 조회 (가장 최근 거래의 balance)
+     * Retrieve the user's point balances ordered from newest to oldest.
+     *
+     * @param userId the ID of the user whose point balances to retrieve
+     * @return a list of point balances (`BigDecimal`) ordered by creation time descending
      */
     @Query("SELECT p.balance FROM Point p WHERE p.user.id = :userId ORDER BY p.createdAt DESC")
     List<BigDecimal> findLatestBalances(@Param("userId") Long userId);
 
     /**
-     * 사용자의 포인트 내역 조회
-     */
+ * Retrieves point records for a user ordered from newest to oldest.
+ *
+ * @param userId the identifier of the user
+ * @return the list of Point entities for the given user ordered by `createdAt` descending
+ */
     List<Point> findByUser_IdOrderByCreatedAtDesc(Long userId);
 
     /**
-     * 결제와 연관된 포인트 조회
-     */
+ * Retrieves points associated with a specific payment.
+ *
+ * @param paymentId the ID of the payment whose associated points to retrieve
+ * @return a list of Point entities linked to the specified payment, empty if none exist
+ */
     List<Point> findByPaymentId(Long paymentId);
 
     /**
-     * 만료 예정 포인트 조회
+     * Finds non-expired points for the specified user that expire on or before the given date.
+     *
+     * @param userId     the ID of the user whose points to retrieve
+     * @param expiryDate the cutoff date/time; points with `expiredAt` less than or equal to this value are included
+     * @return           a list of matching Point entities; an empty list if none are found
      */
     @Query("SELECT p FROM Point p WHERE p.user.id = :userId AND p.expired = false AND p.expiredAt <= :expiryDate")
     List<Point> findExpiringPoints(@Param("userId") Long userId, @Param("expiryDate") LocalDateTime expiryDate);
 }
-

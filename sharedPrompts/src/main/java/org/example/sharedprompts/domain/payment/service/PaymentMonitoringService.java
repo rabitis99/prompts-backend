@@ -34,7 +34,9 @@ public class PaymentMonitoringService {
     private final PaymentMetrics paymentMetrics;
 
     /**
-     * 결제 실패 이벤트 리스너
+     * Handle a payment failure event by sending a failure notification and recording failure metrics.
+     *
+     * @param event the payment failure event containing paymentId, userId, failure reason, and paymentMethod
      */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async
@@ -56,7 +58,9 @@ public class PaymentMonitoringService {
     }
 
     /**
-     * 결제 성공 이벤트 리스너
+     * Handles a payment success event by logging the event, sending a success notification if the payment record exists, and recording a success metric.
+     *
+     * <p>The method locates the Payment entity by the event's paymentId to include the payment amount in the notification when available.</p>
      */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async
@@ -82,7 +86,12 @@ public class PaymentMonitoringService {
     }
 
     /**
-     * 일일 결제 실패 통계 조회
+     * Compute daily payment failure statistics for the current date.
+     *
+     * Builds statistics from payments with status FAILED that were created after the start of today,
+     * aggregating the total number of failures and counts per payment method.
+     *
+     * @return a PaymentFailureStatistics for the current date containing the total failures and a map of failures by payment method
      */
     public PaymentFailureStatistics getDailyFailureStatistics() {
         LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
@@ -107,7 +116,13 @@ public class PaymentMonitoringService {
     }
 
     /**
-     * 실패율이 임계값을 초과하는지 확인
+     * Determines whether today's payment failure rate exceeds the given threshold.
+     *
+     * Calculates the failure rate for all users from the start of the current day (midnight).
+     * If there are no payments today, the method returns `false`.
+     *
+     * @param threshold the failure-rate threshold as a fraction (e.g., 0.05 for 5%)
+     * @return `true` if the computed failure rate is greater than `threshold`, `false` otherwise
      */
     public boolean isFailureRateExceeded(double threshold) {
         LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
@@ -136,4 +151,3 @@ public class PaymentMonitoringService {
         return failureRate > threshold;
     }
 }
-

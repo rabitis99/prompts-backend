@@ -25,6 +25,18 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
 
     private final ExchangeRateRepository exchangeRateRepository;
 
+    /**
+     * Converts a monetary amount from one currency to another using the applicable exchange rate.
+     *
+     * <p>If the source and target currencies are the same, the original amount is returned. Otherwise
+     * the amount is multiplied by the resolved exchange rate and rounded to 2 decimal places using
+     * HALF_UP rounding.
+     *
+     * @param amount       the monetary amount to convert
+     * @param fromCurrency the source currency code
+     * @param toCurrency   the target currency code
+     * @return the converted amount rounded to 2 decimal places (HALF_UP)
+     */
     @Override
     public BigDecimal convertCurrency(BigDecimal amount, String fromCurrency, String toCurrency) {
         if (fromCurrency.equals(toCurrency)) {
@@ -35,6 +47,18 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
         return amount.multiply(exchangeRate).setScale(2, RoundingMode.HALF_UP);
     }
 
+    /**
+     * Resolves the exchange rate to convert an amount from one currency to another.
+     *
+     * <p>If a direct rate exists for the pair, it is returned. If a direct rate does not exist but
+     * the reverse pair exists, the reciprocal of the reverse rate is returned with scale 6 and
+     * HALF_UP rounding. If the currencies are identical, `BigDecimal.ONE` is returned.</p>
+     *
+     * @param fromCurrency the source currency code (e.g., "USD")
+     * @param toCurrency   the target currency code (e.g., "KRW")
+     * @return the exchange rate to multiply an amount in {@code fromCurrency} to obtain the amount in {@code toCurrency}
+     * @throws ApiException when no exchange rate information is available for the currency pair
+     */
     @Override
     public BigDecimal getExchangeRate(String fromCurrency, String toCurrency) {
         if (fromCurrency.equals(toCurrency)) {

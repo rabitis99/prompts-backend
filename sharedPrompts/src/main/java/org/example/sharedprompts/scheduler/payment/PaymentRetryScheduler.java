@@ -28,7 +28,14 @@ public class PaymentRetryScheduler {
     private final PaymentProviderServiceFactory providerServiceFactory;
     private final PaymentProperties paymentProperties;
 
-    private static final long SCHEDULE_DELAY_MS = 5 * 60 * 1000L; // 5분마다 실행
+    private static final long SCHEDULE_DELAY_MS = 5 * 60 * 1000L; /**
+     * Retries pending payments that are eligible for retry according to configured limits.
+     *
+     * Fetches pending payments up to the configured maximum retry attempts and attempts to reprocess each payment.
+     * On a successful retry the payment is updated and persisted; on failure the retry count is incremented,
+     * the payment is marked failed when the retry limit is reached, and updates are persisted. Execution results
+     * are logged for the run.
+     */
 
     @Scheduled(fixedDelay = SCHEDULE_DELAY_MS)
     @SchedulerLock(
@@ -85,6 +92,17 @@ public class PaymentRetryScheduler {
         }
     }
 
+    /**
+     * Attempts a single retry of the given payment using the provider for its payment method.
+     *
+     * The method applies exponential backoff based on the payment's retry count (capped at 60s),
+     * invokes the provider to approve the payment, updates the payment state with the external ID,
+     * and persists the payment.
+     *
+     * @param payment the Payment entity to retry; its retry count is used for backoff and the payment will be updated and saved on success
+     * @throws RuntimeException if the thread is interrupted while waiting for the backoff delay
+     * @throws Exception if the provider approval or persistence fails
+     */
     private void retryPayment(Payment payment) {
         try {
             PaymentProviderService providerService = providerServiceFactory.getService(payment.getPaymentMethod());
@@ -108,4 +126,3 @@ public class PaymentRetryScheduler {
         }
     }
 }
-

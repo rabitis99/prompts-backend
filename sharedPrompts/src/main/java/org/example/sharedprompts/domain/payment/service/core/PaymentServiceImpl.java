@@ -44,6 +44,18 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentPostProcessFacade postProcessFacade;
     private final PaymentLoggingService loggingService;
 
+    /**
+     * Initiates and processes a payment request for a user.
+     *
+     * Performs validation, computes and applies payment amounts, persists a Payment entity,
+     * attempts external approval, executes success or failure post-processing, updates tracing,
+     * and returns a DTO representing the final payment state.
+     *
+     * @param userId the identifier of the user initiating the payment
+     * @param request the payment request data
+     * @return a PaymentResponseDto representing the persisted payment and its final status
+     * @throws ApiException if the user with the given id is not found
+     */
     @Override
     @Transactional
     public PaymentResponseDto requestPayment(Long userId, PaymentRequestDto request) {
@@ -122,6 +134,17 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
+    /**
+     * Checks and synchronizes a payment's status with the external provider.
+     *
+     * Queries the external payment provider for the latest status of the payment identified by the given ID,
+     * updates the local payment record when the external status differs (approving locally if the provider
+     * reports success for a pending payment), and returns the current payment status representation.
+     *
+     * @param paymentId the payment identifier as a numeric string
+     * @return the current PaymentStatusResponseDto representing the stored payment state
+     * @throws ApiException with ErrorCode.PAYMENT_NOT_FOUND if no payment exists for the given ID
+     */
     @Override
     @Transactional
     public PaymentStatusResponseDto checkPaymentStatus(String paymentId) {
@@ -143,6 +166,16 @@ public class PaymentServiceImpl implements PaymentService {
         return PaymentStatusResponseDto.from(payment);
     }
 
+    /**
+     * Cancels a payment owned by the specified user, performs provider-side cancellation, persists the change,
+     * and runs post-cancellation processing.
+     *
+     * @param userId  the id of the user requesting the cancellation
+     * @param request the cancellation request containing the payment id and optional reason (a default reason is used when absent)
+     * @return a DTO representing the updated payment
+     * @throws ApiException when the payment is not found, the user is not the owner, the payment is not cancelable,
+     *                      or the external payment provider fails (error codes: PAYMENT_NOT_FOUND, PAYMENT_PROVIDER_ERROR)
+     */
     @Override
     @Transactional
     public PaymentResponseDto cancelPayment(Long userId, PaymentCancelRequestDto request) {
@@ -173,6 +206,14 @@ public class PaymentServiceImpl implements PaymentService {
         return PaymentResponseDto.from(payment);
     }
 
+    /**
+     * Processes a refund for an existing payment and returns the updated payment details.
+     *
+     * @param userId the ID of the user requesting the refund
+     * @param request details of the refund request (payment id, amount, reason)
+     * @return a PaymentResponseDto representing the payment after the refund
+     * @throws ApiException if the payment is not found or if the external payment provider fails
+     */
     @Override
     @Transactional
     public PaymentResponseDto refundPayment(Long userId, PaymentRefundRequestDto request) {
@@ -217,6 +258,14 @@ public class PaymentServiceImpl implements PaymentService {
         return PaymentResponseDto.from(payment);
     }
 
+    /**
+     * Retrieve a user's payment history with the most recent payments first.
+     *
+     * Each payment is converted to a PaymentResponseDto.
+     *
+     * @param userId the identifier of the user whose payment history to fetch
+     * @return a list of PaymentResponseDto ordered by creation time descending (newest first)
+     */
     @Override
     public List<PaymentResponseDto> getPaymentHistory(Long userId) {
         List<Payment> payments = paymentRepository.findByUser_IdOrderByCreatedAtDesc(userId);

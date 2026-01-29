@@ -21,17 +21,20 @@ public class PaymentCancelRequestDto {
     private String reason; // 취소 사유
 
     /**
-     * 결제 ID를 Long으로 변환
+     * Convert the stored payment ID string to a Long.
+     *
+     * @return the payment ID as a Long
      */
     public Long getPaymentIdAsLong() {
         return Long.parseLong(this.paymentId);
     }
 
     /**
-     * 취소 사유 반환 (null인 경우 기본값)
+     * Provide the cancellation reason or a default when none is provided.
+     *
+     * @return the cancellation reason if set; otherwise "사용자 요청"
      */
     public String getReasonOrDefault() {
         return this.reason != null ? this.reason : "사용자 요청";
     }
 }
-
