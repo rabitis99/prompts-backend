@@ -1,6 +1,7 @@
 package org.example.sharedprompts.auth.rate.filter.builder.writer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.Nullable;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -9,7 +10,6 @@ import org.example.sharedprompts.auth.rate.filter.util.RateLimitHeaderUtil;
 import org.example.sharedprompts.auth.rate.policy.RateLimitRule;
 import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.global.exception.ErrorCode;
-import org.jetbrains.annotations.Nullable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 
