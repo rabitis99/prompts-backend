@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 public class CashbackController {
 
     private final CashbackService cashbackService;
-    private final CashbackRepository cashbackRepository;
 
     /**
      * 사용자의 캐시백 내역 조회
@@ -34,10 +33,7 @@ public class CashbackController {
     public ResponseEntity<CustomResponse<List<CashbackResponseDto>>> getCashbackHistory(
             @CurrentUser AuthUser authUser
     ) {
-        List<CashbackResponseDto> response = cashbackRepository.findByUser_IdOrderByCreatedAtDesc(authUser.getId())
-                .stream()
-                .map(CashbackResponseDto::from)
-                .collect(Collectors.toList());
+        List<CashbackResponseDto> response = cashbackService.getCashbackHistory(authUser.getId());
         return CustomResponseHelper.ok(response);
     }
 
@@ -61,10 +57,7 @@ public class CashbackController {
     public ResponseEntity<CustomResponse<List<CashbackResponseDto>>> getUnpaidCashbacks(
             @CurrentUser AuthUser authUser
     ) {
-        List<CashbackResponseDto> response = cashbackRepository.findByUser_IdAndPaidFalseOrderByCreatedAtAsc(authUser.getId())
-                .stream()
-                .map(CashbackResponseDto::from)
-                .collect(Collectors.toList());
+        List<CashbackResponseDto> response = cashbackService.getUnpaidCashbacks(authUser.getId());
         return CustomResponseHelper.ok(response);
     }
 

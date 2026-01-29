@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.payment.config.PaymentProperties;
 import org.example.sharedprompts.domain.payment.repository.CashbackRepository;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
+import org.example.sharedprompts.dto.payment.response.CashbackResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 캐시백 서비스 구현체
@@ -25,6 +28,15 @@ public class CashbackServiceImpl implements CashbackService {
     private final CashbackRepository cashbackRepository;
     private final PaymentProperties paymentProperties;
     private final UserRepository userRepository;
+
+    @Override
+    public List<CashbackResponseDto> getCashbackHistory(Long customerId) {
+        return cashbackRepository
+                .findByUser_IdOrderByCreatedAtDesc(customerId)
+                .stream()
+                .map(CashbackResponseDto::from)
+                .toList();
+    }
 
     @Override
     @Transactional
@@ -75,6 +87,14 @@ public class CashbackServiceImpl implements CashbackService {
         // 실제 지급 로직은 여기에 구현 (예: 계좌 이체, 포인트 전환 등)
         cashback.markAsPaid();
         cashbackRepository.save(cashback);
+    }
+
+    @Override
+    public List<CashbackResponseDto> getUnpaidCashbacks(Long customerId) {
+        return cashbackRepository.findByUser_IdAndPaidFalseOrderByCreatedAtAsc(customerId)
+                .stream()
+                .map(CashbackResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     @Override
