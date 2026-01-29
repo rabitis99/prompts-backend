@@ -175,6 +175,36 @@ public class NotificationSseService {
     }
 
     /**
+     * 결제 알림 SSE 전송
+     * 
+     * @param userId 알림 대상 사용자 ID
+     * @param payload 결제 알림 페이로드
+     */
+    public void sendPaymentNotification(Long userId, Object payload) {
+        SseEmitter emitter = emitters.get(userId);
+        if (emitter != null) {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("payment-notification")
+                        .data(payload));
+                log.debug("Payment notification SSE sent to user {}", userId);
+            } catch (IOException e) {
+                log.error("Failed to send payment notification SSE to user {}: {}", userId, e.getMessage(), e);
+                if (emitters.remove(userId, emitter)) {
+                    redisService.deleteConnection(userId);
+                }
+                try {
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                    log.warn("Failed to complete emitter with error: {}", ex.getMessage());
+                }
+            }
+        } else {
+            checkRedisConnection(userId);
+        }
+    }
+
+    /**
      * Redis에서 다른 서버 인스턴스의 SSE 연결 상태 확인
      * 
      * @param userId 사용자 ID

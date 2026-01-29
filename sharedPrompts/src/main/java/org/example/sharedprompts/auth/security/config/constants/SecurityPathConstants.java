@@ -49,7 +49,8 @@ public final class SecurityPathConstants {
             "/api/auth/refresh",
             "/oauth2/**",
             "/login/**",
-            "/actuator/health"  // 헬스 체크는 공개 접근 허용
+            "/actuator/health",  // 헬스 체크는 공개 접근 허용
+            "/webhooks/**"  // 모든 웹훅 엔드포인트는 공개 접근 허용 (서명 검증으로 보안 처리)
     };
 
     /**
