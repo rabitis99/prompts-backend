@@ -1,14 +1,16 @@
 package org.example.sharedprompts.domain.payment.metrics;
 
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 결제 관련 메트릭 수집
@@ -19,6 +21,10 @@ import java.util.concurrent.TimeUnit;
 public class PaymentMetrics {
 
     private final MeterRegistry meterRegistry;
+
+    // paymentMethod 별 결제 금액 상태 저장
+    private final ConcurrentMap<String, AtomicReference<Double>> paymentAmountGauges = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, AtomicReference<Double>> refundAmountGauges = new ConcurrentHashMap<>();
 
     // 결제 성공/실패 카운터
     private Counter paymentSuccessCounter(String paymentMethod) {
@@ -44,11 +50,16 @@ public class PaymentMetrics {
                 .register(meterRegistry);
     }
 
-    // 결제 금액 게이지
+    // 결제 금액 게이지 (AtomicReference 사용)
     public void recordPaymentAmount(String paymentMethod, double amount) {
-        meterRegistry.gauge("payment.amount", 
-                Arrays.asList(Tag.of("payment_method", paymentMethod)), 
-                amount);
+        AtomicReference<Double> ref = paymentAmountGauges.computeIfAbsent(paymentMethod, pm -> {
+            AtomicReference<Double> r = new AtomicReference<>(0.0);
+            Gauge.builder("payment.amount", r, AtomicReference::get)
+                    .tag("payment_method", pm)
+                    .register(meterRegistry);
+            return r;
+        });
+        ref.set(amount);
     }
 
     /**
@@ -79,7 +90,7 @@ public class PaymentMetrics {
     }
 
     /**
-     * 결제 환불 메트릭 기록
+     * 결제 환불 메트릭 기록 (AtomicReference 사용)
      */
     public void recordPaymentRefund(String paymentMethod, double refundAmount) {
         Counter.builder("payment.refund")
@@ -87,10 +98,15 @@ public class PaymentMetrics {
                 .description("결제 환불 횟수")
                 .register(meterRegistry)
                 .increment();
-        
-        meterRegistry.gauge("payment.refund.amount",
-                Arrays.asList(Tag.of("payment_method", paymentMethod)),
-                refundAmount);
+
+        AtomicReference<Double> ref = refundAmountGauges.computeIfAbsent(paymentMethod, pm -> {
+            AtomicReference<Double> r = new AtomicReference<>(0.0);
+            Gauge.builder("payment.refund.amount", r, AtomicReference::get)
+                    .tag("payment_method", pm)
+                    .register(meterRegistry);
+            return r;
+        });
+        ref.set(refundAmount);
     }
 
     /**
@@ -104,4 +120,3 @@ public class PaymentMetrics {
                 .increment();
     }
 }
-
