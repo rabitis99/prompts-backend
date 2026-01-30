@@ -59,6 +59,9 @@ public class Cashback extends BaseEntity {
      * 캐시백 지급 처리
      */
     public void markAsPaid() {
+        if (paid) {
+            return;
+        }
         this.paid = true;
         this.paidAt = LocalDateTime.now();
     }
