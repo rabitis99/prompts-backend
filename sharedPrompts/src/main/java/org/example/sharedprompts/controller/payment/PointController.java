@@ -72,7 +72,7 @@ public class PointController {
             @PathVariable Long paymentId,
             @CurrentUser AuthUser authUser
     ) {
-        List<PointResponseDto> response = pointService.getPointsByPayment(paymentId);
+        List<PointResponseDto> response = pointService.getPointsByPayment(paymentId, authUser.getId());
         return CustomResponseHelper.ok(response);
     }
 }

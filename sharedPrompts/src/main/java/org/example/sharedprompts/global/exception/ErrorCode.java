@@ -176,7 +176,7 @@ public enum ErrorCode {
     POINT_INSUFFICIENT("PY00410", HttpStatus.BAD_REQUEST, "포인트 잔액이 부족합니다."),
     POINT_NOT_FOUND("PY00703", HttpStatus.NOT_FOUND, "포인트 내역을 찾을 수 없습니다."),
 
-    ;
+    FORBIDDEN_ACCESS("CM00602", HttpStatus.FORBIDDEN, "권한이 없습니다.");
 
     private final String code;
     private final HttpStatus httpStatus;

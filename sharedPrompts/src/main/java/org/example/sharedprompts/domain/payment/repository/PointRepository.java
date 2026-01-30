@@ -43,5 +43,12 @@ public interface PointRepository extends JpaRepository<Point, Long> {
      */
     @Query("SELECT p FROM Point p WHERE p.user.id = :userId AND p.expired = false AND p.expiredAt <= :expiryDate")
     List<Point> findExpiringPoints(@Param("userId") Long userId, @Param("expiryDate") LocalDateTime expiryDate);
+
+    @Query("SELECT p FROM Point p " +
+            "WHERE p.paymentId = :paymentId " +
+            "AND p.user.id = :userId " +
+            "ORDER BY p.createdAt DESC")
+    List<Point> findByPaymentIdAndUserId(@Param("paymentId") Long paymentId,
+                                         @Param("userId") Long userId);
 }
 

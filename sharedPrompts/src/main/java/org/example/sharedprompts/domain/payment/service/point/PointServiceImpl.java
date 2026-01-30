@@ -1,6 +1,7 @@
 package org.example.sharedprompts.domain.payment.service.point;
 
 import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.Point;
 import org.example.sharedprompts.domain.payment.config.PaymentProperties;
 import org.example.sharedprompts.domain.payment.repository.PointRepository;
@@ -126,10 +127,15 @@ public class PointServiceImpl implements PointService {
                 .collect(Collectors.toList());
     }
 
-    @Override
-    public List<PointResponseDto> getPointsByPayment(Long paymentId) {
-        return pointRepository.findByPaymentId(paymentId)
-                .stream()
+    public List<PointResponseDto> getPointsByPayment(Long paymentId, Long userId) {
+        List<Point> points = pointRepository.findByPaymentIdAndUserId(paymentId, userId);
+
+        if (points.isEmpty()) {
+            // 권한 없음 또는 결제 없음 판단 가능
+            throw new ApiException(ErrorCode.FORBIDDEN_ACCESS);
+        }
+
+        return points.stream()
                 .map(PointResponseDto::from)
                 .collect(Collectors.toList());
     }

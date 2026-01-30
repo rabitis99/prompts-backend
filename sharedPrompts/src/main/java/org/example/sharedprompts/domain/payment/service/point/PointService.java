@@ -39,6 +39,6 @@ public interface PointService {
     /**
      * 결제와 연관된 포인트 조회
      */
-    List<PointResponseDto> getPointsByPayment(Long paymentId);
+    List<PointResponseDto> getPointsByPayment(Long paymentId, Long userId);
 }
 
