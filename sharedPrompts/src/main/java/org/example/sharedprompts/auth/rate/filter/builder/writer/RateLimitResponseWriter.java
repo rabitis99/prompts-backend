@@ -31,8 +31,8 @@ public final class RateLimitResponseWriter {
      * @param rule RateLimitRule
      * @param result RateLimitResult
      * @param errorCode 사용할 에러 코드 (null이면 기본값 RATE_LIMIT_EXCEEDED 사용)
-     * @param redisTemplate RedisTemplate (TTL 조회용, null 가능)
-     * @param rateLimitKey Redis 키 (TTL 조회용, null 가능)
+     * @param redisTemplate RedisTemplate (사용하지 않음, 하위 호환성을 위해 유지)
+     * @param rateLimitKey Redis 키 (사용하지 않음, 하위 호환성을 위해 유지)
      * @throws IOException 응답 작성 실패 시
      */
     public static void writeTooManyRequests(
@@ -58,7 +58,7 @@ public final class RateLimitResponseWriter {
         long retryAfter = result.getRetryAfter(1L);
         
         // 헤더와 동일한 방식으로 reset timestamp 계산 (정확성 보장)
-        long resetTimestamp = calculateResetTimestamp(rule, result, redisTemplate, rateLimitKey);
+        long resetTimestamp = calculateResetTimestamp(rule, result);
         
         java.util.Map<String, Object> details = java.util.Map.of(
                 "limit", limit,
@@ -102,30 +102,23 @@ public final class RateLimitResponseWriter {
      */
     private static long calculateResetTimestamp(
             RateLimitRule rule,
-            RateLimiter.RateLimitResult result,
-            @Nullable RedisTemplate<String, Object> redisTemplate,
-            @Nullable String rateLimitKey
+            RateLimiter.RateLimitResult result
     ) {
         long now = java.time.Instant.now().getEpochSecond();
         
-        // 1. 초과된 요청: retryAfterSeconds를 사용 (이미 TTL 기반으로 계산됨)
-        if (result != null && result.retryAfterSeconds() > 0) {
-            return now + result.retryAfterSeconds();
-        }
-        
-        // 2. 성공한 요청: Redis TTL을 직접 조회하여 정확한 reset 시간 계산
-        if (redisTemplate != null && rateLimitKey != null) {
-            try {
-                Long ttl = redisTemplate.getExpire(rateLimitKey, java.util.concurrent.TimeUnit.SECONDS);
-                if (ttl != null && ttl > 0) {
-                    return now + ttl;
-                }
-            } catch (Exception e) {
-                // TTL 조회 실패 시 폴백 사용 (예외를 무시하고 폴백으로 진행)
+        // 1. result가 있는 경우: ttlSeconds 또는 retryAfterSeconds 사용
+        if (result != null) {
+            // 초과된 요청: retryAfterSeconds 사용 (이미 TTL 기반으로 계산됨)
+            if (result.retryAfterSeconds() > 0) {
+                return now + result.retryAfterSeconds();
+            }
+            // 성공한 요청: ttlSeconds 사용
+            if (result.ttlSeconds() > 0) {
+                return now + result.ttlSeconds();
             }
         }
         
-        // 3. 폴백: windowSeconds 사용 (정확하지 않을 수 있음)
+        // 2. 폴백: windowSeconds 사용 (result가 null이거나 TTL이 없는 경우)
         return now + rule.getWindowSeconds();
     }
 }

@@ -8,7 +8,6 @@ import org.example.sharedprompts.auth.rate.policy.RateLimitRule;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Instant;
-import java.util.concurrent.TimeUnit;
 
 /**
  * RateLimit HTTP 헤더 유틸리티
@@ -33,8 +32,8 @@ public final class RateLimitHeaderUtil {
      * @param response HttpServletResponse
      * @param rule RateLimitRule
      * @param result RateLimitResult (null 가능 - 헤더만 추가)
-     * @param redisTemplate RedisTemplate (TTL 조회용, null 가능)
-     * @param rateLimitKey Redis 키 (TTL 조회용, null 가능)
+     * @param redisTemplate RedisTemplate (사용하지 않음, 하위 호환성을 위해 유지)
+     * @param rateLimitKey Redis 키 (사용하지 않음, 하위 호환성을 위해 유지)
      */
     public static void addRateLimitHeaders(
             HttpServletResponse response,
@@ -45,7 +44,7 @@ public final class RateLimitHeaderUtil {
     ) {
         long limit = rule.getCapacity();
         long remaining = result != null ? Math.max(0, limit - result.currentCount()) : limit;
-        long resetTimestamp = calculateResetTimestamp(rule, result, redisTemplate, rateLimitKey);
+        long resetTimestamp = calculateResetTimestamp(rule, result);
 
         response.setHeader(HEADER_RATE_LIMIT_LIMIT, String.valueOf(limit));
         response.setHeader(HEADER_RATE_LIMIT_REMAINING, String.valueOf(remaining));
@@ -58,8 +57,8 @@ public final class RateLimitHeaderUtil {
      * @param response HttpServletResponse
      * @param rule RateLimitRule
      * @param result RateLimitResult
-     * @param redisTemplate RedisTemplate (TTL 조회용, null 가능)
-     * @param rateLimitKey Redis 키 (TTL 조회용, null 가능)
+     * @param redisTemplate RedisTemplate (사용하지 않음, 하위 호환성을 위해 유지)
+     * @param rateLimitKey Redis 키 (사용하지 않음, 하위 호환성을 위해 유지)
      */
     public static void addRateLimitExceededHeaders(
             HttpServletResponse response,
@@ -79,40 +78,31 @@ public final class RateLimitHeaderUtil {
     /**
      * 리셋 타임스탬프를 계산합니다.
      * 
-     * Fixed Window의 경우: 현재 시간 + Redis TTL (또는 retryAfterSeconds)
+     * Fixed Window의 경우: 현재 시간 + RateLimitResult의 ttlSeconds (또는 retryAfterSeconds)
      * 
      * @param rule RateLimitRule
      * @param result RateLimitResult (null 가능)
-     * @param redisTemplate RedisTemplate (TTL 조회용, null 가능)
-     * @param rateLimitKey Redis 키 (TTL 조회용, null 가능)
      * @return Unix timestamp (초 단위)
      */
     private static long calculateResetTimestamp(
             RateLimitRule rule,
-            RateLimiter.RateLimitResult result,
-            RedisTemplate<String, Object> redisTemplate,
-            String rateLimitKey
+            RateLimiter.RateLimitResult result
     ) {
         long now = Instant.now().getEpochSecond();
         
-        // 1. 초과된 요청: retryAfterSeconds를 사용 (이미 TTL 기반으로 계산됨)
-        if (result != null && result.retryAfterSeconds() > 0) {
-            return now + result.retryAfterSeconds();
-        }
-        
-        // 2. 성공한 요청: Redis TTL을 직접 조회하여 정확한 reset 시간 계산
-        if (redisTemplate != null && rateLimitKey != null) {
-            try {
-                Long ttl = redisTemplate.getExpire(rateLimitKey, TimeUnit.SECONDS);
-                if (ttl != null && ttl > 0) {
-                    return now + ttl;
-                }
-            } catch (Exception e) {
-                // TTL 조회 실패 시 폴백 사용 (예외를 무시하고 폴백으로 진행)
+        // 1. result가 있는 경우: ttlSeconds 또는 retryAfterSeconds 사용
+        if (result != null) {
+            // 초과된 요청: retryAfterSeconds 사용 (이미 TTL 기반으로 계산됨)
+            if (result.retryAfterSeconds() > 0) {
+                return now + result.retryAfterSeconds();
+            }
+            // 성공한 요청: ttlSeconds 사용
+            if (result.ttlSeconds() > 0) {
+                return now + result.ttlSeconds();
             }
         }
         
-        // 3. 폴백: windowSeconds 사용 (정확하지 않을 수 있음)
+        // 2. 폴백: windowSeconds 사용 (result가 null이거나 TTL이 없는 경우)
         return now + rule.getWindowSeconds();
     }
 }

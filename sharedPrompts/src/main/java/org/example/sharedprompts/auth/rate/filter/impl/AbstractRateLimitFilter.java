@@ -30,6 +30,12 @@ import java.util.Optional;
 public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractRateLimitFilter.class);
+    
+    /**
+     * 재진입 방지를 위한 request attribute 키
+     */
+    private static final String FILTER_PROCESSED_ATTRIBUTE = 
+            AbstractRateLimitFilter.class.getName() + ".PROCESSED";
 
     protected final RateLimitFacade facade;
     protected final RateLimitKeyStrategy keyStrategy;
@@ -68,32 +74,46 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             @NotNull FilterChain filterChain
     ) throws ServletException, IOException {
 
+        // 재진입 가드: 동일 요청에 대해 필터가 중복 실행되는 것을 방지
+        if (request.getAttribute(FILTER_PROCESSED_ATTRIBUTE) != null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        request.setAttribute(FILTER_PROCESSED_ATTRIBUTE, Boolean.TRUE);
+
         if (!shouldApplyFilter(request, response, filterChain)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         RateLimitFilterContext context = createContext(request);
-        processRateLimitCheck(context, request, response, filterChain);
+        boolean shouldProceed = processRateLimitCheck(context, request, response);
+        
+        // filterChain.doFilter()는 최상위에서 단 1회만 호출
+        if (shouldProceed) {
+            filterChain.doFilter(request, response);
+        }
     }
 
     /**
      * Rate limit 체크 결과를 처리합니다.
+     * 
+     * @return true면 filterChain.doFilter()를 호출해야 함, false면 이미 응답 작성 완료
      */
-    private void handleRateLimitResult(
+    private boolean handleRateLimitResult(
             RateLimitResultWithKey result,
             RateLimitFilterContext context,
             HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
+            HttpServletResponse response
+    ) throws IOException {
 
         if (result.isExceeded()) {
             handleRateLimitExceeded(result, context, request, response);
+            return false; // 응답 작성 완료, filterChain.doFilter() 호출 불필요
         } else {
             // 성공 응답에도 RateLimit 헤더 추가 (요구사항)
             addRateLimitHeaders(response, result);
-            filterChain.doFilter(request, response);
+            return true; // filterChain.doFilter() 호출 필요
         }
     }
 
@@ -153,12 +173,13 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
 
     /**
      * Rate limit 체크 메인 흐름
+     * 
+     * @return true면 filterChain.doFilter()를 호출해야 함, false면 이미 응답 작성 완료
      */
-    private void processRateLimitCheck(
+    private boolean processRateLimitCheck(
             RateLimitFilterContext context,
             HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
+            HttpServletResponse response
     ) throws ServletException, IOException {
 
         Optional<RateLimitResultWithKey> result;
@@ -166,14 +187,13 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             result = performRateLimitCheck(context, request);
         } catch (Exception e) {
             // Redis 등 인프라 장애 상황만 정책적으로 처리됨을 전제로 함
-            handleRateLimitCheckFailure(e, filterChain, request, response);
-            return;
+            return handleRateLimitCheckFailure(e, request, response);
         }
 
         if (result.isPresent()) {
-            handleRateLimitResult(result.get(), context, request, response, filterChain);
+            return handleRateLimitResult(result.get(), context, request, response);
         } else {
-            filterChain.doFilter(request, response);
+            return true; // 규칙이 없으면 통과, filterChain.doFilter() 호출 필요
         }
     }
 
@@ -233,13 +253,14 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
      *
      * Redis 장애 등 인프라 오류 발생 시,
      * Failure Policy(Fail-Open / Fail-Closed)에 따라 요청을 처리합니다.
+     * 
+     * @return true면 filterChain.doFilter()를 호출해야 함, false면 이미 응답 작성 완료
      */
-    private void handleRateLimitCheckFailure(
+    private boolean handleRateLimitCheckFailure(
             Exception e,
-            FilterChain filterChain,
             HttpServletRequest request,
             HttpServletResponse response
-    ) throws ServletException, IOException {
+    ) throws IOException {
 
         boolean failOpen = rateLimitProperties.getFailurePolicy().isFailOpen();
         boolean logFailure = rateLimitProperties.getFailurePolicy().isLogFailure();
@@ -261,7 +282,7 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             }
 
             metricsCollector.recordFailOpen(ruleOpt.orElse(null));
-            filterChain.doFilter(request, response);
+            return true; // Fail-Open이면 통과, filterChain.doFilter() 호출 필요
         } else {
             if (logFailure) {
                 logger.error(
@@ -272,6 +293,7 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             }
 
             sendServiceUnavailableResponse(response);
+            return false; // 응답 작성 완료, filterChain.doFilter() 호출 불필요
         }
     }
 
@@ -292,12 +314,15 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
 
     /**
      * 필터 적용 여부 결정 (확장 포인트)
+     * 
+     * 주의: 이 메서드에서는 filterChain을 사용하지 않습니다.
+     * filterChain.doFilter()는 doFilterInternal 최상위에서만 호출됩니다.
      */
     protected boolean shouldApplyFilter(
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain
-    ) throws ServletException, IOException {
+    ) {
         return true;
     }
 

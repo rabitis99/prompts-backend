@@ -26,7 +26,8 @@ public interface RateLimiter {
     record RateLimitResult(
             boolean allowed,
             long currentCount,
-            long retryAfterSeconds
+            long retryAfterSeconds,
+            long ttlSeconds
     ) {
         /**
          * Rate Limit이 초과되었는지 확인합니다.
