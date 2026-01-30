@@ -49,28 +49,26 @@ public class TossPaymentService implements PaymentProviderService {
     @Override
     public String approvePayment(Payment payment) {
         try {
-            // 토스페이먼츠 결제 승인 요청 (RestTemplate 사용)
-            String paymentKey = payment.getExternalPaymentId() != null 
-                ? payment.getExternalPaymentId() 
-                : generatePaymentKey(payment);
-            
+            String paymentKey = payment.getExternalPaymentId() != null
+                    ? payment.getExternalPaymentId()
+                    : generatePaymentKey(payment);
+
             PaymentConfirmRequest request = new PaymentConfirmRequest(
-                String.valueOf(payment.getId()),
-                payment.getAmount().intValue(),
-                paymentKey
+                    String.valueOf(payment.getId()),
+                    payment.getAmount().intValue(),
+                    paymentKey
             );
 
-            // 토스페이먼츠 결제 승인 요청 (RestTemplate 사용)
             HttpHeaders headers = createHeaders();
             HttpEntity<PaymentConfirmRequest> requestEntity = new HttpEntity<>(request, headers);
-            
+
             ResponseEntity<PaymentConfirmResponse> responseEntity = restTemplate.exchange(
                     paymentProperties.getTossBaseUrl() + paymentProperties.getTossConfirmEndpoint(),
                     HttpMethod.POST,
                     requestEntity,
                     PaymentConfirmResponse.class
             );
-            
+
             PaymentConfirmResponse response = responseEntity.getBody();
             if (response != null && response.getPaymentKey() != null) {
                 log.info("토스페이먼츠 결제 승인 성공: paymentId={}, paymentKey={}", payment.getId(), response.getPaymentKey());
@@ -100,7 +98,7 @@ public class TossPaymentService implements PaymentProviderService {
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> responseBody = response.getBody();
                 String status = (String) responseBody.get("status");
-                
+
                 return switch (status) {
                     case "DONE" -> PaymentStatus.SUCCESS;
                     case "CANCELED" -> PaymentStatus.CANCELED;
@@ -108,7 +106,7 @@ public class TossPaymentService implements PaymentProviderService {
                     default -> PaymentStatus.PENDING;
                 };
             }
-            
+
             return PaymentStatus.PENDING;
         } catch (Exception e) {
             log.error("토스페이먼츠 결제 상태 조회 실패: externalPaymentId={}, error={}", externalPaymentId, e.getMessage(), e);
@@ -178,7 +176,6 @@ public class TossPaymentService implements PaymentProviderService {
     @Override
     public boolean verifyWebhookSignature(String payload, String signature) {
         try {
-            // 토스페이먼츠 Webhook 서명 검증
             String secret = paymentProperties.getTossSecret();
             if (secret == null || secret.isEmpty()) {
                 log.warn("토스페이먼츠 Webhook secret이 설정되지 않았습니다.");
@@ -216,20 +213,23 @@ public class TossPaymentService implements PaymentProviderService {
         }
     }
 
+    /**
+     * 인증 헤더 생성 (토스페이먼츠 Basic Auth)
+     */
     private HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        
-        // API 키가 있는 경우에만 인증 헤더 추가
-        String apiKey = paymentProperties.getTossApiKey();
+
         String secret = paymentProperties.getTossSecret();
-        
-        if (apiKey != null && !apiKey.isEmpty() && secret != null && !secret.isEmpty()) {
-            String auth = apiKey + ":" + secret;
+
+        if (secret != null && !secret.isEmpty()) {
+            String auth = secret + ":";  // secretKey:
             String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
             headers.set("Authorization", "Basic " + encodedAuth);
+        } else {
+            log.warn("토스페이먼츠 API secret이 설정되지 않았습니다. 인증 헤더를 생성하지 않습니다.");
         }
-        
+
         return headers;
     }
 
