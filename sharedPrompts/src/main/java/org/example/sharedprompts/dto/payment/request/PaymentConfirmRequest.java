@@ -10,10 +10,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class PaymentConfirmRequest {
     private String orderId;
-    private int amount;
+    private long amount;
     private String paymentKey;
 
-    public PaymentConfirmRequest(String orderId, int amount, String paymentKey) {
+    public PaymentConfirmRequest(String orderId, long amount, String paymentKey) {
         this.orderId = orderId;
         this.amount = amount;
         this.paymentKey = paymentKey;
