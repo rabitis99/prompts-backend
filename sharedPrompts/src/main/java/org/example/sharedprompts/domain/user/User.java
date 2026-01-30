@@ -70,6 +70,7 @@ public class User extends BaseEntity {
     private UserTerms terms;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean signupCompleted = false;
 
     @Column(nullable = false)

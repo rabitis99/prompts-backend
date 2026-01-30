@@ -13,8 +13,10 @@ import org.example.sharedprompts.domain.payment.service.facade.PaymentValidation
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.dto.payment.request.PaymentCancelRequestDto;
+import org.example.sharedprompts.dto.payment.request.PaymentConfirmRequest;
 import org.example.sharedprompts.dto.payment.request.PaymentRefundRequestDto;
 import org.example.sharedprompts.dto.payment.request.PaymentRequestDto;
+import org.example.sharedprompts.dto.payment.response.PaymentConfirmResponse;
 import org.example.sharedprompts.dto.payment.response.PaymentResponseDto;
 import org.example.sharedprompts.dto.payment.response.PaymentStatusResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
@@ -225,5 +227,35 @@ public class PaymentServiceImpl implements PaymentService {
         return payments.stream()
                 .map(PaymentResponseDto::from)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public PaymentConfirmResponse confirmPayment(Long userId, PaymentConfirmRequest request) {
+        // 결제 조회 및 소유권 검증
+        Payment payment = paymentRepository.findById(Long.parseLong(request.getOrderId()))
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        
+        validationFacade.validatePaymentOwnership(payment, userId);
+        
+        // 결제사별 승인 처리
+        String externalPaymentId = providerFacade.approvePayment(
+                payment,
+                BigDecimal.valueOf(request.getAmount())
+        );
+        
+        payment.approve(externalPaymentId);
+        payment = paymentRepository.save(payment);
+        
+        // PaymentConfirmResponse 생성
+        PaymentConfirmResponse response = new PaymentConfirmResponse();
+        response.setPaymentKey(externalPaymentId);
+        response.setOrderId(request.getOrderId());
+        response.setStatus(payment.getStatus().name());
+        response.setTotalAmount(payment.getAmount().intValue());
+        response.setApprovedAt(payment.getApprovedAt());
+        response.setMethod(payment.getPaymentMethod().name());
+        
+        return response;
     }
 }

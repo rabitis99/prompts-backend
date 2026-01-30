@@ -2,6 +2,11 @@ package org.example.sharedprompts.domain.payment.service.point;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.core.LockConfiguration;
+import net.javacrumbs.shedlock.core.LockProvider;
+import net.javacrumbs.shedlock.core.SimpleLock;
+
+import java.time.Instant;
 import org.example.sharedprompts.domain.payment.Point;
 import org.example.sharedprompts.domain.payment.config.PaymentProperties;
 import org.example.sharedprompts.domain.payment.repository.PointRepository;
@@ -12,23 +17,22 @@ import org.example.sharedprompts.dto.payment.response.PointBalanceResponseDto;
 import org.example.sharedprompts.dto.payment.response.PointResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
-import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
  * 포인트 서비스 구현체
  * 
- * 멀티 서버 환경에서 동시성 문제를 해결하기 위해 Redisson 분산락을 사용합니다.
+ * 멀티 서버 환경에서 동시성 문제를 해결하기 위해 ShedLock 분산락을 사용합니다.
  */
 @Slf4j
 @Service
@@ -39,11 +43,14 @@ public class PointServiceImpl implements PointService {
     private final PointRepository pointRepository;
     private final PaymentProperties paymentProperties;
     private final UserRepository userRepository;
-    private final RedissonClient redissonClient;
+    /**
+     * LockProvider 주입 (@Primary로 지정된 메인 LockProvider 사용)
+     * fallback이 활성화되어 있으면 fallbackLockProvider를, 없으면 lockProvider를 사용
+     */
+    private final LockProvider lockProvider;
 
     private static final String LOCK_PREFIX = "point:lock:";
-    private static final long LOCK_WAIT_TIME = 10; // 락 대기 시간 (초)
-    private static final long LOCK_LEASE_TIME = 30; // 락 유지 시간 (초)
+    private static final Duration LOCK_AT_MOST_FOR = Duration.ofSeconds(30); // 락 최대 유지 시간
 
     // ============ Public Methods ============
 
@@ -114,32 +121,29 @@ public class PointServiceImpl implements PointService {
      * 분산락을 획득한 후 작업을 실행합니다.
      */
     private <T> T executeWithLock(Long userId, Supplier<T> task) {
-        String lockKey = getLockKey(userId);
-        RLock lock = redissonClient.getLock(lockKey);
+        String lockName = getLockKey(userId);
+        LockConfiguration lockConfig = new LockConfiguration(
+                Instant.now(),
+                lockName,
+                LOCK_AT_MOST_FOR,
+                Duration.ZERO
+        );
+
+        Optional<SimpleLock> lock = lockProvider.lock(lockConfig);
+        if (lock.isEmpty()) {
+            log.warn("Failed to acquire lock for user: {}", userId);
+            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
 
         try {
-            boolean acquired = lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS);
-            if (!acquired) {
-                log.warn("Failed to acquire lock for user: {}", userId);
-                throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
-            }
-
-            try {
-                return task.get();
-            } finally {
-                if (lock.isHeldByCurrentThread()) {
-                    lock.unlock();
-                }
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Interrupted while acquiring lock for user: {}", userId, e);
-            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
+            return task.get();
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
             log.error("Error executing task with lock for user: {}", userId, e);
             throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
+        } finally {
+            lock.get().unlock();
         }
     }
 

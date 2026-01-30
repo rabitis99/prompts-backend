@@ -8,8 +8,10 @@ import org.example.sharedprompts.domain.payment.enums.UserTier;
 import org.example.sharedprompts.domain.payment.service.core.PaymentService;
 import org.example.sharedprompts.domain.payment.service.user.UserTierService;
 import org.example.sharedprompts.dto.payment.request.PaymentCancelRequestDto;
+import org.example.sharedprompts.dto.payment.request.PaymentConfirmRequest;
 import org.example.sharedprompts.dto.payment.request.PaymentRefundRequestDto;
 import org.example.sharedprompts.dto.payment.request.PaymentRequestDto;
+import org.example.sharedprompts.dto.payment.response.PaymentConfirmResponse;
 import org.example.sharedprompts.dto.payment.response.PaymentResponseDto;
 import org.example.sharedprompts.dto.payment.response.PaymentStatusResponseDto;
 import org.example.sharedprompts.dto.payment.response.TierInfoResponseDto;
@@ -141,6 +143,19 @@ public class PaymentController {
             throw new ApiException(ErrorCode.FORBIDDEN);
         }
         List<UserTierHistoryResponseDto> response = userTierService.getTierHistory(userId);
+        return CustomResponseHelper.ok(response);
+    }
+
+    /**
+     * 결제 승인 (토스페이먼츠 등 결제사별 승인 처리)
+     * POST /payments/confirm
+     */
+    @PostMapping("/confirm")
+    public ResponseEntity<CustomResponse<PaymentConfirmResponse>> confirmPayment(
+            @Valid @RequestBody PaymentConfirmRequest request,
+            @CurrentUser AuthUser authUser
+    ) {
+        PaymentConfirmResponse response = paymentService.confirmPayment(authUser.getId(), request);
         return CustomResponseHelper.ok(response);
     }
 }

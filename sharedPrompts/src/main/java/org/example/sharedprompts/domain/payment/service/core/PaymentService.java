@@ -1,8 +1,10 @@
 package org.example.sharedprompts.domain.payment.service.core;
 
 import org.example.sharedprompts.dto.payment.request.PaymentCancelRequestDto;
+import org.example.sharedprompts.dto.payment.request.PaymentConfirmRequest;
 import org.example.sharedprompts.dto.payment.request.PaymentRefundRequestDto;
 import org.example.sharedprompts.dto.payment.request.PaymentRequestDto;
+import org.example.sharedprompts.dto.payment.response.PaymentConfirmResponse;
 import org.example.sharedprompts.dto.payment.response.PaymentResponseDto;
 import org.example.sharedprompts.dto.payment.response.PaymentStatusResponseDto;
 
@@ -36,5 +38,10 @@ public interface PaymentService {
      * 사용자의 결제 내역 조회
      */
     java.util.List<PaymentResponseDto> getPaymentHistory(Long userId);
+
+    /**
+     * 결제 승인 (토스페이먼츠 등 결제사별 승인 처리)
+     */
+    PaymentConfirmResponse confirmPayment(Long userId, PaymentConfirmRequest request);
 }
 
