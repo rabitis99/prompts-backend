@@ -7,17 +7,19 @@ import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.config.PaymentProperties;
 import org.example.sharedprompts.domain.payment.repository.PaymentRepository;
-import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderServiceFactory;
 import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderService;
+import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderServiceFactory;
+import org.example.sharedprompts.domain.payment.service.payment.PaymentRetryService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
  * 결제 재시도 스케줄러
- * 실패한 결제에 대한 자동 재시도 처리
+ * - 블로킹/외부 호출 처리
+ * - 결제 상태 업데이트는 PaymentRetryService로 위임
  */
 @Slf4j
 @Component
@@ -27,9 +29,16 @@ public class PaymentRetryScheduler {
     private final PaymentRepository paymentRepository;
     private final PaymentProviderServiceFactory providerServiceFactory;
     private final PaymentProperties paymentProperties;
+    private final PaymentRetryService retryService;
 
-    private static final long SCHEDULE_DELAY_MS = 5 * 60 * 1000L; // 5분마다 실행
+    private static final long SCHEDULE_DELAY_MS = 5 * 60 * 1000L; // 5분
 
+    /**
+     * 결제 재시도 스케줄러
+     * - 1~5분 단위로 반복 실행
+     * - 블로킹 없음 (Thread.sleep 제거)
+     * - nextRetryAt 기반으로 재시도 가능한 결제만 조회
+     */
     @Scheduled(fixedDelay = SCHEDULE_DELAY_MS)
     @SchedulerLock(
             name = "PaymentRetryScheduler",
@@ -37,75 +46,64 @@ public class PaymentRetryScheduler {
             lockAtLeastFor = "1m"
     )
     @LockProviderToUse("fallbackLockProvider")
-    @Transactional
     public void retryFailedPayments() {
         log.info("PaymentRetryScheduler started");
 
-        try {
-            // 재시도가 필요한 결제 목록 조회 (PENDING 상태이고 재시도 횟수가 제한 미만)
-            List<Payment> pendingPayments = paymentRepository.findPendingPaymentsForRetry(
-                    paymentProperties.getMaxRetryAttempts()
-            );
+        // nextRetryAt 기반으로 재시도 가능한 결제 조회
+        List<Payment> pendingPayments = paymentRepository.findRetryablePayments(
+                paymentProperties.getMaxRetryAttempts(),
+                LocalDateTime.now()
+        );
 
-            if (pendingPayments.isEmpty()) {
-                log.debug("재시도할 결제가 없습니다.");
-                return;
-            }
-
-            log.info("재시도할 결제 수: {}", pendingPayments.size());
-
-            int successCount = 0;
-            int failureCount = 0;
-
-            for (Payment payment : pendingPayments) {
-                try {
-                    retryPayment(payment);
-                    successCount++;
-                } catch (Exception e) {
-                    log.error("결제 재시도 실패: paymentId={}, retryCount={}, error={}",
-                            payment.getId(), payment.getRetryCount(), e.getMessage(), e);
-                    failureCount++;
-                    
-                    // 재시도 횟수 증가
-                    payment.incrementRetryCount();
-                    
-                    // 최대 재시도 횟수 초과 시 실패 처리
-                    if (payment.getRetryCount() >= paymentProperties.getMaxRetryAttempts()) {
-                        payment.fail("최대 재시도 횟수 초과");
-                        log.warn("결제 최대 재시도 횟수 초과로 실패 처리: paymentId={}", payment.getId());
-                    }
-                    
-                    paymentRepository.save(payment);
-                }
-            }
-
-            log.info("PaymentRetryScheduler finished: success={}, failure={}", successCount, failureCount);
-        } catch (Exception e) {
-            log.error("PaymentRetryScheduler 실행 중 오류 발생", e);
+        if (pendingPayments.isEmpty()) {
+            log.debug("재시도할 결제가 없습니다.");
+            return;
         }
+
+        log.info("재시도할 결제 수: {}", pendingPayments.size());
+
+        int successCount = 0;
+        int failureCount = 0;
+
+        for (Payment payment : pendingPayments) {
+            try {
+                processPaymentRetry(payment);
+                successCount++;
+            } catch (Exception e) {
+                log.error("결제 재시도 실패: paymentId={}, retryCount={}, error={}",
+                        payment.getId(), payment.getRetryCount(), e.getMessage(), e);
+                failureCount++;
+            }
+        }
+
+        log.info("PaymentRetryScheduler finished: success={}, failure={}", successCount, failureCount);
     }
 
-    private void retryPayment(Payment payment) {
+    /**
+     * 개별 결제 재시도 처리
+     * - 외부 API 호출 (블로킹 없음)
+     * - 상태 업데이트는 PaymentRetryService로 위임 (REQUIRES_NEW 트랜잭션)
+     * - 실패 시 개별 결제만 처리, 전체 배치 영향 없음
+     */
+    private void processPaymentRetry(Payment payment) {
         try {
+            // 1️⃣ 외부 결제 승인 호출 (블로킹 없음)
             PaymentProviderService providerService = providerServiceFactory.getService(payment.getPaymentMethod());
-            
-            // 재시도 전 대기 (지수 백오프)
-            long delayMs = paymentProperties.getRetryDelayMs() * (long) Math.pow(2, payment.getRetryCount());
-            Thread.sleep(Math.min(delayMs, 60000)); // 최대 60초
-
-            // 결제 승인 재시도
             String externalPaymentId = providerService.approvePayment(payment);
-            payment.approve(externalPaymentId);
-            paymentRepository.save(payment);
+
+            // 2️⃣ 상태 업데이트를 별도 서비스로 위임 (REQUIRES_NEW 트랜잭션)
+            retryService.updatePaymentStatusSuccess(payment.getId(), externalPaymentId);
 
             log.info("결제 재시도 성공: paymentId={}, retryCount={}", payment.getId(), payment.getRetryCount());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("재시도 대기 중 인터럽트 발생", e);
+
         } catch (Exception e) {
-            log.error("결제 재시도 중 오류 발생: paymentId={}, error={}", payment.getId(), e.getMessage(), e);
+            // 실패 처리 - 지수 백오프 적용하여 다음 재시도 시간 예약
+            retryService.updatePaymentStatusFailure(
+                    payment.getId(), 
+                    e.getMessage(), 
+                    paymentProperties.getRetryDelayMs()
+            );
             throw e;
         }
     }
 }
-

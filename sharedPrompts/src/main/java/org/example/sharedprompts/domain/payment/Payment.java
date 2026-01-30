@@ -89,6 +89,9 @@ public class Payment extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String metadata; // 추가 메타데이터 (JSON 형태)
 
+    @Column
+    private LocalDateTime nextRetryAt;
+
     /**
      * 결제 승인 처리
      */
@@ -144,6 +147,22 @@ public class Payment extends BaseEntity {
      */
     public BigDecimal getRefundableAmount() {
         return this.amount.subtract(this.refundedAmount);
+    }
+
+    /**
+     * 재시도 가능 여부 확인
+     */
+    public boolean isRetryable(int maxRetry) {
+        return this.status == PaymentStatus.PENDING 
+                && this.retryCount < maxRetry;
+    }
+
+    /**
+     * 지수 백오프를 적용하여 다음 재시도 시간 예약
+     */
+    public void scheduleNextRetry(long baseDelayMs) {
+        long delayMs = baseDelayMs * (long) Math.pow(2, this.retryCount);
+        this.nextRetryAt = LocalDateTime.now().plusNanos(delayMs * 1_000_000L);
     }
 }
 

@@ -57,5 +57,13 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
      */
     @Query("SELECT p FROM Payment p WHERE p.status = 'PENDING' AND p.retryCount < :maxRetryCount ORDER BY p.createdAt ASC")
     List<Payment> findPendingPaymentsForRetry(@Param("maxRetryCount") int maxRetryCount);
+
+    /**
+     * nextRetryAt 기반 재시도 대상 결제 조회
+     * - 재시도 횟수가 최대값 미만이고
+     * - nextRetryAt이 null이거나 현재 시간 이하인 결제
+     */
+    @Query("SELECT p FROM Payment p WHERE p.retryCount < :maxRetry AND (p.nextRetryAt IS NULL OR p.nextRetryAt <= :now) ORDER BY p.nextRetryAt ASC NULLS FIRST")
+    List<Payment> findRetryablePayments(@Param("maxRetry") int maxRetry, @Param("now") LocalDateTime now);
 }
 
