@@ -37,6 +37,15 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     );
 
     /**
+     * 전체 사용자의 특정 날짜 결제 횟수 조회 (userId 필터 없음)
+     */
+    @Query("SELECT COUNT(p) FROM Payment p WHERE DATE(p.createdAt) = DATE(:date) AND p.status = :status")
+    long countByDateAndStatus(
+            @Param("date") LocalDateTime date,
+            @Param("status") PaymentStatus status
+    );
+
+    /**
      * 사용자의 오늘 성공한 결제 횟수 조회
      */
     @Query("SELECT COUNT(p) FROM Payment p WHERE p.user.id = :userId AND DATE(p.createdAt) = CURRENT_DATE AND p.status = :status")
