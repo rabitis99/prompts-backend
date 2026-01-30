@@ -27,6 +27,11 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
 
     @Override
     public BigDecimal convertCurrency(BigDecimal amount, String fromCurrency, String toCurrency) {
+
+        if (fromCurrency == null || toCurrency == null) {
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "통화 코드는 필수입니다.");
+        }
+
         if (fromCurrency.equals(toCurrency)) {
             return amount;
         }
