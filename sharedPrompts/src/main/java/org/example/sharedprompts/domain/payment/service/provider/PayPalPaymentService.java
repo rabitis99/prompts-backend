@@ -174,12 +174,14 @@ public class PayPalPaymentService implements PaymentProviderService {
             headers.setBearerAuth(accessToken);
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            // 주문에서 캡처 ID 조회
-            String captureId = getCaptureId(externalPaymentId, accessToken);
+            // 주문에서 캡처 ID와 통화 코드 조회
+            CaptureInfo captureInfo = getCaptureIdAndCurrency(externalPaymentId, accessToken);
+            String captureId = captureInfo.captureId();
+            String currency = captureInfo.currency();
 
             Map<String, Object> requestBody = new HashMap<>();
             Map<String, Object> amountMap = new HashMap<>();
-            amountMap.put("currency_code", "KRW");
+            amountMap.put("currency_code", currency);
             amountMap.put("value", amount.toString());
             requestBody.put("amount", amountMap);
             requestBody.put("note_to_payer", reason);
@@ -291,7 +293,10 @@ public class PayPalPaymentService implements PaymentProviderService {
         }
     }
 
-    private String getCaptureId(String orderId, String accessToken) {
+    /**
+     * PayPal 주문에서 캡처 ID와 통화 코드를 조회
+     */
+    private CaptureInfo getCaptureIdAndCurrency(String orderId, String accessToken) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
 
@@ -313,10 +318,27 @@ public class PayPalPaymentService implements PaymentProviderService {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> captures = (List<Map<String, Object>>) payments.get("captures");
             if (!captures.isEmpty()) {
-                return (String) captures.get(0).get("id");
+                Map<String, Object> capture = captures.get(0);
+                String captureId = (String) capture.get("id");
+                
+                // 캡처 객체에서 통화 코드 추출
+                @SuppressWarnings("unchecked")
+                Map<String, Object> amount = (Map<String, Object>) capture.get("amount");
+                String currency = (String) amount.get("currency_code");
+                
+                if (currency == null || currency.isEmpty()) {
+                    throw new RuntimeException("페이팔 캡처에서 통화 코드를 찾을 수 없습니다");
+                }
+                
+                return new CaptureInfo(captureId, currency);
             }
         }
 
         throw new RuntimeException("페이팔 캡처 ID 조회 실패");
     }
+
+    /**
+     * 캡처 ID와 통화 코드를 담는 레코드
+     */
+    private record CaptureInfo(String captureId, String currency) {}
 }
