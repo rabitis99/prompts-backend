@@ -5,7 +5,6 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -16,7 +15,6 @@ import java.util.concurrent.atomic.AtomicReference;
  * 결제 관련 메트릭 수집
  * Prometheus 메트릭 수집을 위한 클래스
  */
-@Component
 @RequiredArgsConstructor
 public class PaymentMetrics {
 
