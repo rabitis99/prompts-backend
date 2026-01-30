@@ -19,6 +19,7 @@ public class LoginRequestDto {
     @Size(min = 8, max = 100, message = "비밀번호는 8자 이상 100자 이하로 입력해주세요.")
     private String password;
 
+    @Size(max = 500, message = "디바이스 토큰은 500자까지 입력해주세요.")
     @JsonProperty("device_token")
     private String deviceToken; // 푸시 알림용 디바이스 토큰 (선택사항)
 
