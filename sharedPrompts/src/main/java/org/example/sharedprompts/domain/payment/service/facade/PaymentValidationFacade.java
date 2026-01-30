@@ -78,6 +78,10 @@ public class PaymentValidationFacade {
             refundAmount = payment.getRefundableAmount();
         }
 
+        if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ApiException(ErrorCode.PAYMENT_REFUND_AMOUNT_INVALID);
+        }
+
         if (refundAmount.compareTo(payment.getRefundableAmount()) > 0) {
             throw new ApiException(ErrorCode.PAYMENT_REFUND_AMOUNT_EXCEEDED);
         }

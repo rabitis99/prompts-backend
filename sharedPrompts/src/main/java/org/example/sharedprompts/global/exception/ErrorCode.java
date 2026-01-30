@@ -176,8 +176,17 @@ public enum ErrorCode {
     POINT_INSUFFICIENT("PY00410", HttpStatus.BAD_REQUEST, "포인트 잔액이 부족합니다."),
     POINT_NOT_FOUND("PY00703", HttpStatus.NOT_FOUND, "포인트 내역을 찾을 수 없습니다."),
 
-    FORBIDDEN_ACCESS("CM00602", HttpStatus.FORBIDDEN, "권한이 없습니다.");
+    FORBIDDEN_ACCESS("CM00602", HttpStatus.FORBIDDEN, "권한이 없습니다."),
+    // ==========================
+    // 🔹 PAYMENT 추가
+    // ==========================
+    PAYMENT_REFUND_AMOUNT_INVALID("PY00411", HttpStatus.BAD_REQUEST, "환불 금액이 올바르지 않습니다."), // 0 이하 또는 null
+    PAYMENT_REFUND_NOT_ALLOWED("PY00603", HttpStatus.FORBIDDEN, "환불할 수 없는 결제입니다."),       // 결제 상태상 환불 불가
+    PAYMENT_REFUND_ALREADY_PROCESSED("PY00412", HttpStatus.BAD_REQUEST, "이미 처리된 환불입니다."), // 이미 환불 완료
+    PAYMENT_REFUND_PARTIALLY_ALLOWED("PY00413", HttpStatus.BAD_REQUEST, "일부 금액만 환불 가능합니다.") // 비즈니스 정책용
 
+
+    ;
     private final String code;
     private final HttpStatus httpStatus;
     private final String message;
