@@ -3,6 +3,7 @@ package org.example.sharedprompts.controller.payment;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
+import org.example.sharedprompts.global.annotation.AdminOnly;
 import org.example.sharedprompts.scheduler.payment.ExchangeRateScheduler;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +27,7 @@ public class ExchangeRateWebhookController {
      * 환율 업데이트 웹훅 수신
      * POST /webhooks/exchange-rates
      */
+    @AdminOnly
     @PostMapping
     public ResponseEntity<Map<String, String>> receiveExchangeRateWebhook(
             @RequestBody(required = false) String payload
