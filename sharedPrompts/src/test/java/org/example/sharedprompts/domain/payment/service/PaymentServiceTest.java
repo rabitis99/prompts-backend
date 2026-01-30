@@ -5,7 +5,7 @@ import org.example.sharedprompts.domain.payment.enums.*;
 import org.example.sharedprompts.domain.payment.repository.PaymentRepository;
 import org.example.sharedprompts.domain.payment.service.cashback.CashbackService;
 import org.example.sharedprompts.domain.payment.service.core.PaymentServiceImpl;
-import org.example.sharedprompts.domain.payment.service.evnet.PaymentEventPublisher;
+import org.example.sharedprompts.domain.payment.service.event.PaymentEventPublisher;
 import org.example.sharedprompts.domain.payment.service.exchange.ExchangeRateService;
 import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderService;
 import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderServiceFactory;

@@ -7,7 +7,7 @@ import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
 import org.example.sharedprompts.domain.payment.metrics.PaymentMetrics;
 import org.example.sharedprompts.domain.payment.service.cashback.CashbackService;
-import org.example.sharedprompts.domain.payment.service.evnet.PaymentEventPublisher;
+import org.example.sharedprompts.domain.payment.service.event.PaymentEventPublisher;
 import org.example.sharedprompts.domain.payment.service.point.PointService;
 import org.springframework.stereotype.Component;
 

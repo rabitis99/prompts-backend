@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.payment.service.evnet;
+package org.example.sharedprompts.domain.payment.service.event;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.payment.event.PaymentEvent;
