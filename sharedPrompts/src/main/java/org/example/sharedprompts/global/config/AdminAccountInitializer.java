@@ -70,9 +70,8 @@ public class AdminAccountInitializer implements CommandLineRunner {
         
         // 개발 환경에서 비밀번호가 없으면 기본 비밀번호 사용 (경고)
         if (!isProdProfile && (adminPassword == null || adminPassword.trim().isEmpty())) {
-            log.warn("⚠️ 개발 환경에서 ADMIN_PASSWORD가 설정되지 않았습니다. " +
-                    "기본 비밀번호를 사용합니다. 프로덕션 환경에서는 반드시 환경 변수로 설정하세요.");
-            adminPassword = "Admin123!@#"; // 개발 환경 기본 비밀번호
+            log.error("❌ 개발 환경에서도 ADMIN_PASSWORD 환경 변수 설정이 필요합니다.");
+            return;
         }
         
         // 어드민 계정 생성 또는 확인
