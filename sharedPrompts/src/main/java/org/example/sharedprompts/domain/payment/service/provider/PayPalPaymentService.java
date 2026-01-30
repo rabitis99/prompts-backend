@@ -75,7 +75,8 @@ public class PayPalPaymentService implements PaymentProviderService {
                     PAYPAL_ORDERS_URL,
                     HttpMethod.POST,
                     request,
-                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+                    new org.springframework.core.ParameterizedTypeReference<>() {
+                    }
             );
 
             if (response.getStatusCode() == HttpStatus.CREATED && response.getBody() != null) {
@@ -109,7 +110,8 @@ public class PayPalPaymentService implements PaymentProviderService {
                     PAYPAL_ORDERS_URL + "/" + externalPaymentId,
                     HttpMethod.GET,
                     request,
-                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+                    new org.springframework.core.ParameterizedTypeReference<>() {
+                    }
             );
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
@@ -149,7 +151,8 @@ public class PayPalPaymentService implements PaymentProviderService {
                     PAYPAL_ORDERS_URL + "/" + externalPaymentId + "/cancel",
                     HttpMethod.POST,
                     request,
-                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+                    new org.springframework.core.ParameterizedTypeReference<>() {
+                    }
             );
 
             if (response.getStatusCode() == HttpStatus.NO_CONTENT || response.getStatusCode() == HttpStatus.OK) {
@@ -187,7 +190,8 @@ public class PayPalPaymentService implements PaymentProviderService {
                     PAYPAL_API_URL + "/v2/payments/captures/" + captureId + "/refund",
                     HttpMethod.POST,
                     request,
-                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+                    new org.springframework.core.ParameterizedTypeReference<>() {
+                    }
             );
 
             if (response.getStatusCode() == HttpStatus.CREATED || response.getStatusCode() == HttpStatus.OK) {
@@ -257,7 +261,8 @@ public class PayPalPaymentService implements PaymentProviderService {
                 PAYPAL_OAUTH_URL,
                 HttpMethod.POST,
                 request,
-                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+                new org.springframework.core.ParameterizedTypeReference<>() {
+                }
         );
 
         if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
@@ -274,12 +279,16 @@ public class PayPalPaymentService implements PaymentProviderService {
 
         HttpEntity<Void> request = new HttpEntity<>(headers);
 
-        restTemplate.exchange(
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                 PAYPAL_ORDERS_URL + "/" + orderId + "/capture",
                 HttpMethod.POST,
                 request,
-                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+                new org.springframework.core.ParameterizedTypeReference<>() {
+                }
         );
+        if (response.getStatusCode() != HttpStatus.CREATED && response.getStatusCode() != HttpStatus.OK) {
+            throw new RuntimeException("페이팔 주문 캡처 실패: " + response.getStatusCode());
+        }
     }
 
     private String getCaptureId(String orderId, String accessToken) {
@@ -292,7 +301,8 @@ public class PayPalPaymentService implements PaymentProviderService {
                 PAYPAL_ORDERS_URL + "/" + orderId,
                 HttpMethod.GET,
                 request,
-                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+                new org.springframework.core.ParameterizedTypeReference<>() {
+                }
         );
 
         if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
