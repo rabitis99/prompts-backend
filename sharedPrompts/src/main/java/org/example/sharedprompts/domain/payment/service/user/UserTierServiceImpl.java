@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.payment.service.user;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.payment.UserTierHistory;
+import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.enums.UserTier;
 import org.example.sharedprompts.domain.payment.repository.PaymentRepository;
 import org.example.sharedprompts.domain.payment.repository.UserTierHistoryRepository;
@@ -44,7 +45,7 @@ public class UserTierServiceImpl implements UserTierService {
 
         UserTier tier = user.getTier();
         int dailyLimit = tier.getDailyLimit();
-        long todayUsedCount = paymentRepository.countTodaySuccessfulPayments(userId);
+        long todayUsedCount = paymentRepository.countTodaySuccessfulPayments(userId, PaymentStatus.SUCCESS);
         int remainingCount = (int) Math.max(0, dailyLimit - todayUsedCount);
 
         return TierInfoResponseDto.from(user, dailyLimit, (int) todayUsedCount, remainingCount);

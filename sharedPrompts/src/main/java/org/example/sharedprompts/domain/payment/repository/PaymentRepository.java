@@ -39,8 +39,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     /**
      * 사용자의 오늘 성공한 결제 횟수 조회
      */
-    @Query("SELECT COUNT(p) FROM Payment p WHERE p.user.id = :userId AND DATE(p.createdAt) = CURRENT_DATE AND p.status = 'SUCCESS'")
-    long countTodaySuccessfulPayments(@Param("userId") Long userId);
+    @Query("SELECT COUNT(p) FROM Payment p WHERE p.user.id = :userId AND DATE(p.createdAt) = CURRENT_DATE AND p.status = :status")
+    long countTodaySuccessfulPayments(@Param("userId") Long userId, @Param("status") PaymentStatus status);
 
     /**
      * 사용자의 결제 목록 조회

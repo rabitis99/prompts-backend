@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.payment.service;
 
+import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.enums.UserTier;
 import org.example.sharedprompts.domain.payment.repository.PaymentRepository;
 import org.example.sharedprompts.domain.payment.repository.UserTierHistoryRepository;
@@ -68,7 +69,7 @@ class UserTierServiceTest {
     void getTierInfo_Success() {
         // given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(paymentRepository.countTodaySuccessfulPayments(1L)).thenReturn(2L);
+        when(paymentRepository.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(2L);
 
         // when
         TierInfoResponseDto result = userTierService.getTierInfo(1L);

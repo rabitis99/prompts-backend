@@ -31,7 +31,7 @@ public class PaymentValidationFacade {
      * 일일 결제 제한 체크
      */
     public void validateDailyLimit(Long userId, UserTier tier) {
-        long todayPaymentCount = paymentRepository.countTodaySuccessfulPayments(userId);
+        long todayPaymentCount = paymentRepository.countTodaySuccessfulPayments(userId, PaymentStatus.SUCCESS);
         
         loggingService.logDailyLimitCheck(userId, tier.name(), todayPaymentCount, tier.getDailyLimit());
         

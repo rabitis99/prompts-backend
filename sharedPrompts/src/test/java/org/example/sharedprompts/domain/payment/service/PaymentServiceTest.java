@@ -97,7 +97,7 @@ class PaymentServiceTest {
     void requestPayment_Success() {
         // given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(paymentRepository.countTodaySuccessfulPayments(1L)).thenReturn(0L);
+        when(paymentRepository.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(0L);
         when(providerServiceFactory.getService(PaymentMethod.KAKAO_PAY)).thenReturn(providerService);
         when(providerService.approvePayment(any(Payment.class))).thenReturn("EXTERNAL_PAYMENT_ID");
         when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -119,7 +119,7 @@ class PaymentServiceTest {
     void requestPayment_DailyLimitExceeded() {
         // given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(paymentRepository.countTodaySuccessfulPayments(1L)).thenReturn(10L); // FREE 티어 제한 초과
+        when(paymentRepository.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(10L); // FREE 티어 제한 초과
 
         // when & then
         assertThatThrownBy(() -> paymentService.requestPayment(1L, paymentRequest))
@@ -146,7 +146,7 @@ class PaymentServiceTest {
     void requestPayment_ApprovalFailed() {
         // given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(paymentRepository.countTodaySuccessfulPayments(1L)).thenReturn(0L);
+        when(paymentRepository.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(0L);
         when(providerServiceFactory.getService(PaymentMethod.KAKAO_PAY)).thenReturn(providerService);
         when(providerService.approvePayment(any(Payment.class))).thenThrow(new RuntimeException("API 호출 실패"));
         when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));

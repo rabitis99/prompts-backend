@@ -94,11 +94,8 @@ public class AdminAccountInitializer implements CommandLineRunner {
             
             // 기존 계정의 Role이 ROLE_ADMIN이 아니면 업데이트
             if (admin.getRole() != Role.ROLE_ADMIN) {
-                log.warn("⚠️ 기존 계정의 Role이 ROLE_USER입니다. ROLE_ADMIN으로 업데이트합니다. (이메일: {}, ID: {}, 현재 Role: {})", 
-                        email, admin.getId(), admin.getRole());
                 admin.changeRole(Role.ROLE_ADMIN);
                 userRepository.save(admin);
-                log.info("✅ 어드민 계정의 Role이 업데이트되었습니다. (이메일: {}, ID: {})", email, admin.getId());
             } else {
                 log.info("✅ 어드민 계정이 이미 존재합니다. (이메일: {}, ID: {})", email, admin.getId());
             }
