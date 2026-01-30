@@ -12,6 +12,8 @@ import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.example.sharedprompts.global.util.SensitiveDataMasker.maskToken;
+
 /**
  * 푸시 알림 서비스
  * FCM (Firebase Cloud Messaging) HTTP v1 API를 사용하여 푸시 알림 발송
@@ -40,10 +42,10 @@ public class PushNotificationService {
             data.put("reason", reason);
 
             sendPushNotification(deviceToken, notification, data);
-            
-            log.info("결제 실패 푸시 알림 발송 완료: deviceToken={}, paymentId={}", deviceToken, paymentId);
+
+            log.info("결제 실패 푸시 알림 발송 완료: deviceToken={}, paymentId={}", maskToken(deviceToken), paymentId);
         } catch (Exception e) {
-            log.error("결제 실패 푸시 알림 발송 실패: deviceToken={}, paymentId={}, error={}", deviceToken, paymentId, e.getMessage(), e);
+            log.error("결제 실패 푸시 알림 발송 실패: deviceToken={}, paymentId={}, error={}", maskToken(deviceToken), paymentId, e.getMessage(), e);
         }
     }
 
