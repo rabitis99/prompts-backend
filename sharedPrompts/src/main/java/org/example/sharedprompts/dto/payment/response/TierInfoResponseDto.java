@@ -38,10 +38,11 @@ public class TierInfoResponseDto {
      * 사용자 티어 정보를 DTO로 변환
      */
     public static TierInfoResponseDto from(User user, int dailyLimit, int todayUsedCount, int remainingCount) {
+        UserTier tier = (user.getTier() != null) ? user.getTier() : UserTier.FREE;
         return TierInfoResponseDto.builder()
                 .userId(user.getId())
-                .tier(user.getTier())
-                .tierDescription(user.getTier().getDescription())
+                .tier(tier)
+                .tierDescription(tier.getDescription())
                 .dailyLimit(dailyLimit)
                 .todayUsedCount(todayUsedCount)
                 .remainingCount(remainingCount)
