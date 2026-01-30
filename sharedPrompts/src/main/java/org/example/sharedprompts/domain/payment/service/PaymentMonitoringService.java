@@ -38,7 +38,6 @@ public class PaymentMonitoringService {
      */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async
-    @EventListener
     public void handlePaymentFailed(PaymentEvent.PaymentFailed event) {
         log.warn("결제 실패 감지: paymentId={}, userId={}, reason={}, paymentMethod={}",
                 event.paymentId(), event.userId(), event.reason(), event.paymentMethod());
@@ -60,7 +59,6 @@ public class PaymentMonitoringService {
      */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async
-    @EventListener
     public void handlePaymentSucceeded(PaymentEvent.PaymentSucceeded event) {
         log.info("결제 성공: paymentId={}, userId={}, paymentMethod={}",
                 event.paymentId(), event.userId(), event.paymentMethod());
@@ -112,12 +110,10 @@ public class PaymentMonitoringService {
     public boolean isFailureRateExceeded(double threshold) {
         LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
 
-        long totalPayments = paymentRepository.countByUserIdAndDateAndStatus(
-                null, // 전체 사용자
+        long totalPayments = paymentRepository.countByDateAndStatus(
                 startOfDay,
                 PaymentStatus.SUCCESS
-        ) + paymentRepository.countByUserIdAndDateAndStatus(
-                null,
+        ) + paymentRepository.countByDateAndStatus(
                 startOfDay,
                 PaymentStatus.FAILED
         );
@@ -126,8 +122,7 @@ public class PaymentMonitoringService {
             return false;
         }
 
-        long failedPayments = paymentRepository.countByUserIdAndDateAndStatus(
-                null,
+        long failedPayments = paymentRepository.countByDateAndStatus(
                 startOfDay,
                 PaymentStatus.FAILED
         );
