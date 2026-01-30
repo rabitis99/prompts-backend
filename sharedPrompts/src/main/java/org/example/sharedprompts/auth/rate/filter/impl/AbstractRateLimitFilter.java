@@ -90,7 +90,8 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
         boolean shouldProceed = processRateLimitCheck(context, request, response);
         
         // filterChain.doFilter()는 최상위에서 단 1회만 호출
-        if (shouldProceed) {
+        // 응답이 이미 커밋되었는지 확인 (rate limit 초과 시 응답이 이미 작성되었을 수 있음)
+        if (shouldProceed && !response.isCommitted()) {
             filterChain.doFilter(request, response);
         }
     }
@@ -155,6 +156,13 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
                 context,
                 request
         );
+
+        // 응답이 이미 커밋되었는지 확인 (중복 처리 방지)
+        if (response.isCommitted()) {
+            logger.warn("Response already committed, skipping rate limit exceeded response. Request={}", 
+                    request.getRequestURI());
+            return;
+        }
 
         // Exceeded 응답 처리 (중복 로깅 방지를 위해 빈 콜백 전달)
         // Redis 키를 사용하여 정확한 TTL 조회

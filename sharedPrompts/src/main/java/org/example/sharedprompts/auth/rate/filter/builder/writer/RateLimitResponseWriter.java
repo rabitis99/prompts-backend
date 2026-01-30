@@ -92,6 +92,9 @@ public final class RateLimitResponseWriter {
 
         // 응답 본문 작성
         objectMapper.writeValue(response.getWriter(), body);
+        
+        // 응답 버퍼 플러시하여 응답 커밋 (필터 체인 중단을 위해 필수)
+        response.flushBuffer();
     }
 
     /**
