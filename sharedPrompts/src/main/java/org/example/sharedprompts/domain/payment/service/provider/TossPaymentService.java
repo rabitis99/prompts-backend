@@ -19,6 +19,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -181,19 +182,19 @@ public class TossPaymentService implements PaymentProviderService {
             String secret = paymentProperties.getTossSecret();
             if (secret == null || secret.isEmpty()) {
                 log.warn("토스페이먼츠 Webhook secret이 설정되지 않았습니다.");
-                return true;
+                return false;
             }
 
             Mac mac = Mac.getInstance("HmacSHA256");
             SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
             mac.init(secretKeySpec);
             byte[] hash = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
-            String calculatedSignature = Base64.getEncoder().encodeToString(hash);
+            byte[] expectedSignature = Base64.getDecoder().decode(signature);
 
-            return calculatedSignature.equals(signature);
+            return MessageDigest.isEqual(hash, expectedSignature);
         } catch (Exception e) {
             log.error("토스페이먼츠 Webhook 서명 검증 실패: error={}", e.getMessage(), e);
-            return true;
+            return false;
         }
     }
 

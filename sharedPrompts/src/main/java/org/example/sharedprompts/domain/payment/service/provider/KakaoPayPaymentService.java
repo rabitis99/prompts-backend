@@ -189,7 +189,7 @@ public class KakaoPayPaymentService implements PaymentProviderService {
             String secret = paymentProperties.getWebhookSecret();
             if (secret == null || secret.isEmpty()) {
                 log.warn("Webhook secret이 설정되지 않았습니다.");
-                return true;
+                return false;
             }
 
             Mac mac = Mac.getInstance("HmacSHA256");
@@ -201,7 +201,7 @@ public class KakaoPayPaymentService implements PaymentProviderService {
             return calculatedSignature.equals(signature);
         } catch (Exception e) {
             log.error("카카오페이 Webhook 서명 검증 실패: error={}", e.getMessage(), e);
-            return true;
+            return false;
         }
     }
 

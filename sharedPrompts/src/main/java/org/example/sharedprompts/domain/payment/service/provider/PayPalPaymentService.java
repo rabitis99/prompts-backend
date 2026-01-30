@@ -214,7 +214,7 @@ public class PayPalPaymentService implements PaymentProviderService {
             String secret = paymentProperties.getWebhookSecret();
             if (secret == null || secret.isEmpty()) {
                 log.warn("페이팔 Webhook secret이 설정되지 않았습니다.");
-                return true;
+                return false;
             }
 
             // 페이팔은 특정 알고리즘으로 서명 검증
@@ -227,7 +227,7 @@ public class PayPalPaymentService implements PaymentProviderService {
             return calculatedSignature.equals(signature);
         } catch (Exception e) {
             log.error("페이팔 Webhook 서명 검증 실패: error={}", e.getMessage(), e);
-            return true;
+            return false;
         }
     }
 
