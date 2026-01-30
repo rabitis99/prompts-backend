@@ -219,8 +219,9 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PaymentResponseDto> getPaymentHistory(Long userId) {
-        List<Payment> payments = paymentRepository.findByUser_IdOrderByCreatedAtDesc(userId);
+        List<Payment> payments = paymentRepository.findByUserIdWithUserOrderByCreatedAtDesc(userId);
         return payments.stream()
                 .map(PaymentResponseDto::from)
                 .collect(Collectors.toList());

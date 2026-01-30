@@ -57,6 +57,12 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByUser_IdOrderByCreatedAtDesc(Long userId);
 
     /**
+     * 사용자의 결제 목록 조회 (User 엔티티를 JOIN FETCH로 함께 로드)
+     */
+    @Query("SELECT p FROM Payment p JOIN FETCH p.user WHERE p.user.id = :userId ORDER BY p.createdAt DESC")
+    List<Payment> findByUserIdWithUserOrderByCreatedAtDesc(@Param("userId") Long userId);
+
+    /**
      * 특정 상태의 결제 목록 조회
      */
     List<Payment> findByStatusOrderByCreatedAtDesc(PaymentStatus status);
