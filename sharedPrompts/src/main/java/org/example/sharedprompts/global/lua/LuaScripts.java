@@ -31,9 +31,14 @@ public class LuaScripts {
      * Fixed Window Rate Limiting을 위해:
      * - 키가 없을 때만 EXPIRE를 설정합니다 (TTL 갱신 방지)
      * - 키가 이미 있으면 TTL을 변경하지 않아 윈도우가 정확히 리셋됩니다.
+     * - 현재 카운트와 TTL을 함께 반환하여 추가 Redis 호출을 방지합니다.
      *
      * KEYS[1] : 대상 key
      * ARGV[1] : TTL (seconds)
+     * 
+     * 반환값: [currentCount, ttl] 배열
+     * - currentCount: INCR 후의 현재 카운트 값
+     * - ttl: 키의 남은 TTL (초 단위), 키가 없거나 TTL이 없으면 -1
      */
     public static final String INCREMENT_WITH_TTL = """
         local key = KEYS[1]
@@ -47,7 +52,18 @@ public class LuaScripts {
             redis.call('EXPIRE', key, ttl)
         end
 
-        return newVal
+        -- TTL 조회 (초 단위)
+        local remainingTtl = redis.call('TTL', key)
+        if remainingTtl == -2 then
+            -- 키가 존재하지 않음 (이론적으로 발생하지 않아야 함)
+            remainingTtl = -1
+        elseif remainingTtl == -1 then
+            -- TTL이 설정되지 않음
+            remainingTtl = -1
+        end
+
+        -- [currentCount, ttl] 배열 반환
+        return {newVal, remainingTtl}
         """;
 
     /**
