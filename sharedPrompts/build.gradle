@@ -53,6 +53,8 @@ dependencies {
 
 	// Redis
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	// Redisson (분산락)
+	implementation 'org.redisson:redisson-spring-boot-starter:3.24.3'
 
 	// RabbitMQ
 	implementation 'org.springframework.boot:spring-boot-starter-amqp'

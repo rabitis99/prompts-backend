@@ -50,5 +50,15 @@ public interface PointRepository extends JpaRepository<Point, Long> {
             "ORDER BY p.createdAt DESC")
     List<Point> findByPaymentIdAndUserId(@Param("paymentId") Long paymentId,
                                          @Param("userId") Long userId);
+
+    /**
+     * 사용자의 마지막 포인트 내역 조회 (가장 최근 생성된 Point)
+     * 동시성 제어를 위해 사용됩니다.
+     * 
+     * @param userId 사용자 ID
+     * @return 가장 최근 생성된 Point (없으면 빈 리스트)
+     */
+    @Query("SELECT p FROM Point p WHERE p.user.id = :userId ORDER BY p.createdAt DESC, p.id DESC")
+    List<Point> findLatestPointByUserId(@Param("userId") Long userId);
 }
 
