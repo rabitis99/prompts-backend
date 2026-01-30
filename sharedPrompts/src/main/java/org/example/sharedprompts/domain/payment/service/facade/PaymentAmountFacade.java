@@ -108,7 +108,10 @@ public class PaymentAmountFacade {
         if (usedPointAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
-        
+
+        if (originalAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
         // 전체 환불인 경우 사용한 포인트를 다시 적립
         if (refundAmount.compareTo(originalAmount) >= 0) {
             // 전체 환불: 사용한 포인트 전액 환불
