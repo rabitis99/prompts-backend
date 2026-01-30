@@ -436,7 +436,7 @@ payment:
   fcm:
   enabled: ${PAYMENT_FCM_ENABLED:true}
   project-id: ${PAYMENT_FCM_PROJECT_ID:sharedprompt-8ed9d}
-  credentials-path: ${PAㅈYMENT_FCM_CREDENTIALS_PATH}
+  credentials-path: ${PAYMENT_FCM_CREDENTIALS_PATH}
 
 # =========================
 # 이메일 설정
