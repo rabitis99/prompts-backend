@@ -42,7 +42,9 @@ public class PaymentLoggingService {
     public void endTrace() {
         String traceId = MDC.get(TRACE_ID_KEY);
         log.info("결제 트레이싱 종료: traceId={}", traceId);
-        MDC.clear();
+        MDC.remove(TRACE_ID_KEY);
+        MDC.remove(PAYMENT_ID_KEY);
+        MDC.remove(USER_ID_KEY);
     }
 
     /**
