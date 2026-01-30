@@ -124,10 +124,11 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional
-    public PaymentStatusResponseDto checkPaymentStatus(String paymentId) {
-        Payment payment = paymentRepository.findById(Long.parseLong(paymentId))
+    public PaymentStatusResponseDto checkPaymentStatus(Long paymentId, Long userId) {
+        Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
+        validationFacade.validatePaymentOwnership(payment, userId);
         // 외부 결제사에서 최신 상태 조회
         PaymentStatus latestStatus = providerFacade.checkPaymentStatus(payment);
         

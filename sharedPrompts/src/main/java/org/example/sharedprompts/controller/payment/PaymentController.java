@@ -53,9 +53,10 @@ public class PaymentController {
      */
     @GetMapping("/{paymentId}/status")
     public ResponseEntity<CustomResponse<PaymentStatusResponseDto>> checkPaymentStatus(
-            @PathVariable String paymentId
+            @PathVariable Long paymentId,
+            @CurrentUser AuthUser authUser
     ) {
-        PaymentStatusResponseDto response = paymentService.checkPaymentStatus(paymentId);
+        PaymentStatusResponseDto response = paymentService.checkPaymentStatus(paymentId, authUser.getId());
         return CustomResponseHelper.ok(response);
     }
 

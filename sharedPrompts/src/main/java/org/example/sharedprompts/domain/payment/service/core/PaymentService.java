@@ -20,7 +20,7 @@ public interface PaymentService {
     /**
      * 결제 상태 조회
      */
-    PaymentStatusResponseDto checkPaymentStatus(String paymentId);
+    PaymentStatusResponseDto checkPaymentStatus(Long paymentId, Long userId);
 
     /**
      * 결제 취소
