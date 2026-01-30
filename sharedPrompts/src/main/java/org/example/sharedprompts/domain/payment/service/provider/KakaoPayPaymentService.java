@@ -17,6 +17,7 @@ import org.springframework.web.client.RestTemplate;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
@@ -58,7 +59,7 @@ public class KakaoPayPaymentService implements PaymentProviderService {
             requestBody.put("tid", payment.getExternalPaymentId() != null ? payment.getExternalPaymentId() : generateTid(payment));
             requestBody.put("partner_order_id", String.valueOf(payment.getId()));
             requestBody.put("partner_user_id", String.valueOf(payment.getUser().getId()));
-            requestBody.put("total_amount", payment.getAmount().intValue());
+            requestBody.put("total_amount", payment.getAmount().setScale(0, RoundingMode.HALF_UP).longValue());
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
