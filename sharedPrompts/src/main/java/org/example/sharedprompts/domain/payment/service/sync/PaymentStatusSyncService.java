@@ -75,8 +75,7 @@ public class PaymentStatusSyncService {
      * PaymentResult를 기반으로 Payment 상태 동기화
      * 도메인 중심 상태 변경 (Payment.markSuccess()/markFailed()/markCanceled() 호출)
      */
-    @Transactional
-    public void syncPaymentStatusFromResult(Payment payment, PaymentResult result) {
+    private void syncPaymentStatusFromResult(Payment payment, PaymentResult result) {
         PaymentStatus currentStatus = payment.getStatus();
         PaymentStatus latestStatus = result.getStatus();
         
