@@ -13,11 +13,10 @@ import org.example.sharedprompts.dto.payment.response.TierInfoResponseDto;
 import org.example.sharedprompts.dto.payment.response.UserTierHistoryResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 사용자 티어 서비스 구현체
@@ -92,11 +91,9 @@ public class UserTierServiceImpl implements UserTierService {
     }
 
     @Override
-    public List<UserTierHistoryResponseDto> getTierHistory(Long userId) {
-        List<UserTierHistory> histories = tierHistoryRepository.findByUser_IdOrderByCreatedAtDesc(userId);
-        return histories.stream()
-                .map(UserTierHistoryResponseDto::from)
-                .collect(Collectors.toList());
+    public Page<UserTierHistoryResponseDto> getTierHistory(Long userId, Pageable pageable) {
+        return tierHistoryRepository.findByUserIdWithFetchJoin(userId, pageable)
+                .map(UserTierHistoryResponseDto::from);
     }
 }
 

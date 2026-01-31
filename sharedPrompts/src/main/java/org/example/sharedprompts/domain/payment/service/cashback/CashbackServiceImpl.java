@@ -9,13 +9,13 @@ import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.dto.payment.response.CashbackResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 캐시백 서비스 구현체
@@ -30,12 +30,9 @@ public class CashbackServiceImpl implements CashbackService {
     private final UserRepository userRepository;
 
     @Override
-    public List<CashbackResponseDto> getCashbackHistory(Long customerId) {
-        return cashbackRepository
-                .findByUser_IdOrderByCreatedAtDesc(customerId)
-                .stream()
-                .map(CashbackResponseDto::from)
-                .toList();
+    public Page<CashbackResponseDto> getCashbackHistory(Long customerId, Pageable pageable) {
+        return cashbackRepository.findByUserIdWithFetchJoin(customerId, pageable)
+                .map(CashbackResponseDto::from);
     }
 
     @Override
@@ -90,11 +87,9 @@ public class CashbackServiceImpl implements CashbackService {
     }
 
     @Override
-    public List<CashbackResponseDto> getUnpaidCashbacks(Long customerId) {
-        return cashbackRepository.findByUser_IdAndPaidFalseOrderByCreatedAtAsc(customerId)
-                .stream()
-                .map(CashbackResponseDto::from)
-                .collect(Collectors.toList());
+    public Page<CashbackResponseDto> getUnpaidCashbacks(Long customerId, Pageable pageable) {
+        return cashbackRepository.findUnpaidByUserIdWithFetchJoin(customerId, pageable)
+                .map(CashbackResponseDto::from);
     }
 
     @Override

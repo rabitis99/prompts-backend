@@ -12,10 +12,10 @@ import org.example.sharedprompts.dto.comment.request.CommentUpdateDto;
 import org.example.sharedprompts.dto.comment.response.CommentResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -47,14 +47,12 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CommentResponseDto> getCommentsByPrompt(Long promptId) {
+    public Page<CommentResponseDto> getCommentsByPrompt(Long promptId, Pageable pageable) {
         Prompt prompt = getPrompt(promptId);
 
-        List<Comment> rootComments = commentRepository.findAllByPrompt(prompt);
+        Page<Comment> rootComments = commentRepository.findRootCommentsByPrompt(prompt, pageable);
 
-        return rootComments.stream()
-                .map(CommentResponseDto::from)
-                .toList();
+        return rootComments.map(CommentResponseDto::from);
     }
 
     @Override

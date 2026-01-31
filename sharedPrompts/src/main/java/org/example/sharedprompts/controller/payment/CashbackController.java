@@ -8,12 +8,13 @@ import org.example.sharedprompts.domain.payment.repository.CashbackRepository;
 import org.example.sharedprompts.dto.payment.response.CashbackResponseDto;
 import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.dto.common.CustomResponseHelper;
+import org.example.sharedprompts.dto.common.PageResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.stream.Collectors;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 
 /**
  * 캐시백 컨트롤러
@@ -30,10 +31,11 @@ public class CashbackController {
      * GET /cashbacks/history
      */
     @GetMapping("/history")
-    public ResponseEntity<CustomResponse<List<CashbackResponseDto>>> getCashbackHistory(
-            @CurrentUser AuthUser authUser
+    public ResponseEntity<CustomResponse<PageResponse<CashbackResponseDto>>> getCashbackHistory(
+            @CurrentUser AuthUser authUser,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
-        List<CashbackResponseDto> response = cashbackService.getCashbackHistory(authUser.getId());
+        PageResponse<CashbackResponseDto> response = PageResponse.of(cashbackService.getCashbackHistory(authUser.getId(), pageable));
         return CustomResponseHelper.ok(response);
     }
 
@@ -54,10 +56,11 @@ public class CashbackController {
      * GET /cashbacks/unpaid
      */
     @GetMapping("/unpaid")
-    public ResponseEntity<CustomResponse<List<CashbackResponseDto>>> getUnpaidCashbacks(
-            @CurrentUser AuthUser authUser
+    public ResponseEntity<CustomResponse<PageResponse<CashbackResponseDto>>> getUnpaidCashbacks(
+            @CurrentUser AuthUser authUser,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
-        List<CashbackResponseDto> response = cashbackService.getUnpaidCashbacks(authUser.getId());
+        PageResponse<CashbackResponseDto> response = PageResponse.of(cashbackService.getUnpaidCashbacks(authUser.getId(), pageable));
         return CustomResponseHelper.ok(response);
     }
 

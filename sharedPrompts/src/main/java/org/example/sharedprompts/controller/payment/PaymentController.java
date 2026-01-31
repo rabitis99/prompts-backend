@@ -18,12 +18,14 @@ import org.example.sharedprompts.dto.payment.response.TierInfoResponseDto;
 import org.example.sharedprompts.dto.payment.response.UserTierHistoryResponseDto;
 import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.dto.common.CustomResponseHelper;
+import org.example.sharedprompts.dto.common.PageResponse;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 
 /**
  * 결제 컨트롤러
@@ -122,10 +124,11 @@ public class PaymentController {
      * GET /payments/history
      */
     @GetMapping("/history")
-    public ResponseEntity<CustomResponse<List<PaymentResponseDto>>> getPaymentHistory(
-            @CurrentUser AuthUser authUser
+    public ResponseEntity<CustomResponse<PageResponse<PaymentResponseDto>>> getPaymentHistory(
+            @CurrentUser AuthUser authUser,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
-        List<PaymentResponseDto> response = paymentService.getPaymentHistory(authUser.getId());
+        PageResponse<PaymentResponseDto> response = PageResponse.of(paymentService.getPaymentHistory(authUser.getId(), pageable));
         return CustomResponseHelper.ok(response);
     }
 
@@ -134,15 +137,16 @@ public class PaymentController {
      * GET /payments/users/{userId}/tier-history
      */
     @GetMapping("/users/{userId}/tier-history")
-    public ResponseEntity<CustomResponse<List<UserTierHistoryResponseDto>>> getTierHistory(
+    public ResponseEntity<CustomResponse<PageResponse<UserTierHistoryResponseDto>>> getTierHistory(
             @PathVariable Long userId,
-            @CurrentUser AuthUser authUser
+            @CurrentUser AuthUser authUser,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
         // 자신의 정보만 조회 가능
         if (!authUser.getId().equals(userId)) {
             throw new ApiException(ErrorCode.FORBIDDEN);
         }
-        List<UserTierHistoryResponseDto> response = userTierService.getTierHistory(userId);
+        PageResponse<UserTierHistoryResponseDto> response = PageResponse.of(userTierService.getTierHistory(userId, pageable));
         return CustomResponseHelper.ok(response);
     }
 

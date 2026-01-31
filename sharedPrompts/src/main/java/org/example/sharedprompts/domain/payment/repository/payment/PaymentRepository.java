@@ -13,7 +13,7 @@ import java.util.Optional;
 /**
  * 결제 Repository
  */
-public interface PaymentRepository extends JpaRepository<Payment, Long> {
+public interface PaymentRepository extends JpaRepository<Payment, Long>, CustomPaymentRepository {
 
     /**
      * 외부 결제 ID로 조회

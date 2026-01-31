@@ -10,10 +10,12 @@ import org.example.sharedprompts.dto.payment.response.PointBalanceResponseDto;
 import org.example.sharedprompts.dto.payment.response.PointResponseDto;
 import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.dto.common.CustomResponseHelper;
+import org.example.sharedprompts.dto.common.PageResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 
 /**
  * 포인트 컨트롤러
@@ -42,10 +44,11 @@ public class PointController {
      * GET /points/history
      */
     @GetMapping("/history")
-    public ResponseEntity<CustomResponse<List<PointResponseDto>>> getPointHistory(
-            @CurrentUser AuthUser authUser
+    public ResponseEntity<CustomResponse<PageResponse<PointResponseDto>>> getPointHistory(
+            @CurrentUser AuthUser authUser,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
-        List<PointResponseDto> response = pointService.getPointHistory(authUser.getId());
+        PageResponse<PointResponseDto> response = PageResponse.of(pointService.getPointHistory(authUser.getId(), pageable));
         return CustomResponseHelper.ok(response);
     }
 
@@ -68,11 +71,12 @@ public class PointController {
      * GET /points/payment/{paymentId}
      */
     @GetMapping("/payment/{paymentId}")
-    public ResponseEntity<CustomResponse<List<PointResponseDto>>> getPointsByPayment(
+    public ResponseEntity<CustomResponse<PageResponse<PointResponseDto>>> getPointsByPayment(
             @PathVariable Long paymentId,
-            @CurrentUser AuthUser authUser
+            @CurrentUser AuthUser authUser,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
-        List<PointResponseDto> response = pointService.getPointsByPayment(paymentId, authUser.getId());
+        PageResponse<PointResponseDto> response = PageResponse.of(pointService.getPointsByPayment(paymentId, authUser.getId(), pageable));
         return CustomResponseHelper.ok(response);
     }
 }

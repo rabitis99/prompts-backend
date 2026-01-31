@@ -1,15 +1,16 @@
 package org.example.sharedprompts.domain.payment.service.cashback;
 
 import org.example.sharedprompts.dto.payment.response.CashbackResponseDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 /**
  * 캐시백 서비스 인터페이스
  */
 public interface CashbackService {
-    List<CashbackResponseDto> getCashbackHistory(Long customerId);
+    Page<CashbackResponseDto> getCashbackHistory(Long customerId, Pageable pageable);
     /**
      * 캐시백 적립
      */
@@ -20,7 +21,7 @@ public interface CashbackService {
      */
     void payCashback(Long userId, Long cashbackId);
 
-    List<CashbackResponseDto> getUnpaidCashbacks(Long customerId);
+    Page<CashbackResponseDto> getUnpaidCashbacks(Long customerId, Pageable pageable);
     /**
      * 미지급 캐시백 총액 조회
      */

@@ -13,7 +13,7 @@ import java.util.Optional;
 /**
  * 포인트 Repository
  */
-public interface PointRepository extends JpaRepository<Point, Long> {
+public interface PointRepository extends JpaRepository<Point, Long>, CustomPointRepository {
 
     /**
      * 사용자의 현재 포인트 잔액 조회
@@ -54,7 +54,7 @@ public interface PointRepository extends JpaRepository<Point, Long> {
     /**
      * 사용자의 마지막 포인트 내역 조회 (가장 최근 생성된 Point)
      * 동시성 제어를 위해 사용됩니다.
-     * 
+     *
      * @param userId 사용자 ID
      * @return 가장 최근 생성된 Point (없으면 빈 리스트)
      */

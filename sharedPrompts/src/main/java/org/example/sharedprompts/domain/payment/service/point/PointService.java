@@ -2,9 +2,10 @@ package org.example.sharedprompts.domain.payment.service.point;
 
 import org.example.sharedprompts.dto.payment.response.PointBalanceResponseDto;
 import org.example.sharedprompts.dto.payment.response.PointResponseDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 /**
  * 포인트 서비스 인터페이스
@@ -34,11 +35,11 @@ public interface PointService {
     /**
      * 포인트 내역 조회
      */
-    List<PointResponseDto> getPointHistory(Long userId);
+    Page<PointResponseDto> getPointHistory(Long userId, Pageable pageable);
 
     /**
      * 결제와 연관된 포인트 조회
      */
-    List<PointResponseDto> getPointsByPayment(Long paymentId, Long userId);
+    Page<PointResponseDto> getPointsByPayment(Long paymentId, Long userId, Pageable pageable);
 }
 

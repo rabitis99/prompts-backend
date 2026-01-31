@@ -17,6 +17,8 @@ import org.example.sharedprompts.dto.payment.response.PointBalanceResponseDto;
 import org.example.sharedprompts.dto.payment.response.PointResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +29,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * 포인트 서비스 구현체
@@ -96,23 +97,20 @@ public class PointServiceImpl implements PointService {
     }
 
     @Override
-    public List<PointResponseDto> getPointHistory(Long userId) {
-        return pointRepository.findByUser_IdOrderByCreatedAtDesc(userId)
-                .stream()
-                .map(PointResponseDto::from)
-                .collect(Collectors.toList());
+    public Page<PointResponseDto> getPointHistory(Long userId, Pageable pageable) {
+        return pointRepository.findByUserIdWithFetchJoin(userId, pageable)
+                .map(PointResponseDto::from);
     }
 
-    public List<PointResponseDto> getPointsByPayment(Long paymentId, Long userId) {
-        List<Point> points = pointRepository.findByPaymentIdAndUserId(paymentId, userId);
+    @Override
+    public Page<PointResponseDto> getPointsByPayment(Long paymentId, Long userId, Pageable pageable) {
+        Page<Point> points = pointRepository.findByPaymentIdAndUserIdWithFetchJoin(paymentId, userId, pageable);
 
         if (points.isEmpty()) {
             throw new ApiException(ErrorCode.FORBIDDEN_ACCESS);
         }
 
-        return points.stream()
-                .map(PointResponseDto::from)
-                .collect(Collectors.toList());
+        return points.map(PointResponseDto::from);
     }
 
     // ============ Lock Management ============

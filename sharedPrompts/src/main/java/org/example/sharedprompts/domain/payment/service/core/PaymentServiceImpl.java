@@ -21,12 +21,12 @@ import org.example.sharedprompts.dto.payment.response.PaymentResponseDto;
 import org.example.sharedprompts.dto.payment.response.PaymentStatusResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 결제 서비스 구현체
@@ -222,11 +222,9 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PaymentResponseDto> getPaymentHistory(Long userId) {
-        List<Payment> payments = paymentRepository.findByUserIdWithUserOrderByCreatedAtDesc(userId);
-        return payments.stream()
-                .map(PaymentResponseDto::from)
-                .collect(Collectors.toList());
+    public Page<PaymentResponseDto> getPaymentHistory(Long userId, Pageable pageable) {
+        return paymentRepository.findByUserIdWithFetchJoin(userId, pageable)
+                .map(PaymentResponseDto::from);
     }
 
     @Override

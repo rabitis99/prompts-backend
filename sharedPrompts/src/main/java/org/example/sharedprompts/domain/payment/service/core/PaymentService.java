@@ -7,6 +7,8 @@ import org.example.sharedprompts.dto.payment.request.PaymentRequestDto;
 import org.example.sharedprompts.dto.payment.response.PaymentConfirmResponse;
 import org.example.sharedprompts.dto.payment.response.PaymentResponseDto;
 import org.example.sharedprompts.dto.payment.response.PaymentStatusResponseDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
  * 결제 서비스 인터페이스
@@ -37,7 +39,7 @@ public interface PaymentService {
     /**
      * 사용자의 결제 내역 조회
      */
-    java.util.List<PaymentResponseDto> getPaymentHistory(Long userId);
+    Page<PaymentResponseDto> getPaymentHistory(Long userId, Pageable pageable);
 
     /**
      * 결제 승인 (토스페이먼츠 등 결제사별 승인 처리)

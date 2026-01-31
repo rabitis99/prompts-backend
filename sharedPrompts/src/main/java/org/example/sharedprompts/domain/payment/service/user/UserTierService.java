@@ -3,6 +3,9 @@ package org.example.sharedprompts.domain.payment.service.user;
 import org.example.sharedprompts.domain.payment.enums.UserTier;
 import org.example.sharedprompts.dto.payment.request.TierChangeRequestDto;
 import org.example.sharedprompts.dto.payment.response.TierInfoResponseDto;
+import org.example.sharedprompts.dto.payment.response.UserTierHistoryResponseDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
  * 사용자 티어 서비스 인터페이스
@@ -32,6 +35,6 @@ public interface UserTierService {
     /**
      * 사용자의 티어 변경 이력 조회
      */
-    java.util.List<org.example.sharedprompts.dto.payment.response.UserTierHistoryResponseDto> getTierHistory(Long userId);
+    Page<UserTierHistoryResponseDto> getTierHistory(Long userId, Pageable pageable);
 }
 
