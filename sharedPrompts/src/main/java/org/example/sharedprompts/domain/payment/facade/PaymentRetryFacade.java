@@ -73,26 +73,31 @@ public class PaymentRetryFacade {
     
     /**
      * 재시도 가능한 결제 일괄 처리
-     * 
+     *
+     * <p>각 재시도는 독립적인 트랜잭션에서 실행됨
+     * - 개별 재시도 실패가 다른 재시도에 영향을 주지 않음
+     * - retryPayment()의 @Transactional이 각각 적용됨
+     *
      * @return 처리된 결제 수
      */
-    @Transactional
     public int processRetryablePayments() {
         List<Payment> retryablePayments = findRetryablePayments();
         int processedCount = 0;
-        
+
         for (Payment payment : retryablePayments) {
+            Long paymentId = payment.getId();
+            int previousRetryCount = payment.getRetryCount();
             try {
-                retryPayment(payment.getId());
+                retryPayment(paymentId);
                 processedCount++;
-                log.info("결제 재시도 성공: paymentId={}, retryCount={}", 
-                        payment.getId(), payment.getRetryCount());
+                log.info("결제 재시도 성공: paymentId={}, retryCount={}",
+                        paymentId, previousRetryCount + 1);
             } catch (Exception e) {
-                log.error("결제 재시도 실패: paymentId={}, error={}", 
-                        payment.getId(), e.getMessage(), e);
+                log.error("결제 재시도 실패: paymentId={}, error={}",
+                        paymentId, e.getMessage(), e);
             }
         }
-        
+
         return processedCount;
     }
 }

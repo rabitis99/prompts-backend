@@ -229,14 +229,15 @@ public class Payment extends BaseEntity {
 
     /**
      * Webhook 결과 적용
-     * 
+     *
      * <p>Webhook에서 받은 PaymentResult를 기반으로 상태 변경
-     * 
+     *
      * @param externalPaymentId 외부 결제 ID
      * @param status 결제 상태
      * @param approvedAt 승인 시간 (선택)
+     * @param failureReason 실패 사유 (선택, 외부 결제사에서 제공)
      */
-    public void applyWebhookResult(String externalPaymentId, PaymentStatus status, LocalDateTime approvedAt) {
+    public void applyWebhookResult(String externalPaymentId, PaymentStatus status, LocalDateTime approvedAt, String failureReason) {
         this.externalPaymentId = externalPaymentId;
         this.status = status;
         if (approvedAt != null) {
@@ -246,7 +247,7 @@ public class Payment extends BaseEntity {
             this.approvedAt = LocalDateTime.now();
         }
         if (status == PaymentStatus.FAILED) {
-            this.failureReason = "Webhook에서 결제 실패 확인";
+            this.failureReason = failureReason != null ? failureReason : "Webhook에서 결제 실패 확인";
         }
     }
 }

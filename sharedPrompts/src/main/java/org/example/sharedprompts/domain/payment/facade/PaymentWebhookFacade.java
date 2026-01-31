@@ -81,7 +81,8 @@ public class PaymentWebhookFacade {
         payment.applyWebhookResult(
                 paymentResult.getExternalPaymentId(),
                 paymentResult.getStatus(),
-                paymentResult.getApprovedAt()
+                paymentResult.getApprovedAt(),
+                paymentResult.getFailureReason()
         );
     }
 }

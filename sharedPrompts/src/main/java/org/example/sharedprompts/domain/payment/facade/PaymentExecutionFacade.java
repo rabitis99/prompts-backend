@@ -81,8 +81,8 @@ public class PaymentExecutionFacade {
             payment.markFailed(result.getFailureReason() != null ? result.getFailureReason() : "결제 승인 실패");
         }
         
-        payment = paymentRepository.save(payment);
-        
+        paymentRepository.save(payment);
+
         return result;
     }
     
@@ -124,23 +124,30 @@ public class PaymentExecutionFacade {
     
     /**
      * 멱등성 키 생성
+     *
+     * <p>결정론적 키 생성: 동일한 Payment에 대해 항상 같은 키 반환
+     * - 기존에 저장된 idempotencyKey가 있으면 재사용
+     * - 없으면 paymentMethod:paymentId 형식으로 생성
      */
     private String generateIdempotencyKey(Payment payment) {
-        return String.format("%s:%s:%d", 
-                payment.getPaymentMethod().name(), 
-                payment.getId(), 
-                System.currentTimeMillis());
+        if (payment.getIdempotencyKey() != null) {
+            return payment.getIdempotencyKey();
+        }
+        return String.format("%s:%s",
+                payment.getPaymentMethod().name(),
+                payment.getId());
     }
-    
+
     /**
      * 멱등성 키 생성 (액션 포함)
+     *
+     * <p>취소/환불 등 특정 액션에 대한 결정론적 키 생성
      */
     private String generateIdempotencyKey(Payment payment, String action) {
-        return String.format("%s:%s:%s:%d", 
-                payment.getPaymentMethod().name(), 
-                payment.getId(), 
-                action,
-                System.currentTimeMillis());
+        return String.format("%s:%s:%s",
+                payment.getPaymentMethod().name(),
+                payment.getId(),
+                action);
     }
 }
 
