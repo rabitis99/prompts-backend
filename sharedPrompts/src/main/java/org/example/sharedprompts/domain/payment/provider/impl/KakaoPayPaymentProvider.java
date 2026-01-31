@@ -6,7 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.PaymentProperties;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
+import org.example.sharedprompts.domain.payment.model.CancelResult;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
+import org.example.sharedprompts.domain.payment.model.RefundResult;
 import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.*;
@@ -159,68 +161,97 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
     }
     
     @Override
-    public void cancelPayment(String externalPaymentId, String reason, String idempotencyKey) {
+    public CancelResult cancelPayment(String externalPaymentId, String reason, String idempotencyKey) {
         try {
             HttpHeaders headers = createHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            
+
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("cid", paymentProperties.getKakaoCid());
             requestBody.put("tid", externalPaymentId);
             requestBody.put("cancel_amount", null); // 전체 취소
             requestBody.put("cancel_tax_free_amount", 0);
             requestBody.put("cancel_reason", reason);
-            
+
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
-            
+
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     KAKAO_PAY_API_URL + "/cancel",
                     HttpMethod.POST,
                     request,
                     new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
             );
-            
-            if (response.getStatusCode() == HttpStatus.OK) {
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> responseBody = response.getBody();
                 log.info("KakaoPay 결제 취소 성공: externalPaymentId={}", externalPaymentId);
+
+                return CancelResult.builder()
+                        .externalPaymentId(externalPaymentId)
+                        .status(PaymentStatus.CANCELED)
+                        .canceledAt(LocalDateTime.now())
+                        .reason(reason)
+                        .metadata(objectMapper.writeValueAsString(responseBody))
+                        .build();
             } else {
                 throw new RuntimeException("KakaoPay 결제 취소 실패: " + response.getStatusCode());
             }
         } catch (Exception e) {
-            log.error("KakaoPay 결제 취소 실패: externalPaymentId={}, error={}", 
+            log.error("KakaoPay 결제 취소 실패: externalPaymentId={}, error={}",
                     externalPaymentId, e.getMessage(), e);
             throw new RuntimeException("KakaoPay 결제 취소 실패", e);
         }
     }
     
     @Override
-    public void refundPayment(String externalPaymentId, BigDecimal amount, String reason, String idempotencyKey) {
+    public RefundResult refundPayment(String externalPaymentId, BigDecimal amount, String reason, String idempotencyKey) {
         try {
             HttpHeaders headers = createHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            
+
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("cid", paymentProperties.getKakaoCid());
             requestBody.put("tid", externalPaymentId);
             requestBody.put("cancel_amount", amount.intValue());
             requestBody.put("cancel_tax_free_amount", 0);
             requestBody.put("cancel_reason", reason);
-            
+
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
-            
+
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     KAKAO_PAY_API_URL + "/cancel",
                     HttpMethod.POST,
                     request,
                     new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
             );
-            
-            if (response.getStatusCode() == HttpStatus.OK) {
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> responseBody = response.getBody();
                 log.info("KakaoPay 결제 환불 성공: externalPaymentId={}, amount={}", externalPaymentId, amount);
+
+                // 응답에서 실제 환불 금액 추출 (canceled_amount 필드)
+                BigDecimal refundedAmount = amount;
+                if (responseBody.get("canceled_amount") != null) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> canceledAmount = (Map<String, Object>) responseBody.get("canceled_amount");
+                    if (canceledAmount.get("total") != null) {
+                        refundedAmount = new BigDecimal(canceledAmount.get("total").toString());
+                    }
+                }
+
+                return RefundResult.builder()
+                        .externalPaymentId(externalPaymentId)
+                        .status(PaymentStatus.PARTIALLY_REFUNDED)
+                        .refundedAmount(refundedAmount)
+                        .refundedAt(LocalDateTime.now())
+                        .reason(reason)
+                        .metadata(objectMapper.writeValueAsString(responseBody))
+                        .build();
             } else {
                 throw new RuntimeException("KakaoPay 결제 환불 실패: " + response.getStatusCode());
             }
         } catch (Exception e) {
-            log.error("KakaoPay 결제 환불 실패: externalPaymentId={}, amount={}, error={}", 
+            log.error("KakaoPay 결제 환불 실패: externalPaymentId={}, amount={}, error={}",
                     externalPaymentId, amount, e.getMessage(), e);
             throw new RuntimeException("KakaoPay 결제 환불 실패", e);
         }

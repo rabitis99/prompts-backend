@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
+import org.example.sharedprompts.domain.payment.model.CancelResult;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
+import org.example.sharedprompts.domain.payment.model.RefundResult;
 import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
 import org.example.sharedprompts.domain.payment.provider.PaymentProviderFactory;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
@@ -88,37 +90,51 @@ public class PaymentExecutionFacade {
     
     /**
      * 결제 취소 실행
+     *
+     * @throws ApiException 취소 실패 시
      */
     @Transactional
     public void executeCancel(Payment payment, String reason) {
         if (payment.getExternalPaymentId() == null) {
             throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "외부 결제 ID가 없습니다.");
         }
-        
+
         String idempotencyKey = generateIdempotencyKey(payment, "cancel");
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
-        
-        provider.cancelPayment(payment.getExternalPaymentId(), reason, idempotencyKey);
-        
+
+        CancelResult result = provider.cancelPayment(payment.getExternalPaymentId(), reason, idempotencyKey);
+
+        if (!result.isSuccess()) {
+            throw new ApiException(ErrorCode.PAYMENT_CANCEL_FAILED, "결제 취소 실패");
+        }
+
         payment.markCanceled();
         paymentRepository.save(payment);
     }
     
     /**
      * 결제 환불 실행
+     *
+     * @throws ApiException 환불 실패 시
      */
     @Transactional
     public void executeRefund(Payment payment, BigDecimal refundAmount, String reason) {
         if (payment.getExternalPaymentId() == null) {
             throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "외부 결제 ID가 없습니다.");
         }
-        
+
         String idempotencyKey = generateIdempotencyKey(payment, "refund");
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
-        
-        provider.refundPayment(payment.getExternalPaymentId(), refundAmount, reason, idempotencyKey);
-        
-        payment.refund(refundAmount);
+
+        RefundResult result = provider.refundPayment(payment.getExternalPaymentId(), refundAmount, reason, idempotencyKey);
+
+        if (!result.isSuccess()) {
+            throw new ApiException(ErrorCode.PAYMENT_REFUND_FAILED, "결제 환불 실패");
+        }
+
+        // 실제 환불된 금액으로 업데이트 (결제사 응답 기준)
+        BigDecimal actualRefundedAmount = result.getRefundedAmount() != null ? result.getRefundedAmount() : refundAmount;
+        payment.refund(actualRefundedAmount);
         paymentRepository.save(payment);
     }
     

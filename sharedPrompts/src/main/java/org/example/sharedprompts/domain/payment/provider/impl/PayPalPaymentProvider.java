@@ -6,7 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.PaymentProperties;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
+import org.example.sharedprompts.domain.payment.model.CancelResult;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
+import org.example.sharedprompts.domain.payment.model.RefundResult;
 import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.*;
@@ -201,78 +203,108 @@ public class PayPalPaymentProvider implements PaymentProvider {
     }
     
     @Override
-    public void cancelPayment(String externalPaymentId, String reason, String idempotencyKey) {
+    public CancelResult cancelPayment(String externalPaymentId, String reason, String idempotencyKey) {
         try {
             String accessToken = getAccessToken();
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(accessToken);
             headers.setContentType(MediaType.APPLICATION_JSON);
-            
+
             Map<String, String> requestBody = new HashMap<>();
             requestBody.put("reason", reason);
-            
+
             HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, headers);
-            
+
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     PAYPAL_ORDERS_URL + "/" + externalPaymentId + "/cancel",
                     HttpMethod.POST,
                     request,
                     new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
             );
-            
+
             if (response.getStatusCode() == HttpStatus.NO_CONTENT || response.getStatusCode() == HttpStatus.OK) {
                 log.info("PayPal 결제 취소 성공: externalPaymentId={}", externalPaymentId);
+
+                String metadata = response.getBody() != null ? objectMapper.writeValueAsString(response.getBody()) : null;
+                return CancelResult.builder()
+                        .externalPaymentId(externalPaymentId)
+                        .status(PaymentStatus.CANCELED)
+                        .canceledAt(LocalDateTime.now())
+                        .reason(reason)
+                        .metadata(metadata)
+                        .build();
             } else {
                 throw new RuntimeException("PayPal 결제 취소 실패: " + response.getStatusCode());
             }
         } catch (Exception e) {
-            log.error("PayPal 결제 취소 실패: externalPaymentId={}, error={}", 
+            log.error("PayPal 결제 취소 실패: externalPaymentId={}, error={}",
                     externalPaymentId, e.getMessage(), e);
             throw new RuntimeException("PayPal 결제 취소 실패", e);
         }
     }
     
     @Override
-    public void refundPayment(String externalPaymentId, BigDecimal amount, String reason, String idempotencyKey) {
+    public RefundResult refundPayment(String externalPaymentId, BigDecimal amount, String reason, String idempotencyKey) {
         try {
             String accessToken = getAccessToken();
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(accessToken);
             headers.setContentType(MediaType.APPLICATION_JSON);
-            
+
             // 주문에서 캡처 ID와 통화 코드 조회
             CaptureInfo captureInfo = getCaptureIdAndCurrency(externalPaymentId, accessToken);
             String captureId = captureInfo.captureId();
             String currency = captureInfo.currency();
-            
+
             Map<String, Object> requestBody = new HashMap<>();
             Map<String, Object> amountMap = new HashMap<>();
             amountMap.put("currency_code", currency);
             amountMap.put("value", amount.toString());
             requestBody.put("amount", amountMap);
             requestBody.put("note_to_payer", reason);
-            
+
             // 멱등성 키
             if (idempotencyKey != null) {
                 headers.set("PayPal-Request-Id", idempotencyKey);
             }
-            
+
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
-            
+
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     PAYPAL_API_URL + "/v2/payments/captures/" + captureId + "/refund",
                     HttpMethod.POST,
                     request,
                     new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
             );
-            
-            if (response.getStatusCode() == HttpStatus.CREATED || response.getStatusCode() == HttpStatus.OK) {
+
+            if ((response.getStatusCode() == HttpStatus.CREATED || response.getStatusCode() == HttpStatus.OK)
+                    && response.getBody() != null) {
+                Map<String, Object> responseBody = response.getBody();
                 log.info("PayPal 결제 환불 성공: externalPaymentId={}, amount={}", externalPaymentId, amount);
+
+                // 응답에서 실제 환불 금액 추출
+                BigDecimal refundedAmount = amount;
+                if (responseBody.get("amount") != null) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> refundAmountMap = (Map<String, Object>) responseBody.get("amount");
+                    if (refundAmountMap.get("value") != null) {
+                        refundedAmount = new BigDecimal(refundAmountMap.get("value").toString());
+                    }
+                }
+
+                return RefundResult.builder()
+                        .externalPaymentId(externalPaymentId)
+                        .status(PaymentStatus.PARTIALLY_REFUNDED)
+                        .refundedAmount(refundedAmount)
+                        .refundedAt(LocalDateTime.now())
+                        .reason(reason)
+                        .metadata(objectMapper.writeValueAsString(responseBody))
+                        .build();
             } else {
                 throw new RuntimeException("PayPal 결제 환불 실패: " + response.getStatusCode());
             }
         } catch (Exception e) {
-            log.error("PayPal 결제 환불 실패: externalPaymentId={}, amount={}, error={}", 
+            log.error("PayPal 결제 환불 실패: externalPaymentId={}, amount={}, error={}",
                     externalPaymentId, amount, e.getMessage(), e);
             throw new RuntimeException("PayPal 결제 환불 실패", e);
         }
