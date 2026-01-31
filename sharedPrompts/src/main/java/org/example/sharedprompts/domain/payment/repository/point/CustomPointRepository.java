@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.payment.repository;
+package org.example.sharedprompts.domain.payment.repository.point;
 
 import org.example.sharedprompts.domain.payment.Point;
 import org.springframework.data.domain.Page;

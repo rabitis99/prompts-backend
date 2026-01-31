@@ -10,6 +10,7 @@ import org.example.sharedprompts.auth.oauth.util.PrincipalDetailsExtractor;
 import org.example.sharedprompts.auth.jwt.model.PrincipalDetails;
 import org.example.sharedprompts.global.redis.TokenRedisService;
 import org.example.sharedprompts.global.util.RandomGenerator;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -56,7 +57,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         );
 
         log.debug("OAuth2 임시 인증 세션 생성 완료: tempKey={}, provider={}", 
-                tempKey, provider);
+                SensitiveDataMasker.maskToken(tempKey), provider);
 
         String redirectUrl = OAuth2RedirectUrlBuilder.buildCallbackUrl(frontRedirectUrl, tempKey, state);
         response.sendRedirect(redirectUrl);

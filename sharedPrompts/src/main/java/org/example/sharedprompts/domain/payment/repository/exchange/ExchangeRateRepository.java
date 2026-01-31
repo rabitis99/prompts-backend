@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.payment.repository;
+package org.example.sharedprompts.domain.payment.repository.exchange;
 
 import org.example.sharedprompts.domain.payment.ExchangeRate;
 import org.springframework.data.jpa.repository.JpaRepository;

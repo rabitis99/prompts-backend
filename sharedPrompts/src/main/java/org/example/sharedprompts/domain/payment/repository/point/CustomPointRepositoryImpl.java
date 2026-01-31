@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.payment.repository;
+package org.example.sharedprompts.domain.payment.repository.point;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;

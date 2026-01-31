@@ -117,15 +117,17 @@ public class TokenRedisServiceImpl implements TokenRedisService {
                     redisTemplate.opsForHash().putAll(redisKey, sessionData);
                     redisTemplate.expire(redisKey, ttl);
                     
-                    log.debug("OAuth2 임시 인증 세션 저장 완료: tempKey={}, provider={}", tempKey, provider);
+                    log.debug("OAuth2 임시 인증 세션 저장 완료: tempKey={}, provider={}", 
+                            SensitiveDataMasker.maskToken(tempKey), provider);
                 },
-                "OAuth2 임시 인증 세션 저장: tempKey=" + tempKey
+                "OAuth2 임시 인증 세션 저장: tempKey=" + SensitiveDataMasker.maskToken(tempKey)
         );
     }
     
     private void saveOAuth2TempSessionFallback(String tempKey, String provider, String providerId, 
                                                 String state, Duration ttl, Exception e) {
-        log.error("Circuit Breaker Open: OAuth2 임시 인증 세션 저장 실패 (Redis 장애) - tempKey={}", tempKey, e);
+        log.error("Circuit Breaker Open: OAuth2 임시 인증 세션 저장 실패 (Redis 장애) - tempKey={}", 
+                SensitiveDataMasker.maskToken(tempKey), e);
         throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, "Redis 장애로 인해 OAuth2 임시 인증 세션 저장에 실패했습니다.");
     }
 
@@ -151,16 +153,23 @@ public class TokenRedisServiceImpl implements TokenRedisService {
                         }
                     }
                     
-                    log.debug("OAuth2 임시 인증 세션 조회 및 삭제 완료: tempKey={}", tempKey);
+                    log.debug("OAuth2 임시 인증 세션 조회 및 삭제 완료: tempKey={}", 
+                            SensitiveDataMasker.maskToken(tempKey));
                     return sessionData;
                 },
-                "OAuth2 임시 인증 세션 조회/삭제: tempKey=" + tempKey
+                "OAuth2 임시 인증 세션 조회/삭제: tempKey=" + SensitiveDataMasker.maskToken(tempKey)
         );
         
         return result != null ? result : Map.of();
     }
     
     private Map<String, String> getAndDeleteOAuth2TempSessionFallback(String tempKey, Exception e) {
+        // OAuth2 임시 세션 조회 실패 시 빈 Map 반환은 로그인 흐름을 조용히 실패시킬 수 있음
+        // Redis 장애 시 사용자가 로그인할 수 없게 되므로, 명시적인 오류 로깅 필요
+        log.error("OAuth2 임시 인증 세션 조회 실패 (Redis 장애 가능성): tempKey={}, error={}", 
+                SensitiveDataMasker.maskToken(tempKey), e.getMessage(), e);
+        // 빈 Map 반환으로 인한 조용한 실패를 방지하기 위해 예외를 던지거나, 
+        // 최소한 로그 레벨을 높여 운영팀이 인지할 수 있도록 함
         return Map.of();
     }
 }

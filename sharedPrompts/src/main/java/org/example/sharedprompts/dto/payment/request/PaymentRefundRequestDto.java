@@ -41,12 +41,6 @@ public class PaymentRefundRequestDto {
         }
     }
 
-    /**
-     * 환불 금액 반환 (null인 경우 null 반환 - 전체 환불)
-     */
-    public BigDecimal getAmountOrNull() {
-        return this.amount;
-    }
 
     /**
      * 환불 사유 반환 (null인 경우 기본값)

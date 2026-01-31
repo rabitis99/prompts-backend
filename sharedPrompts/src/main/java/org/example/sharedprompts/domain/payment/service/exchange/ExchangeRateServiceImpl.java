@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.payment.service.exchange;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.ExchangeRate;
-import org.example.sharedprompts.domain.payment.repository.ExchangeRateRepository;
+import org.example.sharedprompts.domain.payment.repository.exchange.ExchangeRateRepository;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;

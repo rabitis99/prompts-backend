@@ -6,7 +6,7 @@ import org.example.sharedprompts.domain.payment.UserTierHistory;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.enums.UserTier;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
-import org.example.sharedprompts.domain.payment.repository.UserTierHistoryRepository;
+import org.example.sharedprompts.domain.payment.repository.userTier.UserTierHistoryRepository;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.dto.payment.request.TierChangeRequestDto;
@@ -113,6 +113,9 @@ public class UserTierServiceImpl implements UserTierService {
 
     @Override
     public Page<UserTierHistoryResponseDto> getTierHistory(Long userId, Pageable pageable) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+        
         return tierHistoryRepository.findByUserIdWithFetchJoin(userId, pageable)
                 .map(UserTierHistoryResponseDto::from);
     }

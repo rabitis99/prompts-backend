@@ -63,13 +63,23 @@ public class AdminAccountInitializer implements CommandLineRunner {
         boolean isProdProfile = containsProfile(environment.getActiveProfiles(), "prod");
         if (isProdProfile && (adminPassword == null || adminPassword.trim().isEmpty())) {
             log.warn("⚠️ 프로덕션 환경에서 ADMIN_PASSWORD가 설정되지 않았습니다. " +
-                    "환경 변수 ADMIN_PASSWORD를 설정하거나, 기존 어드민 계정이 있는지 확인하세요.");
-            // 프로덕션 환경에서도 기존 계정이 있으면 계속 진행
-            checkExistingAdmin(adminEmail);
+                    "기존 어드민 계정 존재 여부를 확인합니다.");
+            // 프로덕션 환경에서 비밀번호가 없으면 기존 어드민 계정 확인
+            // 기존 어드민 계정이 없으면 보안상 기동을 차단
+            if (!hasExistingAdmin(adminEmail)) {
+                log.error("❌ 프로덕션 환경에서 어드민 계정이 없고 ADMIN_PASSWORD도 설정되지 않았습니다. " +
+                        "환경 변수 ADMIN_PASSWORD를 설정하고 애플리케이션을 재시작하세요.");
+                throw new IllegalStateException(
+                        "프로덕션 환경에서 ADMIN_PASSWORD가 설정되지 않았고 기존 어드민 계정도 없습니다. " +
+                        "환경 변수 ADMIN_PASSWORD를 설정해주세요.");
+            }
+            // 기존 어드민 계정이 있으면 경고만 남기고 계속 진행
+            log.warn("⚠️ 기존 어드민 계정이 존재하므로 계속 진행합니다. " +
+                    "새 어드민 계정을 생성하려면 ADMIN_PASSWORD를 설정하세요.");
             return;
         }
         
-        // 개발 환경에서 비밀번호가 없으면 기본 비밀번호 사용 (경고)
+        // 개발 환경에서 비밀번호가 없으면 예외 발생
         if (!isProdProfile && (adminPassword == null || adminPassword.trim().isEmpty())) {
             throw new IllegalStateException("ADMIN_PASSWORD가 설정되어야 합니다.");
         }
@@ -154,27 +164,21 @@ public class AdminAccountInitializer implements CommandLineRunner {
     }
 
     /**
-     * 기존 어드민 계정 확인 (프로덕션 환경에서 비밀번호가 없을 때)
-     * 보안을 위해 ADMIN_PASSWORD 없이 Role 자동 승격은 허용하지 않음
+     * 기존 어드민 계정 존재 여부 확인
+     * 
+     * @param email 확인할 이메일
+     * @return ROLE_ADMIN인 활성 어드민 계정이 존재하면 true
      */
-    private void checkExistingAdmin(String email) {
+    private boolean hasExistingAdmin(String email) {
         Optional<User> existingAdmin = userRepository.findByProviderAndProviderId(
                 Provider.LOCAL, email);
         
         if (existingAdmin.isPresent() && !existingAdmin.get().isDeleted()) {
             User admin = existingAdmin.get();
-            // Role이 ROLE_ADMIN이 아니면 보안상 자동 승격하지 않음
-            if (admin.getRole() != Role.ROLE_ADMIN) {
-                log.error("❌ ADMIN_PASSWORD 없이 ROLE 승격은 허용되지 않습니다. (이메일: {}, ID: {}, 현재 Role: {}) " +
-                        "환경 변수 ADMIN_PASSWORD를 설정하고 애플리케이션을 재시작하세요.",
-                        email, admin.getId(), admin.getRole());
-                return;
-            }
-            log.info("✅ 기존 어드민 계정이 존재합니다. (이메일: {})", email);
-        } else {
-            log.error("❌ 프로덕션 환경에서 어드민 계정이 없고 ADMIN_PASSWORD도 설정되지 않았습니다. " +
-                    "환경 변수 ADMIN_PASSWORD를 설정하고 애플리케이션을 재시작하세요.");
+            // Role이 ROLE_ADMIN이어야 어드민으로 인정
+            return admin.getRole() == Role.ROLE_ADMIN;
         }
+        return false;
     }
 
     private boolean containsProfile(String[] profiles, String profile) {

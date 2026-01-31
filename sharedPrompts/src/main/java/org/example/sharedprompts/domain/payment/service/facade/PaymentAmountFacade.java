@@ -27,35 +27,13 @@ public class PaymentAmountFacade {
     /**
      * 결제 금액 처리 결과
      */
+    @lombok.Getter
+    @lombok.AllArgsConstructor
     public static class AmountProcessingResult {
         private final BigDecimal originalAmount;
         private final BigDecimal convertedAmount;
         private final BigDecimal usedPointAmount;
         private final BigDecimal actualPaymentAmount;
-
-        public AmountProcessingResult(BigDecimal originalAmount, BigDecimal convertedAmount, 
-                                     BigDecimal usedPointAmount, BigDecimal actualPaymentAmount) {
-            this.originalAmount = originalAmount;
-            this.convertedAmount = convertedAmount;
-            this.usedPointAmount = usedPointAmount;
-            this.actualPaymentAmount = actualPaymentAmount;
-        }
-
-        public BigDecimal getOriginalAmount() {
-            return originalAmount;
-        }
-
-        public BigDecimal getConvertedAmount() {
-            return convertedAmount;
-        }
-
-        public BigDecimal getUsedPointAmount() {
-            return usedPointAmount;
-        }
-
-        public BigDecimal getActualPaymentAmount() {
-            return actualPaymentAmount;
-        }
     }
 
     /**

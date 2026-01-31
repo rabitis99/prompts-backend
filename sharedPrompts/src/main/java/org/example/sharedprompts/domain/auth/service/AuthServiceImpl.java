@@ -119,6 +119,7 @@ public class AuthServiceImpl implements AuthService {
 
     /**
      * deviceToken이 제공된 경우 사용자 정보를 업데이트하는 헬퍼 메서드
+     * 동일한 deviceToken이면 저장/로깅을 생략하여 불필요한 DB write를 방지합니다.
      * 
      * @param user 사용자 엔티티
      * @param deviceToken 디바이스 토큰 (선택사항)
@@ -126,6 +127,10 @@ public class AuthServiceImpl implements AuthService {
      */
     private void updateDeviceTokenIfPresent(User user, String deviceToken, String context) {
         if (deviceToken != null && !deviceToken.isEmpty()) {
+            // 동일한 deviceToken이면 업데이트 생략
+            if (deviceToken.equals(user.getDeviceToken())) {
+                return;
+            }
             user.updateDeviceToken(deviceToken);
             userRepository.save(user);
             log.debug("{} 시 deviceToken 업데이트: userId={}", context, user.getId());

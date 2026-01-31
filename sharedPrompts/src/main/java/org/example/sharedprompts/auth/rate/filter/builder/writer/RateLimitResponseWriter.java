@@ -109,19 +109,18 @@ public final class RateLimitResponseWriter {
     ) {
         long now = java.time.Instant.now().getEpochSecond();
         
-        // 1. result가 있는 경우: ttlSeconds 또는 retryAfterSeconds 사용
-        if (result != null) {
-            // 초과된 요청: retryAfterSeconds 사용 (이미 TTL 기반으로 계산됨)
-            if (result.retryAfterSeconds() > 0) {
-                return now + result.retryAfterSeconds();
-            }
-            // 성공한 요청: ttlSeconds 사용
-            if (result.ttlSeconds() > 0) {
-                return now + result.ttlSeconds();
-            }
+        // Line 50-52에서 이미 result == null인 경우 IllegalArgumentException을 throw하므로
+        // 이 지점에 도달할 때 result는 항상 non-null입니다.
+        // 초과된 요청: retryAfterSeconds 사용 (이미 TTL 기반으로 계산됨)
+        if (result.retryAfterSeconds() > 0) {
+            return now + result.retryAfterSeconds();
+        }
+        // 성공한 요청: ttlSeconds 사용
+        if (result.ttlSeconds() > 0) {
+            return now + result.ttlSeconds();
         }
         
-        // 2. 폴백: windowSeconds 사용 (result가 null이거나 TTL이 없는 경우)
+        // 폴백: windowSeconds 사용 (TTL이 없는 경우)
         return now + rule.getWindowSeconds();
     }
 }

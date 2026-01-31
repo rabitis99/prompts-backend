@@ -43,6 +43,7 @@ public class CashbackServiceImpl implements CashbackService {
 
     private static final String LOCK_PREFIX = "cashback:lock:";
     private static final Duration LOCK_AT_MOST_FOR = Duration.ofSeconds(30); // 락 최대 유지 시간
+    private static final Duration LOCK_AT_LEAST_FOR = Duration.ofMillis(100); // 락 최소 유지 시간 (분산 환경에서 너무 빨리 해제되는 것 방지)
 
     @Override
     public Page<CashbackResponseDto> getCashbackHistory(Long customerId, Pageable pageable) {
@@ -146,16 +147,16 @@ public class CashbackServiceImpl implements CashbackService {
 
     @Override
     public BigDecimal getUnpaidCashbackTotal(Long userId) {
-        return cashbackRepository.getUnpaidCashbackTotal(userId)
-                .orElse(BigDecimal.ZERO);
+        BigDecimal total = cashbackRepository.getUnpaidCashbackTotal(userId);
+        return total != null ? total : BigDecimal.ZERO;
     }
 
     // ============ 관리자용 메서드 ============
 
     @Override
     public BigDecimal getAllUnpaidCashbackTotal() {
-        return cashbackRepository.getAllUnpaidCashbackTotal()
-                .orElse(BigDecimal.ZERO);
+        BigDecimal total = cashbackRepository.getAllUnpaidCashbackTotal();
+        return total != null ? total : BigDecimal.ZERO;
     }
 
     @Override
@@ -227,7 +228,7 @@ public class CashbackServiceImpl implements CashbackService {
                 Instant.now(),
                 lockName,
                 LOCK_AT_MOST_FOR,
-                Duration.ZERO
+                LOCK_AT_LEAST_FOR
         );
 
         Optional<SimpleLock> lock = lockProvider.lock(lockConfig);

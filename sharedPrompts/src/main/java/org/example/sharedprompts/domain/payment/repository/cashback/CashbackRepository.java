@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.payment.repository;
+package org.example.sharedprompts.domain.payment.repository.cashback;
 
 import org.example.sharedprompts.domain.payment.Cashback;
 import org.springframework.data.domain.Page;
@@ -20,7 +20,7 @@ public interface CashbackRepository extends JpaRepository<Cashback, Long>, Custo
      * 사용자의 미지급 캐시백 총액 조회
      */
     @Query("SELECT COALESCE(SUM(c.amount), 0) FROM Cashback c WHERE c.user.id = :userId AND c.paid = false")
-    Optional<BigDecimal> getUnpaidCashbackTotal(@Param("userId") Long userId);
+    BigDecimal getUnpaidCashbackTotal(@Param("userId") Long userId);
 
     /**
      * 사용자의 캐시백 내역 조회
@@ -51,6 +51,6 @@ public interface CashbackRepository extends JpaRepository<Cashback, Long>, Custo
      * 전체 미지급 캐시백 총액 조회 (관리자용)
      */
     @Query("SELECT COALESCE(SUM(c.amount), 0) FROM Cashback c WHERE c.paid = false")
-    Optional<BigDecimal> getAllUnpaidCashbackTotal();
+    BigDecimal getAllUnpaidCashbackTotal();
 }
 

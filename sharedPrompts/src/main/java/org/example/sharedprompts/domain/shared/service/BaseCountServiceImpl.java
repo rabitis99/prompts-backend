@@ -36,8 +36,12 @@ public class BaseCountServiceImpl implements BaseCountService {
      * 운영 원칙:
      * - @PostConstruct에서 초기화하지 않음 (외부 리소스 접근 위험 제거)
      * - Bean 주입으로 스크립트 사용 (애플리케이션 기동 안정성 보장)
+     * 
+     * 반환값: List<Long> [currentCount, ttl] 배열
+     * - currentCount: INCR 후의 현재 카운트 값
+     * - ttl: 키의 남은 TTL (초 단위), 키가 없거나 TTL이 없으면 -1
      */
-    private final DefaultRedisScript<Long> incrementWithTtlScript;
+    private final DefaultRedisScript<List<Long>> incrementWithTtlScript;
     
     /**
      * SAFE_DECREMENT_WITH_TTL Lua 스크립트
@@ -51,18 +55,19 @@ public class BaseCountServiceImpl implements BaseCountService {
 
     @Override
     public void decrement(String key) {
-        executeWithTtl(safeDecrementWithTtlScript, key, "decrement");
+        executeWithTtlLong(safeDecrementWithTtlScript, key, "decrement");
     }
 
     @Override
     public long incrementAndGet(String key) {
-        Long val = executeWithTtl(incrementWithTtlScript, key, "incrementAndGet");
-        return val != null ? val : 0L;
+        List<Long> result = executeWithTtl(incrementWithTtlScript, key, "incrementAndGet");
+        // 스크립트는 [currentCount, ttl] 배열을 반환하므로 첫 번째 값만 사용
+        return (result != null && !result.isEmpty()) ? result.get(0) : 0L;
     }
 
     @Override
     public long decrementAndGet(String key) {
-        Long val = executeWithTtl(safeDecrementWithTtlScript, key, "decrementAndGet");
+        Long val = executeWithTtlLong(safeDecrementWithTtlScript, key, "decrementAndGet");
         return val != null ? val : 0L;
     }
 
@@ -103,7 +108,24 @@ public class BaseCountServiceImpl implements BaseCountService {
         return result;
     }
 
-    private Long executeWithTtl(
+    private List<Long> executeWithTtl(
+            DefaultRedisScript<List<Long>> script,
+            String key,
+            String operationName
+    ) {
+        try {
+            return redisTemplate.execute(
+                    script,
+                    List.of(key),
+                    String.valueOf(hotTtlSeconds)
+            );
+        } catch (Exception e) {
+            log.error("Redis {} operation failed for key: {}", operationName, key, e);
+            throw e;
+        }
+    }
+
+    private Long executeWithTtlLong(
             DefaultRedisScript<Long> script,
             String key,
             String operationName

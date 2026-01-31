@@ -75,15 +75,17 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, CustomP
     /**
      * 재시도가 필요한 결제 목록 조회 (PENDING 상태이고 재시도 횟수가 제한 미만)
      */
-    @Query("SELECT p FROM Payment p WHERE p.status = 'PENDING' AND p.retryCount < :maxRetryCount ORDER BY p.createdAt ASC")
-    List<Payment> findPendingPaymentsForRetry(@Param("maxRetryCount") int maxRetryCount);
+    @Query("SELECT p FROM Payment p WHERE p.status = :status AND p.retryCount < :maxRetryCount ORDER BY p.createdAt ASC")
+    List<Payment> findPendingPaymentsForRetry(@Param("status") PaymentStatus status, @Param("maxRetryCount") int maxRetryCount);
 
     /**
      * nextRetryAt 기반 재시도 대상 결제 조회
      * - 재시도 횟수가 최대값 미만이고
      * - nextRetryAt이 null이거나 현재 시간 이하인 결제
+     * 
+     * <p>MySQL에서는 ASC 정렬 시 NULL 값이 자동으로 맨 앞에 정렬되므로 NULLS FIRST 구문이 필요 없습니다.
      */
-    @Query("SELECT p FROM Payment p WHERE p.retryCount < :maxRetry AND (p.nextRetryAt IS NULL OR p.nextRetryAt <= :now) ORDER BY p.nextRetryAt ASC NULLS FIRST")
+    @Query("SELECT p FROM Payment p WHERE p.retryCount < :maxRetry AND (p.nextRetryAt IS NULL OR p.nextRetryAt <= :now) ORDER BY p.nextRetryAt ASC")
     List<Payment> findRetryablePayments(@Param("maxRetry") int maxRetry, @Param("now") LocalDateTime now);
 }
 

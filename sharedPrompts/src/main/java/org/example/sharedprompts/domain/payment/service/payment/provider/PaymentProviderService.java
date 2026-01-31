@@ -38,6 +38,20 @@ public interface PaymentProviderService {
     void refundPayment(String externalPaymentId, BigDecimal amount, String reason);
 
     /**
+     * 환불된 금액 조회
+     * 
+     * <p>외부 결제사 API에서 실제 환불된 금액을 조회합니다.
+     * 모든 결제사가 이 기능을 지원하는 것은 아니므로, 지원하지 않는 경우 Optional.empty()를 반환합니다.
+     * 
+     * @param externalPaymentId 외부 결제 ID
+     * @return 환불된 금액 (지원하지 않는 경우 Optional.empty())
+     */
+    default java.util.Optional<BigDecimal> getRefundedAmount(String externalPaymentId) {
+        // 기본 구현: 지원하지 않는 결제사는 Optional.empty() 반환
+        return java.util.Optional.empty();
+    }
+
+    /**
      * Webhook 서명 검증
      */
     boolean verifyWebhookSignature(String payload, String signature);

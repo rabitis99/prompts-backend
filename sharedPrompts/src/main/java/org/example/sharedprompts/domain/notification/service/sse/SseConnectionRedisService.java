@@ -167,22 +167,6 @@ public class SseConnectionRedisService {
         return 0;
     }
 
-    /**
-     * 모든 SSE 연결 키 삭제 (주의: 멀티 인스턴스 환경에서는 사용하지 않음)
-     * 
-     * @return 삭제된 키 개수
-     * @deprecated 멀티 인스턴스 환경에서는 deleteInstanceConnections() 사용 권장
-     */
-    @Deprecated
-    public int deleteAllConnections() {
-        Set<String> keys = getAllConnectionKeys();
-        if (keys != null && !keys.isEmpty()) {
-            redisTemplate.delete(keys);
-            log.warn("Deleted {} SSE connection keys (all instances) - use deleteInstanceConnections() in multi-instance environments", keys.size());
-            return keys.size();
-        }
-        return 0;
-    }
 
     /**
      * Redis 키에서 사용자 ID 추출

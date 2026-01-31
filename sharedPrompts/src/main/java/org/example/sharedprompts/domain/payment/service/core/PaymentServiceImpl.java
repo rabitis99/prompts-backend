@@ -53,21 +53,16 @@ public class PaymentServiceImpl implements PaymentService {
         String traceId = null;
         
         try {
-            // 트레이싱 시작
             traceId = loggingService.startTrace(null, userId);
             
-            // 사용자 조회
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
-            // 티어 기반 일일 결제 제한 체크
             validationFacade.validateDailyLimit(userId, user.getTier());
 
-            // 금액 처리 (환율 변환 + 포인트 사용)
             PaymentAmountFacade.AmountProcessingResult amountResult = 
                     amountFacade.processPaymentAmount(userId, request);
 
-            // 결제 엔티티 생성 (RequestDto의 mapper 사용)
             Payment payment = request.toPaymentBuilder(
                     user,
                     user.getTier(),
@@ -79,7 +74,6 @@ public class PaymentServiceImpl implements PaymentService {
             loggingService.logPaymentRequest(payment);
 
             try {
-                // 결제사별 승인 처리
                 String externalPaymentId = providerFacade.approvePayment(
                         payment, 
                         amountResult.getActualPaymentAmount()
@@ -89,8 +83,6 @@ public class PaymentServiceImpl implements PaymentService {
 
                 long processingTime = System.currentTimeMillis() - startTime;
                 
-                // 결제 성공 후처리 (포인트 적립, 캐시백 등)
-                // 후처리 실패는 결제 상태에 영향을 주지 않도록 별도 처리
                 try {
                     postProcessFacade.processPaymentSuccess(
                             payment,
@@ -100,11 +92,8 @@ public class PaymentServiceImpl implements PaymentService {
                             processingTime
                     );
                 } catch (Exception postProcessException) {
-                    // 후처리 실패는 로깅만 하고 결제 상태는 성공으로 유지
-                    // 필요시 재시도 가능하도록 별도 처리
                     log.error("결제 승인 성공 후 후처리 실패: paymentId={}, userId={}, error={}", 
                             payment.getId(), userId, postProcessException.getMessage(), postProcessException);
-                    // TODO: 후처리 실패에 대한 재시도/보상 트랜잭션 처리 고려
                 }
 
             } catch (Exception e) {
@@ -112,7 +101,6 @@ public class PaymentServiceImpl implements PaymentService {
                 payment.fail("결제 승인 실패: " + e.getMessage());
                 payment = paymentRepository.save(payment); // 실패 상태 저장
                 
-                // 결제 실패 후처리
                 try {
                     postProcessFacade.processPaymentFailure(
                             payment,
@@ -122,15 +110,11 @@ public class PaymentServiceImpl implements PaymentService {
                             processingTime
                     );
                 } catch (Exception postProcessException) {
-                    // 실패 후처리도 실패한 경우 로깅만 수행
                     log.error("결제 실패 후처리 중 오류 발생: paymentId={}, userId={}, error={}", 
                             payment.getId(), userId, postProcessException.getMessage(), postProcessException);
                 }
             }
-
-            payment = paymentRepository.save(payment);
             
-            // 트레이싱 ID 업데이트
             if (traceId != null && payment.getId() != null) {
                 loggingService.startTrace(payment.getId(), userId);
             }
@@ -148,10 +132,8 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
         validationFacade.validatePaymentOwnership(payment, userId);
-        // 외부 결제사에서 최신 상태 조회
         PaymentStatus latestStatus = providerFacade.checkPaymentStatus(payment);
         
-        // 상태가 변경된 경우 업데이트
         if (payment.getStatus() != latestStatus) {
             payment = paymentRepository.findById(payment.getId()).orElse(payment);
             syncPaymentStatus(payment, latestStatus);
@@ -167,20 +149,17 @@ public class PaymentServiceImpl implements PaymentService {
         Payment payment = paymentRepository.findById(request.getPaymentIdAsLong())
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
-        // 검증
         validationFacade.validatePaymentOwnership(payment, userId);
         validationFacade.validateCancelableStatus(payment);
 
         try {
             PaymentStatus oldStatus = payment.getStatus();
             
-            // 결제사별 취소 처리
             providerFacade.cancelPayment(payment, request.getReasonOrDefault());
 
             payment.cancel();
             payment = paymentRepository.save(payment);
 
-            // 결제 취소 후처리
             postProcessFacade.processPaymentCancel(payment, userId, request.getReasonOrDefault(), oldStatus);
 
         } catch (Exception e) {
@@ -197,27 +176,23 @@ public class PaymentServiceImpl implements PaymentService {
         Payment payment = paymentRepository.findById(request.getPaymentIdAsLong())
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
-        // 검증
         validationFacade.validatePaymentOwnership(payment, userId);
         validationFacade.validateRefundableStatus(payment);
-        BigDecimal refundAmount = validationFacade.validateRefundAmount(request.getAmountOrNull(), payment);
+        BigDecimal refundAmount = validationFacade.validateRefundAmount(request.getAmount(), payment);
 
         try {
-            // 결제사별 환불 처리
             providerFacade.refundPayment(payment, refundAmount, request.getReasonOrDefault());
 
             PaymentStatus oldStatus = payment.getStatus();
             payment.refund(refundAmount);
             payment = paymentRepository.save(payment);
 
-            // 환불 시 포인트 환불 금액 계산
             BigDecimal refundPointAmount = amountFacade.calculateRefundPointAmount(
                     payment.getUsedPointAmount(),
                     payment.getAmount(),
                     refundAmount
             );
 
-            // 결제 환불 후처리
             postProcessFacade.processPaymentRefund(
                     payment,
                     userId,
@@ -245,13 +220,11 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional
     public PaymentConfirmResponse confirmPayment(Long userId, PaymentConfirmRequest request) {
-        // 결제 조회 및 소유권 검증
-        Payment payment = paymentRepository.findById(Long.parseLong(request.getOrderId()))
+        Payment payment = paymentRepository.findById(request.getOrderIdAsLong())
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
         
         validationFacade.validatePaymentOwnership(payment, userId);
         
-        // 결제사별 승인 처리
         String externalPaymentId = providerFacade.approvePayment(
                 payment,
                 BigDecimal.valueOf(request.getAmount())
@@ -260,19 +233,19 @@ public class PaymentServiceImpl implements PaymentService {
         payment.approve(externalPaymentId);
         payment = paymentRepository.save(payment);
         
-        // PaymentConfirmResponse 생성
         PaymentConfirmResponse response = new PaymentConfirmResponse();
         response.setPaymentKey(externalPaymentId);
         response.setOrderId(request.getOrderId());
         response.setStatus(payment.getStatus().name());
         response.setTotalAmount(payment.getAmount().intValue());
-        response.setApprovedAt(payment.getApprovedAt());
+        if (payment.getApprovedAt() != null) {
+            response.setApprovedAt(payment.getApprovedAt().atZone(java.time.ZoneId.systemDefault()).toOffsetDateTime());
+        }
         response.setMethod(payment.getPaymentMethod().name());
         
         return response;
     }
 
-    // ============ 관리자용 메서드 ============
 
     @Override
     @Transactional
@@ -280,11 +253,8 @@ public class PaymentServiceImpl implements PaymentService {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
-        // 관리자는 소유권 검증 없이 조회 가능
-        // 외부 결제사에서 최신 상태 조회
         PaymentStatus latestStatus = providerFacade.checkPaymentStatus(payment);
         
-        // 상태가 변경된 경우 업데이트
         if (payment.getStatus() != latestStatus) {
             payment = paymentRepository.findById(payment.getId()).orElse(payment);
             syncPaymentStatus(payment, latestStatus);
@@ -313,13 +283,11 @@ public class PaymentServiceImpl implements PaymentService {
         try {
             PaymentStatus oldStatus = payment.getStatus();
             
-            // 결제사별 취소 처리
             providerFacade.cancelPayment(payment, request.getReasonOrDefault());
 
             payment.cancel();
             payment = paymentRepository.save(payment);
 
-            // 결제 취소 후처리 (관리자 ID 전달)
             postProcessFacade.processPaymentCancel(payment, payment.getUser().getId(), request.getReasonOrDefault(), oldStatus);
 
         } catch (Exception e) {
@@ -338,24 +306,21 @@ public class PaymentServiceImpl implements PaymentService {
 
         // 관리자는 소유권 검증 없이 환불 가능
         validationFacade.validateRefundableStatus(payment);
-        BigDecimal refundAmount = validationFacade.validateRefundAmount(request.getAmountOrNull(), payment);
+        BigDecimal refundAmount = validationFacade.validateRefundAmount(request.getAmount(), payment);
 
         try {
-            // 결제사별 환불 처리
             providerFacade.refundPayment(payment, refundAmount, request.getReasonOrDefault());
 
             PaymentStatus oldStatus = payment.getStatus();
             payment.refund(refundAmount);
             payment = paymentRepository.save(payment);
 
-            // 환불 시 포인트 환불 금액 계산
             BigDecimal refundPointAmount = amountFacade.calculateRefundPointAmount(
                     payment.getUsedPointAmount(),
                     payment.getAmount(),
                     refundAmount
             );
 
-            // 결제 환불 후처리 (관리자 ID 전달)
             postProcessFacade.processPaymentRefund(
                     payment,
                     payment.getUser().getId(),
@@ -432,26 +397,61 @@ public class PaymentServiceImpl implements PaymentService {
                 // SUCCESS -> PARTIALLY_REFUNDED 전이 처리
                 if (currentStatus == PaymentStatus.SUCCESS) {
                     // 부분 환불 처리
-                    // 외부 결제사에서 부분 환불 금액을 직접 조회할 수 없는 경우,
-                    // 현재 DB의 refundedAmount가 0이면 최소 환불 금액(1원)을 환불 처리하여 상태만 동기화
-                    // 실제 환불 금액은 외부 결제사 API에서 조회하거나, 별도 환불 처리 API를 통해 정확히 반영해야 함
-                    BigDecimal currentRefundedAmount = payment.getRefundedAmount();
-                    if (currentRefundedAmount.compareTo(BigDecimal.ZERO) == 0) {
-                        // 아직 환불이 없었다면 최소 금액(1원)을 환불하여 상태만 동기화
-                        // 실제 환불 금액은 외부 API에서 조회하여 별도로 업데이트 필요
-                        BigDecimal minRefundAmount = BigDecimal.ONE;
-                        payment.refund(minRefundAmount);
-                        log.warn("외부 결제사 상태 동기화: paymentId={}, {} -> {}, 부분 환불 상태만 동기화 (실제 환불 금액은 외부 API에서 조회 필요)", 
-                                payment.getId(), currentStatus, latestStatus);
+                    // 외부 결제사에서 실제 환불 금액을 조회 시도
+                    java.util.Optional<BigDecimal> refundedAmountOpt = providerFacade.getRefundedAmount(payment);
+                    
+                    if (refundedAmountOpt.isPresent()) {
+                        // 외부 결제사에서 환불 금액 조회 성공
+                        BigDecimal refundedAmount = refundedAmountOpt.get();
+                        BigDecimal currentRefundedAmount = payment.getRefundedAmount();
+                        
+                        // 조회한 환불 금액이 현재 DB의 환불 금액과 다른 경우 업데이트
+                        if (refundedAmount.compareTo(currentRefundedAmount) != 0) {
+                            // refund 메서드는 금액을 더하므로, 차이만큼만 환불 처리
+                            BigDecimal difference = refundedAmount.subtract(currentRefundedAmount);
+                            if (difference.compareTo(BigDecimal.ZERO) > 0) {
+                                payment.refund(difference);
+                                log.info("외부 결제사 상태 동기화: paymentId={}, {} -> {}, 환불금액={} (외부 API에서 조회)", 
+                                        payment.getId(), currentStatus, latestStatus, refundedAmount);
+                            } else {
+                                // 조회한 금액이 현재 금액보다 작은 경우 (데이터 불일치 가능성)
+                                log.warn("외부 결제사 상태 동기화: paymentId={}, {} -> {}, 환불금액 불일치 (조회={}, 현재={})", 
+                                        payment.getId(), currentStatus, latestStatus, refundedAmount, currentRefundedAmount);
+                                // 상태만 업데이트 (최소 금액으로 상태 변경)
+                                if (currentRefundedAmount.compareTo(BigDecimal.ZERO) == 0) {
+                                    payment.refund(BigDecimal.ONE);
+                                }
+                            }
+                        } else {
+                            // 금액이 동일하면 상태만 업데이트
+                            if (currentRefundedAmount.compareTo(BigDecimal.ZERO) == 0) {
+                                // 환불 금액이 0이면 최소 금액으로 상태 변경
+                                payment.refund(BigDecimal.ONE);
+                                log.info("외부 결제사 상태 동기화: paymentId={}, {} -> {}, 환불금액={} (상태만 동기화)", 
+                                        payment.getId(), currentStatus, latestStatus, refundedAmount);
+                            } else {
+                                // 이미 환불 금액이 있으면 상태만 확인
+                                log.debug("외부 결제사 상태 동기화: paymentId={}, {} -> {}, 환불금액={} (이미 동기화됨)", 
+                                        payment.getId(), currentStatus, latestStatus, refundedAmount);
+                            }
+                        }
                     } else {
-                        // 이미 환불이 있었다면 상태만 업데이트
-                        // refund 메서드는 금액을 더하므로, 현재 환불 금액이 전체 금액보다 작은 경우에만 호출
-                        BigDecimal refundableAmount = payment.getRefundableAmount();
-                        if (refundableAmount.compareTo(BigDecimal.ZERO) > 0) {
-                            // 최소 금액을 환불하여 상태만 동기화 (실제 환불 금액은 외부 API에서 조회 필요)
-                            payment.refund(BigDecimal.ONE);
-                            log.warn("외부 결제사 상태 동기화: paymentId={}, {} -> {}, 부분 환불 상태만 동기화 (기존 환불 금액={}, 실제 환불 금액은 외부 API에서 조회 필요)", 
-                                    payment.getId(), currentStatus, latestStatus, currentRefundedAmount);
+                        // 외부 결제사에서 환불 금액 조회 실패 또는 미지원
+                        // 기존 로직: 최소 금액(1원)으로 상태만 동기화
+                        BigDecimal currentRefundedAmount = payment.getRefundedAmount();
+                        if (currentRefundedAmount.compareTo(BigDecimal.ZERO) == 0) {
+                            BigDecimal minRefundAmount = BigDecimal.ONE;
+                            payment.refund(minRefundAmount);
+                            log.warn("외부 결제사 상태 동기화: paymentId={}, {} -> {}, 부분 환불 상태만 동기화 (환불 금액 조회 미지원 또는 실패)", 
+                                    payment.getId(), currentStatus, latestStatus);
+                        } else {
+                            // 이미 환불이 있었고, 추가 환불이 필요한 경우
+                            BigDecimal refundableAmount = payment.getRefundableAmount();
+                            if (refundableAmount.compareTo(BigDecimal.ZERO) > 0) {
+                                payment.refund(BigDecimal.ONE);
+                                log.warn("외부 결제사 상태 동기화: paymentId={}, {} -> {}, 부분 환불 상태만 동기화 (기존 환불 금액={}, 환불 금액 조회 미지원)", 
+                                        payment.getId(), currentStatus, latestStatus, currentRefundedAmount);
+                            }
                         }
                     }
                 }

@@ -1,38 +1,32 @@
 # Git Commit Message
 
 ```
-feat: 관리자용 결제/정산 API 추가 및 USER/ADMIN API 분리
+fix: 결제 시스템 안정성 및 보안 개선
 
-- PaymentController 리팩토링
-  * 티어 관련 API를 /me 패턴으로 변경 (userId path variable 제거)
-  * GET /payments/users/{userId}/tier → GET /payments/me/tier
-  * GET /payments/users/{userId}/tier-info → GET /payments/me/tier-info
-  * GET /payments/users/{userId}/tier-history → GET /payments/me/tier-history
+- 동시성 문제 해결
+  * CashbackServiceImpl: ShedLock을 사용한 캐시백 지급 동시성 보호
+  * AdminAccountInitializer: 멀티 인스턴스 기동 시 중복 생성 레이스 컨디션 처리
 
-- 관리자용 컨트롤러 추가
-  * AdminPaymentController: 결제 상태 조회, 내역 조회, 취소, 환불, 티어 관리
-  * AdminPointController: 포인트 잔액/내역 조회, 포인트 차감, 결제별 포인트 조회
-  * AdminCashbackController: 캐시백 내역 조회, 미지급 조회, 캐시백 지급
+- 결제 프로세스 개선
+  * PaymentServiceImpl: 승인 성공과 후처리 실패 분리 (후처리 실패 시에도 결제 상태는 SUCCESS 유지)
+  * PaymentServiceImpl: 외부 결제사 상태 동기화 로직 추가 (SUCCESS, FAILED, CANCELED, REFUNDED, PARTIALLY_REFUNDED 모두 처리)
+  * CashbackServiceImpl: 중복 캐시백 적립 방지 로직 추가
 
-- 서비스 레이어 확장
-  * PaymentService: 관리자용 메서드 추가 (소유권 검증 없음)
-  * PointService: 관리자용 포인트 조회 메서드 추가
-  * CashbackService: 관리자용 캐시백 조회/지급 메서드 추가
+- 리소스 관리 및 보안 강화
+  * DefaultFcmCredentialsProvider: InputStream 리소스 누수 수정 (try-with-resources 적용)
+  * FcmTokenService: Double-checked locking을 위한 volatile 키워드 추가
+  * FcmTokenService: GoogleCredentials refresh() 호출 추가 (토큰 초기화 보장)
+  * PushNotificationService: 모든 로그에서 deviceToken 마스킹 적용
 
-- Repository 레이어 확장
-  * CustomPaymentRepository: 전체 결제 내역 조회 메서드 추가
-  * CustomPointRepository: 결제별 포인트 조회 (소유권 검증 없음) 추가
-  * CustomCashbackRepository: 전체 미지급 캐시백 조회 메서드 추가
+- 입력 검증 강화
+  * PointServiceImpl: 포인트 사용 금액이 0 이하인 경우 검증 추가
+  * PaymentRefundRequestDto, PaymentCancelRequestDto: NumberFormatException 처리 추가
 
-- 아키텍처 개선
-  * 컨트롤러에서 Repository 의존성 제거
-  * 사용자 존재 여부 검증을 서비스 레이어로 이동
-  * SPR 준수 및 레이어 분리 강화
+- 보안 개선
+  * AdminAccountInitializer: ADMIN_PASSWORD 없이 Role 자동 승격 방지
 
-BREAKING CHANGE: 
-- GET /payments/users/{userId}/tier → GET /payments/me/tier
-- GET /payments/users/{userId}/tier-info → GET /payments/me/tier-info  
-- GET /payments/users/{userId}/tier-history → GET /payments/me/tier-history
+- 레거시 코드 정리
+  * RateLimitConstants: 사용되지 않는 deprecated 상수 삭제 (Capacities, Windows)
 ```
 
 ---
@@ -40,53 +34,51 @@ BREAKING CHANGE:
 ## 짧은 버전 (한 줄)
 
 ```
-feat: 관리자용 결제/정산 API 추가 및 USER/ADMIN API 분리
+fix: 결제 시스템 안정성 및 보안 개선
 ```
 
 ---
 
 ## 상세 버전 (여러 커밋으로 나눌 경우)
 
-### 1. PaymentController 리팩토링
+### 1. 동시성 문제 해결
 ```
-refactor: PaymentController 티어 API를 /me 패턴으로 변경
+fix: 결제 시스템 동시성 문제 해결
 
-- userId path variable 제거
-- @CurrentUser만 사용하도록 변경
-- 소유권 검증 로직 제거 (서비스 레이어에서 처리)
-
-BREAKING CHANGE:
-- GET /payments/users/{userId}/tier → GET /payments/me/tier
-- GET /payments/users/{userId}/tier-info → GET /payments/me/tier-info
-- GET /payments/users/{userId}/tier-history → GET /payments/me/tier-history
+- CashbackServiceImpl: ShedLock을 사용한 캐시백 지급 동시성 보호
+- AdminAccountInitializer: 멀티 인스턴스 기동 시 중복 생성 레이스 컨디션 처리
 ```
 
-### 2. 관리자용 컨트롤러 추가
+### 2. 결제 프로세스 개선
 ```
-feat: 관리자용 결제/정산 컨트롤러 추가
+fix: 결제 프로세스 안정성 개선
 
-- AdminPaymentController: 결제 관리 API
-- AdminPointController: 포인트 관리 API
-- AdminCashbackController: 캐시백 관리 API
-- 모든 관리자 API는 /admin/* 경로 사용
-```
-
-### 3. 서비스 및 Repository 레이어 확장
-```
-feat: 관리자용 서비스 및 Repository 메서드 추가
-
-- PaymentService: 관리자용 메서드 (소유권 검증 없음)
-- PointService: 관리자용 포인트 조회
-- CashbackService: 관리자용 캐시백 조회/지급
-- Repository: 관리자용 조회 메서드 추가
+- PaymentServiceImpl: 승인 성공과 후처리 실패 분리
+- PaymentServiceImpl: 외부 결제사 상태 동기화 로직 추가
+- CashbackServiceImpl: 중복 캐시백 적립 방지
 ```
 
-### 4. 아키텍처 개선
+### 3. 리소스 관리 및 보안 강화
 ```
-refactor: 컨트롤러에서 Repository 의존성 제거
+fix: FCM 서비스 리소스 관리 및 보안 개선
 
-- 모든 컨트롤러에서 Repository 제거
-- 사용자 존재 여부 검증을 서비스 레이어로 이동
-- SPR 준수 및 레이어 분리 강화
+- DefaultFcmCredentialsProvider: InputStream 리소스 누수 수정
+- FcmTokenService: volatile 키워드 추가 및 refresh() 호출 추가
+- PushNotificationService: deviceToken 마스킹 적용
 ```
 
+### 4. 입력 검증 강화
+```
+fix: 입력 검증 강화
+
+- PointServiceImpl: 포인트 사용 금액 검증 추가
+- PaymentRefundRequestDto, PaymentCancelRequestDto: NumberFormatException 처리
+```
+
+### 5. 보안 및 레거시 코드 정리
+```
+fix: 보안 강화 및 레거시 코드 정리
+
+- AdminAccountInitializer: Role 자동 승격 방지
+- RateLimitConstants: deprecated 상수 삭제
+```

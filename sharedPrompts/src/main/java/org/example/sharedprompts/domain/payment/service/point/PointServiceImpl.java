@@ -52,6 +52,7 @@ public class PointServiceImpl implements PointService {
 
     private static final String LOCK_PREFIX = "point:lock:";
     private static final Duration LOCK_AT_MOST_FOR = Duration.ofSeconds(30); // 락 최대 유지 시간
+    private static final Duration LOCK_AT_LEAST_FOR = Duration.ofMillis(100); // 락 최소 유지 시간 (분산 환경에서 너무 빨리 해제되는 것 방지)
 
     // ============ Public Methods ============
 
@@ -117,11 +118,6 @@ public class PointServiceImpl implements PointService {
     @Override
     public Page<PointResponseDto> getPointsByPayment(Long paymentId, Long userId, Pageable pageable) {
         Page<Point> points = pointRepository.findByPaymentIdAndUserIdWithFetchJoin(paymentId, userId, pageable);
-
-        if (points.isEmpty()) {
-            throw new ApiException(ErrorCode.FORBIDDEN_ACCESS);
-        }
-
         return points.map(PointResponseDto::from);
     }
 
@@ -143,7 +139,7 @@ public class PointServiceImpl implements PointService {
                 Instant.now(),
                 lockName,
                 LOCK_AT_MOST_FOR,
-                Duration.ZERO
+                LOCK_AT_LEAST_FOR
         );
 
         Optional<SimpleLock> lock = lockProvider.lock(lockConfig);

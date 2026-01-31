@@ -32,14 +32,19 @@ public class RedisLuaScriptConfig {
      * 사용처:
      * - TokenVersionStoreImpl: tokenVersion 증가
      * - BaseCountServiceImpl: 카운트 증가
+     * - FixedWindowRateLimiter: Rate limiting
      * 
      * 기능: INCR + EXPIRE를 원자적으로 수행
+     * 반환값: List<Long> [currentCount, ttl] 배열
      */
     @Bean
-    public DefaultRedisScript<Long> incrementWithTtlScript() {
-        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+    public DefaultRedisScript<List<Long>> incrementWithTtlScript() {
+        DefaultRedisScript<List<Long>> script = new DefaultRedisScript<>();
         script.setScriptText(LuaScripts.INCREMENT_WITH_TTL);
-        script.setResultType(Long.class);
+        // Spring Data Redis는 런타임에 제네릭 타입 정보를 잃어버리므로 raw type을 사용
+        @SuppressWarnings("unchecked")
+        Class<List<Long>> resultType = (Class<List<Long>>) (Class<?>) List.class;
+        script.setResultType(resultType);
         return script;
     }
 
@@ -112,7 +117,7 @@ public class RedisLuaScriptConfig {
     }
 
     /**
-     * GET_AND_DELETE_OAUTH2_TEMP_SESSION 스크립트
+     * GET_AND_DELETE_TEMP_TOKEN 스크립트
      * 
      * 사용처:
      * - TokenRedisServiceImpl: OAuth2 임시 인증 세션 조회 및 삭제

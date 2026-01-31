@@ -36,6 +36,7 @@ public class PaymentProviderFacade {
         loggingService.logPaymentApprovalAttempt(payment, payment.getPaymentMethod().name());
 
         // 실제 결제 금액으로 결제 승인 (포인트 사용 후 금액)
+        BigDecimal usedPointAmount = payment.getAmount().subtract(actualPaymentAmount);
         Payment paymentForApproval = Payment.builder()
                 .id(payment.getId())
                 .user(payment.getUser())
@@ -46,6 +47,7 @@ public class PaymentProviderFacade {
                 .tier(payment.getTier())
                 .status(payment.getStatus())
                 .metadata(payment.getMetadata())
+                .usedPointAmount(usedPointAmount) // 사용된 포인트 금액
                 .build();
 
         return providerService.approvePayment(paymentForApproval);
@@ -85,9 +87,37 @@ public class PaymentProviderFacade {
             validatePaymentMethod(payment.getPaymentMethod());
             PaymentProviderService providerService = providerServiceFactory.getService(payment.getPaymentMethod());
             return providerService.checkPaymentStatus(payment.getExternalPaymentId());
+        } catch (ApiException e) {
+            // 비즈니스 예외는 그대로 전파
+            throw e;
         } catch (Exception e) {
+            // 네트워크 오류 등 예상치 못한 예외만 catch하여 현재 상태 반환
             log.error("결제 상태 조회 실패: paymentId={}, error={}", payment.getId(), e.getMessage(), e);
             return payment.getStatus();
+        }
+    }
+
+    /**
+     * 환불된 금액 조회
+     * 
+     * <p>외부 결제사 API에서 실제 환불된 금액을 조회합니다.
+     * 모든 결제사가 이 기능을 지원하는 것은 아니므로, 지원하지 않는 경우 Optional.empty()를 반환합니다.
+     * 
+     * @param payment 결제 엔티티
+     * @return 환불된 금액 (지원하지 않는 경우 Optional.empty())
+     */
+    public java.util.Optional<BigDecimal> getRefundedAmount(Payment payment) {
+        if (payment.getExternalPaymentId() == null) {
+            return java.util.Optional.empty();
+        }
+
+        try {
+            validatePaymentMethod(payment.getPaymentMethod());
+            PaymentProviderService providerService = providerServiceFactory.getService(payment.getPaymentMethod());
+            return providerService.getRefundedAmount(payment.getExternalPaymentId());
+        } catch (Exception e) {
+            log.warn("환불 금액 조회 실패: paymentId={}, error={}", payment.getId(), e.getMessage(), e);
+            return java.util.Optional.empty();
         }
     }
 

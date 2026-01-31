@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.payment.repository;
+package org.example.sharedprompts.domain.payment.repository.cashback;
 
 import org.example.sharedprompts.domain.payment.Cashback;
 import org.springframework.data.domain.Page;

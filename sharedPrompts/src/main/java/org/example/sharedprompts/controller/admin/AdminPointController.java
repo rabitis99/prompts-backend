@@ -85,8 +85,6 @@ public class AdminPointController {
             @PageableDefault(size = 20) Pageable pageable
     ) {
         // 관리자는 모든 결제의 포인트 조회 가능 (소유권 검증 없음)
-        // userId를 null로 전달하여 소유권 검증을 건너뛰도록 서비스 수정 필요
-        // 일단 임시로 userId를 null로 전달 (서비스 레이어에서 null 체크 필요)
         PageResponse<PointResponseDto> response = PageResponse.of(
                 pointService.getPointsByPaymentForAdmin(paymentId, pageable)
         );

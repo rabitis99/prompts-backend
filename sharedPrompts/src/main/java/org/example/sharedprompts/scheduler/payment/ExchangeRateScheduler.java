@@ -6,7 +6,7 @@ import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.payment.ExchangeRate;
 import org.example.sharedprompts.domain.payment.config.PaymentProperties;
-import org.example.sharedprompts.domain.payment.repository.ExchangeRateRepository;
+import org.example.sharedprompts.domain.payment.repository.exchange.ExchangeRateRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;

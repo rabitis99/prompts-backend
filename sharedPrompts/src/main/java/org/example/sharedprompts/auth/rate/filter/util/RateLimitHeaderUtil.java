@@ -32,15 +32,11 @@ public final class RateLimitHeaderUtil {
      * @param response HttpServletResponse
      * @param rule RateLimitRule
      * @param result RateLimitResult (null 가능 - 헤더만 추가)
-     * @param redisTemplate RedisTemplate (사용하지 않음, 하위 호환성을 위해 유지)
-     * @param rateLimitKey Redis 키 (사용하지 않음, 하위 호환성을 위해 유지)
      */
     public static void addRateLimitHeaders(
             HttpServletResponse response,
             RateLimitRule rule,
-            RateLimiter.RateLimitResult result,
-            RedisTemplate<String, Object> redisTemplate,
-            String rateLimitKey
+            RateLimiter.RateLimitResult result
     ) {
         long limit = rule.getCapacity();
         long remaining = result != null ? Math.max(0, limit - result.currentCount()) : limit;
@@ -52,14 +48,55 @@ public final class RateLimitHeaderUtil {
     }
 
     /**
+     * RateLimit 헤더를 응답에 추가합니다 (하위 호환성용).
+     * 
+     * @deprecated 사용되지 않는 파라미터를 제거한 버전을 사용하세요.
+     * @param response HttpServletResponse
+     * @param rule RateLimitRule
+     * @param result RateLimitResult (null 가능 - 헤더만 추가)
+     * @param redisTemplate RedisTemplate (사용하지 않음)
+     * @param rateLimitKey Redis 키 (사용하지 않음)
+     */
+    @Deprecated
+    public static void addRateLimitHeaders(
+            HttpServletResponse response,
+            RateLimitRule rule,
+            RateLimiter.RateLimitResult result,
+            RedisTemplate<String, Object> redisTemplate,
+            String rateLimitKey
+    ) {
+        addRateLimitHeaders(response, rule, result);
+    }
+
+    /**
      * RateLimit 초과 시 헤더를 추가합니다 (429 에러용).
      * 
      * @param response HttpServletResponse
      * @param rule RateLimitRule
      * @param result RateLimitResult
-     * @param redisTemplate RedisTemplate (사용하지 않음, 하위 호환성을 위해 유지)
-     * @param rateLimitKey Redis 키 (사용하지 않음, 하위 호환성을 위해 유지)
      */
+    public static void addRateLimitExceededHeaders(
+            HttpServletResponse response,
+            RateLimitRule rule,
+            RateLimiter.RateLimitResult result
+    ) {
+        addRateLimitHeaders(response, rule, result);
+
+        long retryAfter = result.getRetryAfter(1L);
+        response.setHeader(HEADER_RETRY_AFTER, String.valueOf(retryAfter));
+    }
+
+    /**
+     * RateLimit 초과 시 헤더를 추가합니다 (429 에러용, 하위 호환성용).
+     * 
+     * @deprecated 사용되지 않는 파라미터를 제거한 버전을 사용하세요.
+     * @param response HttpServletResponse
+     * @param rule RateLimitRule
+     * @param result RateLimitResult
+     * @param redisTemplate RedisTemplate (사용하지 않음)
+     * @param rateLimitKey Redis 키 (사용하지 않음)
+     */
+    @Deprecated
     public static void addRateLimitExceededHeaders(
             HttpServletResponse response,
             RateLimitRule rule,
@@ -67,42 +104,24 @@ public final class RateLimitHeaderUtil {
             RedisTemplate<String, Object> redisTemplate,
             String rateLimitKey
     ) {
-        // 기본 RateLimit 헤더 추가
-        addRateLimitHeaders(response, rule, result, redisTemplate, rateLimitKey);
-
-        // Retry-After 헤더 추가
-        long retryAfter = result.getRetryAfter(1L);
-        response.setHeader(HEADER_RETRY_AFTER, String.valueOf(retryAfter));
+        addRateLimitExceededHeaders(response, rule, result);
     }
 
-    /**
-     * 리셋 타임스탬프를 계산합니다.
-     * 
-     * Fixed Window의 경우: 현재 시간 + RateLimitResult의 ttlSeconds (또는 retryAfterSeconds)
-     * 
-     * @param rule RateLimitRule
-     * @param result RateLimitResult (null 가능)
-     * @return Unix timestamp (초 단위)
-     */
     private static long calculateResetTimestamp(
             RateLimitRule rule,
             RateLimiter.RateLimitResult result
     ) {
         long now = Instant.now().getEpochSecond();
         
-        // 1. result가 있는 경우: ttlSeconds 또는 retryAfterSeconds 사용
         if (result != null) {
-            // 초과된 요청: retryAfterSeconds 사용 (이미 TTL 기반으로 계산됨)
             if (result.retryAfterSeconds() > 0) {
                 return now + result.retryAfterSeconds();
             }
-            // 성공한 요청: ttlSeconds 사용
             if (result.ttlSeconds() > 0) {
                 return now + result.ttlSeconds();
             }
         }
         
-        // 2. 폴백: windowSeconds 사용 (result가 null이거나 TTL이 없는 경우)
         return now + rule.getWindowSeconds();
     }
 }
