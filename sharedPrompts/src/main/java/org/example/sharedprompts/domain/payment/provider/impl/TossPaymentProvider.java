@@ -6,7 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.PaymentProperties;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
+import org.example.sharedprompts.domain.payment.model.CancelResult;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
+import org.example.sharedprompts.domain.payment.model.RefundResult;
 import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.*;
@@ -19,6 +21,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.HashMap;
@@ -71,7 +74,7 @@ public class TossPaymentProvider implements PaymentProvider {
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("paymentKey", paymentKey);
             requestBody.put("orderId", orderId);
-            requestBody.put("amount", amount.intValue());
+            requestBody.put("amount", amount.longValueExact());
             
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
             
@@ -154,43 +157,91 @@ public class TossPaymentProvider implements PaymentProvider {
     }
     
     @Override
-    public void cancelPayment(String externalPaymentId, String reason, String idempotencyKey) {
+    public CancelResult cancelPayment(String externalPaymentId, String reason, String idempotencyKey) {
         try {
             HttpHeaders headers = createHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            
+
             if (idempotencyKey != null) {
                 headers.set("Idempotency-Key", idempotencyKey);
             }
-            
+
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("cancelReason", reason);
-            
+
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
-            
+
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     TOSS_PAYMENTS_API_URL + "/" + externalPaymentId + "/cancel",
                     HttpMethod.POST,
                     request,
                     new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
             );
-            
-            if (response.getStatusCode() == HttpStatus.OK) {
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> responseBody = response.getBody();
                 log.info("Toss Payments 결제 취소 성공: externalPaymentId={}", externalPaymentId);
+
+                return CancelResult.builder()
+                        .externalPaymentId(externalPaymentId)
+                        .status(PaymentStatus.CANCELED)
+                        .canceledAt(parseCanceledAt(responseBody))
+                        .reason(reason)
+                        .metadata(objectMapper.writeValueAsString(responseBody))
+                        .build();
             } else {
                 throw new RuntimeException("Toss Payments 결제 취소 실패: " + response.getStatusCode());
             }
         } catch (Exception e) {
-            log.error("Toss Payments 결제 취소 실패: externalPaymentId={}, error={}", 
+            log.error("Toss Payments 결제 취소 실패: externalPaymentId={}, error={}",
                     externalPaymentId, e.getMessage(), e);
             throw new RuntimeException("Toss Payments 결제 취소 실패", e);
         }
     }
-    
+
     @Override
-    public void refundPayment(String externalPaymentId, BigDecimal amount, String reason, String idempotencyKey) {
-        // Toss Payments는 cancel API로 환불 처리
-        cancelPayment(externalPaymentId, reason, idempotencyKey);
+    public RefundResult refundPayment(String externalPaymentId, BigDecimal amount, String reason, String idempotencyKey) {
+        try {
+            HttpHeaders headers = createHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            if (idempotencyKey != null) {
+                headers.set("Idempotency-Key", idempotencyKey);
+            }
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("cancelReason", reason);
+            requestBody.put("cancelAmount", amount.longValueExact());
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    TOSS_PAYMENTS_API_URL + "/" + externalPaymentId + "/cancel",
+                    HttpMethod.POST,
+                    request,
+                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> responseBody = response.getBody();
+                log.info("Toss Payments 결제 환불 성공: externalPaymentId={}, amount={}", externalPaymentId, amount);
+
+                return RefundResult.builder()
+                        .externalPaymentId(externalPaymentId)
+                        .status(parseStatus((String) responseBody.get("status")))
+                        .refundedAmount(amount)
+                        .refundedAt(parseCanceledAt(responseBody))
+                        .reason(reason)
+                        .metadata(objectMapper.writeValueAsString(responseBody))
+                        .build();
+            } else {
+                throw new RuntimeException("Toss Payments 결제 환불 실패: " + response.getStatusCode());
+            }
+        } catch (Exception e) {
+            log.error("Toss Payments 결제 환불 실패: externalPaymentId={}, amount={}, error={}",
+                    externalPaymentId, amount, e.getMessage(), e);
+            throw new RuntimeException("Toss Payments 결제 환불 실패", e);
+        }
     }
     
     @Override
@@ -239,7 +290,8 @@ public class TossPaymentProvider implements PaymentProvider {
             
             return new PaymentProvider.WebhookEvent(eventType, paymentKey, orderId, paymentResult);
         } catch (Exception e) {
-            log.error("Toss Payments Webhook 파싱 실패: payload={}, error={}", payload, e.getMessage(), e);
+            log.error("Toss Payments Webhook 파싱 실패: payloadSize={}, error={}",
+                    payload != null ? payload.length() : 0, e.getMessage(), e);
             throw new RuntimeException("Toss Payments Webhook 파싱 실패", e);
         }
     }
@@ -280,12 +332,27 @@ public class TossPaymentProvider implements PaymentProvider {
             if (approvedAtObj != null) {
                 String approvedAtStr = approvedAtObj.toString();
                 // ISO 8601 형식 파싱
-                return LocalDateTime.parse(approvedAtStr, DateTimeFormatter.ISO_DATE_TIME);
+                return OffsetDateTime.parse(approvedAtStr, DateTimeFormatter.ISO_DATE_TIME)
+                        .toLocalDateTime();
             }
         } catch (Exception e) {
             log.warn("승인 시간 파싱 실패: {}", e.getMessage());
         }
         return null;
+    }
+
+    private LocalDateTime parseCanceledAt(Map<String, Object> responseBody) {
+        try {
+            Object canceledAtObj = responseBody.get("canceledAt");
+            if (canceledAtObj != null) {
+                String canceledAtStr = canceledAtObj.toString();
+                return OffsetDateTime.parse(canceledAtStr, DateTimeFormatter.ISO_DATE_TIME)
+                        .toLocalDateTime();
+            }
+        } catch (Exception e) {
+            log.warn("취소 시간 파싱 실패: {}", e.getMessage());
+        }
+        return LocalDateTime.now();
     }
 }
 

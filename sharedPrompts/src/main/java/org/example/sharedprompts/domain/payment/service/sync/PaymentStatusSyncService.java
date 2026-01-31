@@ -41,19 +41,8 @@ public class PaymentStatusSyncService {
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
         validationService.validatePaymentOwnership(payment, userId);
-        
-        // Provider 선택 및 상태 조회
-        PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
-        PaymentResult result = provider.getPaymentStatus(payment.getExternalPaymentId());
-        
-        // 상태 동기화 (도메인 중심)
-        if (payment.getStatus() != result.getStatus()) {
-            payment = paymentRepository.findById(payment.getId()).orElse(payment);
-            syncPaymentStatusFromResult(payment, result);
-            paymentRepository.save(payment);
-        }
 
-        return PaymentStatusResponseDto.from(payment);
+        return doSyncPaymentStatus(payment);
     }
 
     /**
@@ -64,13 +53,17 @@ public class PaymentStatusSyncService {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
-        // Provider 선택 및 상태 조회
+        return doSyncPaymentStatus(payment);
+    }
+
+    /**
+     * 공통 상태 동기화 로직
+     */
+    private PaymentStatusResponseDto doSyncPaymentStatus(Payment payment) {
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
         PaymentResult result = provider.getPaymentStatus(payment.getExternalPaymentId());
-        
-        // 상태 동기화 (도메인 중심)
+
         if (payment.getStatus() != result.getStatus()) {
-            payment = paymentRepository.findById(payment.getId()).orElse(payment);
             syncPaymentStatusFromResult(payment, result);
             paymentRepository.save(payment);
         }

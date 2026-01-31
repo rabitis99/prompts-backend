@@ -35,34 +35,27 @@ public class PaymentExecutionService {
     
     /**
      * 결제 실행
-     * 
+     *
      * @param payment Payment 엔티티
      * @param actualAmount 실제 결제 금액 (포인트 사용 후)
-     * @return PaymentResult
+     * @return 저장된 Payment 엔티티
      */
     @Transactional
-    public PaymentResult executePayment(Payment payment, BigDecimal actualAmount) {
+    public Payment executePayment(Payment payment, BigDecimal actualAmount) {
         // 이미 SUCCESS 상태면 외부 API 재호출 금지 (멱등성)
         if (payment.getStatus() == PaymentStatus.SUCCESS) {
-            log.info("Payment가 이미 완료 상태: paymentId={}, externalPaymentId={}", 
+            log.info("Payment가 이미 완료 상태: paymentId={}, externalPaymentId={}",
                     payment.getId(), payment.getExternalPaymentId());
-            return PaymentResult.builder()
-                    .externalPaymentId(payment.getExternalPaymentId())
-                    .status(PaymentStatus.SUCCESS)
-                    .amount(payment.getAmount())
-                    .currency(payment.getCurrency())
-                    .orderId(String.valueOf(payment.getId()))
-                    .approvedAt(payment.getApprovedAt())
-                    .build();
+            return payment;
         }
-        
+
         // 멱등성 키 생성
         String idempotencyKey = generateIdempotencyKey(payment);
         payment.updateIdempotencyKey(idempotencyKey);
-        
+
         // Provider 선택 및 결제 승인 호출
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
-        
+
         PaymentResult result = provider.confirmPayment(
                 payment.getExternalPaymentId() != null ? payment.getExternalPaymentId() : String.valueOf(payment.getId()),
                 String.valueOf(payment.getId()),
@@ -70,56 +63,58 @@ public class PaymentExecutionService {
                 payment.getCurrency(),
                 idempotencyKey
         );
-        
+
         // PaymentResult 검증
         paymentValidator.validatePaymentResult(payment, result);
-        
+
         // 도메인 메서드를 통한 상태 변경
         if (result.isSuccess()) {
             payment.markSuccess(result.getExternalPaymentId());
         } else {
             payment.markFailed(result.getFailureReason() != null ? result.getFailureReason() : "결제 승인 실패");
         }
-        
-        payment = paymentRepository.save(payment);
-        
-        return result;
+
+        return paymentRepository.save(payment);
     }
     
     /**
      * 결제 취소 실행
+     *
+     * @return 저장된 Payment 엔티티
      */
     @Transactional
-    public void executeCancel(Payment payment, String reason) {
+    public Payment executeCancel(Payment payment, String reason) {
         if (payment.getExternalPaymentId() == null) {
             throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "외부 결제 ID가 없습니다.");
         }
-        
+
         String idempotencyKey = generateIdempotencyKey(payment, "cancel");
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
-        
+
         provider.cancelPayment(payment.getExternalPaymentId(), reason, idempotencyKey);
-        
+
         payment.markCanceled();
-        paymentRepository.save(payment);
+        return paymentRepository.save(payment);
     }
     
     /**
      * 결제 환불 실행
+     *
+     * @return 저장된 Payment 엔티티
      */
     @Transactional
-    public void executeRefund(Payment payment, BigDecimal refundAmount, String reason) {
+    public Payment executeRefund(Payment payment, BigDecimal refundAmount, String reason) {
         if (payment.getExternalPaymentId() == null) {
             throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "외부 결제 ID가 없습니다.");
         }
-        
+
         String idempotencyKey = generateIdempotencyKey(payment, "refund");
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
-        
+
         provider.refundPayment(payment.getExternalPaymentId(), refundAmount, reason, idempotencyKey);
-        
+
         payment.refund(refundAmount);
-        paymentRepository.save(payment);
+        return paymentRepository.save(payment);
     }
     
     /**

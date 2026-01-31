@@ -83,10 +83,12 @@ public class CashbackExecutionService {
             
             log.info("캐시백 지급 완료: cashbackId={}, userId={}, amount={}, paymentId={}", 
                     cashbackId, userId, cashbackAmount, paymentId);
+        } catch (ApiException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("캐시백 지급 실패: cashbackId={}, userId={}, amount={}, error={}", 
+            log.error("캐시백 지급 실패: cashbackId={}, userId={}, amount={}, error={}",
                     cashbackId, userId, cashbackAmount, e.getMessage(), e);
-            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, 
+            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR,
                     "캐시백 지급 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
@@ -119,10 +121,12 @@ public class CashbackExecutionService {
             
             log.info("캐시백 지급 완료 (관리자): cashbackId={}, userId={}, amount={}, paymentId={}", 
                     cashbackId, userId, cashbackAmount, paymentId);
+        } catch (ApiException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("캐시백 지급 실패 (관리자): cashbackId={}, userId={}, amount={}, error={}", 
+            log.error("캐시백 지급 실패 (관리자): cashbackId={}, userId={}, amount={}, error={}",
                     cashbackId, userId, cashbackAmount, e.getMessage(), e);
-            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, 
+            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR,
                     "캐시백 지급 중 오류가 발생했습니다: " + e.getMessage());
         }
     }

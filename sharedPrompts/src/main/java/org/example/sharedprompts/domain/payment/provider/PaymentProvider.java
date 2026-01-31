@@ -1,7 +1,9 @@
 package org.example.sharedprompts.domain.payment.provider;
 
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
+import org.example.sharedprompts.domain.payment.model.CancelResult;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
+import org.example.sharedprompts.domain.payment.model.RefundResult;
 
 import java.math.BigDecimal;
 
@@ -53,22 +55,24 @@ public interface PaymentProvider {
     
     /**
      * 결제 취소
-     * 
+     *
      * @param externalPaymentId 외부 결제 ID
      * @param reason 취소 사유
      * @param idempotencyKey 멱등성 키
+     * @return CancelResult 취소 결과
      */
-    void cancelPayment(String externalPaymentId, String reason, String idempotencyKey);
-    
+    CancelResult cancelPayment(String externalPaymentId, String reason, String idempotencyKey);
+
     /**
      * 결제 환불
-     * 
+     *
      * @param externalPaymentId 외부 결제 ID
      * @param amount 환불 금액
      * @param reason 환불 사유
      * @param idempotencyKey 멱등성 키
+     * @return RefundResult 환불 결과
      */
-    void refundPayment(String externalPaymentId, BigDecimal amount, String reason, String idempotencyKey);
+    RefundResult refundPayment(String externalPaymentId, BigDecimal amount, String reason, String idempotencyKey);
     
     /**
      * 환불된 금액 조회

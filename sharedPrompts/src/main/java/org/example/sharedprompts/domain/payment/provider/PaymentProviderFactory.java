@@ -30,7 +30,10 @@ public class PaymentProviderFactory {
                 .collect(Collectors.toMap(
                         PaymentProvider::getPaymentMethod,
                         Function.identity(),
-                        (a, b) -> b,
+                        (a, b) -> {
+                            throw new IllegalStateException(
+                                    "Duplicate PaymentProvider for " + a.getPaymentMethod());
+                        },
                         () -> new EnumMap<>(PaymentMethod.class)
                 ));
     }

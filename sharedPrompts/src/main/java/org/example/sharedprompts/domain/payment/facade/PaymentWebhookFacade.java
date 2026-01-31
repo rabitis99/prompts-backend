@@ -66,28 +66,23 @@ public class PaymentWebhookFacade {
     }
     
     /**
-     * Webhook 결과를 Payment에 적용
-     * 
-     * @param payment Payment 엔티티
-     * @param paymentResult PaymentResult (Webhook에서 받은 결과)
+     * Webhook 결과를 Payment에 적용 (내부 헬퍼)
+     * 저장은 호출자가 담당
      */
-    @Transactional
-    public void applyWebhookResult(Payment payment, PaymentResult paymentResult) {
+    private void applyWebhookResult(Payment payment, PaymentResult paymentResult) {
         // 이미 SUCCESS 상태면 재처리하지 않음 (멱등성)
         if (payment.getStatus() == PaymentStatus.SUCCESS) {
-            log.info("Payment가 이미 완료 상태: paymentId={}, externalPaymentId={}", 
+            log.info("Payment가 이미 완료 상태: paymentId={}, externalPaymentId={}",
                     payment.getId(), payment.getExternalPaymentId());
             return;
         }
-        
+
         // Payment 도메인 메서드를 통해 상태 변경
         payment.applyWebhookResult(
                 paymentResult.getExternalPaymentId(),
                 paymentResult.getStatus(),
                 paymentResult.getApprovedAt()
         );
-        
-        paymentRepository.save(payment);
     }
 }
 

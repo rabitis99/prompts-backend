@@ -77,8 +77,7 @@ public class PaymentServiceImpl implements PaymentService {
 
             try {
                 // PaymentExecutionService를 통한 결제 실행
-                executionService.executePayment(payment, amountResult.getActualPaymentAmount());
-                payment = paymentRepository.findById(payment.getId()).orElse(payment);
+                payment = executionService.executePayment(payment, amountResult.getActualPaymentAmount());
 
                 long processingTime = System.currentTimeMillis() - startTime;
                 
@@ -143,8 +142,7 @@ public class PaymentServiceImpl implements PaymentService {
             PaymentStatus oldStatus = payment.getStatus();
             
             // PaymentExecutionService를 통한 취소 실행
-            executionService.executeCancel(payment, request.getReasonOrDefault());
-            payment = paymentRepository.findById(payment.getId()).orElse(payment);
+            payment = executionService.executeCancel(payment, request.getReasonOrDefault());
 
             postProcessService.processPaymentCancel(payment, userId, request.getReasonOrDefault(), oldStatus);
 
@@ -168,10 +166,9 @@ public class PaymentServiceImpl implements PaymentService {
 
         try {
             PaymentStatus oldStatus = payment.getStatus();
-            
+
             // PaymentExecutionService를 통한 환불 실행
-            executionService.executeRefund(payment, refundAmount, request.getReasonOrDefault());
-            payment = paymentRepository.findById(payment.getId()).orElse(payment);
+            payment = executionService.executeRefund(payment, refundAmount, request.getReasonOrDefault());
 
             BigDecimal refundPointAmount = amountFacade.calculateRefundPointAmount(
                     payment.getUsedPointAmount(),
@@ -210,11 +207,10 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
         
         validationService.validatePaymentOwnership(payment, userId);
-        
+
         // PaymentExecutionService를 통한 결제 실행
-        executionService.executePayment(payment, BigDecimal.valueOf(request.getAmount()));
-        payment = paymentRepository.findById(payment.getId()).orElse(payment);
-        
+        payment = executionService.executePayment(payment, BigDecimal.valueOf(request.getAmount()));
+
         PaymentConfirmResponse response = new PaymentConfirmResponse();
         response.setPaymentKey(payment.getExternalPaymentId());
         response.setOrderId(request.getOrderId());
@@ -253,10 +249,9 @@ public class PaymentServiceImpl implements PaymentService {
 
         try {
             PaymentStatus oldStatus = payment.getStatus();
-            
+
             // PaymentExecutionService를 통한 취소 실행
-            executionService.executeCancel(payment, request.getReasonOrDefault());
-            payment = paymentRepository.findById(payment.getId()).orElse(payment);
+            payment = executionService.executeCancel(payment, request.getReasonOrDefault());
 
             postProcessService.processPaymentCancel(payment, payment.getUser().getId(), request.getReasonOrDefault(), oldStatus);
 
@@ -280,10 +275,9 @@ public class PaymentServiceImpl implements PaymentService {
 
         try {
             PaymentStatus oldStatus = payment.getStatus();
-            
+
             // PaymentExecutionService를 통한 환불 실행
-            executionService.executeRefund(payment, refundAmount, request.getReasonOrDefault());
-            payment = paymentRepository.findById(payment.getId()).orElse(payment);
+            payment = executionService.executeRefund(payment, refundAmount, request.getReasonOrDefault());
 
             BigDecimal refundPointAmount = amountFacade.calculateRefundPointAmount(
                     payment.getUsedPointAmount(),
