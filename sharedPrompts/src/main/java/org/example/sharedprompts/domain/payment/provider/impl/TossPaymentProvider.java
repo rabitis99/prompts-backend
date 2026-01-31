@@ -74,6 +74,9 @@ public class TossPaymentProvider implements PaymentProvider {
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("paymentKey", paymentKey);
             requestBody.put("orderId", orderId);
+            if (amount.scale() > 0) {
+                throw new IllegalArgumentException("Toss 결제 금액은 소수점 없이 전달되어야 합니다.");
+            }
             requestBody.put("amount", amount.longValueExact());
             
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
@@ -211,6 +214,9 @@ public class TossPaymentProvider implements PaymentProvider {
 
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("cancelReason", reason);
+            if (amount.scale() > 0) {
+                throw new IllegalArgumentException("Toss 환불 금액은 소수점 없이 전달되어야 합니다.");
+            }
             requestBody.put("cancelAmount", amount.longValueExact());
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
