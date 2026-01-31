@@ -24,6 +24,7 @@ public class PaymentProperties {
     // 페이팔
     private final String paypalClientId;
     private final String paypalClientSecret;
+    private final String paypalWebhookId;
 
     // 환율 API (선택적)
     private final String exchangeRateApiKey;
@@ -55,6 +56,7 @@ public class PaymentProperties {
             @Value("${payment.toss.confirm-endpoint:/confirm}") String tossConfirmEndpoint,
             @Value("${payment.paypal.client-id:}") String paypalClientId,
             @Value("${payment.paypal.client-secret:}") String paypalClientSecret,
+            @Value("${payment.paypal.webhook-id:}") String paypalWebhookId,
             @Value("${payment.exchange-rate.api-key:}") String exchangeRateApiKey,
             @Value("${payment.exchange-rate.api-url:https://api.exchangerate-api.com/v4/latest/}") String exchangeRateApiUrl,
             @Value("${payment.webhook.secret:}") String webhookSecret,
@@ -74,6 +76,7 @@ public class PaymentProperties {
         this.tossConfirmEndpoint = tossConfirmEndpoint;
         this.paypalClientId = paypalClientId;
         this.paypalClientSecret = paypalClientSecret;
+        this.paypalWebhookId = paypalWebhookId;
         this.exchangeRateApiKey = exchangeRateApiKey;
         this.exchangeRateApiUrl = exchangeRateApiUrl;
         this.webhookSecret = webhookSecret;

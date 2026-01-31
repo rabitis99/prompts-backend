@@ -55,9 +55,20 @@ public class PaymentRetryFacade {
         payment.markInProgress(); // 재시도 시 PENDING 상태로 변경
         
         payment = paymentRepository.save(payment);
-        
+
         // PaymentExecutionService를 통한 재시도 실행
-        return executionService.executePayment(payment, payment.getAmount());
+        Payment executedPayment = executionService.executePayment(payment, payment.getAmount());
+
+        // Payment에서 PaymentResult 생성
+        return PaymentResult.builder()
+                .externalPaymentId(executedPayment.getExternalPaymentId())
+                .status(executedPayment.getStatus())
+                .amount(executedPayment.getAmount())
+                .currency(executedPayment.getCurrency())
+                .orderId(String.valueOf(executedPayment.getId()))
+                .approvedAt(executedPayment.getApprovedAt())
+                .failureReason(executedPayment.getFailureReason())
+                .build();
     }
     
     /**
