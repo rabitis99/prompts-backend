@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.payment.provider.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.PaymentProperties;
+import org.example.sharedprompts.domain.payment.config.TossPayProperties;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.model.CancelResult;
@@ -43,7 +43,7 @@ public class TossPaymentProvider implements PaymentProvider {
     private static final String TOSS_PAYMENTS_API_URL = "https://api.tosspayments.com/v1/payments";
     private static final String TOSS_CONFIRM_ENDPOINT = "/confirm";
     
-    private final PaymentProperties paymentProperties;
+    private final TossPayProperties tossPayProperties;
     @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -247,7 +247,7 @@ public class TossPaymentProvider implements PaymentProvider {
     @Override
     public boolean verifyWebhookSignature(String payload, String signature) {
         try {
-            String secret = paymentProperties.getTossSecret();
+            String secret = tossPayProperties.getSecret();
             if (secret == null || secret.isEmpty()) {
                 log.warn("Toss Payments Webhook secret이 설정되지 않았습니다.");
                 return false;
@@ -300,7 +300,7 @@ public class TossPaymentProvider implements PaymentProvider {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         
-        String secret = paymentProperties.getTossSecret();
+        String secret = tossPayProperties.getSecret();
         if (secret != null && !secret.isEmpty()) {
             String auth = secret + ":";
             String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));

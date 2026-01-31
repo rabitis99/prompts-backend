@@ -8,7 +8,7 @@ import net.javacrumbs.shedlock.core.SimpleLock;
 
 import java.time.Instant;
 import org.example.sharedprompts.domain.payment.Point;
-import org.example.sharedprompts.domain.payment.config.PaymentProperties;
+import org.example.sharedprompts.domain.payment.config.RewardProperties;
 import org.example.sharedprompts.domain.payment.repository.point.PointRepository;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
@@ -42,7 +42,7 @@ import java.util.function.Supplier;
 public class PointServiceImpl implements PointService {
 
     private final PointRepository pointRepository;
-    private final PaymentProperties paymentProperties;
+    private final RewardProperties rewardProperties;
     private final UserRepository userRepository;
     /**
      * LockProvider 주입 (@Primary로 지정된 메인 LockProvider 사용)
@@ -60,7 +60,7 @@ public class PointServiceImpl implements PointService {
     @Transactional
     public void accumulatePoints(Long userId, Long paymentId, BigDecimal paymentAmount) {
         // 포인트 적립률 적용
-        BigDecimal pointAmount = paymentAmount.multiply(BigDecimal.valueOf(paymentProperties.getPointRate()))
+        BigDecimal pointAmount = paymentAmount.multiply(BigDecimal.valueOf(rewardProperties.getPointRate()))
                 .setScale(0, RoundingMode.DOWN);
 
         if (pointAmount.compareTo(BigDecimal.ZERO) <= 0) {

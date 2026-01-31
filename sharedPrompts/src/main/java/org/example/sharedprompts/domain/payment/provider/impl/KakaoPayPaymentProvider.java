@@ -3,7 +3,8 @@ package org.example.sharedprompts.domain.payment.provider.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.PaymentProperties;
+import org.example.sharedprompts.domain.payment.config.KakaoPayProperties;
+import org.example.sharedprompts.domain.payment.config.WebhookProperties;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.model.CancelResult;
@@ -44,7 +45,8 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
     private static final String KAKAO_PAY_API_URL = "https://open-api.kakaopay.com/online/v1/payment";
     private static final String KAKAO_PAY_APPROVE_ENDPOINT = "/approve";
     
-    private final PaymentProperties paymentProperties;
+    private final KakaoPayProperties kakaoPayProperties;
+    private final WebhookProperties webhookProperties;
     @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -69,7 +71,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             headers.setContentType(MediaType.APPLICATION_JSON);
             
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("cid", paymentProperties.getKakaoCid());
+            requestBody.put("cid", kakaoPayProperties.getCid());
             
             // tid와 pg_token 파싱 개선
             String tid = paymentKey;
@@ -124,7 +126,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> responseBody = response.getBody();
-                String tid = (String) responseBody.get("tid");
+                tid = (String) responseBody.get("tid");
 
                 // KakaoPay amount는 객체 형태로 반환됨 (예: {total=2200, tax_free=0, ...})
                 @SuppressWarnings("unchecked")
@@ -166,7 +168,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             HttpEntity<Void> request = new HttpEntity<>(headers);
             
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    KAKAO_PAY_API_URL + "/order?cid=" + paymentProperties.getKakaoCid() + "&tid=" + externalPaymentId,
+                    KAKAO_PAY_API_URL + "/order?cid=" + kakaoPayProperties.getCid() + "&tid=" + externalPaymentId,
                     HttpMethod.GET,
                     request,
                     new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
@@ -213,7 +215,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("cid", paymentProperties.getKakaoCid());
+            requestBody.put("cid", kakaoPayProperties.getCid());
             requestBody.put("tid", externalPaymentId);
             requestBody.put("cancel_amount", null); // 전체 취소
             requestBody.put("cancel_tax_free_amount", 0);
@@ -256,7 +258,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("cid", paymentProperties.getKakaoCid());
+            requestBody.put("cid", kakaoPayProperties.getCid());
             requestBody.put("tid", externalPaymentId);
             requestBody.put("cancel_amount", amount.intValue());
             requestBody.put("cancel_tax_free_amount", 0);
@@ -306,7 +308,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
     @Override
     public boolean verifyWebhookSignature(String payload, String signature) {
         try {
-            String secret = paymentProperties.getWebhookSecret();
+            String secret = webhookProperties.getSecret();
             if (secret == null || secret.isEmpty()) {
                 log.warn("KakaoPay Webhook secret이 설정되지 않았습니다.");
                 return false;
@@ -356,7 +358,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
     
     private HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "SECRET_KEY " + paymentProperties.getKakaoSecret());
+        headers.set("Authorization", "SECRET_KEY " + kakaoPayProperties.getSecret());
         headers.setContentType(MediaType.APPLICATION_JSON);
         return headers;
     }

@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.payment.service.notification;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.PaymentProperties;
+import org.example.sharedprompts.domain.payment.config.FcmProperties;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -24,7 +24,7 @@ import static org.example.sharedprompts.global.util.SensitiveDataMasker.maskToke
 public class PushNotificationService {
 
     private final RestTemplate restTemplate;
-    private final PaymentProperties paymentProperties;
+    private final FcmProperties fcmProperties;
     private final FcmTokenService fcmTokenService;
 
     /**
@@ -73,9 +73,9 @@ public class PushNotificationService {
 
     private void sendPushNotification(String deviceToken, Map<String, Object> notification, Map<String, Object> data) {
         // FCM이 비활성화되어 있거나 프로젝트 ID가 없으면 로그만 남기고 종료
-        if (!paymentProperties.isFcmEnabled() || 
-            paymentProperties.getFcmProjectId() == null || 
-            paymentProperties.getFcmProjectId().isEmpty()) {
+        if (!fcmProperties.isEnabled() || 
+            fcmProperties.getProjectId() == null || 
+            fcmProperties.getProjectId().isEmpty()) {
             log.debug("FCM이 비활성화되어 있거나 프로젝트 ID가 설정되지 않음. 푸시 알림 발송 건너뜀: deviceToken={}", maskToken(deviceToken));
             return;
         }
@@ -108,7 +108,7 @@ public class PushNotificationService {
             headers.setBearerAuth(accessToken);
             
             // FCM HTTP v1 API 엔드포인트
-            String projectId = paymentProperties.getFcmProjectId();
+            String projectId = fcmProperties.getProjectId();
             String url = String.format("https://fcm.googleapis.com/v1/projects/%s/messages:send", projectId);
             
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);

@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.payment.service.payment;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Payment;
-import org.example.sharedprompts.domain.payment.config.PaymentProperties;
+import org.example.sharedprompts.domain.payment.config.RetryProperties;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaymentRetryService {
 
     private final PaymentRepository paymentRepository;
-    private final PaymentProperties paymentProperties;
+    private final RetryProperties retryProperties;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updatePaymentStatusSuccess(Long paymentId, String externalPaymentId) {
@@ -42,7 +42,7 @@ public class PaymentRetryService {
         
         payment.incrementRetryCount();
         int currentRetryCount = payment.getRetryCount();
-        int maxRetryAttempts = paymentProperties.getMaxRetryAttempts();
+        int maxRetryAttempts = retryProperties.getMaxAttempts();
         
         // 재시도 가능 여부 확인
         if (payment.isRetryable(maxRetryAttempts)) {

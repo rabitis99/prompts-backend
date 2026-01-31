@@ -4,7 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Payment;
-import org.example.sharedprompts.domain.payment.config.PaymentProperties;
+import org.example.sharedprompts.domain.payment.config.PaypalProperties;
+import org.example.sharedprompts.domain.payment.config.WebhookProperties;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderService;
@@ -33,7 +34,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PayPalPaymentService implements PaymentProviderService {
 
-    private final PaymentProperties paymentProperties;
+    private final PaypalProperties paypalProperties;
+    private final WebhookProperties webhookProperties;
     @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -211,7 +213,7 @@ public class PayPalPaymentService implements PaymentProviderService {
     public boolean verifyWebhookSignature(String payload, String signature) {
         try {
             // 페이팔 Webhook 서명 검증
-            String secret = paymentProperties.getWebhookSecret();
+            String secret = webhookProperties.getSecret();
             if (secret == null || secret.isEmpty()) {
                 log.warn("페이팔 Webhook secret이 설정되지 않았습니다.");
                 return false;
@@ -252,7 +254,7 @@ public class PayPalPaymentService implements PaymentProviderService {
     private String getAccessToken() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.setBasicAuth(paymentProperties.getPaypalClientId(), paymentProperties.getPaypalClientSecret());
+        headers.setBasicAuth(paypalProperties.getClientId(), paypalProperties.getClientSecret());
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("grant_type", "client_credentials");

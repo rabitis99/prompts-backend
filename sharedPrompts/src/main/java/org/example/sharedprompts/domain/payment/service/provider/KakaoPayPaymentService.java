@@ -4,7 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Payment;
-import org.example.sharedprompts.domain.payment.config.PaymentProperties;
+import org.example.sharedprompts.domain.payment.config.KakaoPayProperties;
+import org.example.sharedprompts.domain.payment.config.WebhookProperties;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderService;
@@ -31,7 +32,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class KakaoPayPaymentService implements PaymentProviderService {
 
-    private final PaymentProperties paymentProperties;
+    private final KakaoPayProperties kakaoPayProperties;
+    private final WebhookProperties webhookProperties;
     @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -55,7 +57,7 @@ public class KakaoPayPaymentService implements PaymentProviderService {
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("cid", paymentProperties.getKakaoCid());
+            requestBody.put("cid", kakaoPayProperties.getCid());
             requestBody.put("tid", payment.getExternalPaymentId() != null ? payment.getExternalPaymentId() : generateTid(payment));
             requestBody.put("partner_order_id", String.valueOf(payment.getId()));
             requestBody.put("partner_user_id", String.valueOf(payment.getUser().getId()));
@@ -91,7 +93,7 @@ public class KakaoPayPaymentService implements PaymentProviderService {
             HttpEntity<Void> request = new HttpEntity<>(headers);
 
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    KAKAO_PAY_STATUS_URL + "?cid=" + paymentProperties.getKakaoCid() + "&tid=" + externalPaymentId,
+                    KAKAO_PAY_STATUS_URL + "?cid=" + kakaoPayProperties.getCid() + "&tid=" + externalPaymentId,
                     HttpMethod.GET,
                     request,
                     new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
@@ -123,7 +125,7 @@ public class KakaoPayPaymentService implements PaymentProviderService {
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("cid", paymentProperties.getKakaoCid());
+            requestBody.put("cid", kakaoPayProperties.getCid());
             requestBody.put("tid", externalPaymentId);
             requestBody.put("cancel_amount", null); // 전체 취소
             requestBody.put("cancel_tax_free_amount", 0);
@@ -156,7 +158,7 @@ public class KakaoPayPaymentService implements PaymentProviderService {
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("cid", paymentProperties.getKakaoCid());
+            requestBody.put("cid", kakaoPayProperties.getCid());
             requestBody.put("tid", externalPaymentId);
             requestBody.put("cancel_amount", amount.intValue());
             requestBody.put("cancel_tax_free_amount", 0);
@@ -186,7 +188,7 @@ public class KakaoPayPaymentService implements PaymentProviderService {
     public boolean verifyWebhookSignature(String payload, String signature) {
         try {
             // 카카오페이 Webhook 서명 검증
-            String secret = paymentProperties.getWebhookSecret();
+            String secret = webhookProperties.getSecret();
             if (secret == null || secret.isEmpty()) {
                 log.warn("Webhook secret이 설정되지 않았습니다.");
                 return false;
@@ -226,7 +228,7 @@ public class KakaoPayPaymentService implements PaymentProviderService {
 
     private HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "SECRET_KEY " + paymentProperties.getKakaoSecret());
+        headers.set("Authorization", "SECRET_KEY " + kakaoPayProperties.getSecret());
         headers.set("Content-Type", "application/json");
         return headers;
     }

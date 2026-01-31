@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Payment;
-import org.example.sharedprompts.domain.payment.config.PaymentProperties;
+import org.example.sharedprompts.domain.payment.config.TossPayProperties;
 import org.example.sharedprompts.dto.payment.request.PaymentConfirmRequest;
 import org.example.sharedprompts.dto.payment.response.PaymentConfirmResponse;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
@@ -32,7 +32,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class TossPaymentService implements PaymentProviderService {
 
-    private final PaymentProperties paymentProperties;
+    private final TossPayProperties tossPayProperties;
     @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -63,7 +63,7 @@ public class TossPaymentService implements PaymentProviderService {
             HttpEntity<PaymentConfirmRequest> requestEntity = new HttpEntity<>(request, headers);
 
             ResponseEntity<PaymentConfirmResponse> responseEntity = restTemplate.exchange(
-                    paymentProperties.getTossBaseUrl() + paymentProperties.getTossConfirmEndpoint(),
+                    tossPayProperties.getBaseUrl() + tossPayProperties.getConfirmEndpoint(),
                     HttpMethod.POST,
                     requestEntity,
                     PaymentConfirmResponse.class
@@ -176,7 +176,7 @@ public class TossPaymentService implements PaymentProviderService {
     @Override
     public boolean verifyWebhookSignature(String payload, String signature) {
         try {
-            String secret = paymentProperties.getTossSecret();
+            String secret = tossPayProperties.getSecret();
             if (secret == null || secret.isEmpty()) {
                 log.warn("토스페이먼츠 Webhook secret이 설정되지 않았습니다.");
                 return false;
@@ -220,7 +220,7 @@ public class TossPaymentService implements PaymentProviderService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        String secret = paymentProperties.getTossSecret();
+        String secret = tossPayProperties.getSecret();
 
         if (secret != null && !secret.isEmpty()) {
             String auth = secret + ":";  // secretKey:

@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.payment.service.cashback.facade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Cashback;
-import org.example.sharedprompts.domain.payment.config.PaymentProperties;
+import org.example.sharedprompts.domain.payment.config.RewardProperties;
 import org.example.sharedprompts.domain.payment.repository.cashback.CashbackRepository;
 import org.example.sharedprompts.domain.payment.service.cashback.amount.CashbackAmountService;
 import org.example.sharedprompts.domain.payment.service.cashback.execution.CashbackExecutionService;
@@ -32,7 +32,7 @@ import java.math.BigDecimal;
 public class CashbackFacade {
 
     private final CashbackRepository cashbackRepository;
-    private final PaymentProperties paymentProperties;
+    private final RewardProperties rewardProperties;
     private final CashbackValidationService validationService;
     private final CashbackAmountService amountService;
     private final CashbackExecutionService executionService;
@@ -62,7 +62,7 @@ public class CashbackFacade {
             }
 
             // 캐시백 금액 계산
-            BigDecimal cashbackRate = BigDecimal.valueOf(paymentProperties.getCashbackRate());
+            BigDecimal cashbackRate = BigDecimal.valueOf(rewardProperties.getCashbackRate());
             BigDecimal cashbackAmount = amountService.calculateCashbackAmount(paymentAmount, cashbackRate);
 
             // 캐시백 적립 실행

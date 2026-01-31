@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.payment.Payment;
-import org.example.sharedprompts.domain.payment.config.PaymentProperties;
+import org.example.sharedprompts.domain.payment.config.RetryProperties;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderService;
 import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderServiceFactory;
@@ -28,7 +28,7 @@ public class PaymentRetryScheduler {
 
     private final PaymentRepository paymentRepository;
     private final PaymentProviderServiceFactory providerServiceFactory;
-    private final PaymentProperties paymentProperties;
+    private final RetryProperties retryProperties;
     private final PaymentRetryService retryService;
 
     private static final long SCHEDULE_DELAY_MS = 5 * 60 * 1000L; // 5분
@@ -51,7 +51,7 @@ public class PaymentRetryScheduler {
 
         // nextRetryAt 기반으로 재시도 가능한 결제 조회
         List<Payment> pendingPayments = paymentRepository.findRetryablePayments(
-                paymentProperties.getMaxRetryAttempts(),
+                retryProperties.getMaxAttempts(),
                 LocalDateTime.now()
         );
 
@@ -101,7 +101,7 @@ public class PaymentRetryScheduler {
             retryService.updatePaymentStatusFailure(
                     payment.getId(), 
                     e.getMessage(), 
-                    paymentProperties.getRetryDelayMs()
+                    retryProperties.getDelayMs()
             );
             throw e;
         }

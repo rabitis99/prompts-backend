@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.payment.ExchangeRate;
-import org.example.sharedprompts.domain.payment.config.PaymentProperties;
+import org.example.sharedprompts.domain.payment.config.ExchangeRateProperties;
 import org.example.sharedprompts.domain.payment.repository.exchange.ExchangeRateRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.ContextRefreshedEvent;
@@ -37,7 +37,7 @@ import java.util.Map;
 public class ExchangeRateScheduler {
 
     private final ExchangeRateRepository exchangeRateRepository;
-    private final PaymentProperties paymentProperties;
+    private final ExchangeRateProperties exchangeRateProperties;
     @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
 
@@ -110,7 +110,7 @@ public class ExchangeRateScheduler {
      * 1️⃣ 환율 API 호출
      */
     private Map<String, Object> fetchRatesFromApi() {
-        String apiUrl = paymentProperties.getExchangeRateApiUrl();
+        String apiUrl = exchangeRateProperties.getApiUrl();
         if (apiUrl == null || apiUrl.isEmpty()) {
             log.warn("환율 API URL이 설정되지 않았습니다.");
             return null;
@@ -120,8 +120,8 @@ public class ExchangeRateScheduler {
         String url = apiUrl + baseCurrency;
 
         HttpHeaders headers = new HttpHeaders();
-        if (paymentProperties.getExchangeRateApiKey() != null && !paymentProperties.getExchangeRateApiKey().isEmpty()) {
-            headers.set("apikey", paymentProperties.getExchangeRateApiKey());
+        if (exchangeRateProperties.getApiKey() != null && !exchangeRateProperties.getApiKey().isEmpty()) {
+            headers.set("apikey", exchangeRateProperties.getApiKey());
         }
 
         HttpEntity<Void> request = new HttpEntity<>(headers);

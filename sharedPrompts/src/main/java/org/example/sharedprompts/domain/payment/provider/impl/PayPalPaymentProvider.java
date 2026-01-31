@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.payment.provider.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.PaymentProperties;
+import org.example.sharedprompts.domain.payment.config.PaypalProperties;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.model.CancelResult;
@@ -48,7 +48,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
     private static final String PAYPAL_OAUTH_URL = PAYPAL_API_URL + "/v1/oauth2/token";
     private static final String PAYPAL_ORDERS_URL = PAYPAL_API_URL + "/v2/checkout/orders";
     
-    private final PaymentProperties paymentProperties;
+    private final PaypalProperties paypalProperties;
     @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -325,7 +325,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
     @Override
     public boolean verifyWebhookSignature(String payload, String signature) {
         try {
-            String webhookId = paymentProperties.getPaypalWebhookId();
+            String webhookId = paypalProperties.getWebhookId();
             if (webhookId == null || webhookId.isEmpty()) {
                 log.warn("PayPal Webhook ID가 설정되지 않았습니다.");
                 return false;
@@ -435,7 +435,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
     private String getAccessToken() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.setBasicAuth(paymentProperties.getPaypalClientId(), paymentProperties.getPaypalClientSecret());
+        headers.setBasicAuth(paypalProperties.getClientId(), paypalProperties.getClientSecret());
         
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("grant_type", "client_credentials");
