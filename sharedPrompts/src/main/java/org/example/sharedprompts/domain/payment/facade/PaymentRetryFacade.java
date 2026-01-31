@@ -9,6 +9,7 @@ import org.example.sharedprompts.domain.payment.service.execution.PaymentExecuti
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -36,6 +37,13 @@ public class PaymentRetryFacade {
     /**
      * 결제 재시도
      * 
+     * <p>트랜잭션 전략:
+     * 1. 재시도 상태 확정(횟수 증가, 다음 재시도 시간, 상태 변경)은 별도 트랜잭션(REQUIRES_NEW)에서 먼저 커밋
+     * 2. 결제 실행은 메인 트랜잭션에서 수행하며, 실패 시 예외 전파
+     * 
+     * <p>이를 통해 executePayment() 실패 여부와 관계없이
+     * 재시도 관련 상태 변경(retryCount, nextRetryAt, status)은 반드시 DB에 반영됩니다.
+     * 
      * @param paymentId 결제 ID
      * @return PaymentResult
      */
@@ -49,15 +57,13 @@ public class PaymentRetryFacade {
             throw new ApiException(ErrorCode.PAYMENT_RETRY_EXCEEDED);
         }
         
-        // 재시도 횟수 증가 및 다음 재시도 시간 예약
-        payment.incrementRetryCount();
-        payment.scheduleNextRetry(BASE_RETRY_DELAY_MS);
-        payment.markInProgress(); // 재시도 시 PENDING 상태로 변경
+        // 재시도 상태 확정: 별도 트랜잭션에서 먼저 커밋
+        // executePayment() 실패 여부와 관계없이 재시도 상태는 반드시 DB에 반영됨
+        Payment updatedPayment = commitRetryState(payment);
         
-        payment = paymentRepository.save(payment);
-
         // PaymentExecutionService를 통한 재시도 실행
-        Payment executedPayment = executionService.executePayment(payment, payment.getAmount());
+        // 실패 시 ApiException이 상위로 전파되지만, 재시도 상태는 이미 커밋됨
+        Payment executedPayment = executionService.executePayment(updatedPayment, updatedPayment.getAmount());
 
         // Payment에서 PaymentResult 생성
         return PaymentResult.builder()
@@ -69,6 +75,26 @@ public class PaymentRetryFacade {
                 .approvedAt(executedPayment.getApprovedAt())
                 .failureReason(executedPayment.getFailureReason())
                 .build();
+    }
+    
+    /**
+     * 재시도 상태 확정
+     * 
+     * <p>재시도 횟수 증가, 다음 재시도 시간 예약, 상태 변경을 별도 트랜잭션에서 커밋합니다.
+     * REQUIRES_NEW 전파 속성을 사용하여 메인 트랜잭션과 독립적으로 실행되며,
+     * executePayment() 실패 여부와 관계없이 재시도 상태는 반드시 DB에 반영됩니다.
+     * 
+     * @param payment Payment 엔티티
+     * @return 저장된 Payment 엔티티
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Payment commitRetryState(Payment payment) {
+        // 재시도 횟수 증가 및 다음 재시도 시간 예약
+        payment.incrementRetryCount();
+        payment.scheduleNextRetry(BASE_RETRY_DELAY_MS);
+        payment.markInProgress(); // 재시도 시 PENDING 상태로 변경
+        
+        return paymentRepository.save(payment);
     }
     
     /**
