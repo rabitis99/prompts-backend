@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
+import org.example.sharedprompts.domain.payment.facade.PaymentFacade;
 import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
-import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderServiceFactory;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * 결제 Webhook 컨트롤러 (리팩토링)
+ * 결제 Webhook 컨트롤러
+ * 
+ * <p>PaymentFacade를 통해 Webhook 처리
  */
 @Slf4j
 @RestController
@@ -22,7 +24,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PaymentWebhookController {
 
-    private final PaymentProviderServiceFactory providerServiceFactory;
+    private final PaymentFacade paymentFacade;
     private final PaymentLoggingService loggingService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -52,6 +54,8 @@ public class PaymentWebhookController {
 
     /**
      * Webhook 공통 처리
+     * 
+     * <p>PaymentFacade를 통해 Webhook 처리
      */
     private ResponseEntity<Map<String, String>> handleWebhook(
             String payload,
@@ -63,16 +67,12 @@ public class PaymentWebhookController {
         loggingService.logWebhookReceived(providerName, eventType, payload);
 
         try {
-            var service = providerServiceFactory.getService(method);
-
-            // true → 정상, false → 실패 로직으로 직관적으로 변경
-            if (!service.verifyWebhookSignature(payload, signature)) {
-                log.warn("{} Webhook 서명 검증 실패", providerName);
-                throw new ApiException(ErrorCode.PAYMENT_WEBHOOK_VERIFICATION_FAILED);
-            }
-
-            service.processWebhook(payload);
+            // PaymentFacade를 통해 Webhook 처리
+            paymentFacade.handleWebhook(method, payload, signature);
             return ResponseEntity.ok(Map.of("status", "success"));
+        } catch (ApiException e) {
+            loggingService.logWebhookProcessingFailure(providerName, eventType, e);
+            throw e;
         } catch (Exception e) {
             loggingService.logWebhookProcessingFailure(providerName, eventType, e);
             throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR);

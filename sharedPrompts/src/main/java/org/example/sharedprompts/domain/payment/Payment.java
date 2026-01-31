@@ -91,11 +91,28 @@ public class Payment extends BaseEntity {
 
     @Column
     private LocalDateTime nextRetryAt;
+    
+    @Column(length = 200)
+    private String idempotencyKey; // 멱등성 키 (중복 호출 방지)
 
     /**
-     * 결제 승인 처리
+     * 결제 진행 중 상태로 변경
+     */
+    public void markInProgress() {
+        this.status = PaymentStatus.PENDING;
+    }
+
+    /**
+     * 결제 승인 처리 (성공)
      */
     public void approve(String externalPaymentId) {
+        markSuccess(externalPaymentId);
+    }
+
+    /**
+     * 결제 성공 처리
+     */
+    public void markSuccess(String externalPaymentId) {
         this.status = PaymentStatus.SUCCESS;
         this.externalPaymentId = externalPaymentId;
         this.approvedAt = LocalDateTime.now();
@@ -106,6 +123,13 @@ public class Payment extends BaseEntity {
      * 결제 실패 처리
      */
     public void fail(String reason) {
+        markFailed(reason);
+    }
+
+    /**
+     * 결제 실패 처리
+     */
+    public void markFailed(String reason) {
         this.status = PaymentStatus.FAILED;
         this.failureReason = reason;
     }
@@ -114,6 +138,13 @@ public class Payment extends BaseEntity {
      * 결제 취소 처리
      */
     public void cancel() {
+        markCanceled();
+    }
+
+    /**
+     * 결제 취소 처리
+     */
+    public void markCanceled() {
         this.status = PaymentStatus.CANCELED;
         this.canceledAt = LocalDateTime.now();
     }
@@ -166,6 +197,57 @@ public class Payment extends BaseEntity {
         long delayMs = baseDelayMs * (long) Math.pow(2, this.retryCount);
         delayMs = Math.min(delayMs, maxDelayMs);
         this.nextRetryAt = LocalDateTime.now().plusNanos(delayMs * 1_000_000L);
+    }
+    
+    /**
+     * 멱등성 키 설정
+     */
+    public void updateIdempotencyKey(String idempotencyKey) {
+        this.idempotencyKey = idempotencyKey;
+    }
+    
+    /**
+     * 메타데이터 업데이트
+     */
+    public void updateMetadata(String metadata) {
+        this.metadata = metadata;
+    }
+    
+    /**
+     * 금액 업데이트 (포인트 사용 후 실제 결제 금액 반영)
+     */
+    public void updateAmount(BigDecimal newAmount) {
+        this.amount = newAmount;
+    }
+    
+    /**
+     * 외부 결제 ID 업데이트
+     */
+    public void updateExternalPaymentId(String externalPaymentId) {
+        this.externalPaymentId = externalPaymentId;
+    }
+
+    /**
+     * Webhook 결과 적용
+     * 
+     * <p>Webhook에서 받은 PaymentResult를 기반으로 상태 변경
+     * 
+     * @param externalPaymentId 외부 결제 ID
+     * @param status 결제 상태
+     * @param approvedAt 승인 시간 (선택)
+     */
+    public void applyWebhookResult(String externalPaymentId, PaymentStatus status, LocalDateTime approvedAt) {
+        this.externalPaymentId = externalPaymentId;
+        this.status = status;
+        if (approvedAt != null) {
+            this.approvedAt = approvedAt;
+        }
+        if (status == PaymentStatus.SUCCESS && this.approvedAt == null) {
+            this.approvedAt = LocalDateTime.now();
+        }
+        if (status == PaymentStatus.FAILED) {
+            this.failureReason = "Webhook에서 결제 실패 확인";
+        }
     }
 }
 
