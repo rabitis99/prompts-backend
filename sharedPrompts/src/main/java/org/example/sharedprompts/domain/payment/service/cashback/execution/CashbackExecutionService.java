@@ -68,7 +68,7 @@ public class CashbackExecutionService {
                 ));
 
         // 캐시백을 포인트로 전환하여 지급
-        processCashbackPayment(cashback, userId, "캐시백 지급: ");
+        payCashback(cashback, userId, false);
     }
 
     /**
@@ -84,17 +84,26 @@ public class CashbackExecutionService {
 
         // 관리자는 소유권 검증 없이 지급 가능
         Long userId = cashback.getUser().getId();
-        processCashbackPayment(cashback, userId, "캐시백 지급 (관리자): ");
+        payCashback(cashback, userId, true);
     }
 
     /**
      * 캐시백 지급 공통 로직
      */
-    private void processCashbackPayment(Cashback cashback, Long userId, String descriptionPrefix) {
+
+    @Transactional
+    public void payCashback(Cashback cashback, Long userId, boolean isAdmin) {
+        processCashbackPayment(cashback, userId, isAdmin);
+    }
+
+    private void processCashbackPayment(Cashback cashback, Long userId, boolean isAdmin) {
         BigDecimal cashbackAmount = cashback.getAmount();
         Long paymentId = cashback.getPaymentId();
         Long cashbackId = cashback.getId();
-        boolean isAdmin = descriptionPrefix.contains("관리자");
+
+        String descriptionPrefix = isAdmin
+                ? "캐시백 지급 (관리자): "
+                : "캐시백 지급: ";
         
         try {
             // 캐시백 금액을 포인트로 적립 (1원 = 1포인트로 전환)
