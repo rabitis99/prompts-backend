@@ -24,18 +24,6 @@ public class PaymentRetryService {
     private final RetryProperties retryProperties;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void updatePaymentStatusSuccess(Long paymentId, String externalPaymentId) {
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
-        
-        log.info("결제 재시도 성공: paymentId={}, externalPaymentId={}, retryCount={}", 
-                paymentId, externalPaymentId, payment.getRetryCount());
-        
-        payment.approve(externalPaymentId);
-        paymentRepository.save(payment);
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updatePaymentStatusFailure(Long paymentId, String failureReason, long retryDelayMs) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));

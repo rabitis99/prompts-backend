@@ -207,20 +207,6 @@ public class Payment extends BaseEntity {
     }
     
     /**
-     * 메타데이터 업데이트
-     */
-    public void updateMetadata(String metadata) {
-        this.metadata = metadata;
-    }
-    
-    /**
-     * 금액 업데이트 (포인트 사용 후 실제 결제 금액 반영)
-     */
-    public void updateAmount(BigDecimal newAmount) {
-        this.amount = newAmount;
-    }
-    
-    /**
      * 외부 결제 ID 업데이트
      */
     public void updateExternalPaymentId(String externalPaymentId) {

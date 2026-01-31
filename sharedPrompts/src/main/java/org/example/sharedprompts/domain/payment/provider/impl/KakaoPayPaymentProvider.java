@@ -260,7 +260,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("cid", kakaoPayProperties.getCid());
             requestBody.put("tid", externalPaymentId);
-            requestBody.put("cancel_amount", amount.intValue());
+            requestBody.put("cancel_amount", amount.longValueExact());
             requestBody.put("cancel_tax_free_amount", 0);
             requestBody.put("cancel_reason", reason);
 
