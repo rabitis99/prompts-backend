@@ -7,7 +7,7 @@ import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.enums.UserTier;
 import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
 import org.example.sharedprompts.domain.payment.metrics.PaymentMetrics;
-import org.example.sharedprompts.domain.payment.repository.PaymentRepository;
+import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Component;

@@ -6,7 +6,7 @@ import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.config.PaymentProperties;
-import org.example.sharedprompts.domain.payment.repository.PaymentRepository;
+import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderService;
 import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderServiceFactory;
 import org.example.sharedprompts.domain.payment.service.payment.PaymentRetryService;
