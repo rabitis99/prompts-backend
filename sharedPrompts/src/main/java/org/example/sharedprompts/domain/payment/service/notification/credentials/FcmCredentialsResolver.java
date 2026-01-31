@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.PaymentProperties;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.WillNotClose;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,6 +13,7 @@ import java.io.InputStream;
 @Slf4j
 public class FcmCredentialsResolver {
 
+    @WillNotClose
     public InputStream resolve(PaymentProperties props) throws IOException {
 
         // 1. 환경 변수
