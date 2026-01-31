@@ -13,6 +13,7 @@ import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 /**
@@ -84,7 +85,11 @@ public class WebhookHandler {
         
         // 7. PaymentResult 검증
         if (event.paymentResult() != null) {
-            paymentValidator.validatePaymentResult(payment, event.paymentResult());
+            // 실제 결제 금액 계산 (포인트 사용 후 금액)
+            BigDecimal actualAmount = payment.getAmount().subtract(
+                    payment.getUsedPointAmount() != null ? payment.getUsedPointAmount() : java.math.BigDecimal.ZERO
+            );
+            paymentValidator.validatePaymentResult(payment, event.paymentResult(), actualAmount);
         }
         
         // 8. Webhook ID 저장 (멱등성 보장)
