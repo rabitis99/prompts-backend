@@ -93,11 +93,18 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> responseBody = response.getBody();
                 String tid = (String) responseBody.get("tid");
-                
+
+                // KakaoPay amount는 객체 형태로 반환됨 (예: {total=2200, tax_free=0, ...})
+                @SuppressWarnings("unchecked")
+                Map<String, Object> amountMap = (Map<String, Object>) responseBody.get("amount");
+                BigDecimal totalAmount = amountMap != null
+                        ? new BigDecimal(amountMap.get("total").toString())
+                        : amount;
+
                 return PaymentResult.builder()
                         .externalPaymentId(tid)
                         .status(parseStatus((String) responseBody.get("status")))
-                        .amount(new BigDecimal(responseBody.get("amount").toString()))
+                        .amount(totalAmount)
                         .currency("KRW") // KakaoPay는 기본적으로 KRW
                         .orderId((String) responseBody.get("partner_order_id"))
                         .approvedAt(LocalDateTime.now())
@@ -135,11 +142,18 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> responseBody = response.getBody();
-                
+
+                // KakaoPay amount는 객체 형태로 반환됨 (예: {total=2200, tax_free=0, ...})
+                @SuppressWarnings("unchecked")
+                Map<String, Object> amountMap = (Map<String, Object>) responseBody.get("amount");
+                BigDecimal totalAmount = amountMap != null
+                        ? new BigDecimal(amountMap.get("total").toString())
+                        : BigDecimal.ZERO;
+
                 return PaymentResult.builder()
                         .externalPaymentId(externalPaymentId)
                         .status(parseStatus((String) responseBody.get("status")))
-                        .amount(new BigDecimal(responseBody.get("amount").toString()))
+                        .amount(totalAmount)
                         .currency("KRW")
                         .orderId((String) responseBody.get("partner_order_id"))
                         .metadata(objectMapper.writeValueAsString(responseBody))

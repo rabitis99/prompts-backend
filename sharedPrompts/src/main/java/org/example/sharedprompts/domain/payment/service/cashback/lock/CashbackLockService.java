@@ -27,6 +27,7 @@ public class CashbackLockService {
     private final LockProvider lockProvider;
 
     private static final String LOCK_PREFIX = "cashback:lock:";
+    private static final String PAYMENT_LOCK_PREFIX = "cashback:payment:lock:";
     private static final Duration LOCK_AT_MOST_FOR = Duration.ofSeconds(30); // 락 최대 유지 시간
     private static final Duration LOCK_AT_LEAST_FOR = Duration.ofMillis(100); // 락 최소 유지 시간 (분산 환경에서 너무 빨리 해제되는 것 방지)
 
@@ -61,10 +62,48 @@ public class CashbackLockService {
     }
 
     /**
+     * paymentId 기반 분산락을 획득한 후 작업을 실행합니다.
+     * 캐시백 적립 시 동일 결제에 대한 중복 적립을 방지합니다.
+     */
+    public <T> T executeWithLockForPayment(Long paymentId, Supplier<T> task) {
+        String lockName = getPaymentLockKey(paymentId);
+        LockConfiguration lockConfig = new LockConfiguration(
+                Instant.now(),
+                lockName,
+                LOCK_AT_MOST_FOR,
+                LOCK_AT_LEAST_FOR
+        );
+
+        Optional<SimpleLock> lock = lockProvider.lock(lockConfig);
+        if (lock.isEmpty()) {
+            log.warn("Failed to acquire lock for payment: {}", paymentId);
+            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+
+        try {
+            return task.get();
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error executing task with lock for payment: {}", paymentId, e);
+            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
+        } finally {
+            lock.get().unlock();
+        }
+    }
+
+    /**
      * 락 키 생성
      */
     public String getLockKey(Long cashbackId) {
         return LOCK_PREFIX + cashbackId;
+    }
+
+    /**
+     * paymentId 기반 락 키 생성
+     */
+    public String getPaymentLockKey(Long paymentId) {
+        return PAYMENT_LOCK_PREFIX + paymentId;
     }
 }
 

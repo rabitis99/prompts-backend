@@ -66,14 +66,28 @@ public class PaymentExecutionService {
                 idempotencyKey
         );
 
-        // PaymentResult 검증
-        paymentValidator.validatePaymentResult(payment, result);
+        // 외부 결제 ID 먼저 저장 (검증 실패해도 추적 가능하도록)
+        if (result.getExternalPaymentId() != null) {
+            payment.updateExternalPaymentId(result.getExternalPaymentId());
+        }
 
-        // 도메인 메서드를 통한 상태 변경
-        if (result.isSuccess()) {
-            payment.markSuccess(result.getExternalPaymentId());
-        } else {
-            payment.markFailed(result.getFailureReason() != null ? result.getFailureReason() : "결제 승인 실패");
+        try {
+            // PaymentResult 검증
+            paymentValidator.validatePaymentResult(payment, result, actualAmount);
+
+            // 도메인 메서드를 통한 상태 변경
+            if (result.isSuccess()) {
+                payment.markSuccess(result.getExternalPaymentId());
+            } else {
+                payment.markFailed(result.getFailureReason() != null ? result.getFailureReason() : "결제 승인 실패");
+            }
+        } catch (ApiException e) {
+            // 검증 실패 시에도 결제 결과를 기록 (불일치 상태로 표시)
+            log.error("결제 검증 실패 - 외부 결제는 완료되었으나 검증 불일치: paymentId={}, externalPaymentId={}, error={}",
+                    payment.getId(), result.getExternalPaymentId(), e.getMessage());
+            payment.markFailed("검증 실패: " + e.getMessage());
+            paymentRepository.save(payment);
+            throw e;
         }
 
         return paymentRepository.save(payment);

@@ -22,6 +22,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.HashMap;
@@ -310,25 +311,75 @@ public class PayPalPaymentProvider implements PaymentProvider {
         }
     }
     
+    /**
+     * PayPal Webhook 서명 검증
+     *
+     * PayPal은 POST /v1/notifications/verify-webhook-signature 엔드포인트를 사용합니다.
+     * signature 파라미터는 JSON 형태로 다음 헤더 정보를 포함해야 합니다:
+     * - transmissionId: PAYPAL-TRANSMISSION-ID 헤더
+     * - transmissionTime: PAYPAL-TRANSMISSION-TIME 헤더
+     * - certUrl: PAYPAL-CERT-URL 헤더
+     * - authAlgo: PAYPAL-AUTH-ALGO 헤더
+     * - transmissionSig: PAYPAL-TRANSMISSION-SIG 헤더
+     */
     @Override
     public boolean verifyWebhookSignature(String payload, String signature) {
         try {
-            // PayPal Webhook 서명 검증
-            // PayPal은 verify-webhook-signature 엔드포인트를 제공하거나 자체 검증 가능
-            String secret = paymentProperties.getWebhookSecret();
-            if (secret == null || secret.isEmpty()) {
-                log.warn("PayPal Webhook secret이 설정되지 않았습니다.");
+            String webhookId = paymentProperties.getPaypalWebhookId();
+            if (webhookId == null || webhookId.isEmpty()) {
+                log.warn("PayPal Webhook ID가 설정되지 않았습니다.");
                 return false;
             }
-            
-            // PayPal은 특정 알고리즘으로 서명 검증
-            Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-            mac.init(secretKeySpec);
-            byte[] hash = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
-            String calculatedSignature = Base64.getEncoder().encodeToString(hash);
-            
-            return calculatedSignature.equals(signature);
+
+            // signature 파라미터에서 PayPal 헤더 정보 파싱
+            @SuppressWarnings("unchecked")
+            Map<String, String> signatureData = objectMapper.readValue(signature, Map.class);
+
+            String transmissionId = signatureData.get("transmissionId");
+            String transmissionTime = signatureData.get("transmissionTime");
+            String certUrl = signatureData.get("certUrl");
+            String authAlgo = signatureData.get("authAlgo");
+            String transmissionSig = signatureData.get("transmissionSig");
+
+            if (transmissionId == null || transmissionSig == null) {
+                log.warn("PayPal Webhook 서명 검증에 필요한 헤더가 누락되었습니다.");
+                return false;
+            }
+
+            // PayPal verify-webhook-signature API 호출
+            String accessToken = getAccessToken();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(accessToken);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("auth_algo", authAlgo);
+            requestBody.put("cert_url", certUrl);
+            requestBody.put("transmission_id", transmissionId);
+            requestBody.put("transmission_sig", transmissionSig);
+            requestBody.put("transmission_time", transmissionTime);
+            requestBody.put("webhook_id", webhookId);
+            requestBody.put("webhook_event", objectMapper.readValue(payload, Map.class));
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    PAYPAL_API_URL + "/v1/notifications/verify-webhook-signature",
+                    HttpMethod.POST,
+                    request,
+                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                String verificationStatus = (String) response.getBody().get("verification_status");
+                boolean verified = "SUCCESS".equals(verificationStatus);
+                if (!verified) {
+                    log.warn("PayPal Webhook 서명 검증 실패: status={}", verificationStatus);
+                }
+                return verified;
+            }
+
+            return false;
         } catch (Exception e) {
             log.error("PayPal Webhook 서명 검증 실패: error={}", e.getMessage(), e);
             return false;
@@ -372,7 +423,9 @@ public class PayPalPaymentProvider implements PaymentProvider {
                         .build();
             }
             
-            return new PaymentProvider.WebhookEvent(eventType, orderId, orderId, paymentResult);
+            // orderId가 null이면 captureId를 대체값으로 사용
+            String externalPaymentId = orderId != null ? orderId : captureId;
+            return new PaymentProvider.WebhookEvent(eventType, externalPaymentId, externalPaymentId, paymentResult);
         } catch (Exception e) {
             log.error("PayPal Webhook 파싱 실패: payload={}, error={}", payload, e.getMessage(), e);
             throw new RuntimeException("PayPal Webhook 파싱 실패", e);
@@ -422,7 +475,10 @@ public class PayPalPaymentProvider implements PaymentProvider {
             Object createTimeObj = responseBody.get("create_time");
             if (createTimeObj != null) {
                 String createTimeStr = createTimeObj.toString();
-                return LocalDateTime.parse(createTimeStr, DateTimeFormatter.ISO_DATE_TIME);
+                // PayPal은 ISO 8601 형식으로 시간대 정보(Z)를 포함하여 반환함
+                // 예: 2025-03-07T11:00:00Z
+                OffsetDateTime offsetDateTime = OffsetDateTime.parse(createTimeStr, DateTimeFormatter.ISO_DATE_TIME);
+                return offsetDateTime.toLocalDateTime();
             }
         } catch (Exception e) {
             log.warn("승인 시간 파싱 실패: {}", e.getMessage());
@@ -448,27 +504,41 @@ public class PayPalPaymentProvider implements PaymentProvider {
         
         if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> purchaseUnits = ((List<Map<String, Object>>) response.getBody().get("purchase_units")).get(0);
+            List<Map<String, Object>> purchaseUnitsList = (List<Map<String, Object>>) response.getBody().get("purchase_units");
+            if (purchaseUnitsList == null || purchaseUnitsList.isEmpty()) {
+                throw new RuntimeException("PayPal 응답에서 purchase_units를 찾을 수 없습니다");
+            }
+
+            Map<String, Object> purchaseUnit = purchaseUnitsList.get(0);
             @SuppressWarnings("unchecked")
-            Map<String, Object> payments = (Map<String, Object>) purchaseUnits.get("payments");
+            Map<String, Object> payments = (Map<String, Object>) purchaseUnit.get("payments");
+            if (payments == null) {
+                throw new RuntimeException("PayPal 응답에서 payments를 찾을 수 없습니다");
+            }
+
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> captures = (List<Map<String, Object>>) payments.get("captures");
-            if (!captures.isEmpty()) {
-                Map<String, Object> capture = captures.get(0);
-                String captureId = (String) capture.get("id");
-                
-                @SuppressWarnings("unchecked")
-                Map<String, Object> amount = (Map<String, Object>) capture.get("amount");
-                String currency = (String) amount.get("currency_code");
-                
-                if (currency == null || currency.isEmpty()) {
-                    throw new RuntimeException("PayPal 캡처에서 통화 코드를 찾을 수 없습니다");
-                }
-                
-                return new CaptureInfo(captureId, currency);
+            if (captures == null || captures.isEmpty()) {
+                throw new RuntimeException("PayPal 응답에서 captures를 찾을 수 없습니다");
             }
+
+            Map<String, Object> capture = captures.get(0);
+            String captureId = (String) capture.get("id");
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> amount = (Map<String, Object>) capture.get("amount");
+            if (amount == null) {
+                throw new RuntimeException("PayPal 캡처에서 금액 정보를 찾을 수 없습니다");
+            }
+
+            String currency = (String) amount.get("currency_code");
+            if (currency == null || currency.isEmpty()) {
+                throw new RuntimeException("PayPal 캡처에서 통화 코드를 찾을 수 없습니다");
+            }
+
+            return new CaptureInfo(captureId, currency);
         }
-        
+
         throw new RuntimeException("PayPal 캡처 ID 조회 실패");
     }
     

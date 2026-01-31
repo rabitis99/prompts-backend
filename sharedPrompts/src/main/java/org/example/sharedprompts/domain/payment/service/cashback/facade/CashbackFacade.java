@@ -49,22 +49,28 @@ public class CashbackFacade {
 
     /**
      * 캐시백 적립
+     *
+     * <p>동시성 문제 방지를 위해 paymentId 기반 분산 락을 적용합니다.
+     * TOCTOU 문제를 방지하기 위해 락 내에서 중복 검증을 수행합니다.
      */
-    @Transactional
     public void accumulateCashback(Long userId, Long paymentId, BigDecimal paymentAmount) {
-        // 중복 적립 방지 검증 (이미 적립된 경우 조기 반환)
-        if (validationService.isAlreadyAccumulated(paymentId)) {
-            return;
-        }
+        // 동시성 문제 방지를 위해 paymentId 기반 분산 락 적용
+        lockService.executeWithLockForPayment(paymentId, () -> {
+            // 락 내에서 중복 적립 방지 검증 (TOCTOU 방지)
+            if (validationService.isAlreadyAccumulated(paymentId)) {
+                return null;
+            }
 
-        // 캐시백 금액 계산
-        BigDecimal cashbackRate = BigDecimal.valueOf(paymentProperties.getCashbackRate());
-        BigDecimal cashbackAmount = amountService.calculateCashbackAmount(paymentAmount, cashbackRate);
+            // 캐시백 금액 계산
+            BigDecimal cashbackRate = BigDecimal.valueOf(paymentProperties.getCashbackRate());
+            BigDecimal cashbackAmount = amountService.calculateCashbackAmount(paymentAmount, cashbackRate);
 
-        // 캐시백 적립 실행
-        if (cashbackAmount.compareTo(BigDecimal.ZERO) > 0) {
-            executionService.accumulateCashback(userId, paymentId, cashbackAmount, paymentAmount, cashbackRate);
-        }
+            // 캐시백 적립 실행
+            if (cashbackAmount.compareTo(BigDecimal.ZERO) > 0) {
+                executionService.accumulateCashback(userId, paymentId, cashbackAmount, paymentAmount, cashbackRate);
+            }
+            return null;
+        });
     }
 
     /**

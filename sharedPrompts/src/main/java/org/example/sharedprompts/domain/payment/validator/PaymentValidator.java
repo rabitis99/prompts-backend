@@ -86,14 +86,28 @@ public class PaymentValidator {
     
     /**
      * PaymentResult와 Payment 엔티티의 일관성 검증
-     * 
+     *
      * @param payment Payment 엔티티
      * @param result PaymentResult (외부 API 응답)
+     * @param actualAmount 실제 결제 금액 (포인트 사용 후 금액)
      */
-    public void validatePaymentResult(Payment payment, PaymentResult result) {
+    public void validatePaymentResult(Payment payment, PaymentResult result, BigDecimal actualAmount) {
         validateOrderId(String.valueOf(payment.getId()), result.getOrderId());
-        validateAmount(payment.getAmount(), result.getAmount(), result.getOrderId());
+        // 실제 결제 금액으로 검증 (포인트 사용 시 payment.getAmount()와 다를 수 있음)
+        validateAmount(actualAmount, result.getAmount(), result.getOrderId());
         validateCurrency(payment.getCurrency(), result.getCurrency());
+    }
+
+    /**
+     * PaymentResult와 Payment 엔티티의 일관성 검증 (원래 금액 기준)
+     *
+     * @param payment Payment 엔티티
+     * @param result PaymentResult (외부 API 응답)
+     * @deprecated actualAmount를 명시적으로 전달하는 오버로드 메서드 사용 권장
+     */
+    @Deprecated
+    public void validatePaymentResult(Payment payment, PaymentResult result) {
+        validatePaymentResult(payment, result, payment.getAmount());
     }
 }
 
