@@ -113,6 +113,13 @@ public class PointServiceImpl implements PointService {
         return points.map(PointResponseDto::from);
     }
 
+    @Override
+    public Page<PointResponseDto> getPointsByPaymentForAdmin(Long paymentId, Pageable pageable) {
+        // 관리자는 소유권 검증 없이 모든 결제의 포인트 조회 가능
+        Page<Point> points = pointRepository.findByPaymentIdWithFetchJoin(paymentId, pageable);
+        return points.map(PointResponseDto::from);
+    }
+
     // ============ Lock Management ============
 
     /**

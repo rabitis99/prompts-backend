@@ -46,5 +46,11 @@ public interface CashbackRepository extends JpaRepository<Cashback, Long>, Custo
      * 미지급 캐시백 목록 조회 (페이징)
      */
     Page<Cashback> findByUser_IdAndPaidFalse(Long userId, Pageable pageable);
+
+    /**
+     * 전체 미지급 캐시백 총액 조회 (관리자용)
+     */
+    @Query("SELECT COALESCE(SUM(c.amount), 0) FROM Cashback c WHERE c.paid = false")
+    Optional<BigDecimal> getAllUnpaidCashbackTotal();
 }
 

@@ -120,4 +120,52 @@ public class CustomPointRepositoryImpl implements CustomPointRepository {
 
         return new PageImpl<>(content, pageable, total);
     }
+
+    /**
+     * 결제와 연관된 포인트 조회 (관리자용 - userId 필터 없음)
+     * 2-step 페이징 + fetchJoin
+     */
+    @Override
+    public Page<Point> findByPaymentIdWithFetchJoin(Long paymentId, Pageable pageable) {
+        // 1) 페이징 가능한 id 조회
+        List<Long> ids = queryFactory
+                .select(point.id)
+                .from(point)
+                .where(point.paymentId.eq(paymentId))
+                .orderBy(point.createdAt.desc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        // 2) 전체 개수 조회
+        Long totalCount = queryFactory
+                .select(point.count())
+                .from(point)
+                .where(point.paymentId.eq(paymentId))
+                .fetchOne();
+
+        long total = totalCount != null ? totalCount : 0L;
+
+        if (ids.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, total);
+        }
+
+        // 3) fetch join으로 데이터 조회 (user 포함)
+        List<Point> fetchedPoints = queryFactory
+                .selectFrom(point)
+                .leftJoin(point.user, user).fetchJoin()
+                .where(point.id.in(ids))
+                .fetch();
+
+        // ids 순서대로 content 정렬 (createdAt DESC 순서 유지)
+        Map<Long, Point> pointMap = fetchedPoints.stream()
+                .collect(Collectors.toMap(Point::getId, p -> p));
+
+        List<Point> content = ids.stream()
+                .map(pointMap::get)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+
+        return new PageImpl<>(content, pageable, total);
+    }
 }

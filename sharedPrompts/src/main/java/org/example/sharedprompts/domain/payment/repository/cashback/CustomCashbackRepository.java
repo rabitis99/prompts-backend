@@ -14,4 +14,9 @@ public interface CustomCashbackRepository {
      * 미지급 캐시백 목록 조회 (페이징 + fetchJoin 최적화)
      */
     Page<Cashback> findUnpaidByUserIdWithFetchJoin(Long userId, Pageable pageable);
+
+    /**
+     * 전체 미지급 캐시백 목록 조회 (관리자용 - 페이징 + fetchJoin 최적화)
+     */
+    Page<Cashback> findAllUnpaidWithFetchJoin(Pageable pageable);
 }

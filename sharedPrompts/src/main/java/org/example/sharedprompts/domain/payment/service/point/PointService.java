@@ -41,5 +41,10 @@ public interface PointService {
      * 결제와 연관된 포인트 조회
      */
     Page<PointResponseDto> getPointsByPayment(Long paymentId, Long userId, Pageable pageable);
+
+    /**
+     * 결제와 연관된 포인트 조회 (관리자용 - 소유권 검증 없음)
+     */
+    Page<PointResponseDto> getPointsByPaymentForAdmin(Long paymentId, Pageable pageable);
 }
 

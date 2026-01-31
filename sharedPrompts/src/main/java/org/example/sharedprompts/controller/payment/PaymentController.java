@@ -19,8 +19,6 @@ import org.example.sharedprompts.dto.payment.response.UserTierHistoryResponseDto
 import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import org.example.sharedprompts.dto.common.PageResponse;
-import org.example.sharedprompts.global.exception.ApiException;
-import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -91,31 +89,26 @@ public class PaymentController {
     }
 
     /**
-     * 사용자 티어 조회
-     * GET /users/{userId}/tier
+     * 내 티어 조회
+     * GET /payments/me/tier
      */
-    @GetMapping("/users/{userId}/tier")
-    public ResponseEntity<CustomResponse<UserTier>> getTier(
-            @PathVariable Long userId
+    @GetMapping("/me/tier")
+    public ResponseEntity<CustomResponse<UserTier>> getMyTier(
+            @CurrentUser AuthUser authUser
     ) {
-        UserTier tier = userTierService.getTier(userId);
+        UserTier tier = userTierService.getTier(authUser.getId());
         return CustomResponseHelper.ok(tier);
     }
 
     /**
-     * 사용자 티어 정보 조회 (티어, 일일 제한, 오늘 사용한 횟수, 남은 횟수)
-     * GET /users/{userId}/tier-info
+     * 내 티어 정보 조회 (티어, 일일 제한, 오늘 사용한 횟수, 남은 횟수)
+     * GET /payments/me/tier-info
      */
-    @GetMapping("/users/{userId}/tier-info")
-    public ResponseEntity<CustomResponse<TierInfoResponseDto>> getTierInfo(
-            @PathVariable Long userId,
+    @GetMapping("/me/tier-info")
+    public ResponseEntity<CustomResponse<TierInfoResponseDto>> getMyTierInfo(
             @CurrentUser AuthUser authUser
     ) {
-        // 자신의 정보만 조회 가능
-        if (!authUser.getId().equals(userId)) {
-            throw new ApiException(ErrorCode.FORBIDDEN);
-        }
-        TierInfoResponseDto response = userTierService.getTierInfo(userId);
+        TierInfoResponseDto response = userTierService.getTierInfo(authUser.getId());
         return CustomResponseHelper.ok(response);
     }
 
@@ -133,20 +126,15 @@ public class PaymentController {
     }
 
     /**
-     * 사용자의 티어 변경 이력 조회
-     * GET /payments/users/{userId}/tier-history
+     * 내 티어 변경 이력 조회
+     * GET /payments/me/tier-history
      */
-    @GetMapping("/users/{userId}/tier-history")
-    public ResponseEntity<CustomResponse<PageResponse<UserTierHistoryResponseDto>>> getTierHistory(
-            @PathVariable Long userId,
+    @GetMapping("/me/tier-history")
+    public ResponseEntity<CustomResponse<PageResponse<UserTierHistoryResponseDto>>> getMyTierHistory(
             @CurrentUser AuthUser authUser,
             @PageableDefault(size = 20) Pageable pageable
     ) {
-        // 자신의 정보만 조회 가능
-        if (!authUser.getId().equals(userId)) {
-            throw new ApiException(ErrorCode.FORBIDDEN);
-        }
-        PageResponse<UserTierHistoryResponseDto> response = PageResponse.of(userTierService.getTierHistory(userId, pageable));
+        PageResponse<UserTierHistoryResponseDto> response = PageResponse.of(userTierService.getTierHistory(authUser.getId(), pageable));
         return CustomResponseHelper.ok(response);
     }
 

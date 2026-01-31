@@ -256,4 +256,107 @@ public class PaymentServiceImpl implements PaymentService {
         
         return response;
     }
+
+    // ============ 관리자용 메서드 ============
+
+    @Override
+    @Transactional
+    public PaymentStatusResponseDto checkPaymentStatusForAdmin(Long paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        // 관리자는 소유권 검증 없이 조회 가능
+        // 외부 결제사에서 최신 상태 조회
+        PaymentStatus latestStatus = providerFacade.checkPaymentStatus(payment);
+        
+        // 상태가 변경된 경우 업데이트
+        if (payment.getStatus() != latestStatus) {
+            payment = paymentRepository.findById(payment.getId()).orElse(payment);
+            if (latestStatus == PaymentStatus.SUCCESS && payment.getStatus() == PaymentStatus.PENDING) {
+                payment.approve(payment.getExternalPaymentId());
+                paymentRepository.save(payment);
+            }
+        }
+
+        return PaymentStatusResponseDto.from(payment);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PaymentResponseDto> getAllPaymentHistory(Pageable pageable) {
+        return paymentRepository.findAllWithFetchJoin(pageable)
+                .map(PaymentResponseDto::from);
+    }
+
+    @Override
+    @Transactional
+    public PaymentResponseDto cancelPaymentForAdmin(Long paymentId, PaymentCancelRequestDto request, Long adminId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        // 관리자는 소유권 검증 없이 취소 가능
+        validationFacade.validateCancelableStatus(payment);
+
+        try {
+            PaymentStatus oldStatus = payment.getStatus();
+            
+            // 결제사별 취소 처리
+            providerFacade.cancelPayment(payment, request.getReasonOrDefault());
+
+            payment.cancel();
+            payment = paymentRepository.save(payment);
+
+            // 결제 취소 후처리 (관리자 ID 전달)
+            postProcessFacade.processPaymentCancel(payment, payment.getUser().getId(), request.getReasonOrDefault(), oldStatus);
+
+        } catch (Exception e) {
+            log.error("관리자 결제 취소 실패: paymentId={}, adminId={}, error={}", paymentId, adminId, e.getMessage(), e);
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR);
+        }
+
+        return PaymentResponseDto.from(payment);
+    }
+
+    @Override
+    @Transactional
+    public PaymentResponseDto refundPaymentForAdmin(Long paymentId, PaymentRefundRequestDto request, Long adminId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        // 관리자는 소유권 검증 없이 환불 가능
+        validationFacade.validateRefundableStatus(payment);
+        BigDecimal refundAmount = validationFacade.validateRefundAmount(request.getAmountOrNull(), payment);
+
+        try {
+            // 결제사별 환불 처리
+            providerFacade.refundPayment(payment, refundAmount, request.getReasonOrDefault());
+
+            PaymentStatus oldStatus = payment.getStatus();
+            payment.refund(refundAmount);
+            payment = paymentRepository.save(payment);
+
+            // 환불 시 포인트 환불 금액 계산
+            BigDecimal refundPointAmount = amountFacade.calculateRefundPointAmount(
+                    payment.getUsedPointAmount(),
+                    payment.getAmount(),
+                    refundAmount
+            );
+
+            // 결제 환불 후처리 (관리자 ID 전달)
+            postProcessFacade.processPaymentRefund(
+                    payment,
+                    payment.getUser().getId(),
+                    refundAmount,
+                    refundPointAmount,
+                    request.getReasonOrDefault(),
+                    oldStatus
+            );
+
+        } catch (Exception e) {
+            log.error("관리자 결제 환불 실패: paymentId={}, adminId={}, error={}", paymentId, adminId, e.getMessage(), e);
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR);
+        }
+
+        return PaymentResponseDto.from(payment);
+    }
 }

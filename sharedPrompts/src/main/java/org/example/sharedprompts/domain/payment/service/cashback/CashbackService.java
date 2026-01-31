@@ -26,5 +26,22 @@ public interface CashbackService {
      * 미지급 캐시백 총액 조회
      */
     BigDecimal getUnpaidCashbackTotal(Long userId);
+
+    // ============ 관리자용 메서드 ============
+
+    /**
+     * 전체 미지급 캐시백 총액 조회 (관리자용)
+     */
+    BigDecimal getAllUnpaidCashbackTotal();
+
+    /**
+     * 전체 미지급 캐시백 목록 조회 (관리자용)
+     */
+    Page<CashbackResponseDto> getAllUnpaidCashbacks(Pageable pageable);
+
+    /**
+     * 캐시백 지급 (관리자용 - 소유권 검증 없음)
+     */
+    void payCashbackForAdmin(Long cashbackId);
 }
 

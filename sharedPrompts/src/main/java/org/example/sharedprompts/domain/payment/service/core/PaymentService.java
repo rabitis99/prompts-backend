@@ -45,5 +45,27 @@ public interface PaymentService {
      * 결제 승인 (토스페이먼츠 등 결제사별 승인 처리)
      */
     PaymentConfirmResponse confirmPayment(Long userId, PaymentConfirmRequest request);
+
+    // ============ 관리자용 메서드 ============
+
+    /**
+     * 결제 상태 조회 (관리자용 - 소유권 검증 없음)
+     */
+    PaymentStatusResponseDto checkPaymentStatusForAdmin(Long paymentId);
+
+    /**
+     * 전체 결제 내역 조회 (관리자용)
+     */
+    Page<PaymentResponseDto> getAllPaymentHistory(Pageable pageable);
+
+    /**
+     * 결제 취소 (관리자용 - 소유권 검증 없음)
+     */
+    PaymentResponseDto cancelPaymentForAdmin(Long paymentId, PaymentCancelRequestDto request, Long adminId);
+
+    /**
+     * 결제 환불 (관리자용 - 소유권 검증 없음)
+     */
+    PaymentResponseDto refundPaymentForAdmin(Long paymentId, PaymentRefundRequestDto request, Long adminId);
 }
 

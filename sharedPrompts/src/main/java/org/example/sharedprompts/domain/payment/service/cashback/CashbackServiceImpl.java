@@ -97,5 +97,41 @@ public class CashbackServiceImpl implements CashbackService {
         return cashbackRepository.getUnpaidCashbackTotal(userId)
                 .orElse(BigDecimal.ZERO);
     }
+
+    // ============ 관리자용 메서드 ============
+
+    @Override
+    public BigDecimal getAllUnpaidCashbackTotal() {
+        return cashbackRepository.getAllUnpaidCashbackTotal()
+                .orElse(BigDecimal.ZERO);
+    }
+
+    @Override
+    public Page<CashbackResponseDto> getAllUnpaidCashbacks(Pageable pageable) {
+        return cashbackRepository.findAllUnpaidWithFetchJoin(pageable)
+                .map(CashbackResponseDto::from);
+    }
+
+    @Override
+    @Transactional
+    public void payCashbackForAdmin(Long cashbackId) {
+        Cashback cashback = cashbackRepository.findById(cashbackId)
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.NOT_FOUND,
+                        "캐시백을 찾을 수 없습니다."
+                ));
+
+        if (cashback.isPaid()) {
+            throw new ApiException(
+                    ErrorCode.BAD_REQUEST,
+                    "이미 지급된 캐시백입니다."
+            );
+        }
+
+        // 관리자는 소유권 검증 없이 지급 가능
+        // 실제 지급 로직은 여기에 구현 (예: 계좌 이체, 포인트 전환 등)
+        cashback.markAsPaid();
+        cashbackRepository.save(cashback);
+    }
 }
 

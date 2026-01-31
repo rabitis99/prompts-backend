@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.payment.service.cashback.CashbackService;
-import org.example.sharedprompts.domain.payment.repository.CashbackRepository;
 import org.example.sharedprompts.dto.payment.response.CashbackResponseDto;
 import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.dto.common.CustomResponseHelper;

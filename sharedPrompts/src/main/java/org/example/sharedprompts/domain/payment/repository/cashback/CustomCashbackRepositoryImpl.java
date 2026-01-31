@@ -120,4 +120,52 @@ public class CustomCashbackRepositoryImpl implements CustomCashbackRepository {
 
         return new PageImpl<>(content, pageable, total);
     }
+
+    /**
+     * 전체 미지급 캐시백 목록 조회 (관리자용)
+     * 2-step 페이징 + fetchJoin
+     */
+    @Override
+    public Page<Cashback> findAllUnpaidWithFetchJoin(Pageable pageable) {
+        // 1) 페이징 가능한 id 조회
+        List<Long> ids = queryFactory
+                .select(cashback.id)
+                .from(cashback)
+                .where(cashback.paid.eq(false))
+                .orderBy(cashback.createdAt.asc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        // 2) 전체 개수 조회
+        Long totalCount = queryFactory
+                .select(cashback.count())
+                .from(cashback)
+                .where(cashback.paid.eq(false))
+                .fetchOne();
+
+        long total = totalCount != null ? totalCount : 0L;
+
+        if (ids.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, total);
+        }
+
+        // 3) fetch join으로 데이터 조회 (user 포함)
+        List<Cashback> fetchedCashbacks = queryFactory
+                .selectFrom(cashback)
+                .leftJoin(cashback.user, user).fetchJoin()
+                .where(cashback.id.in(ids))
+                .fetch();
+
+        // ids 순서대로 content 정렬 (createdAt ASC 순서 유지)
+        Map<Long, Cashback> cashbackMap = fetchedCashbacks.stream()
+                .collect(Collectors.toMap(Cashback::getId, c -> c));
+
+        List<Cashback> content = ids.stream()
+                .map(cashbackMap::get)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+
+        return new PageImpl<>(content, pageable, total);
+    }
 }
