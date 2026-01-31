@@ -35,13 +35,15 @@ public class PromptAIService {
         String promptText = promptGenerator.generatePrompt(dto);
         log.debug("AI 프롬프트 생성 완료: language={}", dto.getLanguage());
 
-        // 2. AI 호출
+        // 2. AI 호출 (Google Gemini 사용)
+        // 참고: Spring AI는 구조만 유지하고 실제로는 사용하지 않음 (토큰 비용 때문)
         String aiGeneratedContent = syncGoogleGeminiClient.chatSync(promptText);
-        if (aiGeneratedContent == null) {
+        log.debug("Google Gemini 응답 수신 완료: contentLength={}", aiGeneratedContent != null ? aiGeneratedContent.length() : 0);
+        
+        if (aiGeneratedContent == null || aiGeneratedContent.isEmpty()) {
             log.error("AI 서비스 응답이 null입니다: language={}", dto.getLanguage());
             throw new IllegalStateException("AI 서비스 응답이 null입니다.");
         }
-        log.debug("AI 서비스 응답 수신 완료: contentLength={}", aiGeneratedContent.length());
 
         // 3. Guideline 적용
         PromptGuidelineBuilder builder = guidelineBuilderFactory.getBuilder(dto.getLanguage());
