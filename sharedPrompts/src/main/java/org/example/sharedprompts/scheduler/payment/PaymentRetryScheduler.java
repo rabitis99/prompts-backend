@@ -6,6 +6,7 @@ import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.config.RetryProperties;
+import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.payment.service.execution.PaymentExecutionService;
 import org.example.sharedprompts.domain.payment.service.payment.PaymentRetryService;
@@ -29,6 +30,7 @@ public class PaymentRetryScheduler {
     private final PaymentExecutionService executionService;
     private final RetryProperties retryProperties;
     private final PaymentRetryService retryService;
+    private final PaymentLoggingService loggingService;
 
     private static final long SCHEDULE_DELAY_MS = 5 * 60 * 1000L; // 5분
 
@@ -85,6 +87,9 @@ public class PaymentRetryScheduler {
      */
     private void processPaymentRetry(Payment payment) {
         try {
+            // 재시도 로깅
+            loggingService.logRetryAttempt(payment, payment.getRetryCount() + 1);
+            
             // PaymentExecutionService를 통한 결제 재시도 실행
             // actualAmount는 포인트 사용 후 금액이므로 payment.getAmount()에서 usedPointAmount를 빼야 함
             // 하지만 재시도 시에는 이미 포인트가 사용된 상태이므로, payment.getAmount()를 그대로 사용

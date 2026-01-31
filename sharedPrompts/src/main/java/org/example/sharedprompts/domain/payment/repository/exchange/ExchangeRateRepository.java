@@ -20,10 +20,5 @@ public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long
             @Param("fromCurrency") String fromCurrency,
             @Param("toCurrency") String toCurrency
     );
-
-    /**
-     * 통화 쌍으로 환율 존재 여부 확인
-     */
-    boolean existsByFromCurrencyAndToCurrency(String fromCurrency, String toCurrency);
 }
 

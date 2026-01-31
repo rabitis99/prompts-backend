@@ -25,18 +25,6 @@ public class PaymentAmountFacade {
     private final PointService pointService;
 
     /**
-     * 결제 금액 처리 결과
-     */
-    @lombok.Getter
-    @lombok.AllArgsConstructor
-    public static class AmountProcessingResult {
-        private final BigDecimal originalAmount;
-        private final BigDecimal convertedAmount;
-        private final BigDecimal usedPointAmount;
-        private final BigDecimal actualPaymentAmount;
-    }
-
-    /**
      * 결제 금액 처리 (환율 변환 + 포인트 사용)
      */
     public AmountProcessingResult processPaymentAmount(Long userId, PaymentRequestDto request) {

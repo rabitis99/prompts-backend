@@ -23,29 +23,9 @@ public interface CashbackRepository extends JpaRepository<Cashback, Long>, Custo
     BigDecimal getUnpaidCashbackTotal(@Param("userId") Long userId);
 
     /**
-     * 사용자의 캐시백 내역 조회
-     */
-    List<Cashback> findByUser_IdOrderByCreatedAtDesc(Long userId);
-
-    /**
      * 결제와 연관된 캐시백 조회
      */
     Optional<Cashback> findByPaymentId(Long paymentId);
-
-    /**
-     * 미지급 캐시백 목록 조회
-     */
-    List<Cashback> findByUser_IdAndPaidFalseOrderByCreatedAtAsc(Long userId);
-
-    /**
-     * 사용자의 캐시백 내역 조회 (페이징)
-     */
-    Page<Cashback> findByUser_Id(Long userId, Pageable pageable);
-
-    /**
-     * 미지급 캐시백 목록 조회 (페이징)
-     */
-    Page<Cashback> findByUser_IdAndPaidFalse(Long userId, Pageable pageable);
 
     /**
      * 전체 미지급 캐시백 총액 조회 (관리자용)

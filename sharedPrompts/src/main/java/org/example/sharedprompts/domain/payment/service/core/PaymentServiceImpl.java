@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
+import org.example.sharedprompts.domain.payment.service.facade.AmountProcessingResult;
 import org.example.sharedprompts.domain.payment.service.facade.PaymentAmountFacade;
 import org.example.sharedprompts.domain.payment.service.execution.PaymentExecutionService;
 import org.example.sharedprompts.domain.payment.service.postprocess.PaymentPostProcessService;
@@ -51,18 +52,17 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional
     public PaymentResponseDto requestPayment(Long userId, PaymentRequestDto request) {
-        long startTime = System.currentTimeMillis();
         String traceId = null;
-        
+
         try {
             traceId = loggingService.startTrace(null, userId);
-            
+
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
             validationService.validateDailyLimit(userId, user.getTier());
 
-            PaymentAmountFacade.AmountProcessingResult amountResult = 
+            AmountProcessingResult amountResult =
                     amountFacade.processPaymentAmount(userId, request);
 
             Payment payment = request.toPaymentBuilder(
@@ -75,48 +75,14 @@ public class PaymentServiceImpl implements PaymentService {
             payment = paymentRepository.save(payment);
             loggingService.logPaymentRequest(payment);
 
-            try {
-                // PaymentExecutionService를 통한 결제 실행
-                payment = executionService.executePayment(payment, amountResult.getActualPaymentAmount());
+            // 결제 요청은 Payment 엔티티만 생성하고 PENDING 상태로 유지
+            // 실제 결제 승인은 /payments/confirm 엔드포인트를 통해 클라이언트에서 받은 paymentKey로 진행
+            // 이렇게 하면 토스페이먼츠, 카카오페이 등 결제사별 올바른 플로우를 따를 수 있음
 
-                long processingTime = System.currentTimeMillis() - startTime;
-                
-                try {
-                    postProcessService.processPaymentSuccess(
-                            payment,
-                            userId,
-                            amountResult.getActualPaymentAmount(),
-                            amountResult.getConvertedAmount(),
-                            processingTime
-                    );
-                } catch (Exception postProcessException) {
-                    log.error("결제 승인 성공 후 후처리 실패: paymentId={}, userId={}, error={}", 
-                            payment.getId(), userId, postProcessException.getMessage(), postProcessException);
-                }
-
-            } catch (Exception e) {
-                long processingTime = System.currentTimeMillis() - startTime;
-                payment.fail("결제 승인 실패: " + e.getMessage());
-                payment = paymentRepository.save(payment); // 실패 상태 저장
-                
-                try {
-                    postProcessService.processPaymentFailure(
-                            payment,
-                            userId,
-                            e.getMessage(),
-                            e,
-                            processingTime
-                    );
-                } catch (Exception postProcessException) {
-                    log.error("결제 실패 후처리 중 오류 발생: paymentId={}, userId={}, error={}", 
-                            payment.getId(), userId, postProcessException.getMessage(), postProcessException);
-                }
-            }
-            
             if (traceId != null && payment.getId() != null) {
                 loggingService.startTrace(payment.getId(), userId);
             }
-            
+
             return PaymentResponseDto.from(payment);
         } finally {
             loggingService.endTrace();
@@ -140,7 +106,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         try {
             PaymentStatus oldStatus = payment.getStatus();
-            
+
             // PaymentExecutionService를 통한 취소 실행
             payment = executionService.executeCancel(payment, request.getReasonOrDefault());
 
@@ -203,13 +169,61 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional
     public PaymentConfirmResponse confirmPayment(Long userId, PaymentConfirmRequest request) {
+        long startTime = System.currentTimeMillis();
+
         Payment payment = paymentRepository.findById(request.getOrderIdAsLong())
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
-        
+
         validationService.validatePaymentOwnership(payment, userId);
 
-        // PaymentExecutionService를 통한 결제 실행
-        payment = executionService.executePayment(payment, BigDecimal.valueOf(request.getAmount()));
+        // 클라이언트에서 받은 paymentKey를 externalPaymentId로 설정
+        if (request.getPaymentKey() != null && !request.getPaymentKey().isEmpty()) {
+            payment.updateExternalPaymentId(request.getPaymentKey());
+        }
+
+        // 실제 결제 금액 계산 (포인트 사용 후 금액)
+        BigDecimal actualAmount = payment.getAmount().subtract(
+                payment.getUsedPointAmount() != null ? payment.getUsedPointAmount() : BigDecimal.ZERO
+        );
+
+        try {
+            // PaymentExecutionService를 통한 결제 실행
+            payment = executionService.executePayment(payment, actualAmount);
+
+            long processingTime = System.currentTimeMillis() - startTime;
+
+            try {
+                postProcessService.processPaymentSuccess(
+                        payment,
+                        userId,
+                        actualAmount,
+                        payment.getAmount(),
+                        processingTime
+                );
+            } catch (Exception postProcessException) {
+                log.error("결제 승인 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
+                        payment.getId(), userId, postProcessException.getMessage(), postProcessException);
+            }
+
+        } catch (Exception e) {
+            long processingTime = System.currentTimeMillis() - startTime;
+            payment.fail("결제 승인 실패: " + e.getMessage());
+            payment = paymentRepository.save(payment);
+
+            try {
+                postProcessService.processPaymentFailure(
+                        payment,
+                        userId,
+                        e.getMessage(),
+                        e,
+                        processingTime
+                );
+            } catch (Exception postProcessException) {
+                log.error("결제 실패 후처리 중 오류 발생: paymentId={}, userId={}, error={}",
+                        payment.getId(), userId, postProcessException.getMessage(), postProcessException);
+            }
+            throw e;
+        }
 
         PaymentConfirmResponse response = new PaymentConfirmResponse();
         response.setPaymentKey(payment.getExternalPaymentId());
@@ -220,7 +234,7 @@ public class PaymentServiceImpl implements PaymentService {
             response.setApprovedAt(payment.getApprovedAt().atZone(java.time.ZoneId.systemDefault()).toOffsetDateTime());
         }
         response.setMethod(payment.getPaymentMethod().name());
-        
+
         return response;
     }
 

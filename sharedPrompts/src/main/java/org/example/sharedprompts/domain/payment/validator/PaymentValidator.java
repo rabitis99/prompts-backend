@@ -96,16 +96,5 @@ public class PaymentValidator {
         validateCurrency(payment.getCurrency(), result.getCurrency());
     }
 
-    /**
-     * PaymentResult와 Payment 엔티티의 일관성 검증 (원래 금액 기준)
-     *
-     * @param payment Payment 엔티티
-     * @param result PaymentResult (외부 API 응답)
-     * @deprecated actualAmount를 명시적으로 전달하는 오버로드 메서드 사용 권장
-     */
-    @Deprecated
-    public void validatePaymentResult(Payment payment, PaymentResult result) {
-        validatePaymentResult(payment, result, payment.getAmount());
-    }
 }
 

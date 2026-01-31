@@ -58,8 +58,22 @@ public class PaymentExecutionService {
         // Provider 선택 및 결제 승인 호출
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
 
+        // externalPaymentId(paymentKey) 검증
+        // 일반 결제 승인: 클라이언트에서 받은 paymentKey가 필요
+        // 재시도: 이전 시도에서 받은 paymentKey가 있으면 사용, 없으면 재시도 불가
+        if (payment.getExternalPaymentId() == null || payment.getExternalPaymentId().isEmpty()) {
+            // 재시도 중인 경우 (retryCount > 0)에는 재시도 불가능
+            if (payment.getRetryCount() > 0) {
+                throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, 
+                        "재시도할 수 없습니다. paymentKey가 없습니다. 새로운 결제를 요청해주세요.");
+            }
+            // 첫 시도인 경우
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, 
+                    "결제 승인을 위해서는 paymentKey가 필요합니다. /payments/confirm 엔드포인트를 사용해주세요.");
+        }
+
         PaymentResult result = provider.confirmPayment(
-                payment.getExternalPaymentId() != null ? payment.getExternalPaymentId() : String.valueOf(payment.getId()),
+                payment.getExternalPaymentId(),
                 String.valueOf(payment.getId()),
                 actualAmount,
                 payment.getCurrency(),
