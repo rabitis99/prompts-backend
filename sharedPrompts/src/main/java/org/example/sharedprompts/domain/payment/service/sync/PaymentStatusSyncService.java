@@ -92,6 +92,9 @@ public class PaymentStatusSyncService {
                     payment.approve(result.getExternalPaymentId());
                     log.info("외부 결제사 상태 동기화: paymentId={}, {} -> {}", 
                             payment.getId(), currentStatus, latestStatus);
+                } else {
+                    log.warn("상태 전이 조건 불일치로 스킵: paymentId={}, 현재 상태={}, 외부 상태={}", 
+                            payment.getId(), currentStatus, latestStatus);
                 }
                 break;
                 
@@ -100,6 +103,9 @@ public class PaymentStatusSyncService {
                 if (currentStatus == PaymentStatus.PENDING) {
                     payment.fail(result.getFailureReason() != null ? result.getFailureReason() : "외부 결제사에서 결제 실패로 확인됨");
                     log.info("외부 결제사 상태 동기화: paymentId={}, {} -> {}", 
+                            payment.getId(), currentStatus, latestStatus);
+                } else {
+                    log.warn("상태 전이 조건 불일치로 스킵: paymentId={}, 현재 상태={}, 외부 상태={}", 
                             payment.getId(), currentStatus, latestStatus);
                 }
                 break;
@@ -110,7 +116,19 @@ public class PaymentStatusSyncService {
                     payment.cancel();
                     log.info("외부 결제사 상태 동기화: paymentId={}, {} -> {}", 
                             payment.getId(), currentStatus, latestStatus);
+                } else {
+                    log.warn("상태 전이 조건 불일치로 스킵: paymentId={}, 현재 상태={}, 외부 상태={}", 
+                            payment.getId(), currentStatus, latestStatus);
                 }
+                break;
+                
+            case REFUNDED:
+            case PARTIALLY_REFUNDED:
+                // 환불 상태는 이번 동기화 로직에서 처리하지 않음
+                // PaymentResult에 refundedAmount가 존재하지 않아 도메인 처리 불가능
+                // 환불은 결제 상태 동기화와 다른 책임을 가짐
+                log.warn("환불 상태 동기화는 별도 프로세스에서 처리됨: paymentId={}, 현재 상태={}, 외부 상태={}", 
+                        payment.getId(), currentStatus, latestStatus);
                 break;
                 
             default:

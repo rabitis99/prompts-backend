@@ -246,7 +246,9 @@ public class Payment extends BaseEntity {
         if (status == PaymentStatus.SUCCESS && this.approvedAt == null) {
             this.approvedAt = LocalDateTime.now();
         }
-        if (status == PaymentStatus.FAILED) {
+        if (status == PaymentStatus.SUCCESS) {
+            this.failureReason = null; // 성공 시 failureReason 초기화
+        } else if (status == PaymentStatus.FAILED) {
             this.failureReason = failureReason != null ? failureReason : "Webhook에서 결제 실패 확인";
         }
     }

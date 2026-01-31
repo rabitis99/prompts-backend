@@ -352,7 +352,7 @@ public class TossPaymentProvider implements PaymentProvider {
         } catch (Exception e) {
             log.warn("취소 시간 파싱 실패: {}", e.getMessage());
         }
-        return LocalDateTime.now();
+        return null; // 파싱 실패 시 null 반환
     }
 }
 

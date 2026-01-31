@@ -73,8 +73,8 @@ public class PaymentExecutionFacade {
                 idempotencyKey
         );
         
-        // PaymentResult 검증
-        paymentValidator.validatePaymentResult(payment, result);
+        // PaymentResult 검증 (actualAmount 전달)
+        paymentValidator.validatePaymentResult(payment, result, actualAmount);
         
         // 도메인 메서드를 통한 상태 변경
         if (result.isSuccess()) {

@@ -68,29 +68,7 @@ public class CashbackExecutionService {
                 ));
 
         // 캐시백을 포인트로 전환하여 지급
-        BigDecimal cashbackAmount = cashback.getAmount();
-        Long paymentId = cashback.getPaymentId();
-        
-        try {
-            // 캐시백 금액을 포인트로 적립 (1원 = 1포인트로 전환)
-            // paymentId는 캐시백이 발생한 원본 결제 ID를 사용
-            pointService.addPointsDirectly(userId, paymentId, cashbackAmount, 
-                    "캐시백 지급: " + cashbackAmount + "원");
-            
-            // 지급 완료 처리 (도메인 메서드 사용)
-            cashback.markAsPaid();
-            cashbackRepository.save(cashback);
-            
-            log.info("캐시백 지급 완료: cashbackId={}, userId={}, amount={}, paymentId={}", 
-                    cashbackId, userId, cashbackAmount, paymentId);
-        } catch (ApiException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("캐시백 지급 실패: cashbackId={}, userId={}, amount={}, error={}",
-                    cashbackId, userId, cashbackAmount, e.getMessage(), e);
-            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR,
-                    "캐시백 지급 중 오류가 발생했습니다: " + e.getMessage());
-        }
+        processCashbackPayment(cashback, userId, "캐시백 지급: ");
     }
 
     /**
@@ -105,27 +83,41 @@ public class CashbackExecutionService {
                 ));
 
         // 관리자는 소유권 검증 없이 지급 가능
-        // 캐시백을 포인트로 전환하여 지급
         Long userId = cashback.getUser().getId();
+        processCashbackPayment(cashback, userId, "캐시백 지급 (관리자): ");
+    }
+
+    /**
+     * 캐시백 지급 공통 로직
+     */
+    private void processCashbackPayment(Cashback cashback, Long userId, String descriptionPrefix) {
         BigDecimal cashbackAmount = cashback.getAmount();
         Long paymentId = cashback.getPaymentId();
+        Long cashbackId = cashback.getId();
+        boolean isAdmin = descriptionPrefix.contains("관리자");
         
         try {
             // 캐시백 금액을 포인트로 적립 (1원 = 1포인트로 전환)
             pointService.addPointsDirectly(userId, paymentId, cashbackAmount, 
-                    "캐시백 지급 (관리자): " + cashbackAmount + "원");
+                    descriptionPrefix + cashbackAmount + "원");
             
             // 지급 완료 처리 (도메인 메서드 사용)
             cashback.markAsPaid();
             cashbackRepository.save(cashback);
             
-            log.info("캐시백 지급 완료 (관리자): cashbackId={}, userId={}, amount={}, paymentId={}", 
-                    cashbackId, userId, cashbackAmount, paymentId);
+            if (isAdmin) {
+                log.info("캐시백 지급 완료 (관리자): cashbackId={}, userId={}, amount={}, paymentId={}", 
+                        cashbackId, userId, cashbackAmount, paymentId);
+            } else {
+                log.info("캐시백 지급 완료: cashbackId={}, userId={}, amount={}, paymentId={}", 
+                        cashbackId, userId, cashbackAmount, paymentId);
+            }
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
-            log.error("캐시백 지급 실패 (관리자): cashbackId={}, userId={}, amount={}, error={}",
-                    cashbackId, userId, cashbackAmount, e.getMessage(), e);
+            String logPrefix = isAdmin ? "캐시백 지급 실패 (관리자)" : "캐시백 지급 실패";
+            log.error("{}: cashbackId={}, userId={}, amount={}, error={}",
+                    logPrefix, cashbackId, userId, cashbackAmount, e.getMessage(), e);
             throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR,
                     "캐시백 지급 중 오류가 발생했습니다: " + e.getMessage());
         }

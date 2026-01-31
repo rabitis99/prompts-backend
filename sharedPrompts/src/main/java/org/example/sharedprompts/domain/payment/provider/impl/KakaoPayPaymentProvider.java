@@ -70,14 +70,46 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("cid", paymentProperties.getKakaoCid());
-            requestBody.put("tid", paymentKey); // tid는 ready 단계에서 받은 값
+            
+            // tid와 pg_token 파싱 개선
+            String tid = paymentKey;
+            String pgToken = null;
+            
+            // paymentKey가 URL 형식인 경우 (예: "tid=xxx&pg_token=yyy" 또는 "xxx?pg_token=yyy")
+            if (paymentKey.contains("pg_token=")) {
+                int pgTokenIndex = paymentKey.indexOf("pg_token=");
+                int pgTokenStart = pgTokenIndex + 9;
+                int pgTokenEnd = paymentKey.indexOf("&", pgTokenStart);
+                if (pgTokenEnd == -1) {
+                    pgTokenEnd = paymentKey.length();
+                }
+                pgToken = paymentKey.substring(pgTokenStart, pgTokenEnd);
+            }
+            
+            // tid 추출 (pg_token이 있으면 그 앞부분이 tid)
+            if (paymentKey.contains("tid=")) {
+                int tidIndex = paymentKey.indexOf("tid=");
+                int tidStart = tidIndex + 4;
+                int tidEnd = paymentKey.indexOf("&", tidStart);
+                if (tidEnd == -1) {
+                    tidEnd = paymentKey.length();
+                }
+                tid = paymentKey.substring(tidStart, tidEnd);
+            } else if (pgToken != null) {
+                // pg_token이 있으면 그 앞부분이 tid일 수 있음
+                int tidEnd = paymentKey.indexOf("pg_token=");
+                if (tidEnd > 0) {
+                    tid = paymentKey.substring(0, tidEnd).replace("?", "").replace("&", "");
+                }
+            }
+            
+            requestBody.put("tid", tid);
             requestBody.put("partner_order_id", orderId);
             requestBody.put("partner_user_id", orderId); // 사용자 ID는 orderId로 대체 가능
             requestBody.put("total_amount", amount.setScale(0, RoundingMode.HALF_UP).longValue());
             
             // pg_token이 있으면 추가 (사용자 인증 후 받은 토큰)
-            if (paymentKey.contains("pg_token=")) {
-                String pgToken = paymentKey.substring(paymentKey.indexOf("pg_token=") + 9);
+            if (pgToken != null && !pgToken.isEmpty()) {
                 requestBody.put("pg_token", pgToken);
             }
             

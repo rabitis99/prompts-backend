@@ -149,7 +149,6 @@ public class PaymentFacade {
      * @param paymentId 결제 ID
      * @return PaymentResponseDto
      */
-    @Transactional
     public PaymentResponseDto retryPayment(Long paymentId) {
         retryFacade.retryPayment(paymentId);
         // 재시도 후 Payment 조회하여 PaymentResponseDto 생성
