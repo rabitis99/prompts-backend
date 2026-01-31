@@ -87,6 +87,11 @@ public class SecurityConfig {
      */
     private static class HttpServletRequestAttributeSecurityContextRepository implements SecurityContextRepository {
         /**
+         * SecurityContextRepository 인터페이스 구현을 위한 메서드
+         * 
+         * <p>Spring Security 6+에서는 loadDeferredContext를 사용하므로 이 메서드는 실제로 호출되지 않습니다.
+         * 인터페이스 호환성을 위해 유지되며, 내부적으로 loadDeferredContext를 호출합니다.
+         * 
          * @deprecated Spring Security 6+에서는 loadDeferredContext를 사용합니다.
          * 이 메서드는 인터페이스 호환성을 위해 유지되며 실제로는 사용되지 않습니다.
          */
@@ -94,6 +99,7 @@ public class SecurityConfig {
         @Override
         public SecurityContext loadContext(HttpRequestResponseHolder requestResponseHolder) {
             // Spring Security 6+에서는 loadDeferredContext를 사용하므로 이 메서드는 사용되지 않습니다.
+            // 인터페이스 구현을 위해 loadDeferredContext를 호출하여 반환합니다.
             return loadDeferredContext(requestResponseHolder.getRequest()).get();
         }
 

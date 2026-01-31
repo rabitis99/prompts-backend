@@ -27,7 +27,13 @@ public class RateLimitWindows {
      * 회원가입 윈도우 시간 (초)
      */
     @Min(1)
-    private long signupSeconds = 3600L;
+    private long signupSeconds = 60L;
+
+    /**
+     * OAuth2 로그인 확정 윈도우 시간 (초)
+     */
+    @Min(1)
+    private long confirmSeconds = 60L;
 
     /**
      * 프롬프트 생성 윈도우 시간 (초)

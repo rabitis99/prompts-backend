@@ -1,6 +1,7 @@
 package org.example.sharedprompts.auth.rate.filter.builder.writer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.Nullable;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -9,7 +10,6 @@ import org.example.sharedprompts.auth.rate.filter.util.RateLimitHeaderUtil;
 import org.example.sharedprompts.auth.rate.policy.RateLimitRule;
 import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.global.exception.ErrorCode;
-import org.jetbrains.annotations.Nullable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 
@@ -31,8 +31,8 @@ public final class RateLimitResponseWriter {
      * @param rule RateLimitRule
      * @param result RateLimitResult
      * @param errorCode 사용할 에러 코드 (null이면 기본값 RATE_LIMIT_EXCEEDED 사용)
-     * @param redisTemplate RedisTemplate (TTL 조회용, null 가능)
-     * @param rateLimitKey Redis 키 (TTL 조회용, null 가능)
+     * @param redisTemplate RedisTemplate (사용하지 않음, 하위 호환성을 위해 유지)
+     * @param rateLimitKey Redis 키 (사용하지 않음, 하위 호환성을 위해 유지)
      * @throws IOException 응답 작성 실패 시
      */
     public static void writeTooManyRequests(
@@ -58,7 +58,7 @@ public final class RateLimitResponseWriter {
         long retryAfter = result.getRetryAfter(1L);
         
         // 헤더와 동일한 방식으로 reset timestamp 계산 (정확성 보장)
-        long resetTimestamp = calculateResetTimestamp(rule, result, redisTemplate, rateLimitKey);
+        long resetTimestamp = calculateResetTimestamp(rule, result);
         
         java.util.Map<String, Object> details = java.util.Map.of(
                 "limit", limit,
@@ -92,6 +92,9 @@ public final class RateLimitResponseWriter {
 
         // 응답 본문 작성
         objectMapper.writeValue(response.getWriter(), body);
+        
+        // 응답 버퍼 플러시하여 응답 커밋 (필터 체인 중단을 위해 필수)
+        response.flushBuffer();
     }
 
     /**
@@ -102,30 +105,22 @@ public final class RateLimitResponseWriter {
      */
     private static long calculateResetTimestamp(
             RateLimitRule rule,
-            RateLimiter.RateLimitResult result,
-            @Nullable RedisTemplate<String, Object> redisTemplate,
-            @Nullable String rateLimitKey
+            RateLimiter.RateLimitResult result
     ) {
         long now = java.time.Instant.now().getEpochSecond();
         
-        // 1. 초과된 요청: retryAfterSeconds를 사용 (이미 TTL 기반으로 계산됨)
-        if (result != null && result.retryAfterSeconds() > 0) {
+        // Line 50-52에서 이미 result == null인 경우 IllegalArgumentException을 throw하므로
+        // 이 지점에 도달할 때 result는 항상 non-null입니다.
+        // 초과된 요청: retryAfterSeconds 사용 (이미 TTL 기반으로 계산됨)
+        if (result.retryAfterSeconds() > 0) {
             return now + result.retryAfterSeconds();
         }
-        
-        // 2. 성공한 요청: Redis TTL을 직접 조회하여 정확한 reset 시간 계산
-        if (redisTemplate != null && rateLimitKey != null) {
-            try {
-                Long ttl = redisTemplate.getExpire(rateLimitKey, java.util.concurrent.TimeUnit.SECONDS);
-                if (ttl != null && ttl > 0) {
-                    return now + ttl;
-                }
-            } catch (Exception e) {
-                // TTL 조회 실패 시 폴백 사용 (예외를 무시하고 폴백으로 진행)
-            }
+        // 성공한 요청: ttlSeconds 사용
+        if (result.ttlSeconds() > 0) {
+            return now + result.ttlSeconds();
         }
         
-        // 3. 폴백: windowSeconds 사용 (정확하지 않을 수 있음)
+        // 폴백: windowSeconds 사용 (TTL이 없는 경우)
         return now + rule.getWindowSeconds();
     }
 }

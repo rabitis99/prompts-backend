@@ -5,6 +5,7 @@ import lombok.*;
 import org.example.sharedprompts.global.entity.BaseEntity;
 import org.example.sharedprompts.domain.user.enums.Provider;
 import org.example.sharedprompts.domain.user.enums.Role;
+import org.example.sharedprompts.domain.payment.enums.UserTier;
 
 import java.time.LocalDateTime;
 
@@ -69,11 +70,20 @@ public class User extends BaseEntity {
     private UserTerms terms;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean signupCompleted = false;
 
     @Column(nullable = false)
     @Builder.Default
     private boolean blocked = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private UserTier tier = UserTier.FREE;
+
+    @Column(length = 500)
+    private String deviceToken; // 푸시 알림용 디바이스 토큰 (FCM 등)
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
@@ -116,6 +126,14 @@ public class User extends BaseEntity {
 
     public void changeRole(Role role) {
         this.role = role;
+    }
+
+    public void changeTier(UserTier tier) {
+        this.tier = tier;
+    }
+
+    public void updateDeviceToken(String deviceToken) {
+        this.deviceToken = deviceToken;
     }
 
     public void softDelete() {

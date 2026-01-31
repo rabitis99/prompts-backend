@@ -38,3 +38,14 @@ out/
 
 ### env ###
 .env
+.env.local
+
+### Firebase Credentials ###
+# Firebase 서비스 계정 키 파일 (보안상 Git에 커밋하지 않음)
+**/firebase-adminsdk-*.json
+**/*firebase-adminsdk*.json
+**/fcm-credentials.json
+config/firebase/
+**/credentials/*.json
+# src/main/resources/firebase 폴더의 JSON 파일들
+src/main/resources/firebase/*.json

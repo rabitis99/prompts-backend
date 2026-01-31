@@ -10,10 +10,12 @@ import org.example.sharedprompts.dto.comment.request.CommentUpdateDto;
 import org.example.sharedprompts.dto.comment.response.CommentResponseDto;
 import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.dto.common.CustomResponseHelper;
+import org.example.sharedprompts.dto.common.PageResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 
 @RestController
 @RequiredArgsConstructor
@@ -34,11 +36,12 @@ public class CommentController {
     }
 
     @GetMapping
-    public ResponseEntity<CustomResponse<List<CommentResponseDto>>> getComments(
-            @PathVariable Long promptId
+    public ResponseEntity<CustomResponse<PageResponse<CommentResponseDto>>> getComments(
+            @PathVariable Long promptId,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
         return CustomResponseHelper.ok(
-                commentService.getCommentsByPrompt(promptId)
+                PageResponse.of(commentService.getCommentsByPrompt(promptId, pageable))
         );
     }
 

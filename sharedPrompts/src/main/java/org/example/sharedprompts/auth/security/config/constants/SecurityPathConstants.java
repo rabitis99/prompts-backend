@@ -41,15 +41,15 @@ public final class SecurityPathConstants {
     public static final String[] PUBLIC_PATHS = {
             "/auth/signup",
             "/auth/login",
-            "/auth/callback",
             "/auth/refresh",
+            "/auth/confirm",
             "/api/auth/signup",
             "/api/auth/login",
-            "/api/auth/callback",
             "/api/auth/refresh",
+            "/api/auth/confirm",
             "/oauth2/**",
             "/login/**",
-            "/actuator/health"  // 헬스 체크는 공개 접근 허용
+            "/actuator/health",  // 헬스 체크는 공개 접근 허용
     };
 
     /**

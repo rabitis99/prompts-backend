@@ -17,6 +17,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 import javax.sql.DataSource;
 import java.time.Clock;
+import java.util.Optional;
 
 @Slf4j
 @Configuration
@@ -34,6 +35,7 @@ public class SchedulerConfig {
 
     /**
      * DB LockProvider (Fallback 용)
+     * fallback이 활성화되어 있을 때만 생성
      */
     @Bean
     @ConditionalOnProperty(name = "shedlock.fallback.enabled", havingValue = "true")
@@ -47,30 +49,37 @@ public class SchedulerConfig {
     }
 
     /**
-     * 메인 LockProvider (Fallback 활성화 시)
+     * 메인 LockProvider (항상 @Primary로 설정)
+     * fallback.enabled 설정에 따라 FallbackLockProvider 또는 RedisLockProvider를 반환
      */
     @Bean
-    @ConditionalOnProperty(name = "shedlock.fallback.enabled", havingValue = "true")
-    public LockProvider fallbackLockProvider(
+    @org.springframework.context.annotation.Primary
+    public LockProvider lockProvider(
             RedisLockProvider redisLockProvider,
-            @Qualifier("dbLockProvider") LockProvider dbLockProvider
+            @Value("${shedlock.fallback.enabled:false}") boolean fallbackEnabled,
+            @Qualifier("dbLockProvider") Optional<LockProvider> dbLockProvider
     ) {
-        log.info("Using FallbackLockProvider (Redis → DB)");
-        return new FallbackLockProvider(redisLockProvider, dbLockProvider);
+        if (fallbackEnabled && dbLockProvider.isPresent()) {
+            log.info("Using FallbackLockProvider (Redis → DB)");
+            return new FallbackLockProvider(redisLockProvider, dbLockProvider.get());
+        } else {
+            log.info("Using Redis LockProvider only (fallback disabled)");
+            return redisLockProvider;
+        }
     }
 
     /**
-     * 메인 LockProvider (Fallback 비활성화 시)
+     * FallbackLockProvider (스케줄러용 별칭)
+     * 스케줄러에서 @LockProviderToUse("fallbackLockProvider")로 사용
+     * fallback이 활성화되어 있을 때만 생성
      */
     @Bean
-    @ConditionalOnProperty(
-            name = "shedlock.fallback.enabled",
-            havingValue = "false",
-            matchIfMissing = true
-    )
-    public LockProvider lockProvider(RedisLockProvider redisLockProvider) {
-        log.info("Using Redis LockProvider only (fallback disabled)");
-        return redisLockProvider;
+    @ConditionalOnProperty(name = "shedlock.fallback.enabled", havingValue = "true")
+    @Qualifier("fallbackLockProvider")
+    public LockProvider fallbackLockProvider(
+            @Qualifier("lockProvider") LockProvider primaryLockProvider
+    ) {
+        return primaryLockProvider;
     }
 
     /**

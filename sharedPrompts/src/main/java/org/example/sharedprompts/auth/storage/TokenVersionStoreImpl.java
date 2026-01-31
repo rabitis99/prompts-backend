@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Token Version 저장소 구현체
@@ -40,8 +41,12 @@ public class TokenVersionStoreImpl implements TokenVersionStore {
      * 운영 원칙:
      * - @PostConstruct에서 초기화하지 않음 (외부 리소스 접근 위험 제거)
      * - Bean 주입으로 스크립트 사용 (애플리케이션 기동 안정성 보장)
+     * 
+     * 반환값: List<Long> [currentCount, ttl] 배열
+     * - currentCount: INCR 후의 현재 카운트 값
+     * - ttl: 키의 남은 TTL (초 단위), 키가 없거나 TTL이 없으면 -1
      */
-    private final DefaultRedisScript<Long> incrementWithTtlScript;
+    private final DefaultRedisScript<List<Long>> incrementWithTtlScript;
 
     @Override
     @CircuitBreaker(name = "tokenRedis", fallbackMethod = "getFallback")
@@ -103,6 +108,7 @@ public class TokenVersionStoreImpl implements TokenVersionStore {
                     // Lua 스크립트를 사용하여 INCR + EXPIRE를 원자적으로 수행
                     // TTL은 초 단위로 전달 (365일 = 365 * 24 * 60 * 60 초)
                     long ttlSeconds = Duration.ofDays(DEFAULT_TTL_DAYS).getSeconds();
+                    // 스크립트는 [currentCount, ttl] 배열을 반환하지만, 여기서는 반환값을 사용하지 않음
                     redisTemplate.execute(
                             incrementWithTtlScript,
                             Collections.singletonList(key),

@@ -23,6 +23,12 @@ public class RateLimitRules {
     private long signup = 3L;
 
     /**
+     * OAuth2 로그인 확정 한도
+     */
+    @Min(1)
+    private long confirm = 5L;
+
+    /**
      * 프롬프트 생성 한도
      */
     @Min(1)

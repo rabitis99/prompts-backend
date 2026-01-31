@@ -16,7 +16,11 @@ public interface RateLimiter {
      * @param key          rate limit key (예: rate:login:ip:1.2.3.4)
      * @param capacity     윈도우 내 허용 횟수
      * @param windowSeconds 윈도우(초)
-     * @return RateLimitResult (허용 여부, 현재 카운트, Retry-After 초)
+     * @return RateLimitResult (허용 여부, 현재 카운트, Retry-After 초, TTL 초)
+     *         - allowed: 요청 허용 여부
+     *         - currentCount: 현재 카운트
+     *         - retryAfterSeconds: Rate Limit 초과 시 재시도 가능한 시간(초)
+     *         - ttlSeconds: 현재 윈도우의 남은 시간(초), Rate Limit 헤더 계산에 사용
      */
     RateLimitResult consume(String key, long capacity, long windowSeconds);
     
@@ -26,7 +30,8 @@ public interface RateLimiter {
     record RateLimitResult(
             boolean allowed,
             long currentCount,
-            long retryAfterSeconds
+            long retryAfterSeconds,
+            long ttlSeconds
     ) {
         /**
          * Rate Limit이 초과되었는지 확인합니다.
