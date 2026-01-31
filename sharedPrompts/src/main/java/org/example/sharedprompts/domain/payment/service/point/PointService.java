@@ -18,6 +18,15 @@ public interface PointService {
     void accumulatePoints(Long userId, Long paymentId, BigDecimal paymentAmount);
 
     /**
+     * 직접 포인트 적립 (캐시백 전환 등)
+     * @param userId 사용자 ID
+     * @param paymentId 결제 ID (선택사항, null 가능)
+     * @param pointAmount 적립할 포인트 금액
+     * @param description 적립 사유
+     */
+    void addPointsDirectly(Long userId, Long paymentId, BigDecimal pointAmount, String description);
+
+    /**
      * 포인트 사용
      */
     void usePoints(Long userId, BigDecimal amount, String description);

@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 
 /**
  * 결제 취소 요청 DTO
@@ -22,9 +24,15 @@ public class PaymentCancelRequestDto {
 
     /**
      * 결제 ID를 Long으로 변환
+     * @throws ApiException NumberFormatException 발생 시 INVALID_INPUT_VALUE 에러 코드와 함께 예외 발생
      */
     public Long getPaymentIdAsLong() {
-        return Long.parseLong(this.paymentId);
+        try {
+            return Long.parseLong(this.paymentId);
+        } catch (NumberFormatException e) {
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "paymentId", 
+                    "결제 ID는 숫자여야 합니다: " + this.paymentId);
+        }
     }
 
     /**

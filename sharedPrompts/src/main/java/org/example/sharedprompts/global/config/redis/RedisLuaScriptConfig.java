@@ -112,16 +112,16 @@ public class RedisLuaScriptConfig {
     }
 
     /**
-     * GET_AND_DELETE_TEMP_TOKEN 스크립트
+     * GET_AND_DELETE_OAUTH2_TEMP_SESSION 스크립트
      * 
      * 사용처:
-     * - TokenRedisServiceImpl: OAuth2 임시 토큰 조회 및 삭제
+     * - TokenRedisServiceImpl: OAuth2 임시 인증 세션 조회 및 삭제
      * 
-     * 기능: OAuth2 임시 토큰 조회 + 삭제를 원자적으로 수행
+     * 기능: OAuth2 임시 인증 세션 조회 + 삭제를 원자적으로 수행
      * 반환값: List<String> [field1, value1, field2, value2, ...]
      */
     @Bean
-    public DefaultRedisScript<List<String>> getAndDeleteTempTokenScript() {
+    public DefaultRedisScript<List<String>> getAndDeleteOAuth2TempSessionScript() {
         DefaultRedisScript<List<String>> script = new DefaultRedisScript<>();
         script.setScriptText(LuaScripts.GET_AND_DELETE_TEMP_TOKEN);
         // Spring Data Redis는 런타임에 제네릭 타입 정보를 잃어버리므로 raw type을 사용

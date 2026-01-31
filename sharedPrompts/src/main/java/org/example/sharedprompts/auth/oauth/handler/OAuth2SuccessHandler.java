@@ -55,8 +55,8 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                 Duration.ofMinutes(2)
         );
 
-        log.debug("OAuth2 임시 인증 세션 생성 완료: tempKey={}, provider={}, providerId={}", 
-                tempKey, provider, providerId);
+        log.debug("OAuth2 임시 인증 세션 생성 완료: tempKey={}, provider={}", 
+                tempKey, provider);
 
         String redirectUrl = OAuth2RedirectUrlBuilder.buildCallbackUrl(frontRedirectUrl, tempKey, state);
         response.sendRedirect(redirectUrl);

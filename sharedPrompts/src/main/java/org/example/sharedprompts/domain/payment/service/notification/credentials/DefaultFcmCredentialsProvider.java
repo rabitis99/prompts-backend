@@ -20,10 +20,10 @@ public class DefaultFcmCredentialsProvider implements FcmCredentialsProvider {
 
     @Override
     public GoogleCredentials load() throws IOException {
-        InputStream stream = credentialsResolver.resolve(paymentProperties);
-
-        return GoogleCredentials.fromStream(stream)
-                .createScoped(List.of("https://www.googleapis.com/auth/firebase.messaging"));
+        try (InputStream stream = credentialsResolver.resolve(paymentProperties)) {
+            return GoogleCredentials.fromStream(stream)
+                    .createScoped(List.of("https://www.googleapis.com/auth/firebase.messaging"));
+        }
     }
 }
 

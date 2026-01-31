@@ -56,6 +56,17 @@ public class GlobalExceptionHandler {
         return CustomResponseHelper.fail(new ApiException(ErrorCode.NOT_FOUND));
     }
 
+    // Enum 변환 실패 등 IllegalArgumentException 처리
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<?> handleIllegalArgumentException(IllegalArgumentException e) {
+        log.warn("IllegalArgumentException: {}", e.getMessage());
+        // PaymentMethod 관련 오류인 경우 더 구체적인 에러 코드 사용
+        if (e.getMessage() != null && e.getMessage().contains("PaymentMethod")) {
+            return CustomResponseHelper.fail(new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "payment_method"));
+        }
+        return CustomResponseHelper.fail(new ApiException(ErrorCode.INVALID_INPUT_VALUE));
+    }
+
 
     // 낙관적 락 예외 처리 (동시 수정 감지)
     @ExceptionHandler(OptimisticLockException.class)

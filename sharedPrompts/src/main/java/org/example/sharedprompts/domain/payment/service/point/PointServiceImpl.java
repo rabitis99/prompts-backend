@@ -9,7 +9,7 @@ import net.javacrumbs.shedlock.core.SimpleLock;
 import java.time.Instant;
 import org.example.sharedprompts.domain.payment.Point;
 import org.example.sharedprompts.domain.payment.config.PaymentProperties;
-import org.example.sharedprompts.domain.payment.repository.PointRepository;
+import org.example.sharedprompts.domain.payment.repository.point.PointRepository;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.dto.payment.request.PointUseRequestDto;
@@ -74,6 +74,19 @@ public class PointServiceImpl implements PointService {
 
     @Override
     @Transactional
+    public void addPointsDirectly(Long userId, Long paymentId, BigDecimal pointAmount, String description) {
+        if (pointAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return; // 적립할 포인트가 없으면 종료
+        }
+
+        executeWithLock(userId, () -> {
+            doAddPointsDirectly(userId, paymentId, pointAmount, description);
+            return null;
+        });
+    }
+
+    @Override
+    @Transactional
     public void usePoints(Long userId, BigDecimal amount, String description) {
         executeWithLock(userId, () -> {
             doUsePoints(userId, amount, description);
@@ -83,17 +96,16 @@ public class PointServiceImpl implements PointService {
 
     @Override
     public BigDecimal getCurrentBalance(Long userId) {
-        return pointRepository.getCurrentBalance(userId)
-                .orElse(BigDecimal.ZERO);
+        return pointRepository.getCurrentBalance(userId);
     }
 
     @Override
     public PointBalanceResponseDto getBalanceDetail(Long userId) {
         BigDecimal currentBalance = getCurrentBalance(userId);
-        BigDecimal availableBalance = calculateAvailableBalance(userId);
         BigDecimal expiringSoon = calculateExpiringSoon(userId);
         
-        return PointBalanceResponseDto.from(userId, currentBalance, availableBalance, expiringSoon);
+        // availableBalance는 currentBalance와 동일 (사용 포인트를 반영한 실제 잔액)
+        return PointBalanceResponseDto.from(userId, currentBalance, currentBalance, expiringSoon);
     }
 
     @Override
@@ -162,6 +174,13 @@ public class PointServiceImpl implements PointService {
      * 포인트 적립 비즈니스 로직
      */
     private void doAccumulatePoints(Long userId, Long paymentId, BigDecimal pointAmount) {
+        doAddPointsDirectly(userId, paymentId, pointAmount, "결제 포인트 적립");
+    }
+
+    /**
+     * 직접 포인트 적립 비즈니스 로직
+     */
+    private void doAddPointsDirectly(Long userId, Long paymentId, BigDecimal pointAmount, String description) {
         User user = getUser(userId);
         BigDecimal lastBalance = getLastBalance(userId);
         BigDecimal newBalance = lastBalance.add(pointAmount);
@@ -171,7 +190,7 @@ public class PointServiceImpl implements PointService {
                 .paymentId(paymentId)
                 .amount(pointAmount)
                 .type("PAYMENT")
-                .description("결제 포인트 적립")
+                .description(description)
                 .balance(newBalance)
                 .expired(false)
                 .build();
@@ -216,6 +235,11 @@ public class PointServiceImpl implements PointService {
      * 잔액 부족 검증
      */
     private void validateSufficientBalance(BigDecimal balance, BigDecimal amount) {
+        // 포인트 사용 금액은 양수만 허용
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "포인트 사용 금액은 0보다 커야 합니다.");
+        }
+        // 잔액 부족 검증
         if (balance.compareTo(amount) < 0) {
             throw new ApiException(ErrorCode.POINT_INSUFFICIENT);
         }
@@ -231,17 +255,6 @@ public class PointServiceImpl implements PointService {
                 .build();
 
         return requestDto.toPointBuilder(user, balance).build();
-    }
-
-    /**
-     * 사용 가능한 잔액 계산
-     */
-    private BigDecimal calculateAvailableBalance(Long userId) {
-        return pointRepository.findByUser_IdOrderByCreatedAtDesc(userId)
-                .stream()
-                .filter(p -> !p.isExpired() && p.getAmount().compareTo(BigDecimal.ZERO) > 0)
-                .map(Point::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /**

@@ -65,9 +65,9 @@ public class PushNotificationService {
 
             sendPushNotification(deviceToken, notification, data);
             
-            log.info("결제 성공 푸시 알림 발송 완료: deviceToken={}, paymentId={}", deviceToken, paymentId);
+            log.info("결제 성공 푸시 알림 발송 완료: deviceToken={}, paymentId={}", maskToken(deviceToken), paymentId);
         } catch (Exception e) {
-            log.error("결제 성공 푸시 알림 발송 실패: deviceToken={}, paymentId={}, error={}", deviceToken, paymentId, e.getMessage(), e);
+            log.error("결제 성공 푸시 알림 발송 실패: deviceToken={}, paymentId={}, error={}", maskToken(deviceToken), paymentId, e.getMessage(), e);
         }
     }
 
@@ -76,7 +76,7 @@ public class PushNotificationService {
         if (!paymentProperties.isFcmEnabled() || 
             paymentProperties.getFcmProjectId() == null || 
             paymentProperties.getFcmProjectId().isEmpty()) {
-            log.debug("FCM이 비활성화되어 있거나 프로젝트 ID가 설정되지 않음. 푸시 알림 발송 건너뜀: deviceToken={}", deviceToken);
+            log.debug("FCM이 비활성화되어 있거나 프로젝트 ID가 설정되지 않음. 푸시 알림 발송 건너뜀: deviceToken={}", maskToken(deviceToken));
             return;
         }
 
@@ -117,12 +117,12 @@ public class PushNotificationService {
             Map<String, Object> response = restTemplate.postForObject(url, request, Map.class);
             
             if (response != null && response.containsKey("name")) {
-                log.debug("푸시 알림 발송 성공: deviceToken={}, messageId={}", deviceToken, response.get("name"));
+                log.debug("푸시 알림 발송 성공: deviceToken={}, messageId={}", maskToken(deviceToken), response.get("name"));
             } else {
-                log.warn("푸시 알림 발송 응답 이상: deviceToken={}, response={}", deviceToken, response);
+                log.warn("푸시 알림 발송 응답 이상: deviceToken={}, response={}", maskToken(deviceToken), response);
             }
         } catch (Exception e) {
-            log.error("푸시 알림 발송 실패: deviceToken={}, error={}", deviceToken, e.getMessage(), e);
+            log.error("푸시 알림 발송 실패: deviceToken={}, error={}", maskToken(deviceToken), e.getMessage(), e);
             // 푸시 알림 실패는 결제 프로세스를 중단시키지 않도록 예외를 다시 던지지 않음
         }
     }

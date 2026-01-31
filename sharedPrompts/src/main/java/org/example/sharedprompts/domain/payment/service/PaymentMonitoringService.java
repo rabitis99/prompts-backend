@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.metrics.PaymentMetrics;
-import org.example.sharedprompts.domain.payment.repository.PaymentRepository;
+import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.payment.statistics.PaymentFailureStatistics;
 import org.example.sharedprompts.domain.payment.event.PaymentEvent;
 import org.springframework.scheduling.annotation.Async;
@@ -82,12 +82,10 @@ public class PaymentMonitoringService {
      * 일일 결제 실패 통계 조회
      */
     public PaymentFailureStatistics getDailyFailureStatistics() {
-        LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
 
-        List<Payment> failedPayments = paymentRepository.findByStatusOrderByCreatedAtDesc(PaymentStatus.FAILED)
-                .stream()
-                .filter(p -> p.getCreatedAt().isAfter(startOfDay))
-                .collect(Collectors.toList());
+        List<Payment> failedPayments = paymentRepository.findByStatusAndCreatedAtAfterOrderByCreatedAtDesc(
+                PaymentStatus.FAILED, startOfDay);
 
         long totalFailures = failedPayments.size();
         Map<String, Long> failuresByMethod = failedPayments.stream()
@@ -107,7 +105,7 @@ public class PaymentMonitoringService {
      * 실패율이 임계값을 초과하는지 확인
      */
     public boolean isFailureRateExceeded(double threshold) {
-        LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
 
         long totalPayments = paymentRepository.countByDateAndStatus(
                 startOfDay,

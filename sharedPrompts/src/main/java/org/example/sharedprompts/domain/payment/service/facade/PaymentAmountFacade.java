@@ -105,6 +105,11 @@ public class PaymentAmountFacade {
      * 환불 시 포인트 환불 금액 계산
      */
     public BigDecimal calculateRefundPointAmount(BigDecimal usedPointAmount, BigDecimal originalAmount, BigDecimal refundAmount) {
+        // refundAmount가 0 이하일 경우 조기에 차단 (음수 포인트 반환 방지)
+        if (refundAmount == null || refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ApiException(ErrorCode.PAYMENT_REFUND_AMOUNT_INVALID);
+        }
+
         if (usedPointAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }

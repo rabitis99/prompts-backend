@@ -159,9 +159,12 @@ public class Payment extends BaseEntity {
 
     /**
      * 지수 백오프를 적용하여 다음 재시도 시간 예약
+     * 오버플로우 방지를 위해 최대 지연 시간을 1시간으로 제한
      */
     public void scheduleNextRetry(long baseDelayMs) {
+        long maxDelayMs = 3600000L; // 최대 1시간
         long delayMs = baseDelayMs * (long) Math.pow(2, this.retryCount);
+        delayMs = Math.min(delayMs, maxDelayMs);
         this.nextRetryAt = LocalDateTime.now().plusNanos(delayMs * 1_000_000L);
     }
 }

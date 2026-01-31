@@ -31,12 +31,17 @@ public class FcmCredentialsResolver {
             return new FileInputStream(props.getFcmCredentialsPath());
         }
 
-        // 3. classpath (firebase/)
+        // 3. classpath (설정된 경로 또는 기본값)
+        String classpathResource = props.getFcmClasspathResource();
+        if (classpathResource == null || classpathResource.isBlank()) {
+            classpathResource = "firebase/firebase-adminsdk.json";
+        }
+        
         InputStream stream = getClass().getClassLoader()
-                .getResourceAsStream("firebase/sharedprompt-8ed9d-firebase-adminsdk-fbsvc-601af9062b.json");
+                .getResourceAsStream(classpathResource);
 
         if (stream != null) {
-            log.debug("classpath firebase credentials 사용");
+            log.debug("classpath firebase credentials 사용: {}", classpathResource);
             return stream;
         }
 

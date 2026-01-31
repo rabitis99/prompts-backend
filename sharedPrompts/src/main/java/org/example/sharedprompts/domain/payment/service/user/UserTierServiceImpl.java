@@ -1,10 +1,11 @@
 package org.example.sharedprompts.domain.payment.service.user;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.UserTierHistory;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.enums.UserTier;
-import org.example.sharedprompts.domain.payment.repository.PaymentRepository;
+import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.payment.repository.UserTierHistoryRepository;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 사용자 티어 서비스 구현체
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -75,19 +77,38 @@ public class UserTierServiceImpl implements UserTierService {
         tierHistoryRepository.save(history);
 
         // 사용자 티어 변경
+        // JPA dirty checking으로 트랜잭션 커밋 시 자동 반영되므로 명시적 save 불필요
         user.changeTier(newTier);
-        userRepository.save(user);
-
-        // 일일 제한 재계산
+        
+        // 티어 변경 후 일일 제한 재계산
         recalculateDailyLimit(userId);
     }
 
     @Override
     @Transactional
     public void recalculateDailyLimit(Long userId) {
-        // 티어 변경 시 일일 제한이 재계산되므로
-        // 오늘 사용한 결제 횟수를 다시 확인하여 제한을 적용
-        // 실제 구현에서는 필요에 따라 추가 로직을 수행할 수 있습니다.
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+        
+        UserTier currentTier = user.getTier();
+        int dailyLimit = currentTier.getDailyLimit();
+        long todayUsedCount = paymentRepository.countTodaySuccessfulPayments(userId, PaymentStatus.SUCCESS);
+        int remainingCount = (int) Math.max(0, dailyLimit - todayUsedCount);
+        
+        // 티어 변경 후 일일 제한 재계산 및 로깅
+        log.info("일일 제한 재계산: userId={}, tier={}, dailyLimit={}, todayUsedCount={}, remainingCount={}", 
+                userId, currentTier.name(), dailyLimit, todayUsedCount, remainingCount);
+        
+        // 새로운 티어의 제한을 이미 초과한 경우 경고
+        if (todayUsedCount >= dailyLimit) {
+            log.warn("티어 변경 후 일일 제한 초과 상태: userId={}, tier={}, todayUsedCount={}, dailyLimit={}", 
+                    userId, currentTier.name(), todayUsedCount, dailyLimit);
+        } else if (todayUsedCount >= dailyLimit * 0.8) {
+            // 제한의 80% 이상 사용 시 경고
+            log.warn("티어 변경 후 일일 제한 근접: userId={}, tier={}, todayUsedCount={}, dailyLimit={}, usageRate={}%", 
+                    userId, currentTier.name(), todayUsedCount, dailyLimit, 
+                    (int) (todayUsedCount * 100.0 / dailyLimit));
+        }
     }
 
     @Override

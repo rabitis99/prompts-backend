@@ -43,6 +43,7 @@ public class PaymentProperties {
     // FCM 설정 (HTTP v1)
     private final String fcmProjectId;
     private final String fcmCredentialsPath;
+    private final String fcmClasspathResource;
     private final boolean fcmEnabled;
 
     public PaymentProperties(
@@ -63,6 +64,7 @@ public class PaymentProperties {
             @Value("${payment.point.rate:0.005}") double pointRate,
             @Value("${payment.fcm.project-id:}") String fcmProjectId,
             @Value("${payment.fcm.credentials-path:}") String fcmCredentialsPath,
+            @Value("${payment.fcm.classpath-resource:firebase/firebase-adminsdk.json}") String fcmClasspathResource,
             @Value("${payment.fcm.enabled:true}") boolean fcmEnabled) {
         this.kakaoSecret = kakaoSecret;
         this.kakaoCid = kakaoCid;
@@ -81,6 +83,7 @@ public class PaymentProperties {
         this.pointRate = pointRate;
         this.fcmProjectId = fcmProjectId;
         this.fcmCredentialsPath = fcmCredentialsPath;
+        this.fcmClasspathResource = fcmClasspathResource;
         this.fcmEnabled = fcmEnabled;
     }
 }

@@ -48,11 +48,7 @@ public class AuthServiceImpl implements AuthService {
     public TokenResponseDto login(LoginRequestDto dto, HttpServletRequest request) {
         User user = loginService.authenticate(dto, request);
 
-        if (dto.getDeviceToken() != null && !dto.getDeviceToken().isEmpty()) {
-            user.updateDeviceToken(dto.getDeviceToken());
-            userRepository.save(user);
-            log.debug("로그인 시 deviceToken 업데이트: userId={}", user.getId());
-        }
+        updateDeviceTokenIfPresent(user, dto.getDeviceToken(), "로그인");
 
         TokenResponseDto tokenResponseDto = authTokenService.issue(user, request);
         authAuditPublisher.loginSuccessByUser(user, request);
@@ -66,11 +62,7 @@ public class AuthServiceImpl implements AuthService {
         OAuthLoginPayload payload = oAuthLoginFlow.validateForConfirm(dto.getTempKey(), dto.getState());
         User user = payload.user();
         
-        if (dto.getDeviceToken() != null && !dto.getDeviceToken().isEmpty()) {
-            user.updateDeviceToken(dto.getDeviceToken());
-            userRepository.save(user);
-            log.debug("OAuth 로그인 확정 시 deviceToken 업데이트: userId={}", user.getId());
-        }
+        updateDeviceTokenIfPresent(user, dto.getDeviceToken(), "OAuth 로그인 확정");
         
         TokenResponseDto tokenResponseDto = authTokenService.issue(user, request);
         authAuditPublisher.loginSuccessByUser(user, request);
@@ -123,6 +115,21 @@ public class AuthServiceImpl implements AuthService {
 
         authTokenService.logout(user, accessToken, dto.getRefreshToken());
         authAuditPublisher.logoutSuccessByUser(user);
+    }
+
+    /**
+     * deviceToken이 제공된 경우 사용자 정보를 업데이트하는 헬퍼 메서드
+     * 
+     * @param user 사용자 엔티티
+     * @param deviceToken 디바이스 토큰 (선택사항)
+     * @param context 로깅용 컨텍스트 문자열 (예: "로그인", "OAuth 로그인 확정")
+     */
+    private void updateDeviceTokenIfPresent(User user, String deviceToken, String context) {
+        if (deviceToken != null && !deviceToken.isEmpty()) {
+            user.updateDeviceToken(deviceToken);
+            userRepository.save(user);
+            log.debug("{} 시 deviceToken 업데이트: userId={}", context, user.getId());
+        }
     }
 }
 

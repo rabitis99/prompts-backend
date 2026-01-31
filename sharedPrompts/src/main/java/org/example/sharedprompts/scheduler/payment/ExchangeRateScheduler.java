@@ -45,8 +45,15 @@ public class ExchangeRateScheduler {
 
     /**
      * 애플리케이션 시작 시 환율 초기 로드
+     * 멀티 인스턴스 환경에서 중복 실행 방지를 위한 분산 락 적용
      */
     @EventListener(ContextRefreshedEvent.class)
+    @SchedulerLock(
+            name = "ExchangeRateScheduler",
+            lockAtMostFor = "30m",
+            lockAtLeastFor = "5m"
+    )
+    @LockProviderToUse("fallbackLockProvider")
     @Transactional
     public void initializeExchangeRates() {
         log.info("애플리케이션 시작 시 환율 초기 로드 시작");
@@ -171,9 +178,11 @@ public class ExchangeRateScheduler {
 
     /**
      * 3️⃣ Object -> BigDecimal 변환
+     * double 경유를 피하고 toString() 기반 변환으로 정밀도 손실 방지
      */
     private BigDecimal convertToBigDecimal(Object value) {
-        if (value instanceof Number) return BigDecimal.valueOf(((Number) value).doubleValue());
+        if (value instanceof BigDecimal) return (BigDecimal) value;
+        if (value instanceof Number) return new BigDecimal(value.toString());
         if (value instanceof String) return new BigDecimal((String) value);
         throw new IllegalArgumentException("환율 값을 BigDecimal로 변환할 수 없습니다: " + value);
     }

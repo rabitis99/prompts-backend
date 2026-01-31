@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.payment.repository;
+package org.example.sharedprompts.domain.payment.repository.payment;
 
 import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
@@ -66,6 +66,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, CustomP
      * 특정 상태의 결제 목록 조회
      */
     List<Payment> findByStatusOrderByCreatedAtDesc(PaymentStatus status);
+
+    /**
+     * 특정 상태이고 생성일시가 지정된 시간 이후인 결제 목록 조회
+     */
+    List<Payment> findByStatusAndCreatedAtAfterOrderByCreatedAtDesc(PaymentStatus status, LocalDateTime createdAt);
 
     /**
      * 재시도가 필요한 결제 목록 조회 (PENDING 상태이고 재시도 횟수가 제한 미만)

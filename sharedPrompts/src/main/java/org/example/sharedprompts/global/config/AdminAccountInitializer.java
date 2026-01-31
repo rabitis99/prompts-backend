@@ -10,6 +10,7 @@ import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -102,29 +103,59 @@ public class AdminAccountInitializer implements CommandLineRunner {
         }
         
         // 어드민 계정 생성
-        String encodedPassword = passwordEncoder.encode(password);
-        User admin = User.builder()
-                .email(email)
-                .provider(Provider.LOCAL)
-                .providerId(email)
-                .password(encodedPassword)
-                .nickname(nickname)
-                .role(Role.ROLE_ADMIN)
-                .terms(UserTerms.builder()
-                        .required(true)
-                        .privacy(true)
-                        .marketing(false)
-                        .build())
-                .signupCompleted(true)
-                .blocked(false)
-                .build();
-        
-        userRepository.save(admin);
-        log.info("✅ 어드민 계정이 생성되었습니다. (이메일: {}, 닉네임: {})", email, nickname);
+        // 멀티 인스턴스 기동 시 중복 생성 레이스 컨디션 방지
+        try {
+            String encodedPassword = passwordEncoder.encode(password);
+            User admin = User.builder()
+                    .email(email)
+                    .provider(Provider.LOCAL)
+                    .providerId(email)
+                    .password(encodedPassword)
+                    .nickname(nickname)
+                    .role(Role.ROLE_ADMIN)
+                    .terms(UserTerms.builder()
+                            .required(true)
+                            .privacy(true)
+                            .marketing(false)
+                            .build())
+                    .signupCompleted(true)
+                    .blocked(false)
+                    .build();
+            
+            userRepository.save(admin);
+            log.info("✅ 어드민 계정이 생성되었습니다. (이메일: {}, 닉네임: {})", email, nickname);
+        } catch (DataIntegrityViolationException e) {
+            // 동시성 이슈: 다른 인스턴스가 먼저 어드민 계정을 생성한 경우 재조회
+            log.debug("어드민 계정 생성 중 중복 감지, 재조회: email={}", email);
+            
+            Optional<User> createdAdmin = userRepository.findByProviderAndProviderId(
+                    Provider.LOCAL, email);
+            
+            if (createdAdmin.isPresent()) {
+                User admin = createdAdmin.get();
+                if (admin.isDeleted()) {
+                    log.info("✅ 삭제된 어드민 계정이 발견되었습니다. 복구하지 않습니다. (이메일: {})", email);
+                    return;
+                }
+                
+                // 기존 계정의 Role이 ROLE_ADMIN이 아니면 업데이트
+                if (admin.getRole() != Role.ROLE_ADMIN) {
+                    admin.changeRole(Role.ROLE_ADMIN);
+                    userRepository.save(admin);
+                    log.info("✅ 어드민 계정의 Role이 업데이트되었습니다. (이메일: {}, ID: {})", email, admin.getId());
+                } else {
+                    log.info("✅ 어드민 계정이 이미 존재합니다. (이메일: {}, ID: {})", email, admin.getId());
+                }
+            } else {
+                log.error("❌ 어드민 계정 생성 실패 및 재조회 실패: email={}", email, e);
+                throw new IllegalStateException("어드민 계정 생성 및 조회 실패", e);
+            }
+        }
     }
 
     /**
-     * 기존 어드민 계정 확인 및 Role 업데이트 (프로덕션 환경에서 비밀번호가 없을 때)
+     * 기존 어드민 계정 확인 (프로덕션 환경에서 비밀번호가 없을 때)
+     * 보안을 위해 ADMIN_PASSWORD 없이 Role 자동 승격은 허용하지 않음
      */
     private void checkExistingAdmin(String email) {
         Optional<User> existingAdmin = userRepository.findByProviderAndProviderId(
@@ -132,16 +163,14 @@ public class AdminAccountInitializer implements CommandLineRunner {
         
         if (existingAdmin.isPresent() && !existingAdmin.get().isDeleted()) {
             User admin = existingAdmin.get();
-            // Role이 ROLE_ADMIN이 아니면 업데이트
+            // Role이 ROLE_ADMIN이 아니면 보안상 자동 승격하지 않음
             if (admin.getRole() != Role.ROLE_ADMIN) {
-                log.warn("⚠️ 기존 계정의 Role이 ROLE_USER입니다. ROLE_ADMIN으로 업데이트합니다. (이메일: {}, ID: {}, 현재 Role: {})", 
+                log.error("❌ ADMIN_PASSWORD 없이 ROLE 승격은 허용되지 않습니다. (이메일: {}, ID: {}, 현재 Role: {}) " +
+                        "환경 변수 ADMIN_PASSWORD를 설정하고 애플리케이션을 재시작하세요.",
                         email, admin.getId(), admin.getRole());
-                admin.changeRole(Role.ROLE_ADMIN);
-                userRepository.save(admin);
-                log.info("✅ 어드민 계정의 Role이 업데이트되었습니다. (이메일: {}, ID: {})", email, admin.getId());
-            } else {
-                log.info("✅ 기존 어드민 계정이 존재합니다. (이메일: {})", email);
+                return;
             }
+            log.info("✅ 기존 어드민 계정이 존재합니다. (이메일: {})", email);
         } else {
             log.error("❌ 프로덕션 환경에서 어드민 계정이 없고 ADMIN_PASSWORD도 설정되지 않았습니다. " +
                     "환경 변수 ADMIN_PASSWORD를 설정하고 애플리케이션을 재시작하세요.");

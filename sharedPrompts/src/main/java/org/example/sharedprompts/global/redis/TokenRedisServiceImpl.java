@@ -39,7 +39,7 @@ public class TokenRedisServiceImpl implements TokenRedisService {
     private final TokenTtlProperties ttlProperties;
     private final RedisExecutor redisExecutor;
     
-    private final DefaultRedisScript<List<String>> getAndDeleteTempTokenScript;
+    private final DefaultRedisScript<List<String>> getAndDeleteOAuth2TempSessionScript;
 
     // ==================== Access Token 관리 ====================
 
@@ -105,9 +105,13 @@ public class TokenRedisServiceImpl implements TokenRedisService {
         redisExecutor.executeWrite(
                 () -> {
                     String redisKey = RedisKeyFactory.oauthTemp(tempKey);
+                    // 필수 필드 검증: provider와 providerId는 OAuth2 플로우에서 절대 null이 아니어야 함
+                    if (provider == null || providerId == null) {
+                        throw new IllegalArgumentException("provider와 providerId는 필수입니다.");
+                    }
                     Map<String, String> sessionData = new HashMap<>();
-                    sessionData.put(Constant.PROVIDER_KEY, provider != null ? provider : "");
-                    sessionData.put(Constant.PROVIDER_ID_KEY, providerId != null ? providerId : "");
+                    sessionData.put(Constant.PROVIDER_KEY, provider);
+                    sessionData.put(Constant.PROVIDER_ID_KEY, providerId);
                     sessionData.put(Constant.STATE_KEY, state != null ? state : "");
                     
                     redisTemplate.opsForHash().putAll(redisKey, sessionData);
@@ -132,7 +136,7 @@ public class TokenRedisServiceImpl implements TokenRedisService {
                 () -> {
                     String redisKey = RedisKeyFactory.oauthTemp(tempKey);
                     List<String> entries = redisTemplate.execute(
-                            getAndDeleteTempTokenScript,
+                            getAndDeleteOAuth2TempSessionScript,
                             List.of(redisKey)
                     );
                     

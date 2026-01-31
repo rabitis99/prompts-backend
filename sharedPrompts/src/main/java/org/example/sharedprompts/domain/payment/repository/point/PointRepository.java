@@ -1,6 +1,7 @@
-package org.example.sharedprompts.domain.payment.repository;
+package org.example.sharedprompts.domain.payment.repository.point;
 
 import org.example.sharedprompts.domain.payment.Point;
+import org.example.sharedprompts.domain.payment.repository.CustomPointRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -8,7 +9,6 @@ import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * 포인트 Repository
@@ -18,9 +18,10 @@ public interface PointRepository extends JpaRepository<Point, Long>, CustomPoint
     /**
      * 사용자의 현재 포인트 잔액 조회
      * 최신 거래의 balance를 조회하거나, amount의 합계를 계산
+     * COALESCE로 항상 0 이상의 값을 반환하므로 Optional이 불필요합니다.
      */
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Point p WHERE p.user.id = :userId AND p.expired = false")
-    Optional<BigDecimal> getCurrentBalance(@Param("userId") Long userId);
+    BigDecimal getCurrentBalance(@Param("userId") Long userId);
     
     /**
      * 사용자의 최신 포인트 잔액 조회 (가장 최근 거래의 balance)
