@@ -7,8 +7,7 @@ import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.config.RetryProperties;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
-import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderService;
-import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderServiceFactory;
+import org.example.sharedprompts.domain.payment.service.execution.PaymentExecutionService;
 import org.example.sharedprompts.domain.payment.service.payment.PaymentRetryService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -27,7 +26,7 @@ import java.util.List;
 public class PaymentRetryScheduler {
 
     private final PaymentRepository paymentRepository;
-    private final PaymentProviderServiceFactory providerServiceFactory;
+    private final PaymentExecutionService executionService;
     private final RetryProperties retryProperties;
     private final PaymentRetryService retryService;
 
@@ -81,20 +80,22 @@ public class PaymentRetryScheduler {
 
     /**
      * 개별 결제 재시도 처리
-     * - 외부 API 호출 (블로킹 없음)
-     * - 상태 업데이트는 PaymentRetryService로 위임 (REQUIRES_NEW 트랜잭션)
+     * - PaymentExecutionService를 통한 결제 실행
      * - 실패 시 개별 결제만 처리, 전체 배치 영향 없음
      */
     private void processPaymentRetry(Payment payment) {
         try {
-            // 1️⃣ 외부 결제 승인 호출 (블로킹 없음)
-            PaymentProviderService providerService = providerServiceFactory.getService(payment.getPaymentMethod());
-            String externalPaymentId = providerService.approvePayment(payment);
-
-            // 2️⃣ 상태 업데이트를 별도 서비스로 위임 (REQUIRES_NEW 트랜잭션)
-            retryService.updatePaymentStatusSuccess(payment.getId(), externalPaymentId);
-
-            log.info("결제 재시도 성공: paymentId={}, retryCount={}", payment.getId(), payment.getRetryCount());
+            // PaymentExecutionService를 통한 결제 재시도 실행
+            // actualAmount는 포인트 사용 후 금액이므로 payment.getAmount()에서 usedPointAmount를 빼야 함
+            // 하지만 재시도 시에는 이미 포인트가 사용된 상태이므로, payment.getAmount()를 그대로 사용
+            java.math.BigDecimal actualAmount = payment.getAmount().subtract(
+                    payment.getUsedPointAmount() != null ? payment.getUsedPointAmount() : java.math.BigDecimal.ZERO
+            );
+            
+            Payment retriedPayment = executionService.executePayment(payment, actualAmount);
+            
+            log.info("결제 재시도 성공: paymentId={}, retryCount={}, status={}", 
+                    retriedPayment.getId(), retriedPayment.getRetryCount(), retriedPayment.getStatus());
 
         } catch (Exception e) {
             // 실패 처리 - 지수 백오프 적용하여 다음 재시도 시간 예약
