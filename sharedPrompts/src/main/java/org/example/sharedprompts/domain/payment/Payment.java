@@ -10,6 +10,7 @@ import org.example.sharedprompts.domain.payment.enums.UserTier;
 import org.example.sharedprompts.domain.user.User;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 /**
@@ -196,7 +197,7 @@ public class Payment extends BaseEntity {
         long maxDelayMs = 3600000L; // 최대 1시간
         long delayMs = baseDelayMs * (long) Math.pow(2, this.retryCount);
         delayMs = Math.min(delayMs, maxDelayMs);
-        this.nextRetryAt = LocalDateTime.now().plusNanos(delayMs * 1_000_000L);
+        this.nextRetryAt = LocalDateTime.now().plus(Duration.ofMillis(delayMs));
     }
     
     /**
