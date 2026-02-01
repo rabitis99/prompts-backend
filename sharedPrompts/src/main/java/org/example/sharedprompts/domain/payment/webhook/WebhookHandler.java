@@ -55,48 +55,56 @@ public class WebhookHandler {
         // 3. Webhook 파싱
         PaymentProvider.WebhookEvent event = provider.parseWebhook(payload);
         
-        // 4. 멱등성 확인 (Webhook ID 기반)
+        // 4. 멱등성 확인 (Webhook ID 기반) - 원자적 락 획득
         String webhookId = generateWebhookId(paymentMethod, event);
-        if (idempotencyService.isAlreadyProcessed(webhookId)) {
+        if (!idempotencyService.tryProcess(webhookId)) {
             log.info("Webhook 이미 처리됨: webhookId={}, externalPaymentId={}", 
                     webhookId, event.externalPaymentId());
             return paymentRepository.findByExternalPaymentId(event.externalPaymentId());
         }
         
-        // 5. Payment 조회
-        Optional<Payment> paymentOpt = paymentRepository.findByExternalPaymentId(event.externalPaymentId());
-        if (paymentOpt.isEmpty()) {
-            log.warn("Webhook 수신했으나 Payment를 찾을 수 없음: externalPaymentId={}", 
-                    event.externalPaymentId());
-            // Webhook ID는 저장하여 중복 처리 방지
+        try {
+            // 5. Payment 조회
+            Optional<Payment> paymentOpt = paymentRepository.findByExternalPaymentId(event.externalPaymentId());
+            if (paymentOpt.isEmpty()) {
+                log.warn("Webhook 수신했으나 Payment를 찾을 수 없음: externalPaymentId={}", 
+                        event.externalPaymentId());
+                // Webhook ID는 저장하여 중복 처리 방지
+                idempotencyService.markAsProcessed(webhookId);
+                return Optional.empty();
+            }
+            
+            Payment payment = paymentOpt.get();
+            
+            // 6. 이미 SUCCESS 상태면 재처리하지 않음 (멱등성)
+            if (payment.getStatus().isCompleted()) {
+                log.info("Payment가 이미 완료 상태: paymentId={}, status={}, externalPaymentId={}", 
+                        payment.getId(), payment.getStatus(), event.externalPaymentId());
+                idempotencyService.markAsProcessed(webhookId);
+                return Optional.of(payment);
+            }
+            
+            // 7. PaymentResult 검증
+            if (event.paymentResult() != null) {
+                // 실제 결제 금액 계산 (포인트 사용 후 금액)
+                BigDecimal actualAmount = payment.getAmount().subtract(
+                        payment.getUsedPointAmount() != null ? payment.getUsedPointAmount() : java.math.BigDecimal.ZERO
+                );
+                paymentValidator.validatePaymentResult(payment, event.paymentResult(), actualAmount);
+            }
+            
+            // 8. Webhook ID 저장 (멱등성 보장) - 검증 성공 후 마킹
             idempotencyService.markAsProcessed(webhookId);
-            return Optional.empty();
-        }
-        
-        Payment payment = paymentOpt.get();
-        
-        // 6. 이미 SUCCESS 상태면 재처리하지 않음 (멱등성)
-        if (payment.getStatus().isCompleted()) {
-            log.info("Payment가 이미 완료 상태: paymentId={}, status={}, externalPaymentId={}", 
-                    payment.getId(), payment.getStatus(), event.externalPaymentId());
-            idempotencyService.markAsProcessed(webhookId);
+            
+            // 9. Payment 반환 (실제 상태 변경은 PaymentService에서 처리)
             return Optional.of(payment);
+        } catch (Exception e) {
+            // 처리 실패 시 락 해제
+            idempotencyService.releaseProcessingLock(webhookId);
+            log.error("Webhook 처리 중 오류 발생: webhookId={}, externalPaymentId={}", 
+                    webhookId, event.externalPaymentId(), e);
+            throw e;
         }
-        
-        // 7. PaymentResult 검증
-        if (event.paymentResult() != null) {
-            // 실제 결제 금액 계산 (포인트 사용 후 금액)
-            BigDecimal actualAmount = payment.getAmount().subtract(
-                    payment.getUsedPointAmount() != null ? payment.getUsedPointAmount() : java.math.BigDecimal.ZERO
-            );
-            paymentValidator.validatePaymentResult(payment, event.paymentResult(), actualAmount);
-        }
-        
-        // 8. Webhook ID 저장 (멱등성 보장)
-        idempotencyService.markAsProcessed(webhookId);
-        
-        // 9. Payment 반환 (실제 상태 변경은 PaymentService에서 처리)
-        return Optional.of(payment);
     }
     
     /**
