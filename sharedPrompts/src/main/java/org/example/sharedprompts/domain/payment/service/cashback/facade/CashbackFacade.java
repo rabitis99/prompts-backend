@@ -10,6 +10,8 @@ import org.example.sharedprompts.domain.payment.service.cashback.execution.Cashb
 import org.example.sharedprompts.domain.payment.service.cashback.lock.CashbackLockService;
 import org.example.sharedprompts.domain.payment.service.cashback.validation.CashbackValidationService;
 import org.example.sharedprompts.dto.payment.response.CashbackResponseDto;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
@@ -81,10 +83,7 @@ public class CashbackFacade {
         // 동시성 문제 방지를 위해 분산 락 적용
         lockService.executeWithLock(cashbackId, () -> {
             Cashback cashback = cashbackRepository.findById(cashbackId)
-                    .orElseThrow(() -> new org.example.sharedprompts.global.exception.ApiException(
-                            org.example.sharedprompts.global.exception.ErrorCode.NOT_FOUND,
-                            "캐시백을 찾을 수 없습니다."
-                    ));
+                    .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "캐시백을 찾을 수 없습니다."));
 
             // 검증
             validationService.validateOwnership(cashback, userId);
