@@ -104,7 +104,7 @@ public class PaymentRetryScheduler {
 
             // 실제 결제 금액 계산 (포인트 사용 후 금액)
             BigDecimal actualAmount = updatedPayment.getAmount().subtract(
-                    updatedPayment.getUsedPointAmount() != null ? updatedPayment.getUsedPointAmount() : java.math.BigDecimal.ZERO
+                    updatedPayment.getUsedPointAmount() != null ? updatedPayment.getUsedPointAmount() : BigDecimal.ZERO
             );
 
             // PaymentExecutionService를 통한 재시도 실행
