@@ -1,7 +1,6 @@
 package org.example.sharedprompts.domain.payment.provider.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.PaypalProperties;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
@@ -17,14 +16,10 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +36,6 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class PayPalPaymentProvider implements PaymentProvider {
     
     private static final String PAYPAL_API_URL = "https://api-m.paypal.com";
@@ -49,9 +43,22 @@ public class PayPalPaymentProvider implements PaymentProvider {
     private static final String PAYPAL_ORDERS_URL = PAYPAL_API_URL + "/v2/checkout/orders";
     
     private final PaypalProperties paypalProperties;
-    @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
+    
+    // Access Token 캐싱을 위한 필드
+    private String cachedAccessToken;
+    private long tokenExpiresAt;
+    
+    public PayPalPaymentProvider(
+            PaypalProperties paypalProperties,
+            @Qualifier("paymentRestTemplate") RestTemplate restTemplate,
+            ObjectMapper objectMapper
+    ) {
+        this.paypalProperties = paypalProperties;
+        this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
+    }
     
     @Override
     public PaymentMethod getPaymentMethod() {
@@ -433,6 +440,11 @@ public class PayPalPaymentProvider implements PaymentProvider {
     }
     
     private String getAccessToken() {
+        // 캐시된 토큰이 유효하면 재사용
+        if (cachedAccessToken != null && System.currentTimeMillis() < tokenExpiresAt) {
+            return cachedAccessToken;
+        }
+        
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.setBasicAuth(paypalProperties.getClientId(), paypalProperties.getClientSecret());
@@ -450,7 +462,14 @@ public class PayPalPaymentProvider implements PaymentProvider {
         );
         
         if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-            return (String) response.getBody().get("access_token");
+            cachedAccessToken = (String) response.getBody().get("access_token");
+            Object expiresIn = response.getBody().get("expires_in");
+            if (expiresIn != null) {
+                // 만료 5분 전에 갱신하도록 설정
+                tokenExpiresAt = System.currentTimeMillis() + 
+                        (((Number) expiresIn).longValue() - 300) * 1000;
+            }
+            return cachedAccessToken;
         }
         
         throw new RuntimeException("PayPal 액세스 토큰 획득 실패");

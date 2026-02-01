@@ -1,7 +1,6 @@
 package org.example.sharedprompts.domain.payment.provider.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.KakaoPayProperties;
 import org.example.sharedprompts.domain.payment.config.WebhookProperties;
@@ -19,7 +18,6 @@ import org.springframework.web.client.RestTemplate;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Base64;
@@ -39,7 +37,6 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class KakaoPayPaymentProvider implements PaymentProvider {
     
     private static final String KAKAO_PAY_API_URL = "https://open-api.kakaopay.com/online/v1/payment";
@@ -47,10 +44,24 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
     
     private final KakaoPayProperties kakaoPayProperties;
     private final WebhookProperties webhookProperties;
-    @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    
+    private final ObjectMapper objectMapper;
+
+    public KakaoPayPaymentProvider(
+            KakaoPayProperties kakaoPayProperties,
+            WebhookProperties webhookProperties,
+            @Qualifier("paymentRestTemplate") RestTemplate restTemplate,
+            ObjectMapper objectMapper
+    ){
+        this.kakaoPayProperties = kakaoPayProperties;
+        this.webhookProperties = webhookProperties;
+        this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
+    }
+
+
+
+
     @Override
     public PaymentMethod getPaymentMethod() {
         return PaymentMethod.KAKAO_PAY;
@@ -108,7 +119,12 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             requestBody.put("tid", tid);
             requestBody.put("partner_order_id", orderId);
             requestBody.put("partner_user_id", orderId); // 사용자 ID는 orderId로 대체 가능
-            requestBody.put("total_amount", amount.setScale(0, RoundingMode.HALF_UP).longValue());
+            
+            // 소수점 금액 검증 (TossPaymentProvider와 일관성 유지)
+            if (amount.stripTrailingZeros().scale() > 0) {
+                throw new IllegalArgumentException("KakaoPay 결제 금액은 소수점 없이 전달되어야 합니다.");
+            }
+            requestBody.put("total_amount", amount.longValueExact());
             
             // pg_token이 있으면 추가 (사용자 인증 후 받은 토큰)
             if (pgToken != null && !pgToken.isEmpty()) {

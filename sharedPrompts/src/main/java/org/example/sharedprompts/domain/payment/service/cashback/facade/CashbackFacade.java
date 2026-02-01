@@ -89,8 +89,8 @@ public class CashbackFacade {
             validationService.validateOwnership(cashback, userId);
             validationService.validateNotPaid(cashback);
 
-            // 지급 실행
-            executionService.payCashback(userId, cashbackId);
+            // 지급 실행 (이미 조회한 엔티티 전달하여 중복 조회 제거)
+            executionService.payCashback(cashback, userId, false);
             return null;
         });
     }
@@ -149,8 +149,9 @@ public class CashbackFacade {
             // 관리자는 소유권 검증 없이 미지급 상태만 검증
             validationService.validateNotPaid(cashback);
 
-            // 지급 실행
-            executionService.payCashbackForAdmin(cashbackId);
+            // 지급 실행 (이미 조회한 엔티티 전달하여 중복 조회 제거)
+            Long userId = cashback.getUser().getId();
+            executionService.payCashback(cashback, userId, true);
             return null;
         });
     }
