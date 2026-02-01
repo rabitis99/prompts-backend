@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.payment.service.facade;
+package org.example.sharedprompts.domain.payment.service.validation;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,18 +10,23 @@ import org.example.sharedprompts.domain.payment.metrics.PaymentMetrics;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
 /**
- * 결제 검증 파사드
- * 티어 체크, 권한 체크, 상태 체크 등의 검증 로직을 담당
+ * 결제 검증 서비스
+ * 
+ * <p>단일 책임: 결제 관련 모든 검증만 담당
+ * - 일일 결제 제한 검증
+ * - 소유권 검증
+ * - 상태 검증 (취소/환불 가능 여부)
+ * - 환불 금액 검증
  */
 @Slf4j
-@Component
+@Service
 @RequiredArgsConstructor
-public class PaymentValidationFacade {
+public class PaymentValidationService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentLoggingService loggingService;

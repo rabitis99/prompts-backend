@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.payment.service.point;
 
+import org.example.sharedprompts.domain.payment.enums.PointType;
 import org.example.sharedprompts.dto.payment.response.PointBalanceResponseDto;
 import org.example.sharedprompts.dto.payment.response.PointResponseDto;
 import org.springframework.data.domain.Page;
@@ -22,9 +23,10 @@ public interface PointService {
      * @param userId 사용자 ID
      * @param paymentId 결제 ID (선택사항, null 가능)
      * @param pointAmount 적립할 포인트 금액
+     * @param type 포인트 타입
      * @param description 적립 사유
      */
-    void addPointsDirectly(Long userId, Long paymentId, BigDecimal pointAmount, String description);
+    void addPointsDirectly(Long userId, Long paymentId, BigDecimal pointAmount, PointType type, String description);
 
     /**
      * 포인트 사용

@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.payment.service.facade;
+package org.example.sharedprompts.domain.payment.service.postprocess;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,18 +9,23 @@ import org.example.sharedprompts.domain.payment.metrics.PaymentMetrics;
 import org.example.sharedprompts.domain.payment.service.cashback.CashbackService;
 import org.example.sharedprompts.domain.payment.service.event.PaymentEventPublisher;
 import org.example.sharedprompts.domain.payment.service.point.PointService;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
 /**
- * 결제 후처리 파사드
- * 포인트/캐시백 적립, 이벤트 발행, 메트릭 수집, 로깅을 담당
+ * 결제 후처리 서비스
+ * 
+ * <p>단일 책임: 결제 후처리만 담당
+ * - 포인트/캐시백 적립
+ * - 이벤트 발행
+ * - 메트릭 수집
+ * - 로깅
  */
 @Slf4j
-@Component
+@Service
 @RequiredArgsConstructor
-public class PaymentPostProcessFacade {
+public class PaymentPostProcessService {
 
     private final PointService pointService;
     private final CashbackService cashbackService;

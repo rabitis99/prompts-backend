@@ -183,7 +183,13 @@ public enum ErrorCode {
     PAYMENT_REFUND_AMOUNT_INVALID("PY00411", HttpStatus.BAD_REQUEST, "환불 금액이 올바르지 않습니다."), // 0 이하 또는 null
     PAYMENT_REFUND_NOT_ALLOWED("PY00603", HttpStatus.FORBIDDEN, "환불할 수 없는 결제입니다."),       // 결제 상태상 환불 불가
     PAYMENT_REFUND_ALREADY_PROCESSED("PY00412", HttpStatus.BAD_REQUEST, "이미 처리된 환불입니다."), // 이미 환불 완료
-    PAYMENT_REFUND_PARTIALLY_ALLOWED("PY00413", HttpStatus.BAD_REQUEST, "일부 금액만 환불 가능합니다.") // 비즈니스 정책용
+    PAYMENT_REFUND_PARTIALLY_ALLOWED("PY00413", HttpStatus.BAD_REQUEST, "일부 금액만 환불 가능합니다."), // 비즈니스 정책용
+    PAYMENT_AMOUNT_MISMATCH("PY00414", HttpStatus.BAD_REQUEST, "결제 금액이 일치하지 않습니다."),
+    PAYMENT_ORDER_ID_MISMATCH("PY00415", HttpStatus.BAD_REQUEST, "주문 ID가 일치하지 않습니다."),
+    PAYMENT_CURRENCY_MISMATCH("PY00416", HttpStatus.BAD_REQUEST, "통화 코드가 일치하지 않습니다."),
+    PAYMENT_WEBHOOK_SIGNATURE_INVALID("PY00417", HttpStatus.BAD_REQUEST, "Webhook 서명이 유효하지 않습니다."),
+    PAYMENT_CANCEL_FAILED("PY00418", HttpStatus.BAD_REQUEST, "결제 취소에 실패했습니다."),
+    PAYMENT_REFUND_FAILED("PY00419", HttpStatus.BAD_REQUEST, "결제 환불에 실패했습니다.")
 
 
     ;

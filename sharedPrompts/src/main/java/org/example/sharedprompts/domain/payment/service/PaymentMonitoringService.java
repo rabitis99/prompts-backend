@@ -3,21 +3,15 @@ package org.example.sharedprompts.domain.payment.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Payment;
-import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.metrics.PaymentMetrics;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
-import org.example.sharedprompts.domain.payment.statistics.PaymentFailureStatistics;
 import org.example.sharedprompts.domain.payment.event.PaymentEvent;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * 결제 모니터링 서비스
@@ -76,56 +70,6 @@ public class PaymentMonitoringService {
 
         // 성공 메트릭 업데이트
         paymentMetrics.recordPaymentSuccess(event.paymentMethod(), 0);
-    }
-
-    /**
-     * 일일 결제 실패 통계 조회
-     */
-    public PaymentFailureStatistics getDailyFailureStatistics() {
-        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
-
-        List<Payment> failedPayments = paymentRepository.findByStatusAndCreatedAtAfterOrderByCreatedAtDesc(
-                PaymentStatus.FAILED, startOfDay);
-
-        long totalFailures = failedPayments.size();
-        Map<String, Long> failuresByMethod = failedPayments.stream()
-                .collect(Collectors.groupingBy(
-                        p -> p.getPaymentMethod().name(),
-                        Collectors.counting()
-                ));
-
-        return PaymentFailureStatistics.builder()
-                .date(LocalDateTime.now().toLocalDate())
-                .totalFailures(totalFailures)
-                .failuresByMethod(failuresByMethod)
-                .build();
-    }
-
-    /**
-     * 실패율이 임계값을 초과하는지 확인
-     */
-    public boolean isFailureRateExceeded(double threshold) {
-        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
-
-        long totalPayments = paymentRepository.countByDateAndStatus(
-                startOfDay,
-                PaymentStatus.SUCCESS
-        ) + paymentRepository.countByDateAndStatus(
-                startOfDay,
-                PaymentStatus.FAILED
-        );
-
-        if (totalPayments == 0) {
-            return false;
-        }
-
-        long failedPayments = paymentRepository.countByDateAndStatus(
-                startOfDay,
-                PaymentStatus.FAILED
-        );
-
-        double failureRate = (double) failedPayments / totalPayments;
-        return failureRate > threshold;
     }
 }
 

@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.payment.enums.UserTier;
-import org.example.sharedprompts.domain.payment.service.core.PaymentService;
+import org.example.sharedprompts.domain.payment.facade.PaymentFacade;
 import org.example.sharedprompts.domain.payment.service.user.UserTierService;
 import org.example.sharedprompts.dto.payment.request.PaymentCancelRequestDto;
 import org.example.sharedprompts.dto.payment.request.PaymentConfirmRequest;
@@ -33,7 +33,7 @@ import org.springframework.data.web.PageableDefault;
 @RequiredArgsConstructor
 public class PaymentController {
 
-    private final PaymentService paymentService;
+    private final PaymentFacade paymentFacade;
     private final UserTierService userTierService;
 
     /**
@@ -45,7 +45,7 @@ public class PaymentController {
             @Valid @RequestBody PaymentRequestDto request,
             @CurrentUser AuthUser authUser
     ) {
-        PaymentResponseDto response = paymentService.requestPayment(authUser.getId(), request);
+        PaymentResponseDto response = paymentFacade.requestPayment(authUser.getId(), request);
         return CustomResponseHelper.created(response);
     }
 
@@ -58,7 +58,7 @@ public class PaymentController {
             @PathVariable Long paymentId,
             @CurrentUser AuthUser authUser
     ) {
-        PaymentStatusResponseDto response = paymentService.checkPaymentStatus(paymentId, authUser.getId());
+        PaymentStatusResponseDto response = paymentFacade.checkPaymentStatus(paymentId, authUser.getId());
         return CustomResponseHelper.ok(response);
     }
 
@@ -71,7 +71,7 @@ public class PaymentController {
             @Valid @RequestBody PaymentCancelRequestDto request,
             @CurrentUser AuthUser authUser
     ) {
-        PaymentResponseDto response = paymentService.cancelPayment(authUser.getId(), request);
+        PaymentResponseDto response = paymentFacade.cancelPayment(authUser.getId(), request);
         return CustomResponseHelper.ok(response);
     }
 
@@ -84,7 +84,7 @@ public class PaymentController {
             @Valid @RequestBody PaymentRefundRequestDto request,
             @CurrentUser AuthUser authUser
     ) {
-        PaymentResponseDto response = paymentService.refundPayment(authUser.getId(), request);
+        PaymentResponseDto response = paymentFacade.refundPayment(authUser.getId(), request);
         return CustomResponseHelper.ok(response);
     }
 
@@ -121,7 +121,7 @@ public class PaymentController {
             @CurrentUser AuthUser authUser,
             @PageableDefault(size = 20) Pageable pageable
     ) {
-        PageResponse<PaymentResponseDto> response = PageResponse.of(paymentService.getPaymentHistory(authUser.getId(), pageable));
+        PageResponse<PaymentResponseDto> response = PageResponse.of(paymentFacade.getPaymentHistory(authUser.getId(), pageable));
         return CustomResponseHelper.ok(response);
     }
 
@@ -147,7 +147,7 @@ public class PaymentController {
             @Valid @RequestBody PaymentConfirmRequest request,
             @CurrentUser AuthUser authUser
     ) {
-        PaymentConfirmResponse response = paymentService.confirmPayment(authUser.getId(), request);
+        PaymentConfirmResponse response = paymentFacade.confirmPayment(authUser.getId(), request);
         return CustomResponseHelper.ok(response);
     }
 }

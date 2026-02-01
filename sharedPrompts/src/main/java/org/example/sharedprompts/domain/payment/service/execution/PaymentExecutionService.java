@@ -1,0 +1,190 @@
+package org.example.sharedprompts.domain.payment.service.execution;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.domain.payment.Payment;
+import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
+import org.example.sharedprompts.domain.payment.model.CancelResult;
+import org.example.sharedprompts.domain.payment.model.PaymentResult;
+import org.example.sharedprompts.domain.payment.model.RefundResult;
+import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
+import org.example.sharedprompts.domain.payment.provider.PaymentProviderFactory;
+import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
+import org.example.sharedprompts.domain.payment.validator.PaymentValidator;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+
+/**
+ * 결제 실행 서비스
+ * 
+ * <p>단일 책임: 외부 Provider 호출 및 결제 실행만 담당
+ * - Provider 호출 및 PaymentResult 변환
+ * - PaymentValidator를 통한 검증
+ * - Payment 도메인 메서드를 통한 상태 변경
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class PaymentExecutionService {
+    
+    private final PaymentProviderFactory providerFactory;
+    private final PaymentValidator paymentValidator;
+    private final PaymentRepository paymentRepository;
+    
+    /**
+     * 결제 실행
+     *
+     * @param payment Payment 엔티티
+     * @param actualAmount 실제 결제 금액 (포인트 사용 후)
+     * @return 저장된 Payment 엔티티
+     */
+    @Transactional
+    public Payment executePayment(Payment payment, BigDecimal actualAmount) {
+        // 이미 SUCCESS 상태면 외부 API 재호출 금지 (멱등성)
+        if (payment.getStatus() == PaymentStatus.SUCCESS) {
+            log.info("Payment가 이미 완료 상태: paymentId={}, externalPaymentId={}",
+                    payment.getId(), payment.getExternalPaymentId());
+            return payment;
+        }
+
+        // 멱등성 키 생성
+        String idempotencyKey = generateIdempotencyKey(payment);
+        payment.updateIdempotencyKey(idempotencyKey);
+
+        // Provider 선택 및 결제 승인 호출
+        PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
+
+        // externalPaymentId(paymentKey) 검증
+        // 일반 결제 승인: 클라이언트에서 받은 paymentKey가 필요
+        // 재시도: 이전 시도에서 받은 paymentKey가 있으면 사용, 없으면 재시도 불가
+        if (payment.getExternalPaymentId() == null || payment.getExternalPaymentId().isEmpty()) {
+            // 재시도 중인 경우 (retryCount > 0)에는 재시도 불가능
+            if (payment.getRetryCount() > 0) {
+                throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, 
+                        "재시도할 수 없습니다. paymentKey가 없습니다. 새로운 결제를 요청해주세요.");
+            }
+            // 첫 시도인 경우
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, 
+                    "결제 승인을 위해서는 paymentKey가 필요합니다. /payments/confirm 엔드포인트를 사용해주세요.");
+        }
+
+        PaymentResult result = provider.confirmPayment(
+                payment.getExternalPaymentId(),
+                String.valueOf(payment.getId()),
+                actualAmount,
+                payment.getCurrency(),
+                idempotencyKey
+        );
+
+        // 외부 결제 ID 먼저 저장 (검증 실패해도 추적 가능하도록)
+        if (result.getExternalPaymentId() != null) {
+            payment.updateExternalPaymentId(result.getExternalPaymentId());
+        }
+
+        try {
+            // PaymentResult 검증
+            paymentValidator.validatePaymentResult(payment, result, actualAmount);
+
+            // 도메인 메서드를 통한 상태 변경
+            if (result.isSuccess()) {
+                payment.markSuccess(result.getExternalPaymentId());
+            } else {
+                payment.markFailed(result.getFailureReason() != null ? result.getFailureReason() : "결제 승인 실패");
+            }
+        } catch (ApiException e) {
+            // 검증 실패 시에도 결제 결과를 기록 (불일치 상태로 표시)
+            log.error("결제 검증 실패 - 외부 결제는 완료되었으나 검증 불일치: paymentId={}, externalPaymentId={}, error={}",
+                    payment.getId(), result.getExternalPaymentId(), e.getMessage());
+            payment.markFailed("검증 실패: " + e.getMessage());
+            paymentRepository.save(payment);
+            throw e;
+        }
+
+        return paymentRepository.save(payment);
+    }
+    
+    /**
+     * 결제 취소 실행
+     *
+     * @return 저장된 Payment 엔티티
+     * @throws ApiException 취소 실패 시
+     */
+    @Transactional
+    public Payment executeCancel(Payment payment, String reason) {
+        if (payment.getExternalPaymentId() == null) {
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "외부 결제 ID가 없습니다.");
+        }
+
+        String idempotencyKey = generateIdempotencyKey(payment, "cancel");
+        PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
+
+        CancelResult result = provider.cancelPayment(payment.getExternalPaymentId(), reason, idempotencyKey);
+
+        if (!result.isSuccess()) {
+            throw new ApiException(ErrorCode.PAYMENT_CANCEL_FAILED, "결제 취소 실패");
+        }
+
+        payment.markCanceled();
+        return paymentRepository.save(payment);
+    }
+    
+    /**
+     * 결제 환불 실행
+     *
+     * @return 저장된 Payment 엔티티
+     * @throws ApiException 환불 실패 시
+     */
+    @Transactional
+    public Payment executeRefund(Payment payment, BigDecimal refundAmount, String reason) {
+        if (payment.getExternalPaymentId() == null) {
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "외부 결제 ID가 없습니다.");
+        }
+
+        String idempotencyKey = generateIdempotencyKey(payment, "refund");
+        PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
+
+        RefundResult result = provider.refundPayment(payment.getExternalPaymentId(), refundAmount, reason, idempotencyKey);
+
+        if (!result.isSuccess()) {
+            throw new ApiException(ErrorCode.PAYMENT_REFUND_FAILED, "결제 환불 실패");
+        }
+
+        // 실제 환불된 금액으로 업데이트 (결제사 응답 기준)
+        BigDecimal actualRefundedAmount = result.getRefundedAmount() != null ? result.getRefundedAmount() : refundAmount;
+        payment.refund(actualRefundedAmount);
+        return paymentRepository.save(payment);
+    }
+    
+    /**
+     * 멱등성 키 생성
+     *
+     * <p>결정론적 키 생성: 동일한 Payment에 대해 항상 같은 키 반환
+     * - 기존에 저장된 idempotencyKey가 있으면 재사용
+     * - 없으면 paymentMethod:paymentId 형식으로 생성
+     */
+    private String generateIdempotencyKey(Payment payment) {
+        if (payment.getIdempotencyKey() != null) {
+            return payment.getIdempotencyKey();
+        }
+        return String.format("%s:%s",
+                payment.getPaymentMethod().name(),
+                payment.getId());
+    }
+
+    /**
+     * 멱등성 키 생성 (액션 포함)
+     *
+     * <p>취소/환불 등 특정 액션에 대한 결정론적 키 생성
+     */
+    private String generateIdempotencyKey(Payment payment, String action) {
+        return String.format("%s:%s:%s",
+                payment.getPaymentMethod().name(),
+                payment.getId(),
+                action);
+    }
+}
+

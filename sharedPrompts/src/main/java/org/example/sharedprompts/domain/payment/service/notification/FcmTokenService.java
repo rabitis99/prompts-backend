@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.payment.service.notification;
 import com.google.auth.oauth2.GoogleCredentials;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.PaymentProperties;
+import org.example.sharedprompts.domain.payment.config.FcmProperties;
 import org.example.sharedprompts.domain.payment.service.notification.credentials.FcmCredentialsProvider;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +17,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class FcmTokenService {
 
-    private final PaymentProperties paymentProperties;
+    private final FcmProperties fcmProperties;
     private final FcmCredentialsProvider credentialsProvider;
 
     /** 캐시된 Google OAuth2 Credentials */
@@ -48,7 +48,7 @@ public class FcmTokenService {
      * Credentials 로딩 및 토큰 갱신
      */
     private void refreshCredentials() throws IOException {
-        if (!paymentProperties.isFcmEnabled()) {
+        if (!fcmProperties.isEnabled()) {
             throw new IllegalStateException("FCM이 비활성화되어 있음");
         }
 

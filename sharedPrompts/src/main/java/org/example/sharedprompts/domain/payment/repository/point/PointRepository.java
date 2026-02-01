@@ -29,27 +29,10 @@ public interface PointRepository extends JpaRepository<Point, Long>, CustomPoint
     List<BigDecimal> findLatestBalances(@Param("userId") Long userId);
 
     /**
-     * 사용자의 포인트 내역 조회
-     */
-    List<Point> findByUser_IdOrderByCreatedAtDesc(Long userId);
-
-    /**
-     * 결제와 연관된 포인트 조회
-     */
-    List<Point> findByPaymentId(Long paymentId);
-
-    /**
      * 만료 예정 포인트 조회
      */
     @Query("SELECT p FROM Point p WHERE p.user.id = :userId AND p.expired = false AND p.expiredAt <= :expiryDate")
     List<Point> findExpiringPoints(@Param("userId") Long userId, @Param("expiryDate") LocalDateTime expiryDate);
-
-    @Query("SELECT p FROM Point p " +
-            "WHERE p.paymentId = :paymentId " +
-            "AND p.user.id = :userId " +
-            "ORDER BY p.createdAt DESC")
-    List<Point> findByPaymentIdAndUserId(@Param("paymentId") Long paymentId,
-                                         @Param("userId") Long userId);
 
     /**
      * 사용자의 마지막 포인트 내역 조회 (가장 최근 생성된 Point)

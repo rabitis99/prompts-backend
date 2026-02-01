@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.payment.service.payment;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Payment;
-import org.example.sharedprompts.domain.payment.config.PaymentProperties;
+import org.example.sharedprompts.domain.payment.config.RetryProperties;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
@@ -21,19 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaymentRetryService {
 
     private final PaymentRepository paymentRepository;
-    private final PaymentProperties paymentProperties;
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void updatePaymentStatusSuccess(Long paymentId, String externalPaymentId) {
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
-        
-        log.info("결제 재시도 성공: paymentId={}, externalPaymentId={}, retryCount={}", 
-                paymentId, externalPaymentId, payment.getRetryCount());
-        
-        payment.approve(externalPaymentId);
-        paymentRepository.save(payment);
-    }
+    private final RetryProperties retryProperties;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updatePaymentStatusFailure(Long paymentId, String failureReason, long retryDelayMs) {
@@ -42,7 +30,7 @@ public class PaymentRetryService {
         
         payment.incrementRetryCount();
         int currentRetryCount = payment.getRetryCount();
-        int maxRetryAttempts = paymentProperties.getMaxRetryAttempts();
+        int maxRetryAttempts = retryProperties.getMaxAttempts();
         
         // 재시도 가능 여부 확인
         if (payment.isRetryable(maxRetryAttempts)) {
@@ -59,5 +47,30 @@ public class PaymentRetryService {
                     paymentId, currentRetryCount, maxRetryAttempts, finalFailureReason, maxRetryAttempts);
         }
         paymentRepository.save(payment);
+    }
+
+    /**
+     * 재시도 상태 확정
+     * 
+     * <p>재시도 횟수 증가, 다음 재시도 시간 예약, 상태 변경을 별도 트랜잭션에서 커밋합니다.
+     * REQUIRES_NEW 전파 속성을 사용하여 메인 트랜잭션과 독립적으로 실행되며,
+     * executePayment() 실패 여부와 관계없이 재시도 상태는 반드시 DB에 반영됩니다.
+     * 
+     * <p>별도 서비스로 분리하여 동일 클래스 내 메서드 호출 시 발생하는
+     * Spring AOP 프록시 우회 문제를 해결합니다.
+     *
+     * @return 저장된 Payment 엔티티
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Payment commitRetryState(Long paymentId) {
+
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        // 재시도 횟수 증가 및 다음 재시도 시간 예약
+        payment.incrementRetryCount();
+        payment.scheduleNextRetry(retryProperties.getDelayMs());
+        payment.markPending(); // 재시도 시 PENDING 상태로 변경
+        
+        return paymentRepository.save(payment);
     }
 }

@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.payment.service.notification.credentials;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.PaymentProperties;
+import org.example.sharedprompts.domain.payment.config.FcmProperties;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.WillNotClose;
@@ -14,7 +14,7 @@ import java.io.InputStream;
 public class FcmCredentialsResolver {
 
     @WillNotClose
-    public InputStream resolve(PaymentProperties props) throws IOException {
+    public InputStream resolve(FcmProperties props) throws IOException {
 
         // 1. 환경 변수
         String envPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
@@ -24,15 +24,15 @@ public class FcmCredentialsResolver {
         }
 
         // 2. application.yml 설정
-        if (props.getFcmCredentialsPath() != null &&
-                !props.getFcmCredentialsPath().isBlank()) {
+        if (props.getCredentialsPath() != null &&
+                !props.getCredentialsPath().isBlank()) {
 
-            log.debug("payment.fcm.credentials-path 사용: {}", props.getFcmCredentialsPath());
-            return new FileInputStream(props.getFcmCredentialsPath());
+            log.debug("payment.fcm.credentials-path 사용: {}", props.getCredentialsPath());
+            return new FileInputStream(props.getCredentialsPath());
         }
 
         // 3. classpath (설정된 경로 또는 기본값)
-        String classpathResource = props.getFcmClasspathResource();
+        String classpathResource = props.getClasspathResource();
         if (classpathResource == null || classpathResource.isBlank()) {
             classpathResource = "firebase/firebase-adminsdk.json";
         }

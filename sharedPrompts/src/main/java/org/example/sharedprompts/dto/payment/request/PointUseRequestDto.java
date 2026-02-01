@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.sharedprompts.domain.payment.Point;
+import org.example.sharedprompts.domain.payment.enums.PointType;
 import org.example.sharedprompts.domain.user.User;
 
 import java.math.BigDecimal;
@@ -35,7 +36,7 @@ public class PointUseRequestDto {
         return Point.builder()
                 .user(user)
                 .amount(this.amount.negate()) // 음수로 저장 (사용)
-                .type("USE")
+                .type(PointType.USE)
                 .description(this.description)
                 .balance(balance)
                 .expired(false);
