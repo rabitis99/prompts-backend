@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.payment.facade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Payment;
+import org.example.sharedprompts.domain.payment.config.RetryProperties;
 import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
@@ -25,14 +26,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @RequiredArgsConstructor
 public class PaymentRetryFacade {
-    
-    private static final int MAX_RETRY_COUNT = 3;
-    private static final long BASE_RETRY_DELAY_MS = 1000L; // 기본 1초
-    
+
     private final PaymentRepository paymentRepository;
     private final PaymentExecutionService executionService;
     private final PaymentLoggingService loggingService;
-    
+    private final RetryProperties retryProperties;
     /**
      * 결제 재시도
      * 
@@ -52,7 +50,7 @@ public class PaymentRetryFacade {
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
         
         // 재시도 가능 여부 확인
-        if (!payment.isRetryable(MAX_RETRY_COUNT)) {
+        if (!payment.isRetryable(retryProperties.getMaxAttempts())) {
             throw new ApiException(ErrorCode.PAYMENT_RETRY_EXCEEDED);
         }
         
@@ -105,7 +103,7 @@ public class PaymentRetryFacade {
     public Payment commitRetryState(Payment payment) {
         // 재시도 횟수 증가 및 다음 재시도 시간 예약
         payment.incrementRetryCount();
-        payment.scheduleNextRetry(BASE_RETRY_DELAY_MS);
+        payment.scheduleNextRetry(retryProperties.getDelayMs());
         payment.markInProgress(); // 재시도 시 PENDING 상태로 변경
         
         return paymentRepository.save(payment);
