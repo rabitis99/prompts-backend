@@ -97,9 +97,9 @@ public class Payment extends BaseEntity {
     private String idempotencyKey; // 멱등성 키 (중복 호출 방지)
 
     /**
-     * 결제 진행 중 상태로 변경
+     * 결제 대기 중 상태로 변경
      */
-    public void markInProgress() {
+    public void markPending() {
         this.status = PaymentStatus.PENDING;
     }
 

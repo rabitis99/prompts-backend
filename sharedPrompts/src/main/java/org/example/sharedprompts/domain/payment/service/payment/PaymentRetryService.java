@@ -67,7 +67,7 @@ public class PaymentRetryService {
         // 재시도 횟수 증가 및 다음 재시도 시간 예약
         payment.incrementRetryCount();
         payment.scheduleNextRetry(retryProperties.getDelayMs());
-        payment.markInProgress(); // 재시도 시 PENDING 상태로 변경
+        payment.markPending(); // 재시도 시 PENDING 상태로 변경
         
         return paymentRepository.save(payment);
     }

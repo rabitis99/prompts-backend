@@ -383,10 +383,11 @@ public class PayPalPaymentProvider implements PaymentProvider {
             headers.setBearerAuth(accessToken);
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            // 주문에서 캡처 ID와 통화 코드 조회
+            // 주문에서 캡처 정보 조회 (ID, 통화 코드, 원래 결제 금액)
             CaptureInfo captureInfo = getCaptureIdAndCurrency(externalPaymentId, accessToken);
             String captureId = captureInfo.captureId();
             String currency = captureInfo.currency();
+            BigDecimal originalAmount = captureInfo.originalAmount();
 
             Map<String, Object> requestBody = new HashMap<>();
             Map<String, Object> amountMap = new HashMap<>();
@@ -424,9 +425,16 @@ public class PayPalPaymentProvider implements PaymentProvider {
                     }
                 }
 
+                // 환불 상태 결정: PayPal 응답 status 우선, 없으면 금액 비교
+                PaymentStatus refundStatus = determineRefundStatus(
+                        responseBody,
+                        refundedAmount,
+                        originalAmount
+                );
+
                 return RefundResult.builder()
                         .externalPaymentId(externalPaymentId)
-                        .status(PaymentStatus.PARTIALLY_REFUNDED)
+                        .status(refundStatus)
                         .refundedAmount(refundedAmount)
                         .refundedAt(LocalDateTime.now())
                         .reason(reason)
@@ -630,7 +638,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
     }
     
     /**
-     * PayPal 주문에서 캡처 ID와 통화 코드를 조회
+     * PayPal 주문에서 캡처 정보 조회 (ID, 통화 코드, 원래 결제 금액)
      */
     private CaptureInfo getCaptureIdAndCurrency(String orderId, String accessToken) {
         HttpHeaders headers = new HttpHeaders();
@@ -679,16 +687,45 @@ public class PayPalPaymentProvider implements PaymentProvider {
                 throw new RuntimeException("PayPal 캡처에서 통화 코드를 찾을 수 없습니다");
             }
 
-            return new CaptureInfo(captureId, currency);
+            BigDecimal originalAmount = new BigDecimal(amount.get("value").toString());
+
+            return new CaptureInfo(captureId, currency, originalAmount);
         }
 
         throw new RuntimeException("PayPal 캡처 ID 조회 실패");
     }
     
     /**
-     * 캡처 ID와 통화 코드를 담는 레코드
+     * 환불 상태 결정
+     * 1. PayPal 응답의 status 필드 우선 사용
+     * 2. 없으면 환불 금액과 원래 결제 금액 비교
      */
-    private record CaptureInfo(String captureId, String currency) {}
+    private PaymentStatus determineRefundStatus(
+            Map<String, Object> responseBody,
+            BigDecimal refundedAmount,
+            BigDecimal originalAmount
+    ) {
+        // PayPal 응답의 status 필드 확인
+        String paypalStatus = (String) responseBody.get("status");
+        if (paypalStatus != null) {
+            return switch (paypalStatus) {
+                case "COMPLETED" -> PaymentStatus.REFUNDED;
+                case "PARTIALLY_REFUNDED" -> PaymentStatus.PARTIALLY_REFUNDED;
+                default -> PaymentStatus.PARTIALLY_REFUNDED; // 기본값
+            };
+        }
+
+        // status가 없으면 금액 비교
+        if (originalAmount != null && refundedAmount.compareTo(originalAmount) >= 0) {
+            return PaymentStatus.REFUNDED;
+        }
+        return PaymentStatus.PARTIALLY_REFUNDED;
+    }
+    
+    /**
+     * 캡처 정보를 담는 레코드 (ID, 통화 코드, 원래 결제 금액)
+     */
+    private record CaptureInfo(String captureId, String currency, BigDecimal originalAmount) {}
     
     /**
      * 주문 상세 정보를 담는 레코드

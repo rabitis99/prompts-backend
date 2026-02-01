@@ -296,6 +296,13 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
     @Override
     public RefundResult refundPayment(String externalPaymentId, BigDecimal amount, String reason, String idempotencyKey) {
         try {
+            // 원래 결제 금액 조회
+            PaymentResult paymentStatus = getPaymentStatus(externalPaymentId);
+            BigDecimal originalAmount = paymentStatus.getAmount();
+            if (originalAmount == null) {
+                throw new RuntimeException("KakaoPay 결제 정보 조회 실패: 금액 정보를 가져올 수 없습니다.");
+            }
+
             HttpHeaders headers = createHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
@@ -329,9 +336,12 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
                     }
                 }
 
+                // 환불 상태 결정: 환불 금액과 원래 결제 금액 비교
+                PaymentStatus refundStatus = determineRefundStatus(refundedAmount, originalAmount);
+
                 return RefundResult.builder()
                         .externalPaymentId(externalPaymentId)
-                        .status(PaymentStatus.PARTIALLY_REFUNDED)
+                        .status(refundStatus)
                         .refundedAmount(refundedAmount)
                         .refundedAt(LocalDateTime.now())
                         .reason(reason)
@@ -345,6 +355,16 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
                     externalPaymentId, amount, e.getMessage(), e);
             throw new RuntimeException("KakaoPay 결제 환불 실패", e);
         }
+    }
+    
+    /**
+     * 환불 상태 결정: 환불 금액과 원래 결제 금액 비교
+     */
+    private PaymentStatus determineRefundStatus(BigDecimal refundedAmount, BigDecimal originalAmount) {
+        if (originalAmount != null && refundedAmount.compareTo(originalAmount) >= 0) {
+            return PaymentStatus.REFUNDED;
+        }
+        return PaymentStatus.PARTIALLY_REFUNDED;
     }
     
     @Override
