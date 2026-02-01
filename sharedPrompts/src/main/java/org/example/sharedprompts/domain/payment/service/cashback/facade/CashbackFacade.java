@@ -55,6 +55,7 @@ public class CashbackFacade {
      * <p>동시성 문제 방지를 위해 paymentId 기반 분산 락을 적용합니다.
      * TOCTOU 문제를 방지하기 위해 락 내에서 중복 검증을 수행합니다.
      */
+    @Transactional
     public void accumulateCashback(Long userId, Long paymentId, BigDecimal paymentAmount) {
         // 동시성 문제 방지를 위해 paymentId 기반 분산 락 적용
         lockService.executeWithLockForPayment(paymentId, () -> {
