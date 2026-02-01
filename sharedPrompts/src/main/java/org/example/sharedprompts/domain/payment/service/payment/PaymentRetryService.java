@@ -58,12 +58,14 @@ public class PaymentRetryService {
      * 
      * <p>별도 서비스로 분리하여 동일 클래스 내 메서드 호출 시 발생하는
      * Spring AOP 프록시 우회 문제를 해결합니다.
-     * 
-     * @param payment Payment 엔티티
+     *
      * @return 저장된 Payment 엔티티
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public Payment commitRetryState(Payment payment) {
+    public Payment commitRetryState(Long paymentId) {
+
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
         // 재시도 횟수 증가 및 다음 재시도 시간 예약
         payment.incrementRetryCount();
         payment.scheduleNextRetry(retryProperties.getDelayMs());

@@ -47,7 +47,7 @@ public class PaymentRetryFacade {
      * @return 저장된 Payment 엔티티
      */
     public Payment commitRetryState(Payment payment) {
-        return paymentRetryService.commitRetryState(payment);
+        return paymentRetryService.commitRetryState(payment.getId());
     }
 
     /**
