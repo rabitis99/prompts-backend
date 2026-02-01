@@ -19,6 +19,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HashMap;
@@ -359,9 +360,9 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
             mac.init(secretKeySpec);
             byte[] hash = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
-            String calculatedSignature = Base64.getEncoder().encodeToString(hash);
-            
-            return calculatedSignature.equals(signature);
+            byte[] expectedSignature = Base64.getDecoder().decode(signature);
+
+            return MessageDigest.isEqual(hash, expectedSignature);
         } catch (Exception e) {
             log.error("KakaoPay Webhook 서명 검증 실패: error={}", e.getMessage(), e);
             return false;
