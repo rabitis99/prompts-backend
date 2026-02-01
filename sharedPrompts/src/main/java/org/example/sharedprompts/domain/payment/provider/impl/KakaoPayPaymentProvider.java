@@ -227,14 +227,38 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
     @Override
     public CancelResult cancelPayment(String externalPaymentId, String reason, String idempotencyKey) {
         try {
+            // 먼저 결제 정보를 조회하여 원본 결제 금액과 면세 금액을 가져옴
+            PaymentResult paymentStatus = getPaymentStatus(externalPaymentId);
+            if (paymentStatus.getAmount() == null) {
+                throw new RuntimeException("KakaoPay 결제 정보 조회 실패: 금액 정보를 가져올 수 없습니다.");
+            }
+
+            // 결제 상세 정보에서 면세 금액 추출
+            long taxFreeAmount = 0;
+            if (paymentStatus.getMetadata() != null) {
+                try {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> metadata = objectMapper.readValue(paymentStatus.getMetadata(), Map.class);
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> amountMap = (Map<String, Object>) metadata.get("amount");
+                    if (amountMap != null && amountMap.get("tax_free") != null) {
+                        taxFreeAmount = Long.parseLong(amountMap.get("tax_free").toString());
+                    }
+                } catch (Exception e) {
+                    log.warn("KakaoPay 면세 금액 추출 실패, 기본값 0 사용: externalPaymentId={}, error={}", 
+                            externalPaymentId, e.getMessage());
+                }
+            }
+
             HttpHeaders headers = createHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("cid", kakaoPayProperties.getCid());
             requestBody.put("tid", externalPaymentId);
-            requestBody.put("cancel_amount", null); // 전체 취소
-            requestBody.put("cancel_tax_free_amount", 0);
+            // 전체 취소이므로 원본 결제 금액을 전달 (null은 API 에러 발생)
+            requestBody.put("cancel_amount", paymentStatus.getAmount().longValueExact());
+            requestBody.put("cancel_tax_free_amount", taxFreeAmount);
             requestBody.put("cancel_reason", reason);
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
@@ -248,7 +272,8 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> responseBody = response.getBody();
-                log.info("KakaoPay 결제 취소 성공: externalPaymentId={}", externalPaymentId);
+                log.info("KakaoPay 결제 취소 성공: externalPaymentId={}, cancelAmount={}, taxFreeAmount={}", 
+                        externalPaymentId, paymentStatus.getAmount(), taxFreeAmount);
 
                 return CancelResult.builder()
                         .externalPaymentId(externalPaymentId)

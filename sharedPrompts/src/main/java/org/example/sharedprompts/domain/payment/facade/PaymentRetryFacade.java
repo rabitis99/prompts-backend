@@ -8,10 +8,10 @@ import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.payment.service.execution.PaymentExecutionService;
+import org.example.sharedprompts.domain.payment.service.payment.PaymentRetryService;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -31,6 +31,7 @@ public class PaymentRetryFacade {
     private final PaymentExecutionService executionService;
     private final PaymentLoggingService loggingService;
     private final RetryProperties retryProperties;
+    private final PaymentRetryService paymentRetryService;
     /**
      * 결제 재시도
      * 
@@ -66,7 +67,8 @@ public class PaymentRetryFacade {
         
         // 재시도 상태 확정: 별도 트랜잭션에서 먼저 커밋
         // executePayment() 실패 여부와 관계없이 재시도 상태는 반드시 DB에 반영됨
-        Payment updatedPayment = commitRetryState(payment);
+        // PaymentRetryService를 통해 호출하여 REQUIRES_NEW 트랜잭션이 정상적으로 동작하도록 함
+        Payment updatedPayment = paymentRetryService.commitRetryState(payment);
         
         // 실제 결제 금액 계산 (포인트 사용 후 금액)
         java.math.BigDecimal actualAmount = updatedPayment.getAmount().subtract(
@@ -87,26 +89,6 @@ public class PaymentRetryFacade {
                 .approvedAt(executedPayment.getApprovedAt())
                 .failureReason(executedPayment.getFailureReason())
                 .build();
-    }
-    
-    /**
-     * 재시도 상태 확정
-     * 
-     * <p>재시도 횟수 증가, 다음 재시도 시간 예약, 상태 변경을 별도 트랜잭션에서 커밋합니다.
-     * REQUIRES_NEW 전파 속성을 사용하여 메인 트랜잭션과 독립적으로 실행되며,
-     * executePayment() 실패 여부와 관계없이 재시도 상태는 반드시 DB에 반영됩니다.
-     * 
-     * @param payment Payment 엔티티
-     * @return 저장된 Payment 엔티티
-     */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public Payment commitRetryState(Payment payment) {
-        // 재시도 횟수 증가 및 다음 재시도 시간 예약
-        payment.incrementRetryCount();
-        payment.scheduleNextRetry(retryProperties.getDelayMs());
-        payment.markInProgress(); // 재시도 시 PENDING 상태로 변경
-        
-        return paymentRepository.save(payment);
     }
     
 }

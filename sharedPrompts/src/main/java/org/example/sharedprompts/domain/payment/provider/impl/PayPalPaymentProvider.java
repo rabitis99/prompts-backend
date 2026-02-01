@@ -214,26 +214,87 @@ public class PayPalPaymentProvider implements PaymentProvider {
     public CancelResult cancelPayment(String externalPaymentId, String reason, String idempotencyKey) {
         try {
             String accessToken = getAccessToken();
+            
+            // 먼저 주문 상태를 조회하여 취소 방법 결정
+            OrderDetails orderDetails = getOrderDetails(externalPaymentId, accessToken);
+            String orderStatus = orderDetails.status();
+            
+            // CREATED 또는 APPROVED 상태 (미인증/미캡처): API 호출 없이 시스템에서 취소 처리
+            if ("CREATED".equals(orderStatus) || "APPROVED".equals(orderStatus)) {
+                log.info("PayPal 주문 취소 (미캡처 상태): externalPaymentId={}, status={}", 
+                        externalPaymentId, orderStatus);
+                
+                return CancelResult.builder()
+                        .externalPaymentId(externalPaymentId)
+                        .status(PaymentStatus.CANCELED)
+                        .canceledAt(LocalDateTime.now())
+                        .reason(reason)
+                        .metadata(orderDetails.metadata())
+                        .build();
+            }
+            
+            // Authorization이 존재하는 경우: void 처리
+            if (orderDetails.authorizationId() != null) {
+                return voidAuthorization(orderDetails.authorizationId(), externalPaymentId, reason, accessToken, idempotencyKey);
+            }
+            
+            // Capture가 존재하는 경우: 이미 캡처된 결제는 취소가 아닌 환불 처리 필요
+            // 하지만 cancelPayment는 취소만 담당하므로 예외 발생
+            if (orderDetails.captureId() != null) {
+                throw new RuntimeException(
+                        "PayPal 결제 취소 실패: 이미 캡처된 결제는 취소할 수 없습니다. 환불(refund)을 사용해주세요. " +
+                        "externalPaymentId=" + externalPaymentId + ", captureId=" + orderDetails.captureId());
+            }
+            
+            // 그 외의 경우: 주문 상태만 반환
+            log.warn("PayPal 주문 취소 (상태 확인): externalPaymentId={}, status={}, " +
+                    "authorizationId={}, captureId={}", 
+                    externalPaymentId, orderStatus, orderDetails.authorizationId(), orderDetails.captureId());
+            
+            return CancelResult.builder()
+                    .externalPaymentId(externalPaymentId)
+                    .status(PaymentStatus.CANCELED)
+                    .canceledAt(LocalDateTime.now())
+                    .reason(reason)
+                    .metadata(orderDetails.metadata())
+                    .build();
+                    
+        } catch (Exception e) {
+            log.error("PayPal 결제 취소 실패: externalPaymentId={}, error={}",
+                    externalPaymentId, e.getMessage(), e);
+            throw new RuntimeException("PayPal 결제 취소 실패", e);
+        }
+    }
+    
+    /**
+     * PayPal Authorization을 void 처리
+     */
+    private CancelResult voidAuthorization(String authorizationId, String externalPaymentId, 
+                                           String reason, String accessToken, String idempotencyKey) {
+        try {
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(accessToken);
             headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            if (idempotencyKey != null) {
+                headers.set("PayPal-Request-Id", idempotencyKey);
+            }
 
-            Map<String, String> requestBody = new HashMap<>();
-            requestBody.put("reason", reason);
-
-            HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, headers);
+            HttpEntity<Void> request = new HttpEntity<>(headers);
 
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    PAYPAL_ORDERS_URL + "/" + externalPaymentId + "/cancel",
+                    PAYPAL_API_URL + "/v2/payments/authorizations/" + authorizationId + "/void",
                     HttpMethod.POST,
                     request,
                     new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
             );
 
             if (response.getStatusCode() == HttpStatus.NO_CONTENT || response.getStatusCode() == HttpStatus.OK) {
-                log.info("PayPal 결제 취소 성공: externalPaymentId={}", externalPaymentId);
+                log.info("PayPal Authorization void 성공: externalPaymentId={}, authorizationId={}", 
+                        externalPaymentId, authorizationId);
 
-                String metadata = response.getBody() != null ? objectMapper.writeValueAsString(response.getBody()) : null;
+                String metadata = response.getBody() != null ? 
+                        objectMapper.writeValueAsString(response.getBody()) : null;
                 return CancelResult.builder()
                         .externalPaymentId(externalPaymentId)
                         .status(PaymentStatus.CANCELED)
@@ -242,13 +303,76 @@ public class PayPalPaymentProvider implements PaymentProvider {
                         .metadata(metadata)
                         .build();
             } else {
-                throw new RuntimeException("PayPal 결제 취소 실패: " + response.getStatusCode());
+                throw new RuntimeException("PayPal Authorization void 실패: " + response.getStatusCode());
             }
         } catch (Exception e) {
-            log.error("PayPal 결제 취소 실패: externalPaymentId={}, error={}",
-                    externalPaymentId, e.getMessage(), e);
-            throw new RuntimeException("PayPal 결제 취소 실패", e);
+            log.error("PayPal Authorization void 실패: authorizationId={}, error={}", 
+                    authorizationId, e.getMessage(), e);
+            throw new RuntimeException("PayPal Authorization void 실패", e);
         }
+    }
+    
+    /**
+     * PayPal 주문 상세 정보 조회 및 Authorization/Capture ID 추출
+     */
+    private OrderDetails getOrderDetails(String orderId, String accessToken) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+        
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                PAYPAL_ORDERS_URL + "/" + orderId,
+                HttpMethod.GET,
+                request,
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+        
+        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+            Map<String, Object> responseBody = response.getBody();
+            String status = (String) responseBody.get("status");
+            
+            String authorizationId = null;
+            String captureId = null;
+            
+            // purchase_units에서 payments 정보 추출
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> purchaseUnits = (List<Map<String, Object>>) responseBody.get("purchase_units");
+            if (purchaseUnits != null && !purchaseUnits.isEmpty()) {
+                Map<String, Object> purchaseUnit = purchaseUnits.get(0);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> payments = (Map<String, Object>) purchaseUnit.get("payments");
+                
+                if (payments != null) {
+                    // Authorization 추출
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> authorizations = (List<Map<String, Object>>) payments.get("authorizations");
+                    if (authorizations != null && !authorizations.isEmpty()) {
+                        Map<String, Object> authorization = authorizations.get(0);
+                        authorizationId = (String) authorization.get("id");
+                    }
+                    
+                    // Capture 추출
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> captures = (List<Map<String, Object>>) payments.get("captures");
+                    if (captures != null && !captures.isEmpty()) {
+                        Map<String, Object> capture = captures.get(0);
+                        captureId = (String) capture.get("id");
+                    }
+                }
+            }
+            
+            String metadata;
+            try {
+                metadata = objectMapper.writeValueAsString(responseBody);
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                log.warn("PayPal 주문 메타데이터 직렬화 실패: orderId={}, error={}", orderId, e.getMessage());
+                metadata = null;
+            }
+            return new OrderDetails(status, authorizationId, captureId, metadata);
+        }
+        
+        throw new RuntimeException("PayPal 주문 정보 조회 실패: orderId=" + orderId);
     }
     
     @Override
@@ -565,5 +689,10 @@ public class PayPalPaymentProvider implements PaymentProvider {
      * 캡처 ID와 통화 코드를 담는 레코드
      */
     private record CaptureInfo(String captureId, String currency) {}
+    
+    /**
+     * 주문 상세 정보를 담는 레코드
+     */
+    private record OrderDetails(String status, String authorizationId, String captureId, String metadata) {}
 }
 
