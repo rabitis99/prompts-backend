@@ -37,17 +37,27 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class TossPaymentProvider implements PaymentProvider {
     
     private static final String TOSS_PAYMENTS_API_URL = "https://api.tosspayments.com/v1/payments";
     private static final String TOSS_CONFIRM_ENDPOINT = "/confirm";
     
     private final TossPayProperties tossPayProperties;
-    @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    
+    private final ObjectMapper objectMapper;
+
+    public TossPaymentProvider(
+            TossPayProperties tossPayProperties,
+            @Qualifier("paymentRestTemplate") RestTemplate restTemplate,
+            ObjectMapper objectMapper
+    ){
+        this.tossPayProperties = tossPayProperties;
+        this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
+    }
+
+
+
     @Override
     public PaymentMethod getPaymentMethod() {
         return PaymentMethod.TOSS;
