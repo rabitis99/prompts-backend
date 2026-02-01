@@ -23,8 +23,8 @@ public class PaymentValidator {
     /**
      * 결제 금액 검증
      * 
-     * @param expectedAmount 예상 금액 (DB에 저장된 금액)
-     * @param actualAmount 실제 금액 (외부 API 응답 금액)
+     * @param expectedAmount 예상 금액 (결제 시 전송한 금액)
+     * @param actualAmount 실제 금액 (외부 API로부터 응답받은 금액)
      * @param orderId 주문 ID
      */
     public void validateAmount(BigDecimal expectedAmount, BigDecimal actualAmount, String orderId) {
