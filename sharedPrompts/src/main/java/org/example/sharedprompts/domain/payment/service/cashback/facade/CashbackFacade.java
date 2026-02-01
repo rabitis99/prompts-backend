@@ -142,8 +142,8 @@ public class CashbackFacade {
         // 동시성 문제 방지를 위해 분산 락 적용
         lockService.executeWithLock(cashbackId, () -> {
             Cashback cashback = cashbackRepository.findById(cashbackId)
-                    .orElseThrow(() -> new org.example.sharedprompts.global.exception.ApiException(
-                            org.example.sharedprompts.global.exception.ErrorCode.NOT_FOUND,
+                    .orElseThrow(() -> new ApiException(
+                            ErrorCode.NOT_FOUND,
                             "캐시백을 찾을 수 없습니다."
                     ));
 
