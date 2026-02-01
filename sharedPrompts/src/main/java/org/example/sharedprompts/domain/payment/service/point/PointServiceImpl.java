@@ -60,7 +60,7 @@ public class PointServiceImpl implements PointService {
     @Transactional
     public void accumulatePoints(Long userId, Long paymentId, BigDecimal paymentAmount) {
         // 포인트 적립률 적용
-        BigDecimal pointAmount = paymentAmount.multiply(BigDecimal.valueOf(rewardProperties.getPointRate()))
+        BigDecimal pointAmount = paymentAmount.multiply(rewardProperties.getPointRate())
                 .setScale(0, RoundingMode.DOWN);
 
         if (pointAmount.compareTo(BigDecimal.ZERO) <= 0) {

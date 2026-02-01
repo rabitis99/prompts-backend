@@ -62,7 +62,7 @@ public class CashbackFacade {
             }
 
             // 캐시백 금액 계산
-            BigDecimal cashbackRate = BigDecimal.valueOf(rewardProperties.getCashbackRate());
+            BigDecimal cashbackRate = rewardProperties.getCashbackRate();
             BigDecimal cashbackAmount = amountService.calculateCashbackAmount(paymentAmount, cashbackRate);
 
             // 캐시백 적립 실행
