@@ -413,7 +413,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             
             return new PaymentProvider.WebhookEvent(eventType, tid, orderId, paymentResult);
         } catch (Exception e) {
-            log.error("KakaoPay Webhook 파싱 실패: payload={}, error={}", payload, e.getMessage(), e);
+            log.error("KakaoPay Webhook 파싱 실패: payloadSize={}, error={}", payload != null ? payload.length() : 0, e.getMessage(), e);
             throw new RuntimeException("KakaoPay Webhook 파싱 실패", e);
         }
     }
