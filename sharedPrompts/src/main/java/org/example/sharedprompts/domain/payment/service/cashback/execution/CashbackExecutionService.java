@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.payment.service.cashback.execution;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Cashback;
+import org.example.sharedprompts.domain.payment.enums.PointType;
 import org.example.sharedprompts.domain.payment.repository.cashback.CashbackRepository;
 import org.example.sharedprompts.domain.payment.service.point.PointService;
 import org.example.sharedprompts.domain.user.User;
@@ -107,7 +108,7 @@ public class CashbackExecutionService {
         
         try {
             // 캐시백 금액을 포인트로 적립 (1원 = 1포인트로 전환)
-            pointService.addPointsDirectly(userId, paymentId, cashbackAmount, 
+            pointService.addPointsDirectly(userId, paymentId, cashbackAmount, PointType.CASHBACK,
                     descriptionPrefix + cashbackAmount + "원");
             
             // 지급 완료 처리 (도메인 메서드 사용)

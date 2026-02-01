@@ -52,7 +52,7 @@ public class PointResponseDto {
                 .userId(point.getUser().getId())
                 .paymentId(point.getPaymentId())
                 .amount(point.getAmount())
-                .type(point.getType())
+                .type(point.getType().name())
                 .description(point.getDescription())
                 .balance(point.getBalance())
                 .expired(point.isExpired())

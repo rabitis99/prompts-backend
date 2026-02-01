@@ -8,6 +8,7 @@ import net.javacrumbs.shedlock.core.SimpleLock;
 import java.time.Instant;
 import org.example.sharedprompts.domain.payment.Point;
 import org.example.sharedprompts.domain.payment.config.RewardProperties;
+import org.example.sharedprompts.domain.payment.enums.PointType;
 import org.example.sharedprompts.domain.payment.repository.point.PointRepository;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
@@ -87,13 +88,13 @@ public class PointServiceImpl implements PointService {
     }
 
     @Override
-    public void addPointsDirectly(Long userId, Long paymentId, BigDecimal pointAmount, String description) {
+    public void addPointsDirectly(Long userId, Long paymentId, BigDecimal pointAmount, PointType type, String description) {
         if (pointAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return; // 적립할 포인트가 없으면 종료
         }
 
         executeWithLock(userId, () -> {
-            doAddPointsDirectly(userId, paymentId, pointAmount, description);
+            doAddPointsDirectly(userId, paymentId, pointAmount, type, description);
             return null;
         });
     }
@@ -182,13 +183,13 @@ public class PointServiceImpl implements PointService {
      * 포인트 적립 비즈니스 로직
      */
     private void doAccumulatePoints(Long userId, Long paymentId, BigDecimal pointAmount) {
-        doAddPointsDirectly(userId, paymentId, pointAmount, "결제 포인트 적립");
+        doAddPointsDirectly(userId, paymentId, pointAmount, PointType.PAYMENT, "결제 포인트 적립");
     }
 
     /**
      * 직접 포인트 적립 비즈니스 로직
      */
-    private void doAddPointsDirectly(Long userId, Long paymentId, BigDecimal pointAmount, String description) {
+    private void doAddPointsDirectly(Long userId, Long paymentId, BigDecimal pointAmount, PointType type, String description) {
         User user = getUser(userId);
         BigDecimal lastBalance = getLastBalance(userId);
         BigDecimal newBalance = lastBalance.add(pointAmount);
@@ -197,7 +198,7 @@ public class PointServiceImpl implements PointService {
                 .user(user)
                 .paymentId(paymentId)
                 .amount(pointAmount)
-                .type("PAYMENT")
+                .type(type)
                 .description(description)
                 .balance(newBalance)
                 .expired(false)

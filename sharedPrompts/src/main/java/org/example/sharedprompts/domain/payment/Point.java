@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.example.sharedprompts.global.entity.BaseEntity;
 import org.example.sharedprompts.domain.user.User;
+import org.example.sharedprompts.domain.payment.enums.PointType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -39,8 +40,9 @@ public class Point extends BaseEntity {
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount; // 적립/사용 포인트 (양수: 적립, 음수: 사용)
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private String type; // 적립 타입 (PAYMENT, REFERRAL, EVENT 등)
+    private PointType type; // 적립 타입 (PAYMENT, CASHBACK, PROMOTION, EVENT 등)
 
     @Column(length = 200)
     private String description; // 적립/사용 사유
