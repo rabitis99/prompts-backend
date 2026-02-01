@@ -68,8 +68,8 @@ public class PaymentServiceImpl implements PaymentService {
             Payment payment = request.toPaymentBuilder(
                     user,
                     user.getTier(),
-                    amountResult.getConvertedAmount(),
-                    amountResult.getUsedPointAmount()
+                    amountResult.convertedAmount(),
+                    amountResult.usedPointAmount()
             ).build();
 
             payment = paymentRepository.save(payment);

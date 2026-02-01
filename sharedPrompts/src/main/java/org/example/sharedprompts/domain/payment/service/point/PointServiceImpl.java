@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.payment.service.point;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.core.LockConfiguration;
 import net.javacrumbs.shedlock.core.LockProvider;
@@ -20,7 +19,9 @@ import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -37,7 +38,6 @@ import java.util.function.Supplier;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PointServiceImpl implements PointService {
 
@@ -49,6 +49,20 @@ public class PointServiceImpl implements PointService {
      * fallback이 활성화되어 있으면 fallbackLockProvider를, 없으면 lockProvider를 사용
      */
     private final LockProvider lockProvider;
+    private final TransactionTemplate transactionTemplate;
+
+    public PointServiceImpl(
+            PointRepository pointRepository,
+            RewardProperties rewardProperties,
+            UserRepository userRepository,
+            LockProvider lockProvider,
+            PlatformTransactionManager transactionManager) {
+        this.pointRepository = pointRepository;
+        this.rewardProperties = rewardProperties;
+        this.userRepository = userRepository;
+        this.lockProvider = lockProvider;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+    }
 
     private static final String LOCK_PREFIX = "point:lock:";
     private static final Duration LOCK_AT_MOST_FOR = Duration.ofSeconds(30); // 락 최대 유지 시간
@@ -57,7 +71,6 @@ public class PointServiceImpl implements PointService {
     // ============ Public Methods ============
 
     @Override
-    @Transactional
     public void accumulatePoints(Long userId, Long paymentId, BigDecimal paymentAmount) {
         // 포인트 적립률 적용
         BigDecimal pointAmount = paymentAmount.multiply(rewardProperties.getPointRate())
@@ -74,7 +87,6 @@ public class PointServiceImpl implements PointService {
     }
 
     @Override
-    @Transactional
     public void addPointsDirectly(Long userId, Long paymentId, BigDecimal pointAmount, String description) {
         if (pointAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return; // 적립할 포인트가 없으면 종료
@@ -87,7 +99,6 @@ public class PointServiceImpl implements PointService {
     }
 
     @Override
-    @Transactional
     public void usePoints(Long userId, BigDecimal amount, String description) {
         executeWithLock(userId, () -> {
             doUsePoints(userId, amount, description);
@@ -132,6 +143,7 @@ public class PointServiceImpl implements PointService {
 
     /**
      * 분산락을 획득한 후 작업을 실행합니다.
+     * 락 내부에서 트랜잭션을 관리하여 락 해제 전에 트랜잭션이 커밋되도록 보장합니다.
      */
     private <T> T executeWithLock(Long userId, Supplier<T> task) {
         String lockName = getLockKey(userId);
@@ -149,7 +161,7 @@ public class PointServiceImpl implements PointService {
         }
 
         try {
-            return task.get();
+            return transactionTemplate.execute(status -> task.get());
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {

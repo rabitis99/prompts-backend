@@ -32,6 +32,24 @@ public class PaymentRetryFacade {
     private final PaymentLoggingService loggingService;
     private final RetryProperties retryProperties;
     private final PaymentRetryService paymentRetryService;
+
+    /**
+     * 재시도 상태 확정
+     * 
+     * <p>재시도 횟수 증가, 다음 재시도 시간 예약, 상태 변경을 별도 트랜잭션(REQUIRES_NEW)에서 먼저 커밋합니다.
+     * executePayment() 실패 여부와 관계없이 재시도 상태는 반드시 DB에 반영됩니다.
+     * 이 시점에서 retryCount가 증가하므로, executePayment() 내부의 retryCount > 0 체크가 올바르게 작동합니다.
+     * 
+     * <p>PaymentRetryScheduler와 PaymentRetryFacade.retryPayment()에서 공통으로 사용하여
+     * 두 재시도 경로의 트랜잭션 전략을 일관성 있게 유지합니다.
+     * 
+     * @param payment Payment 엔티티
+     * @return 저장된 Payment 엔티티
+     */
+    public Payment commitRetryState(Payment payment) {
+        return paymentRetryService.commitRetryState(payment);
+    }
+
     /**
      * 결제 재시도
      * 
@@ -67,8 +85,8 @@ public class PaymentRetryFacade {
         
         // 재시도 상태 확정: 별도 트랜잭션에서 먼저 커밋
         // executePayment() 실패 여부와 관계없이 재시도 상태는 반드시 DB에 반영됨
-        // PaymentRetryService를 통해 호출하여 REQUIRES_NEW 트랜잭션이 정상적으로 동작하도록 함
-        Payment updatedPayment = paymentRetryService.commitRetryState(payment);
+        // 이 시점에서 retryCount가 증가하므로, executePayment() 내부의 retryCount > 0 체크가 올바르게 작동
+        Payment updatedPayment = commitRetryState(payment);
         
         // 실제 결제 금액 계산 (포인트 사용 후 금액)
         java.math.BigDecimal actualAmount = updatedPayment.getAmount().subtract(
