@@ -129,7 +129,7 @@ public class CashbackExecutionService {
             log.error("{}: cashbackId={}, userId={}, amount={}, error={}",
                     logPrefix, cashbackId, userId, cashbackAmount, e.getMessage(), e);
             throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR,
-                    "캐시백 지급 중 오류가 발생했습니다: ");
+                    "캐시백 지급 중 오류가 발생했습니다.");
         }
     }
 }
