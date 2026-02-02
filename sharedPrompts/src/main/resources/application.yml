@@ -411,8 +411,8 @@ tag:
 # =========================
 payment:
   kakao:
-    secret: ${KAKAO_SECRET:}
-    cid: ${KAKAO_CID:TC0ONETIME}
+    secret: ${PAYMENT_KAKAO_SECRET:}
+    cid: ${PAYMENT_KAKAO_CID:TC0ONETIME}
   toss:
     api-key: ${TOSS_API_KEY:}
     secret-key: ${TOSS_SECRET:}
