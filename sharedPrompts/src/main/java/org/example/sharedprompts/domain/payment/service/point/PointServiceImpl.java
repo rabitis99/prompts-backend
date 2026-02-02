@@ -118,6 +118,13 @@ public class PointServiceImpl implements PointService {
         });
     }
 
+    /**
+     * 현재 포인트 잔액 조회 (집계 쿼리 사용)
+     *
+     * <p><strong>주의:</strong> 성능을 위해 분산락을 사용하지 않습니다.
+     * 동시 포인트 업데이트 중에는 일시적으로 부정확한 값을 반환할 수 있습니다.
+     * 정확한 잔액이 필요한 경우 락이 적용된 메서드 내부에서 getLastBalance()를 사용하세요.
+     */
     @Override
     public BigDecimal getCurrentBalance(Long userId) {
         return pointRepository.getCurrentBalance(userId);
@@ -251,9 +258,10 @@ public class PointServiceImpl implements PointService {
      */
     private BigDecimal getLastBalance(Long userId) {
         List<Point> latestPoints = pointRepository.findLatestPointByUserId(userId);
-        return latestPoints.isEmpty()
-                ? BigDecimal.ZERO
-                : latestPoints.get(0).getBalance();
+        if (latestPoints.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return latestPoints.get(0).getBalance();
     }
 
     /**
