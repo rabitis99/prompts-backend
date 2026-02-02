@@ -1,34 +1,60 @@
 package org.example.sharedprompts.domain.payment.config;
 
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.NoArgsConstructor;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
+import org.springframework.validation.annotation.Validated;
 
 /**
- * 카카오페이 설정 Properties (Immutable)
+ * 카카오페이 설정 Properties
+ *
+ * <p><strong>검증 전략:</strong>
+ * - @ConfigurationProperties: 설정값을 자동으로 바인딩
+ * - @Validated: 부팅 시점에 필수값 검증 (fail-fast)
+ * - @NotBlank: secret, approvalUrl, cancelUrl, failUrl는 필수
+ *
+ * <p>설정값 누락 시 BindException이 발생하여 애플리케이션 부팅 실패
+ * (런타임이 아닌 부팅 시점에 오류 감지)
  */
 @Getter
 @Component
+@Validated
+@ConfigurationProperties(prefix = "payment.kakao")
+@NoArgsConstructor
+@AllArgsConstructor
 public class KakaoPayProperties {
 
-    private final String secret;
-    private final String cid;
-    private final String approvalUrl;
-    private final String cancelUrl;
-    private final String failUrl;
+    /**
+     * 카카오페이 서비스 가맹점 시크릿 키 (필수)
+     */
+    @NotBlank(message = "카카오페이 시크릿 키는 필수입니다 (payment.kakao.secret)")
+    private String secret;
 
-    public KakaoPayProperties(
-            @Value("${payment.kakao.secret:}") String secret,
-            @Value("${payment.kakao.cid:TC0ONETIME}") String cid,
-            @Value("${payment.kakao.approval-url:}") String approvalUrl,
-            @Value("${payment.kakao.cancel-url:}") String cancelUrl,
-            @Value("${payment.kakao.fail-url:}") String failUrl) {
-        this.secret = secret;
-        this.cid = cid;
-        this.approvalUrl = approvalUrl;
-        this.cancelUrl = cancelUrl;
-        this.failUrl = failUrl;
-    }
+    /**
+     * 카카오페이 가맹점 ID (기본값: TC0ONETIME)
+     */
+    private String cid = "TC0ONETIME";
+
+    /**
+     * 결제 승인 후 리다이렉트 URL (필수)
+     */
+    @NotBlank(message = "카카오페이 승인 콜백 URL은 필수입니다 (payment.kakao.approval-url)")
+    private String approvalUrl;
+
+    /**
+     * 결제 취소 시 리다이렉트 URL (필수)
+     */
+    @NotBlank(message = "카카오페이 취소 콜백 URL은 필수입니다 (payment.kakao.cancel-url)")
+    private String cancelUrl;
+
+    /**
+     * 결제 실패 시 리다이렉트 URL (필수)
+     */
+    @NotBlank(message = "카카오페이 실패 콜백 URL은 필수입니다 (payment.kakao.fail-url)")
+    private String failUrl;
 }
 
 
