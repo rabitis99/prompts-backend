@@ -12,8 +12,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
 import java.util.Map;
+
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 /**
  * KakaoPay 결제 승인 API Client
@@ -56,14 +58,14 @@ public class KakakoApproveApiClient {
         try {
             HttpHeaders headers = headersProvider.createFormHeaders();
 
-            Map<String, String> requestBody = new HashMap<>();
-            requestBody.put("cid", properties.getCid());
-            requestBody.put("tid", tid);
-            requestBody.put("partner_order_id", orderId);
-            requestBody.put("partner_user_id", userId);
-            requestBody.put("pg_token", ""); // 실제로는 클라이언트에서 받아온 pg_token 필요
+            MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
+            requestBody.add("cid", properties.getCid());
+            requestBody.add("tid", tid);
+            requestBody.add("partner_order_id", orderId);
+            requestBody.add("partner_user_id", userId);
+            requestBody.add("pg_token", ""); // 실제로는 클라이언트에서 받아온 pg_token 필요
 
-            HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, headers);
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(requestBody, headers);
 
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     KAKAO_PAY_API_URL + APPROVE_ENDPOINT,

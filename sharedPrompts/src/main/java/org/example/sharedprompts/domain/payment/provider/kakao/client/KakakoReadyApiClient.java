@@ -11,8 +11,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
 import java.util.Map;
+
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 /**
  * KakaoPay 결제 준비 API Client
@@ -54,19 +56,19 @@ public class KakakoReadyApiClient {
         try {
             HttpHeaders headers = headersProvider.createFormHeaders();
 
-            Map<String, String> requestBody = new HashMap<>();
-            requestBody.put("cid", properties.getCid());
-            requestBody.put("partner_order_id", orderId);
-            requestBody.put("partner_user_id", userId);
-            requestBody.put("item_name", itemName);
-            requestBody.put("quantity", "1");
-            requestBody.put("total_amount", String.valueOf(amount));
-            requestBody.put("tax_free_amount", "0");
-            requestBody.put("approval_url", properties.getApprovalUrl());
-            requestBody.put("cancel_url", properties.getCancelUrl());
-            requestBody.put("fail_url", properties.getFailUrl());
+            MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
+            requestBody.add("cid", properties.getCid());
+            requestBody.add("partner_order_id", orderId);
+            requestBody.add("partner_user_id", userId);
+            requestBody.add("item_name", itemName);
+            requestBody.add("quantity", "1");
+            requestBody.add("total_amount", String.valueOf(amount));
+            requestBody.add("tax_free_amount", "0");
+            requestBody.add("approval_url", properties.getApprovalUrl());
+            requestBody.add("cancel_url", properties.getCancelUrl());
+            requestBody.add("fail_url", properties.getFailUrl());
 
-            HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, headers);
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(requestBody, headers);
 
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     KAKAO_PAY_API_URL + READY_ENDPOINT,

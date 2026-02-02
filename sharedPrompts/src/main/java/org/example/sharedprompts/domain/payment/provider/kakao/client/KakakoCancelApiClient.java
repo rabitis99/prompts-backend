@@ -13,8 +13,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
 import java.util.Map;
+
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 /**
  * KakaoPay 결제 취소/환불 API Client
@@ -55,14 +57,14 @@ public class KakakoCancelApiClient {
             // 전체 취소를 위해 총 금액 조회
             long totalAmount = kakakoStatusApiClient.status(tid).amount();
 
-            Map<String, String> requestBody = new HashMap<>();
-            requestBody.put("cid", properties.getCid());
-            requestBody.put("tid", tid);
-            requestBody.put("cancel_amount", String.valueOf(totalAmount));
-            requestBody.put("cancel_tax_free_amount", "0");
-            requestBody.put("cancel_reason", reason);
+            MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
+            requestBody.add("cid", properties.getCid());
+            requestBody.add("tid", tid);
+            requestBody.add("cancel_amount", String.valueOf(totalAmount));
+            requestBody.add("cancel_tax_free_amount", "0");
+            requestBody.add("cancel_reason", reason);
 
-            HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, headers);
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(requestBody, headers);
 
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     KAKAO_PAY_API_URL + CANCEL_ENDPOINT,
@@ -107,14 +109,14 @@ public class KakakoCancelApiClient {
         try {
             HttpHeaders headers = headersProvider.createFormHeaders();
 
-            Map<String, String> requestBody = new HashMap<>();
-            requestBody.put("cid", properties.getCid());
-            requestBody.put("tid", tid);
-            requestBody.put("cancel_amount", String.valueOf(amount));
-            requestBody.put("cancel_tax_free_amount", "0");
-            requestBody.put("cancel_reason", reason);
+            MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
+            requestBody.add("cid", properties.getCid());
+            requestBody.add("tid", tid);
+            requestBody.add("cancel_amount", String.valueOf(amount));
+            requestBody.add("cancel_tax_free_amount", "0");
+            requestBody.add("cancel_reason", reason);
 
-            HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, headers);
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(requestBody, headers);
 
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     KAKAO_PAY_API_URL + CANCEL_ENDPOINT,

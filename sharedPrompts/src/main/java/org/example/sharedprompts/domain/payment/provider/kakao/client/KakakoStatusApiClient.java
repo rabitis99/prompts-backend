@@ -11,8 +11,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
 import java.util.Map;
+
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 /**
  * KakaoPay 결제 상태 조회 API Client
@@ -46,11 +48,11 @@ public class KakakoStatusApiClient {
         try {
             HttpHeaders headers = headersProvider.createFormHeaders();
 
-            Map<String, String> requestBody = new HashMap<>();
-            requestBody.put("cid", properties.getCid());
-            requestBody.put("tid", tid);
+            MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
+            requestBody.add("cid", properties.getCid());
+            requestBody.add("tid", tid);
 
-            HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, headers);
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(requestBody, headers);
 
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     KAKAO_PAY_API_URL + STATUS_ENDPOINT,
