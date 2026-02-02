@@ -79,18 +79,29 @@ public class PaymentAmountFacade {
 
     /**
      * 환불 시 포인트 환불 금액 계산
+     *
+     * <p>파라미터 null 체크를 일관성 있게 수행합니다.
+     * 모든 파라미터가 null이거나 0 이하인 경우를 처리합니다.
+     *
+     * @param usedPointAmount 사용한 포인트 금액 (nullable)
+     * @param originalAmount 원래 결제 금액 (nullable)
+     * @param refundAmount 환불 금액 (required, null일 경우 예외)
+     * @return 환불할 포인트 금액
+     * @throws ApiException refundAmount가 null이거나 0 이하인 경우
      */
     public BigDecimal calculateRefundPointAmount(BigDecimal usedPointAmount, BigDecimal originalAmount, BigDecimal refundAmount) {
-        // refundAmount가 0 이하일 경우 조기에 차단 (음수 포인트 반환 방지)
+        // refundAmount가 null이거나 0 이하일 경우 조기에 차단 (필수 파라미터)
         if (refundAmount == null || refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new ApiException(ErrorCode.PAYMENT_REFUND_AMOUNT_INVALID);
         }
 
-        if (usedPointAmount.compareTo(BigDecimal.ZERO) <= 0) {
+        // usedPointAmount null 체크 추가 (일관성)
+        if (usedPointAmount == null || usedPointAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
 
-        if (originalAmount.compareTo(BigDecimal.ZERO) <= 0) {
+        // originalAmount null 체크 추가 (일관성)
+        if (originalAmount == null || originalAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
         // 전체 환불인 경우 사용한 포인트를 다시 적립
