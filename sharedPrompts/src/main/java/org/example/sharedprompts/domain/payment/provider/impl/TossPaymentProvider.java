@@ -29,11 +29,18 @@ import java.util.Map;
 
 /**
  * Toss Payments Provider 구현체
- * 
+ *
  * <p>공식 권장 흐름:
  * - POST /v1/payments/confirm 호출로 결제 승인
  * - paymentKey, orderId, amount 필요
  * - 서버에서 금액/주문번호 검증 후 최종 승인 호출
+ *
+ * <p>멱등성: 토스페이먼츠는 별도의 Idempotency-Key 헤더를 지원하지 않음
+ * paymentKey 자체가 결제의 고유 식별자 역할을 하며,
+ * 동일한 paymentKey로 중복 confirm 호출 시 토스 API가 자동으로 거부함
+ *
+ * <p>결제 준비: 클라이언트에서 토스 결제 위젯이 paymentKey를 발급하므로
+ * 서버에서 별도의 준비 단계(preparePayment)가 필요 없음
  */
 @Slf4j
 @Component
@@ -62,7 +69,25 @@ public class TossPaymentProvider implements PaymentProvider {
     public PaymentMethod getPaymentMethod() {
         return PaymentMethod.TOSS;
     }
-    
+
+    /**
+     * 토스페이먼츠는 별도의 Idempotency-Key 헤더를 지원하지 않음
+     * paymentKey 자체가 고유 식별자 역할을 함
+     */
+    @Override
+    public boolean supportsIdempotency() {
+        return false;
+    }
+
+    /**
+     * 토스페이먼츠는 클라이언트에서 결제 위젯이 paymentKey를 발급하므로
+     * 서버에서 별도의 준비 단계가 필요 없음
+     */
+    @Override
+    public boolean requiresPreparation() {
+        return false;
+    }
+
     @Override
     public PaymentResult confirmPayment(
             String paymentKey,
@@ -75,12 +100,11 @@ public class TossPaymentProvider implements PaymentProvider {
             // Toss Payments 공식 Confirm API 호출
             HttpHeaders headers = createHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            
-            // 멱등성 키 헤더 추가 (Toss Payments가 지원하는 경우)
-            if (idempotencyKey != null) {
-                headers.set("Idempotency-Key", idempotencyKey);
-            }
-            
+
+            // 참고: 토스페이먼츠는 Idempotency-Key 헤더를 공식 지원하지 않음
+            // paymentKey 자체가 고유 식별자 역할을 하며, 동일 paymentKey로 중복 confirm 호출 시 거부됨
+            // idempotencyKey 파라미터는 인터페이스 일관성을 위해 유지하지만 실제로 사용되지 않음
+
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("paymentKey", paymentKey);
             requestBody.put("orderId", orderId);

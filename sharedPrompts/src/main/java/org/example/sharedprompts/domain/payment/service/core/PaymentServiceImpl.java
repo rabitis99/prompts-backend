@@ -110,11 +110,19 @@ public class PaymentServiceImpl implements PaymentService {
             // PaymentExecutionService를 통한 취소 실행
             payment = executionService.executeCancel(payment, request.getReasonOrDefault());
 
-            postProcessService.processPaymentCancel(payment, userId, request.getReasonOrDefault(), oldStatus);
+            try {
+                postProcessService.processPaymentCancel(payment, userId, request.getReasonOrDefault(), oldStatus);
+            } catch (Exception postProcessException) {
+                // 후처리 실패는 로깅만 수행 (취소는 성공했으므로 예외를 던지지 않음)
+                // TODO: 포인트 복구 실패 시 보상 트랜잭션 필요
+                log.error("결제 취소 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
+                        payment.getId(), userId, postProcessException.getMessage(), postProcessException);
+            }
 
         } catch (Exception e) {
-            log.error("결제 취소 실패: paymentId={}, error={}", request.getPaymentId(), e.getMessage(), e);
-            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR);
+            // 일관된 예외 처리: ApiException으로 래핑하여 throw
+            log.error("결제 취소 실패: paymentId={}, userId={}, error={}", request.getPaymentId(), userId, e.getMessage(), e);
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 취소 실패: " + e.getMessage());
         }
 
         return PaymentResponseDto.from(payment);
@@ -142,18 +150,26 @@ public class PaymentServiceImpl implements PaymentService {
                     refundAmount
             );
 
-            postProcessService.processPaymentRefund(
-                    payment,
-                    userId,
-                    refundAmount,
-                    refundPointAmount,
-                    request.getReasonOrDefault(),
-                    oldStatus
-            );
+            try {
+                postProcessService.processPaymentRefund(
+                        payment,
+                        userId,
+                        refundAmount,
+                        refundPointAmount,
+                        request.getReasonOrDefault(),
+                        oldStatus
+                );
+            } catch (Exception postProcessException) {
+                // 후처리 실패는 로깅만 수행 (환불은 성공했으므로 예외를 던지지 않음)
+                // TODO: 포인트 복구 실패 시 보상 트랜잭션 필요
+                log.error("결제 환불 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
+                        payment.getId(), userId, postProcessException.getMessage(), postProcessException);
+            }
 
         } catch (Exception e) {
-            log.error("결제 환불 실패: paymentId={}, error={}", request.getPaymentId(), e.getMessage(), e);
-            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR);
+            // 일관된 예외 처리: ApiException으로 래핑하여 throw
+            log.error("결제 환불 실패: paymentId={}, userId={}, error={}", request.getPaymentId(), userId, e.getMessage(), e);
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 환불 실패: " + e.getMessage());
         }
 
         return PaymentResponseDto.from(payment);
@@ -201,6 +217,8 @@ public class PaymentServiceImpl implements PaymentService {
                         processingTime
                 );
             } catch (Exception postProcessException) {
+                // 후처리 실패는 로깅만 수행 (결제는 성공했으므로 예외를 던지지 않음)
+                // TODO: 보상 트랜잭션 큐에 넣어 나중에 재시도하거나 관리자 알림 필요
                 log.error("결제 승인 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
                         payment.getId(), userId, postProcessException.getMessage(), postProcessException);
             }
@@ -219,10 +237,14 @@ public class PaymentServiceImpl implements PaymentService {
                         processingTime
                 );
             } catch (Exception postProcessException) {
+                // 후처리 실패는 로깅만 수행
                 log.error("결제 실패 후처리 중 오류 발생: paymentId={}, userId={}, error={}",
                         payment.getId(), userId, postProcessException.getMessage(), postProcessException);
             }
-            throw e;
+
+            // 일관된 예외 처리: ApiException으로 래핑하여 throw
+            log.error("결제 승인 실패: paymentId={}, userId={}, error={}", payment.getId(), userId, e.getMessage(), e);
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 승인 실패: " + e.getMessage());
         }
 
         PaymentConfirmResponse response = new PaymentConfirmResponse();
@@ -267,11 +289,18 @@ public class PaymentServiceImpl implements PaymentService {
             // PaymentExecutionService를 통한 취소 실행
             payment = executionService.executeCancel(payment, request.getReasonOrDefault());
 
-            postProcessService.processPaymentCancel(payment, payment.getUser().getId(), request.getReasonOrDefault(), oldStatus);
+            try {
+                postProcessService.processPaymentCancel(payment, payment.getUser().getId(), request.getReasonOrDefault(), oldStatus);
+            } catch (Exception postProcessException) {
+                // 후처리 실패는 로깅만 수행 (취소는 성공했으므로 예외를 던지지 않음)
+                log.error("관리자 결제 취소 성공 후 후처리 실패: paymentId={}, adminId={}, error={}",
+                        paymentId, adminId, postProcessException.getMessage(), postProcessException);
+            }
 
         } catch (Exception e) {
+            // 일관된 예외 처리: ApiException으로 래핑하여 throw
             log.error("관리자 결제 취소 실패: paymentId={}, adminId={}, error={}", paymentId, adminId, e.getMessage(), e);
-            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR);
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 취소 실패: " + e.getMessage());
         }
 
         return PaymentResponseDto.from(payment);
@@ -299,18 +328,25 @@ public class PaymentServiceImpl implements PaymentService {
                     refundAmount
             );
 
-            postProcessService.processPaymentRefund(
-                    payment,
-                    payment.getUser().getId(),
-                    refundAmount,
-                    refundPointAmount,
-                    request.getReasonOrDefault(),
-                    oldStatus
-            );
+            try {
+                postProcessService.processPaymentRefund(
+                        payment,
+                        payment.getUser().getId(),
+                        refundAmount,
+                        refundPointAmount,
+                        request.getReasonOrDefault(),
+                        oldStatus
+                );
+            } catch (Exception postProcessException) {
+                // 후처리 실패는 로깅만 수행 (환불은 성공했으므로 예외를 던지지 않음)
+                log.error("관리자 결제 환불 성공 후 후처리 실패: paymentId={}, adminId={}, error={}",
+                        paymentId, adminId, postProcessException.getMessage(), postProcessException);
+            }
 
         } catch (Exception e) {
+            // 일관된 예외 처리: ApiException으로 래핑하여 throw
             log.error("관리자 결제 환불 실패: paymentId={}, adminId={}, error={}", paymentId, adminId, e.getMessage(), e);
-            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR);
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 환불 실패: " + e.getMessage());
         }
 
         return PaymentResponseDto.from(payment);

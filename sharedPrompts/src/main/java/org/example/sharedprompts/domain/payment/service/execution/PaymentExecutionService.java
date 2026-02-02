@@ -2,6 +2,8 @@ package org.example.sharedprompts.domain.payment.service.execution;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.model.CancelResult;
@@ -14,13 +16,14 @@ import org.example.sharedprompts.domain.payment.validator.PaymentValidator;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
 /**
  * 결제 실행 서비스
- * 
+ *
  * <p>단일 책임: 외부 Provider 호출 및 결제 실행만 담당
  * - Provider 호출 및 PaymentResult 변환
  * - PaymentValidator를 통한 검증
@@ -30,10 +33,15 @@ import java.math.BigDecimal;
 @Service
 @RequiredArgsConstructor
 public class PaymentExecutionService {
-    
+
     private final PaymentProviderFactory providerFactory;
     private final PaymentValidator paymentValidator;
     private final PaymentRepository paymentRepository;
+
+    // Self-injection for calling @Transactional(propagation = REQUIRES_NEW) methods
+    @Autowired
+    @Lazy
+    private PaymentExecutionService self;
     
     /**
      * 결제 실행
@@ -51,8 +59,10 @@ public class PaymentExecutionService {
             return payment;
         }
 
-        // 멱등성 키 생성
+        // 멱등성 키 생성 및 별도 트랜잭션으로 저장
+        // 외부 API 호출 전에 멱등성 키를 커밋하여 API 호출 실패 시에도 유지
         String idempotencyKey = generateIdempotencyKey(payment);
+        self.saveIdempotencyKeyInNewTransaction(payment.getId(), idempotencyKey);
         payment.updateIdempotencyKey(idempotencyKey);
 
         // Provider 선택 및 결제 승인 호출
@@ -185,6 +195,24 @@ public class PaymentExecutionService {
                 payment.getPaymentMethod().name(),
                 payment.getId(),
                 action);
+    }
+
+    /**
+     * 멱등성 키를 별도 트랜잭션으로 저장
+     *
+     * <p>외부 API 호출 전에 멱등성 키를 먼저 커밋하여
+     * API 호출 실패로 메인 트랜잭션이 롤백되어도 멱등성 키는 유지되도록 보장
+     *
+     * <p>REQUIRES_NEW 전파 속성으로 새로운 트랜잭션에서 실행되며
+     * 즉시 커밋되어 외부 API 호출 실패와 무관하게 DB에 저장됨
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void saveIdempotencyKeyInNewTransaction(Long paymentId, String idempotencyKey) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        payment.updateIdempotencyKey(idempotencyKey);
+        paymentRepository.save(payment);
+        log.debug("멱등성 키 저장 완료 (별도 트랜잭션): paymentId={}, idempotencyKey={}", paymentId, idempotencyKey);
     }
 }
 

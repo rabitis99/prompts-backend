@@ -26,29 +26,35 @@ import java.util.Map;
 
 /**
  * PayPal Provider 구현체
- * 
+ *
  * <p>공식 권장 흐름 (Orders API 기반):
  * 1) 주문 생성: POST /v2/checkout/orders
  * 2) 사용자가 PayPal Checkout에서 승인
  * 3) 서버에서 POST /v2/checkout/orders/{orderId}/capture 호출로 결제 완료
- * 
+ *
  * <p>Webhook은 PAYMENT.CAPTURE.COMPLETED 등 이벤트로 확정 통지
+ *
+ * <p>멱등성: PayPal은 PayPal-Request-Id 헤더를 통한 멱등성을 지원
  */
 @Slf4j
 @Component
 public class PayPalPaymentProvider implements PaymentProvider {
-    
+
     private static final String PAYPAL_API_URL = "https://api-m.paypal.com";
     private static final String PAYPAL_OAUTH_URL = PAYPAL_API_URL + "/v1/oauth2/token";
     private static final String PAYPAL_ORDERS_URL = PAYPAL_API_URL + "/v2/checkout/orders";
-    
+
     private final PaypalProperties paypalProperties;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
-    
-    // Access Token 캐싱을 위한 필드
-    private String cachedAccessToken;
-    private long tokenExpiresAt;
+
+    // Access Token 캐싱을 위한 필드 (Thread-Safe)
+    // volatile: 가시성 보장 - 다른 스레드에서 변경 사항을 즉시 확인 가능
+    private volatile String cachedAccessToken;
+    private volatile long tokenExpiresAt;
+
+    // 토큰 갱신 동기화를 위한 락 객체
+    private final Object tokenLock = new Object();
     
     public PayPalPaymentProvider(
             PaypalProperties paypalProperties,
@@ -64,7 +70,113 @@ public class PayPalPaymentProvider implements PaymentProvider {
     public PaymentMethod getPaymentMethod() {
         return PaymentMethod.PAYPAL;
     }
-    
+
+    /**
+     * PayPal은 PayPal-Request-Id 헤더를 통한 멱등성을 지원
+     */
+    @Override
+    public boolean supportsIdempotency() {
+        return true;
+    }
+
+    /**
+     * PayPal은 결제 승인 전 주문 생성(/v2/checkout/orders) 단계가 필요
+     */
+    @Override
+    public boolean requiresPreparation() {
+        return true;
+    }
+
+    /**
+     * PayPal 주문 생성 (/v2/checkout/orders)
+     *
+     * <p>결제 승인 전 주문을 먼저 생성:
+     * - orderId 발급
+     * - 사용자 승인을 위한 approve 링크 획득
+     *
+     * @return PrepareResult (orderId, approveUrl 포함)
+     */
+    @Override
+    public PrepareResult preparePayment(
+            String orderId,
+            BigDecimal amount,
+            String currency,
+            String itemName,
+            String userId
+    ) {
+        try {
+            String accessToken = getAccessToken();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(accessToken);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            // PayPal 주문 생성 요청 본문
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("intent", "CAPTURE");
+
+            // purchase_units 구성
+            Map<String, Object> purchaseUnit = new HashMap<>();
+            purchaseUnit.put("reference_id", orderId);
+
+            Map<String, Object> amountMap = new HashMap<>();
+            amountMap.put("currency_code", currency != null ? currency : "USD");
+            amountMap.put("value", amount.toString());
+            purchaseUnit.put("amount", amountMap);
+
+            if (itemName != null) {
+                purchaseUnit.put("description", itemName);
+            }
+
+            requestBody.put("purchase_units", List.of(purchaseUnit));
+
+            // application_context (리다이렉션 URL)
+            Map<String, Object> applicationContext = new HashMap<>();
+            applicationContext.put("return_url", paypalProperties.getReturnUrl() != null ?
+                    paypalProperties.getReturnUrl() : "https://localhost/payment/paypal/success");
+            applicationContext.put("cancel_url", paypalProperties.getCancelUrl() != null ?
+                    paypalProperties.getCancelUrl() : "https://localhost/payment/paypal/cancel");
+            requestBody.put("application_context", applicationContext);
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    PAYPAL_ORDERS_URL,
+                    HttpMethod.POST,
+                    request,
+                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+
+            if ((response.getStatusCode() == HttpStatus.CREATED || response.getStatusCode() == HttpStatus.OK)
+                    && response.getBody() != null) {
+                Map<String, Object> responseBody = response.getBody();
+                String paypalOrderId = (String) responseBody.get("id");
+
+                // approve 링크 추출
+                String approveUrl = null;
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> links = (List<Map<String, Object>>) responseBody.get("links");
+                if (links != null) {
+                    for (Map<String, Object> link : links) {
+                        if ("approve".equals(link.get("rel"))) {
+                            approveUrl = (String) link.get("href");
+                            break;
+                        }
+                    }
+                }
+
+                log.info("PayPal 주문 생성 성공: orderId={}, paypalOrderId={}", orderId, paypalOrderId);
+
+                return PrepareResult.success(paypalOrderId, approveUrl, objectMapper.writeValueAsString(responseBody));
+            } else {
+                throw new RuntimeException("PayPal 주문 생성 실패: " + response.getStatusCode());
+            }
+        } catch (Exception e) {
+            log.error("PayPal 주문 생성 API 호출 실패: orderId={}, error={}", orderId, e.getMessage(), e);
+            throw new RuntimeException("PayPal 주문 생성 실패: " + e.getMessage(), e);
+        }
+    }
+
     @Override
     public PaymentResult confirmPayment(
             String paymentKey, // PayPal에서는 orderId
@@ -571,40 +683,66 @@ public class PayPalPaymentProvider implements PaymentProvider {
         }
     }
     
+    /**
+     * PayPal 액세스 토큰 획득 (Thread-Safe)
+     *
+     * <p>Double-checked locking 패턴 사용:
+     * 1. 첫 번째 검사: 락 없이 캐시된 토큰 유효성 확인 (대부분의 경우 여기서 반환)
+     * 2. 두 번째 검사: 락 획득 후 재확인 (동시에 여러 스레드가 갱신 시도하는 경우 방지)
+     *
+     * @return 유효한 액세스 토큰
+     */
     private String getAccessToken() {
-        // 캐시된 토큰이 유효하면 재사용
+        // 첫 번째 검사: 캐시된 토큰이 유효하면 재사용 (락 없이)
         if (cachedAccessToken != null && System.currentTimeMillis() < tokenExpiresAt) {
             return cachedAccessToken;
         }
-        
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.setBasicAuth(paypalProperties.getClientId(), paypalProperties.getClientSecret());
-        
-        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        body.add("grant_type", "client_credentials");
-        
-        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
-        
-        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                PAYPAL_OAUTH_URL,
-                HttpMethod.POST,
-                request,
-                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
-        );
-        
-        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-            cachedAccessToken = (String) response.getBody().get("access_token");
-            Object expiresIn = response.getBody().get("expires_in");
-            if (expiresIn != null) {
-                // 만료 5분 전에 갱신하도록 설정
-                tokenExpiresAt = System.currentTimeMillis() + 
-                        (((Number) expiresIn).longValue() - 300) * 1000;
+
+        // 토큰 갱신 필요 - 동기화 블록 진입
+        synchronized (tokenLock) {
+            // 두 번째 검사: 다른 스레드가 이미 갱신했을 수 있으므로 재확인
+            if (cachedAccessToken != null && System.currentTimeMillis() < tokenExpiresAt) {
+                return cachedAccessToken;
             }
-            return cachedAccessToken;
+
+            log.debug("PayPal 액세스 토큰 갱신 시작");
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            headers.setBasicAuth(paypalProperties.getClientId(), paypalProperties.getClientSecret());
+
+            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+            body.add("grant_type", "client_credentials");
+
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    PAYPAL_OAUTH_URL,
+                    HttpMethod.POST,
+                    request,
+                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                String newToken = (String) response.getBody().get("access_token");
+                Object expiresIn = response.getBody().get("expires_in");
+
+                long newExpiresAt = System.currentTimeMillis();
+                if (expiresIn != null) {
+                    // 만료 5분 전에 갱신하도록 설정
+                    newExpiresAt += (((Number) expiresIn).longValue() - 300) * 1000;
+                }
+
+                // 원자적 업데이트 (volatile 변수이므로 순서 보장)
+                this.tokenExpiresAt = newExpiresAt;
+                this.cachedAccessToken = newToken;
+
+                log.debug("PayPal 액세스 토큰 갱신 완료");
+                return newToken;
+            }
+
+            throw new RuntimeException("PayPal 액세스 토큰 획득 실패");
         }
-        
-        throw new RuntimeException("PayPal 액세스 토큰 획득 실패");
     }
     
     private PaymentStatus parseStatus(String status) {

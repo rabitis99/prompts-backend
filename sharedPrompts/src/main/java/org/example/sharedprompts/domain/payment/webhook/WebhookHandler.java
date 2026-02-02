@@ -11,17 +11,17 @@ import org.example.sharedprompts.domain.payment.validator.PaymentValidator;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Optional;
 
 /**
  * Webhook 처리 전용 컴포넌트
- * 
+ *
  * <p>단일 책임: Webhook/Callback 파싱, 검증, 멱등성 처리
  * - 실제 상태 변경은 PaymentService에 위임
  * - Provider 호출 전 검증 수행
+ * - 트랜잭션 없이 순수하게 파싱/검증만 수행 (트랜잭션은 Facade 레벨에서 관리)
  */
 @Slf4j
 @Component
@@ -34,15 +34,29 @@ public class WebhookHandler {
     private final WebhookIdempotencyService idempotencyService;
     
     /**
+     * Webhook 처리 결과
+     *
+     * @param payment Payment 엔티티
+     * @param webhookEvent Webhook 이벤트 (중복 파싱 방지)
+     * @param webhookId Webhook ID (멱등성 키) - Facade에서 markAsProcessed 호출 시 사용
+     */
+    public record WebhookProcessingResult(Payment payment, PaymentProvider.WebhookEvent webhookEvent, String webhookId) {}
+
+    /**
      * Webhook 처리
-     * 
+     *
+     * <p>트랜잭션 없이 파싱, 검증, 멱등성 락 획득만 수행
+     * 실제 상태 변경과 트랜잭션 관리는 Facade 레벨에서 담당
+     *
+     * <p><strong>중요:</strong> markAsProcessed()는 호출하지 않습니다.
+     * Facade에서 DB 저장이 성공한 뒤에 호출해야 Redis와 DB 간 일관성이 보장됩니다.
+     *
      * @param paymentMethod 결제 수단
      * @param payload Webhook 페이로드
      * @param signature 서명 (검증용)
-     * @return 처리된 Payment (이미 처리된 경우 기존 Payment 반환)
+     * @return 처리된 Payment, WebhookEvent, webhookId (이미 처리된 경우 기존 Payment 반환)
      */
-    @Transactional
-    public Optional<Payment> handleWebhook(PaymentMethod paymentMethod, String payload, String signature) {
+    public Optional<WebhookProcessingResult> handleWebhook(PaymentMethod paymentMethod, String payload, String signature) {
         // 1. Provider 조회
         PaymentProvider provider = providerFactory.getProvider(paymentMethod);
         
@@ -58,32 +72,33 @@ public class WebhookHandler {
         // 4. 멱등성 확인 (Webhook ID 기반) - 원자적 락 획득
         String webhookId = generateWebhookId(paymentMethod, event);
         if (!idempotencyService.tryProcess(webhookId)) {
-            log.info("Webhook 이미 처리됨: webhookId={}, externalPaymentId={}", 
+            log.info("Webhook 이미 처리됨: webhookId={}, externalPaymentId={}",
                     webhookId, event.externalPaymentId());
-            return paymentRepository.findByExternalPaymentId(event.externalPaymentId());
+            return paymentRepository.findByExternalPaymentId(event.externalPaymentId())
+                    .map(payment -> new WebhookProcessingResult(payment, event, webhookId));
         }
         
         try {
             // 5. Payment 조회
             Optional<Payment> paymentOpt = paymentRepository.findByExternalPaymentId(event.externalPaymentId());
             if (paymentOpt.isEmpty()) {
-                log.warn("Webhook 수신했으나 Payment를 찾을 수 없음: externalPaymentId={}", 
+                log.warn("Webhook 수신했으나 Payment를 찾을 수 없음: externalPaymentId={}",
                         event.externalPaymentId());
-                // Webhook ID는 저장하여 중복 처리 방지
-                idempotencyService.markAsProcessed(webhookId);
+                // 락 해제 (Facade에서 markAsProcessed 호출 없이 종료될 것이므로)
+                idempotencyService.releaseProcessingLock(webhookId);
                 return Optional.empty();
             }
-            
+
             Payment payment = paymentOpt.get();
-            
+
             // 6. 이미 SUCCESS 상태면 재처리하지 않음 (멱등성)
             if (payment.getStatus().isCompleted()) {
-                log.info("Payment가 이미 완료 상태: paymentId={}, status={}, externalPaymentId={}", 
+                log.info("Payment가 이미 완료 상태: paymentId={}, status={}, externalPaymentId={}",
                         payment.getId(), payment.getStatus(), event.externalPaymentId());
-                idempotencyService.markAsProcessed(webhookId);
-                return Optional.of(payment);
+                // 이미 완료된 경우에도 webhookId 반환 (Facade에서 markAsProcessed 호출)
+                return Optional.of(new WebhookProcessingResult(payment, event, webhookId));
             }
-            
+
             // 7. PaymentResult 검증
             if (event.paymentResult() != null) {
                 // 실제 결제 금액 계산 (포인트 사용 후 금액)
@@ -92,12 +107,10 @@ public class WebhookHandler {
                 );
                 paymentValidator.validatePaymentResult(payment, event.paymentResult(), actualAmount);
             }
-            
-            // 8. Webhook ID 저장 (멱등성 보장) - 검증 성공 후 마킹
-            idempotencyService.markAsProcessed(webhookId);
-            
-            // 9. Payment 반환 (실제 상태 변경은 PaymentService에서 처리)
-            return Optional.of(payment);
+
+            // 8. Payment, WebhookEvent, webhookId 반환 (중복 파싱 방지)
+            // markAsProcessed()는 Facade에서 DB 저장 성공 후 호출 (일관성 보장)
+            return Optional.of(new WebhookProcessingResult(payment, event, webhookId));
         } catch (Exception e) {
             // 처리 실패 시 락 해제
             idempotencyService.releaseProcessingLock(webhookId);

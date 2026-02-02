@@ -9,8 +9,19 @@ import java.time.Duration;
 
 /**
  * Webhook 멱등성 관리 서비스
- * 
+ *
  * <p>Redis를 사용하여 Webhook ID를 저장하고 중복 처리 방지
+ *
+ * <p><strong>알려진 제한사항 - 동시성 제어 일관성:</strong>
+ * - WebhookIdempotencyService: RedisTemplate 직접 사용 (setIfAbsent)
+ * - PointServiceImpl: ShedLock (LockProvider) 사용
+ * - CashbackLockService: ShedLock (LockProvider) 사용
+ * - 서로 다른 방식으로 동시성 제어하여 일관성 부족
+ *
+ * <p><strong>권장 개선사항:</strong>
+ * - 통일된 DistributedLockService 또는 IdempotencyService 인터페이스 도입
+ * - Redis 직접 사용 대신 추상화 계층을 통해 접근
+ * - 모든 동시성 제어를 동일한 메커니즘으로 통일
  */
 @Slf4j
 @Service

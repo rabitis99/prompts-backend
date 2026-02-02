@@ -15,6 +15,16 @@ import java.math.RoundingMode;
 /**
  * 결제 금액 처리 파사드
  * 환율 변환, 포인트 사용, 실제 결제 금액 계산을 담당
+ *
+ * <p><strong>알려진 제한사항:</strong>
+ * - 포인트는 requestPayment 시점에 차감됨 (결제 요청 단계)
+ * - 실제 결제 승인은 confirmPayment에서 발생
+ * - 사용자가 결제를 포기하면 포인트가 차감된 채로 남을 수 있음
+ *
+ * <p><strong>권장 개선사항:</strong>
+ * - 스케줄러를 통해 PENDING 상태가 일정 시간(예: 30분) 경과한 결제를 자동 만료 처리
+ * - 만료된 결제의 사용 포인트를 자동으로 복구
+ * - 또는 포인트 사용 시점을 confirmPayment로 이동 (아키텍처 변경 필요)
  */
 @Slf4j
 @Component

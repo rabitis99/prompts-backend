@@ -27,20 +27,24 @@ import java.util.Map;
 
 /**
  * KakaoPay Provider 구현체
- * 
+ *
  * <p>공식 권장 흐름:
  * 1) 결제 준비: POST /online/v1/payment/ready → tid, 리다이렉션 URL 획득
  * 2) 사용자가 인증/결제 진행 후 서버에서 받은 pg_token과 함께
  *    POST /online/v1/payment/approve → approve 호출 완료
- * 
+ *
  * <p>ready 단계에서 받은 tid 저장 후 approve 호출
  * 상태/멱등성은 DB + Webhook/approve 결과 반영
+ *
+ * <p>멱등성: 카카오페이는 별도의 Idempotency-Key를 지원하지 않음
+ * tid 자체가 고유 식별자 역할을 하며, 동일 tid로 중복 approve 호출 시 에러 반환
  */
 @Slf4j
 @Component
 public class KakaoPayPaymentProvider implements PaymentProvider {
-    
+
     private static final String KAKAO_PAY_API_URL = "https://open-api.kakaopay.com/online/v1/payment";
+    private static final String KAKAO_PAY_READY_ENDPOINT = "/ready";
     private static final String KAKAO_PAY_APPROVE_ENDPOINT = "/approve";
     
     private final KakaoPayProperties kakaoPayProperties;
@@ -67,7 +71,103 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
     public PaymentMethod getPaymentMethod() {
         return PaymentMethod.KAKAO_PAY;
     }
-    
+
+    /**
+     * 카카오페이는 멱등성 키를 별도로 지원하지 않음
+     * tid 자체가 고유 식별자 역할을 함
+     */
+    @Override
+    public boolean supportsIdempotency() {
+        return false;
+    }
+
+    /**
+     * 카카오페이는 결제 승인 전 /ready 단계가 필수
+     */
+    @Override
+    public boolean requiresPreparation() {
+        return true;
+    }
+
+    /**
+     * 카카오페이 결제 준비 (/ready API)
+     *
+     * <p>결제 승인 전 필수 호출:
+     * - tid (결제 고유 ID) 발급
+     * - 사용자 인증을 위한 리다이렉션 URL 획득
+     *
+     * @return PrepareResult (tid, redirectUrl 포함)
+     */
+    @Override
+    public PrepareResult preparePayment(
+            String orderId,
+            BigDecimal amount,
+            String currency,
+            String itemName,
+            String userId
+    ) {
+        try {
+            HttpHeaders headers = createHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("cid", kakaoPayProperties.getCid());
+            requestBody.put("partner_order_id", orderId);
+            requestBody.put("partner_user_id", userId);
+            requestBody.put("item_name", itemName != null ? itemName : "결제");
+            requestBody.put("quantity", 1);
+
+            // 소수점 금액 검증
+            if (amount.stripTrailingZeros().scale() > 0) {
+                throw new IllegalArgumentException("KakaoPay 결제 금액은 소수점 없이 전달되어야 합니다.");
+            }
+            requestBody.put("total_amount", amount.longValueExact());
+            requestBody.put("tax_free_amount", 0);
+
+            // 콜백 URL 설정 (설정에서 가져오거나 기본값 사용)
+            String approvalUrl = kakaoPayProperties.getApprovalUrl();
+            String cancelUrl = kakaoPayProperties.getCancelUrl();
+            String failUrl = kakaoPayProperties.getFailUrl();
+
+            requestBody.put("approval_url", approvalUrl != null ? approvalUrl : "https://localhost/payment/kakao/success");
+            requestBody.put("cancel_url", cancelUrl != null ? cancelUrl : "https://localhost/payment/kakao/cancel");
+            requestBody.put("fail_url", failUrl != null ? failUrl : "https://localhost/payment/kakao/fail");
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    KAKAO_PAY_API_URL + KAKAO_PAY_READY_ENDPOINT,
+                    HttpMethod.POST,
+                    request,
+                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> responseBody = response.getBody();
+                String tid = (String) responseBody.get("tid");
+                String redirectUrl = (String) responseBody.get("next_redirect_pc_url");
+
+                // 모바일 URL도 포함하여 메타데이터로 저장
+                String mobileRedirectUrl = (String) responseBody.get("next_redirect_mobile_url");
+                String appRedirectUrl = (String) responseBody.get("next_redirect_app_url");
+
+                Map<String, String> metadata = new HashMap<>();
+                metadata.put("next_redirect_pc_url", redirectUrl);
+                metadata.put("next_redirect_mobile_url", mobileRedirectUrl);
+                metadata.put("next_redirect_app_url", appRedirectUrl);
+
+                log.info("KakaoPay 결제 준비 성공: orderId={}, tid={}", orderId, tid);
+
+                return PrepareResult.success(tid, redirectUrl, objectMapper.writeValueAsString(metadata));
+            } else {
+                throw new RuntimeException("KakaoPay 결제 준비 실패: " + response.getStatusCode());
+            }
+        } catch (Exception e) {
+            log.error("KakaoPay 결제 준비 API 호출 실패: orderId={}, error={}", orderId, e.getMessage(), e);
+            throw new RuntimeException("KakaoPay 결제 준비 실패: " + e.getMessage(), e);
+        }
+    }
+
     @Override
     public PaymentResult confirmPayment(
             String paymentKey, // KakaoPay에서는 tid 또는 pg_token

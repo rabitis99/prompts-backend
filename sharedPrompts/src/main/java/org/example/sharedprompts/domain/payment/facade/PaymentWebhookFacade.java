@@ -6,10 +6,9 @@ import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
-import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
-import org.example.sharedprompts.domain.payment.provider.PaymentProviderFactory;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.payment.webhook.WebhookHandler;
+import org.example.sharedprompts.domain.payment.webhook.WebhookIdempotencyService;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,14 +25,19 @@ import java.util.Optional;
 @Component
 @RequiredArgsConstructor
 public class PaymentWebhookFacade {
-    
+
     private final WebhookHandler webhookHandler;
-    private final PaymentProviderFactory providerFactory;
     private final PaymentRepository paymentRepository;
+    private final WebhookIdempotencyService idempotencyService;
     
     /**
      * Webhook 처리
-     * 
+     *
+     * <p>트랜잭션 경계를 명확히 관리:
+     * - WebhookHandler는 트랜잭션 없이 파싱/검증/락 획득만 수행
+     * - Facade에서 트랜잭션 시작 후 상태 변경 및 저장
+     * - DB 저장 성공 후 markAsProcessed() 호출 (Redis와 DB 일관성 보장)
+     *
      * @param paymentMethod 결제 수단
      * @param payload Webhook 페이로드
      * @param signature 서명 (검증용)
@@ -41,27 +45,37 @@ public class PaymentWebhookFacade {
      */
     @Transactional
     public Optional<Payment> handleWebhook(PaymentMethod paymentMethod, String payload, String signature) {
-        // WebhookHandler를 통해 파싱, 검증, 멱등성 처리
-        Optional<Payment> paymentOpt = webhookHandler.handleWebhook(paymentMethod, payload, signature);
-        
-        if (paymentOpt.isPresent()) {
-            Payment payment = paymentOpt.get();
-            
-            // Webhook 결과에 따라 상태 동기화
-            // WebhookHandler에서 이미 검증 및 멱등성 처리가 완료되었으므로
-            // Provider를 통해 Webhook 이벤트 파싱 후 상태 변경
-            PaymentProvider provider = providerFactory.getProvider(paymentMethod);
-            PaymentProvider.WebhookEvent event = provider.parseWebhook(payload);
-            
-            if (event.paymentResult() != null && payment.getStatus() == PaymentStatus.PENDING) {
-                // Payment 도메인 메서드를 통해 상태 변경
-                applyWebhookResult(payment, event.paymentResult());
+        // WebhookHandler를 통해 파싱, 검증, 멱등성 락 획득 (트랜잭션 없음)
+        Optional<WebhookHandler.WebhookProcessingResult> resultOpt =
+                webhookHandler.handleWebhook(paymentMethod, payload, signature);
+
+        if (resultOpt.isPresent()) {
+            WebhookHandler.WebhookProcessingResult result = resultOpt.get();
+            Payment payment = result.payment();
+            String webhookId = result.webhookId();
+
+            try {
+                // Webhook 이벤트에서 PaymentResult 추출 (중복 파싱 제거)
+                if (result.webhookEvent().paymentResult() != null && payment.getStatus() == PaymentStatus.PENDING) {
+                    // Payment 도메인 메서드를 통해 상태 변경
+                    applyWebhookResult(payment, result.webhookEvent().paymentResult());
+                }
+
+                // 트랜잭션 내에서 저장
+                payment = paymentRepository.save(payment);
+
+                // DB 저장 성공 후 Redis에 처리 완료 마킹 (일관성 보장)
+                idempotencyService.markAsProcessed(webhookId);
+
+                return Optional.of(payment);
+            } catch (Exception e) {
+                // 트랜잭션 실패 시 락 해제 (재처리 가능하도록)
+                idempotencyService.releaseProcessingLock(webhookId);
+                log.error("Webhook 처리 중 트랜잭션 실패: webhookId={}, paymentId={}", webhookId, payment.getId(), e);
+                throw e;
             }
-            
-            payment = paymentRepository.save(payment);
-            return Optional.of(payment);
         }
-        
+
         return Optional.empty();
     }
     

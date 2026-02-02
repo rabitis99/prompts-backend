@@ -185,8 +185,106 @@ public class Payment extends BaseEntity {
      * 재시도 가능 여부 확인
      */
     public boolean isRetryable(int maxRetry) {
-        return this.status == PaymentStatus.PENDING 
+        return this.status == PaymentStatus.PENDING
                 && this.retryCount < maxRetry;
+    }
+
+    // ===== 상태 전이 검증 메서드 =====
+
+    /**
+     * 특정 상태로 전이 가능한지 확인
+     *
+     * <p>결제 상태 전이 규칙:
+     * - PENDING → SUCCESS, FAILED, CANCELED
+     * - SUCCESS → CANCELED, REFUNDED, PARTIALLY_REFUNDED
+     * - PARTIALLY_REFUNDED → REFUNDED, PARTIALLY_REFUNDED (추가 환불)
+     * - FAILED, CANCELED, REFUNDED → 전이 불가
+     *
+     * @param targetStatus 전이할 목표 상태
+     * @return 전이 가능 여부
+     */
+    public boolean canTransitionTo(PaymentStatus targetStatus) {
+        if (this.status == targetStatus) {
+            return false; // 동일 상태로는 전이 불가
+        }
+
+        return switch (this.status) {
+            case PENDING -> targetStatus == PaymentStatus.SUCCESS
+                    || targetStatus == PaymentStatus.FAILED
+                    || targetStatus == PaymentStatus.CANCELED;
+            case SUCCESS -> targetStatus == PaymentStatus.CANCELED
+                    || targetStatus == PaymentStatus.REFUNDED
+                    || targetStatus == PaymentStatus.PARTIALLY_REFUNDED;
+            case PARTIALLY_REFUNDED -> targetStatus == PaymentStatus.REFUNDED
+                    || targetStatus == PaymentStatus.PARTIALLY_REFUNDED;
+            case FAILED, CANCELED, REFUNDED -> false; // 최종 상태에서는 전이 불가
+        };
+    }
+
+    /**
+     * 취소 가능 여부 확인
+     *
+     * <p>취소 가능 조건:
+     * - SUCCESS 상태이고 환불된 금액이 없음
+     * - PENDING 상태 (결제 진행 중 취소)
+     *
+     * @return 취소 가능 여부
+     */
+    public boolean canCancel() {
+        if (this.status == PaymentStatus.PENDING) {
+            return true;
+        }
+        if (this.status == PaymentStatus.SUCCESS) {
+            return this.refundedAmount.compareTo(BigDecimal.ZERO) == 0;
+        }
+        return false;
+    }
+
+    /**
+     * 환불 가능 여부 확인
+     *
+     * <p>환불 가능 조건:
+     * - SUCCESS 상태이거나 PARTIALLY_REFUNDED 상태
+     * - 환불 가능 금액이 남아있음
+     *
+     * @return 환불 가능 여부
+     */
+    public boolean canRefund() {
+        boolean statusAllowsRefund = this.status == PaymentStatus.SUCCESS
+                || this.status == PaymentStatus.PARTIALLY_REFUNDED;
+        boolean hasRefundableAmount = getRefundableAmount().compareTo(BigDecimal.ZERO) > 0;
+        return statusAllowsRefund && hasRefundableAmount;
+    }
+
+    /**
+     * 특정 금액 환불 가능 여부 확인
+     *
+     * @param refundAmount 환불할 금액
+     * @return 환불 가능 여부
+     */
+    public boolean canRefund(BigDecimal refundAmount) {
+        if (!canRefund()) {
+            return false;
+        }
+        return refundAmount.compareTo(BigDecimal.ZERO) > 0
+                && refundAmount.compareTo(getRefundableAmount()) <= 0;
+    }
+
+    /**
+     * 결제 성공 상태인지 확인
+     */
+    public boolean isSuccessful() {
+        return this.status == PaymentStatus.SUCCESS
+                || this.status == PaymentStatus.PARTIALLY_REFUNDED;
+    }
+
+    /**
+     * 최종 상태인지 확인 (더 이상 상태 변경 불가)
+     */
+    public boolean isFinalState() {
+        return this.status == PaymentStatus.FAILED
+                || this.status == PaymentStatus.CANCELED
+                || this.status == PaymentStatus.REFUNDED;
     }
 
     /**
@@ -238,6 +336,39 @@ public class Payment extends BaseEntity {
         } else if (status == PaymentStatus.FAILED) {
             this.failureReason = failureReason != null ? failureReason : "Webhook에서 결제 실패 확인";
         }
+    }
+
+    /**
+     * 결제가 만료되었는지 확인
+     *
+     * <p>PENDING 상태에서 일정 시간 경과 시 만료로 간주
+     * 만료된 결제는 자동으로 취소되고 사용한 포인트가 복구되어야 함
+     *
+     * <p>권장 구현: 스케줄러를 통해 주기적으로 만료된 결제를 확인하고
+     * 자동으로 FAILED 상태로 변경 + 포인트 복구 처리
+     *
+     * @param expiryMinutes 만료 시간 (분)
+     * @return 만료 여부
+     */
+    public boolean isExpired(long expiryMinutes) {
+        if (this.status != PaymentStatus.PENDING) {
+            return false;
+        }
+        LocalDateTime expiryTime = this.getCreatedAt().plusMinutes(expiryMinutes);
+        return LocalDateTime.now().isAfter(expiryTime);
+    }
+
+    /**
+     * 포인트를 사용했지만 결제가 완료되지 않은 상태인지 확인
+     *
+     * <p>이 상태의 결제는 포인트 복구가 필요할 수 있음
+     * - PENDING 상태이고 포인트를 사용했으면 사용자가 결제를 포기했을 가능성
+     * - 스케줄러를 통해 일정 시간 후 자동으로 포인트 복구 처리 권장
+     */
+    public boolean hasUnrecoveredPoints() {
+        return this.status == PaymentStatus.PENDING
+                && this.usedPointAmount != null
+                && this.usedPointAmount.compareTo(BigDecimal.ZERO) > 0;
     }
 }
 

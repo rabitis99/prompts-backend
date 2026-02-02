@@ -34,8 +34,19 @@ import java.util.function.Supplier;
 
 /**
  * 포인트 서비스 구현체
- * 
+ *
  * 멀티 서버 환경에서 동시성 문제를 해결하기 위해 ShedLock 분산락을 사용합니다.
+ *
+ * <p><strong>알려진 제한사항 - 잔액 관리 방식:</strong>
+ * - Point 엔티티의 balance 필드에 누적 잔액 저장 (getLastBalance 사용)
+ * - getCurrentBalance는 별도 집계 쿼리 사용
+ * - 두 메서드가 다른 방식으로 잔액 계산하여 일시적 불일치 가능성 존재
+ * - 분산락으로 동시성 제어하지만, 락 외부에서 getCurrentBalance 호출 시 부정확할 수 있음
+ *
+ * <p><strong>권장 개선사항:</strong>
+ * - balance 필드 제거하고 항상 집계 쿼리로 잔액 계산 (단일 진실 공급원)
+ * - 또는 User 엔티티에 pointBalance 필드 추가하여 신뢰할 수 있는 단일 소스로 관리
+ * - Point 엔티티는 이력만 저장하고 잔액 계산은 별도 집계 테이블 사용
  */
 @Slf4j
 @Service
@@ -232,11 +243,16 @@ public class PointServiceImpl implements PointService {
 
     /**
      * 마지막 잔액 조회
+     *
+     * <p><strong>주의:</strong> Point 엔티티의 balance 필드를 사용하여 잔액 조회
+     * - getCurrentBalance()와 다른 방식으로 계산하여 일시적 불일치 가능
+     * - 분산락 내부에서만 호출되어야 정확성 보장
+     * - 권장: balance 필드 대신 항상 집계 쿼리 사용 (향후 개선 필요)
      */
     private BigDecimal getLastBalance(Long userId) {
         List<Point> latestPoints = pointRepository.findLatestPointByUserId(userId);
-        return latestPoints.isEmpty() 
-                ? BigDecimal.ZERO 
+        return latestPoints.isEmpty()
+                ? BigDecimal.ZERO
                 : latestPoints.get(0).getBalance();
     }
 

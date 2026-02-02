@@ -16,8 +16,19 @@ import java.util.function.Supplier;
 
 /**
  * 캐시백 락 관리 서비스
- * 
+ *
  * <p>단일 책임: 분산 락 관리만 담당
+ *
+ * <p><strong>알려진 제한사항 - 동시성 제어 일관성:</strong>
+ * - CashbackLockService: ShedLock (LockProvider) 사용
+ * - PointServiceImpl: ShedLock (LockProvider) 사용 (코드 중복)
+ * - WebhookIdempotencyService: Redis setIfAbsent 직접 사용
+ * - 동일한 기능을 서로 다른 방식으로 구현하여 유지보수 어려움
+ *
+ * <p><strong>권장 개선사항:</strong>
+ * - 통일된 DistributedLockService 인터페이스 도입
+ * - 락 타임아웃, 재시도, 에러 처리 정책을 중앙에서 관리
+ * - 락 획득 실패 시 동작 일관되게 정의 (재시도 vs 즉시 실패)
  */
 @Slf4j
 @Service
