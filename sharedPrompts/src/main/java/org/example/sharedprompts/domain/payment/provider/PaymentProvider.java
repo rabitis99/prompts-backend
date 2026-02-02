@@ -72,17 +72,18 @@ public interface PaymentProvider {
 
     /**
      * 결제 승인/확인 요청
-     * 
+     *
      * <p>각 결제사 공식 권장 방식에 따라 호출:
      * - Toss: POST /v1/payments/confirm
      * - KakaoPay: POST /online/v1/payment/approve (ready 후)
      * - PayPal: POST /v2/checkout/orders/{orderId}/capture
-     * 
+     *
      * @param paymentKey 결제 키 (paymentKey, tid, orderId 등)
      * @param orderId 주문 ID
      * @param amount 결제 금액
      * @param currency 통화 코드
      * @param idempotencyKey 멱등성 키 (중복 호출 방지)
+     * @param userId 사용자 ID (KakaoPay의 partner_user_id 등에 사용)
      * @return PaymentResult (외부 API 응답을 도메인 모델로 변환)
      */
     PaymentResult confirmPayment(
@@ -90,7 +91,8 @@ public interface PaymentProvider {
             String orderId,
             BigDecimal amount,
             String currency,
-            String idempotencyKey
+            String idempotencyKey,
+            String userId
     );
     
     /**

@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
@@ -20,6 +21,7 @@ import org.springframework.validation.annotation.Validated;
  * (런타임이 아닌 부팅 시점에 오류 감지)
  */
 @Getter
+@Setter
 @Component
 @Validated
 @ConfigurationProperties(prefix = "payment.kakao")

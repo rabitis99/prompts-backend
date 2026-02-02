@@ -87,7 +87,8 @@ public class PaymentExecutionService {
                 String.valueOf(payment.getId()),
                 actualAmount,
                 payment.getCurrency(),
-                idempotencyKey
+                idempotencyKey,
+                String.valueOf(payment.getUser().getId())
         );
 
         // 외부 결제 ID 먼저 저장 (검증 실패해도 추적 가능하도록)

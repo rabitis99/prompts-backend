@@ -98,16 +98,18 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             String orderId,
             BigDecimal amount,
             String currency,
-            String idempotencyKey
+            String idempotencyKey,
+            String userId
     ) {
         validateRequired(paymentKey, "paymentKey (tid)");
         validateRequired(orderId, "orderId");
         validateRequired(amount, "amount");
         validateRequired(currency, "currency");
+        validateRequired(userId, "userId");
 
         try {
             long kakaoAmount = amountPolicy.toKakaoAmount(amount);
-            var response = kakakoApproveApiClient.approve(paymentKey, orderId, kakaoAmount);
+            var response = kakakoApproveApiClient.approve(paymentKey, orderId, kakaoAmount, userId);
             PaymentStatus status = statusMapper.map(response.status());
 
             log.info("KakaoPay 결제 승인 성공: tid={}, orderId={}, status={}", paymentKey, orderId, status);

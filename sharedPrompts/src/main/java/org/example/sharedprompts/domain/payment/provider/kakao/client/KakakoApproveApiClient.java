@@ -36,17 +36,19 @@ public class KakakoApproveApiClient {
 
     /**
      * 결제 승인 요청
-     * 
+     *
      * @param tid 결제 고유 ID (필수)
      * @param orderId 주문 ID (필수)
      * @param amount 결제 금액 (원 단위, 필수)
+     * @param userId 사용자 ID (필수, ready 시 사용한 partner_user_id와 동일해야 함)
      * @return ApproveResponse
      * @throws IllegalArgumentException 필수 필드 누락 시
      * @throws RuntimeException API 호출 실패 시
      */
-    public KakakoApproveResponse approve(String tid, String orderId, long amount) {
+    public KakakoApproveResponse approve(String tid, String orderId, long amount, String userId) {
         validateRequired(tid, "tid");
         validateRequired(orderId, "orderId");
+        validateRequired(userId, "userId");
         if (amount <= 0) {
             throw new IllegalArgumentException("결제 금액은 0보다 커야 합니다: amount=" + amount);
         }
@@ -58,7 +60,7 @@ public class KakakoApproveApiClient {
             requestBody.put("cid", properties.getCid());
             requestBody.put("tid", tid);
             requestBody.put("partner_order_id", orderId);
-            requestBody.put("partner_user_id", orderId); // KakaoPay는 partner_user_id도 필요
+            requestBody.put("partner_user_id", userId);
             requestBody.put("pg_token", ""); // 실제로는 클라이언트에서 받아온 pg_token 필요
 
             HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, headers);

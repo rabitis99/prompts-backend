@@ -413,6 +413,9 @@ payment:
   kakao:
     secret: ${PAYMENT_KAKAO_SECRET:}
     cid: ${PAYMENT_KAKAO_CID:TC0ONETIME}
+    approval-url: ${PAYMENT_KAKAO_APPROVAL_URL}
+    cancel-url: ${PAYMENT_KAKAO_CANCEL_URL}
+    fail-url: ${PAYMENT_KAKAO_FAIL_URL}
   toss:
     api-key: ${TOSS_API_KEY:}
     secret-key: ${TOSS_SECRET:}
@@ -434,9 +437,9 @@ payment:
   point:
     rate: ${PAYMENT_POINT_RATE:0.005}  # 0.5%
   fcm:
-  enabled: ${PAYMENT_FCM_ENABLED:true}
-  project-id: ${PAYMENT_FCM_PROJECT_ID:sharedprompt-8ed9d}
-  credentials-path: ${PAYMENT_FCM_CREDENTIALS_PATH}
+    enabled: ${PAYMENT_FCM_ENABLED:true}
+    project-id: ${PAYMENT_FCM_PROJECT_ID:sharedprompt-8ed9d}
+    credentials-path: ${PAYMENT_FCM_CREDENTIALS_PATH}
 
 # =========================
 # 이메일 설정
