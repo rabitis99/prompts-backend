@@ -74,8 +74,8 @@ public interface PaymentProvider {
      * 결제 승인/확인 요청
      *
      * <p>각 결제사 공식 권장 방식에 따라 호출:
-     * - Toss: POST /v1/payments/confirm
-     * - KakaoPay: POST /online/v1/payment/approve (ready 후)
+     * - Toss: POST /v2/payments/confirm
+     * - KakaoPay: POST /online/v1/payment/approve (ready 후, pg_token 필요)
      * - PayPal: POST /v2/checkout/orders/{orderId}/capture
      *
      * @param paymentKey 결제 키 (paymentKey, tid, orderId 등)
@@ -84,6 +84,7 @@ public interface PaymentProvider {
      * @param currency 통화 코드
      * @param idempotencyKey 멱등성 키 (중복 호출 방지)
      * @param userId 사용자 ID (KakaoPay의 partner_user_id 등에 사용)
+     * @param additionalParams 결제사별 추가 파라미터 (KakaoPay: pgToken 등)
      * @return PaymentResult (외부 API 응답을 도메인 모델로 변환)
      */
     PaymentResult confirmPayment(
@@ -92,8 +93,26 @@ public interface PaymentProvider {
             BigDecimal amount,
             String currency,
             String idempotencyKey,
-            String userId
+            String userId,
+            java.util.Map<String, String> additionalParams
     );
+
+    /**
+     * 결제 승인/확인 요청 (추가 파라미터 없이 호출)
+     *
+     * @deprecated additionalParams를 포함한 메서드 사용 권장
+     */
+    @Deprecated
+    default PaymentResult confirmPayment(
+            String paymentKey,
+            String orderId,
+            BigDecimal amount,
+            String currency,
+            String idempotencyKey,
+            String userId
+    ) {
+        return confirmPayment(paymentKey, orderId, amount, currency, idempotencyKey, userId, java.util.Collections.emptyMap());
+    }
     
     /**
      * 결제 상태 조회

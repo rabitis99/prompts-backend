@@ -17,9 +17,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * TossPay 결제 승인 API Client
+ * TossPay 결제 승인 API Client (v2 API)
  *
  * <p>단일 책임: 결제 승인 API 호출만 담당
+ * <p>API: POST /v2/payments/confirm
  */
 @Slf4j
 @Component

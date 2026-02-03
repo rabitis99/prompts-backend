@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * 결제 실행 서비스
@@ -52,6 +54,19 @@ public class PaymentExecutionService {
      */
     @Transactional
     public Payment executePayment(Payment payment, BigDecimal actualAmount) {
+        return executePayment(payment, actualAmount, Collections.emptyMap());
+    }
+
+    /**
+     * 결제 실행 (추가 파라미터 포함)
+     *
+     * @param payment Payment 엔티티
+     * @param actualAmount 실제 결제 금액 (포인트 사용 후)
+     * @param additionalParams 결제사별 추가 파라미터 (KakaoPay: pgToken 등)
+     * @return 저장된 Payment 엔티티
+     */
+    @Transactional
+    public Payment executePayment(Payment payment, BigDecimal actualAmount, Map<String, String> additionalParams) {
         // 이미 SUCCESS 상태면 외부 API 재호출 금지 (멱등성)
         if (payment.getStatus() == PaymentStatus.SUCCESS) {
             log.info("Payment가 이미 완료 상태: paymentId={}, externalPaymentId={}",
@@ -88,7 +103,8 @@ public class PaymentExecutionService {
                 actualAmount,
                 payment.getCurrency(),
                 idempotencyKey,
-                String.valueOf(payment.getUser().getId())
+                String.valueOf(payment.getUser().getId()),
+                additionalParams != null ? additionalParams : Collections.emptyMap()
         );
 
         // 외부 결제 ID 먼저 저장 (검증 실패해도 추적 가능하도록)

@@ -18,9 +18,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * PayPal 주문 생성 API Client
+ * PayPal 주문 생성 API Client (v2 API - 최신)
  *
  * <p>단일 책임: 주문 생성(결제 준비) API 호출만 담당
+ * <p>API: POST /v2/checkout/orders
  */
 @Slf4j
 @Component

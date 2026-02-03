@@ -13,14 +13,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.Map;
 
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-
 /**
- * KakaoPay 결제 취소/환불 API Client
- * 
+ * KakaoPay 결제 취소/환불 API Client (신규 API - open-api.kakaopay.com)
+ *
  * <p>단일 책임: 결제 취소 및 환불 API 호출만 담당
  */
 @Slf4j
@@ -28,7 +26,7 @@ import org.springframework.util.MultiValueMap;
 @RequiredArgsConstructor
 public class KakakoCancelApiClient {
 
-    private static final String KAKAO_PAY_API_URL = "https://kapi.kakao.com/v1/payment";
+    private static final String KAKAO_PAY_API_URL = "https://open-api.kakaopay.com/online/v1/payment";
     private static final String CANCEL_ENDPOINT = "/cancel";
 
     private final KakaoPayProperties properties;
@@ -52,19 +50,18 @@ public class KakakoCancelApiClient {
         validateRequired(reason, "reason");
 
         try {
-            HttpHeaders headers = headersProvider.createFormHeaders();
+            HttpHeaders headers = headersProvider.createJsonHeaders();
 
             // 전체 취소를 위해 총 금액 조회
             long totalAmount = kakakoStatusApiClient.status(tid).amount();
 
-            MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
-            requestBody.add("cid", properties.getCid());
-            requestBody.add("tid", tid);
-            requestBody.add("cancel_amount", String.valueOf(totalAmount));
-            requestBody.add("cancel_tax_free_amount", "0");
-            requestBody.add("cancel_reason", reason);
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("cid", properties.getCid());
+            requestBody.put("tid", tid);
+            requestBody.put("cancel_amount", totalAmount);
+            requestBody.put("cancel_tax_free_amount", 0);
 
-            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(requestBody, headers);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     KAKAO_PAY_API_URL + CANCEL_ENDPOINT,
@@ -107,16 +104,15 @@ public class KakakoCancelApiClient {
         }
 
         try {
-            HttpHeaders headers = headersProvider.createFormHeaders();
+            HttpHeaders headers = headersProvider.createJsonHeaders();
 
-            MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
-            requestBody.add("cid", properties.getCid());
-            requestBody.add("tid", tid);
-            requestBody.add("cancel_amount", String.valueOf(amount));
-            requestBody.add("cancel_tax_free_amount", "0");
-            requestBody.add("cancel_reason", reason);
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("cid", properties.getCid());
+            requestBody.put("tid", tid);
+            requestBody.put("cancel_amount", amount);
+            requestBody.put("cancel_tax_free_amount", 0);
 
-            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(requestBody, headers);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     KAKAO_PAY_API_URL + CANCEL_ENDPOINT,
@@ -127,8 +123,13 @@ public class KakakoCancelApiClient {
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> body = response.getBody();
-                Object refundedAmountObj = body.get("cancel_amount");
-                long refundedAmount = refundedAmountObj != null ? Long.parseLong(refundedAmountObj.toString()) : amount;
+                // 신규 API는 canceled_amount 객체로 반환됨
+                @SuppressWarnings("unchecked")
+                Map<String, Object> canceledAmountMap = (Map<String, Object>) body.get("canceled_amount");
+                long refundedAmount = amount;
+                if (canceledAmountMap != null && canceledAmountMap.get("total") != null) {
+                    refundedAmount = Long.parseLong(canceledAmountMap.get("total").toString());
+                }
 
                 log.info("KakaoPay 결제 환불 성공: tid={}, amount={}", tid, refundedAmount);
                 return new KakakoRefundResponse(

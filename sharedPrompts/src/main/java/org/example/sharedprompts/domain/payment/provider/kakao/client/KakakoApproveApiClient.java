@@ -12,14 +12,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.Map;
 
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-
 /**
- * KakaoPay 결제 승인 API Client
- * 
+ * KakaoPay 결제 승인 API Client (신규 API - open-api.kakaopay.com)
+ *
  * <p>단일 책임: 결제 승인 API 호출만 담당
  */
 @Slf4j
@@ -27,7 +25,7 @@ import org.springframework.util.MultiValueMap;
 @RequiredArgsConstructor
 public class KakakoApproveApiClient {
 
-    private static final String KAKAO_PAY_API_URL = "https://kapi.kakao.com/v1/payment";
+    private static final String KAKAO_PAY_API_URL = "https://open-api.kakaopay.com/online/v1/payment";
     private static final String APPROVE_ENDPOINT = "/approve";
 
     private final KakaoPayProperties properties;
@@ -41,31 +39,29 @@ public class KakakoApproveApiClient {
      *
      * @param tid 결제 고유 ID (필수)
      * @param orderId 주문 ID (필수)
-     * @param amount 결제 금액 (원 단위, 필수)
      * @param userId 사용자 ID (필수, ready 시 사용한 partner_user_id와 동일해야 함)
+     * @param pgToken 결제 승인 토큰 (필수, 클라이언트에서 리다이렉트 시 전달받음)
      * @return ApproveResponse
      * @throws IllegalArgumentException 필수 필드 누락 시
      * @throws RuntimeException API 호출 실패 시
      */
-    public KakakoApproveResponse approve(String tid, String orderId, long amount, String userId) {
+    public KakakoApproveResponse approve(String tid, String orderId, String userId, String pgToken) {
         validateRequired(tid, "tid");
         validateRequired(orderId, "orderId");
         validateRequired(userId, "userId");
-        if (amount <= 0) {
-            throw new IllegalArgumentException("결제 금액은 0보다 커야 합니다: amount=" + amount);
-        }
+        validateRequired(pgToken, "pgToken");
 
         try {
-            HttpHeaders headers = headersProvider.createFormHeaders();
+            HttpHeaders headers = headersProvider.createJsonHeaders();
 
-            MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
-            requestBody.add("cid", properties.getCid());
-            requestBody.add("tid", tid);
-            requestBody.add("partner_order_id", orderId);
-            requestBody.add("partner_user_id", userId);
-            requestBody.add("pg_token", ""); // 실제로는 클라이언트에서 받아온 pg_token 필요
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("cid", properties.getCid());
+            requestBody.put("tid", tid);
+            requestBody.put("partner_order_id", orderId);
+            requestBody.put("partner_user_id", userId);
+            requestBody.put("pg_token", pgToken);
 
-            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(requestBody, headers);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     KAKAO_PAY_API_URL + APPROVE_ENDPOINT,

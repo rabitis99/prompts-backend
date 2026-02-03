@@ -99,7 +99,8 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             BigDecimal amount,
             String currency,
             String idempotencyKey,
-            String userId
+            String userId,
+            java.util.Map<String, String> additionalParams
     ) {
         validateRequired(paymentKey, "paymentKey (tid)");
         validateRequired(orderId, "orderId");
@@ -107,9 +108,14 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
         validateRequired(currency, "currency");
         validateRequired(userId, "userId");
 
+        // KakaoPay 신규 API는 pg_token 필수
+        String pgToken = additionalParams != null ? additionalParams.get("pgToken") : null;
+        if (pgToken == null || pgToken.isEmpty()) {
+            throw new IllegalArgumentException("pgToken은(는) 필수입니다 (KakaoPay 결제 승인 시 필수)");
+        }
+
         try {
-            long kakaoAmount = amountPolicy.toKakaoAmount(amount);
-            var response = kakakoApproveApiClient.approve(paymentKey, orderId, kakaoAmount, userId);
+            var response = kakakoApproveApiClient.approve(paymentKey, orderId, userId, pgToken);
             PaymentStatus status = statusMapper.map(response.status());
 
             log.info("KakaoPay 결제 승인 성공: tid={}, orderId={}, status={}", paymentKey, orderId, status);

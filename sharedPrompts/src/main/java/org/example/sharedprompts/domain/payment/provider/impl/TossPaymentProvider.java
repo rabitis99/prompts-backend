@@ -67,7 +67,8 @@ public class TossPaymentProvider implements PaymentProvider {
             BigDecimal amount,
             String currency,
             String idempotencyKey,
-            String userId // TossPay에서는 사용하지 않음
+            String userId, // TossPay에서는 사용하지 않음
+            java.util.Map<String, String> additionalParams // TossPay에서는 사용하지 않음
     ) {
         validateRequired(paymentKey, "paymentKey");
         validateRequired(orderId, "orderId");

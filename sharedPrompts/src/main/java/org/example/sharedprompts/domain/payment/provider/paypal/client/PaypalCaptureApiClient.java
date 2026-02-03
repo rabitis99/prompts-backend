@@ -14,9 +14,10 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
 /**
- * PayPal 결제 캡처 API Client
+ * PayPal 결제 캡처 API Client (v2 API - 최신)
  *
  * <p>단일 책임: 결제 캡처(승인) API 호출만 담당
+ * <p>API: POST /v2/checkout/orders/{orderId}/capture
  */
 @Slf4j
 @Component

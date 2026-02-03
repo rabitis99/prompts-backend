@@ -100,7 +100,8 @@ public class PayPalPaymentProvider implements PaymentProvider {
             BigDecimal amount,
             String currency,
             String idempotencyKey,
-            String userId // PayPal에서는 사용하지 않음
+            String userId, // PayPal에서는 사용하지 않음
+            java.util.Map<String, String> additionalParams // PayPal에서는 사용하지 않음
     ) {
         validateRequired(paymentKey, "paymentKey (orderId)");
         validateRequired(orderId, "orderId");

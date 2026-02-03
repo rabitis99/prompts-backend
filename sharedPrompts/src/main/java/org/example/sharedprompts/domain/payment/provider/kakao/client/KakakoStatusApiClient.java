@@ -11,14 +11,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.Map;
 
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-
 /**
- * KakaoPay 결제 상태 조회 API Client
- * 
+ * KakaoPay 결제 상태 조회 API Client (신규 API - open-api.kakaopay.com)
+ *
  * <p>단일 책임: 결제 상태 조회 API 호출만 담당
  */
 @Slf4j
@@ -26,7 +24,7 @@ import org.springframework.util.MultiValueMap;
 @RequiredArgsConstructor
 public class KakakoStatusApiClient {
 
-    private static final String KAKAO_PAY_API_URL = "https://kapi.kakao.com/v1/payment";
+    private static final String KAKAO_PAY_API_URL = "https://open-api.kakaopay.com/online/v1/payment";
     private static final String STATUS_ENDPOINT = "/order";
 
     private final KakaoPayProperties properties;
@@ -46,13 +44,13 @@ public class KakakoStatusApiClient {
         validateRequired(tid, "tid");
 
         try {
-            HttpHeaders headers = headersProvider.createFormHeaders();
+            HttpHeaders headers = headersProvider.createJsonHeaders();
 
-            MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
-            requestBody.add("cid", properties.getCid());
-            requestBody.add("tid", tid);
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("cid", properties.getCid());
+            requestBody.put("tid", tid);
 
-            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(requestBody, headers);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     KAKAO_PAY_API_URL + STATUS_ENDPOINT,
@@ -65,19 +63,26 @@ public class KakakoStatusApiClient {
                 Map<String, Object> body = response.getBody();
                 String status = (String) body.get("status");
                 String orderId = (String) body.get("partner_order_id");
-                Object amountObj = body.get("amount");
-                
+
+                // 신규 API는 amount가 객체로 반환됨
+                @SuppressWarnings("unchecked")
+                Map<String, Object> amountMap = (Map<String, Object>) body.get("amount");
+
                 if (status == null || status.isEmpty()) {
                     throw new RuntimeException("KakaoPay status 응답에 status가 없습니다");
                 }
                 if (orderId == null || orderId.isEmpty()) {
                     throw new RuntimeException("KakaoPay status 응답에 orderId가 없습니다");
                 }
-                if (amountObj == null) {
+                if (amountMap == null) {
                     throw new RuntimeException("KakaoPay status 응답에 amount가 없습니다");
                 }
 
-                long amount = Long.parseLong(amountObj.toString());
+                Object totalAmountObj = amountMap.get("total");
+                if (totalAmountObj == null) {
+                    throw new RuntimeException("KakaoPay status 응답에 amount.total이 없습니다");
+                }
+                long amount = Long.parseLong(totalAmountObj.toString());
 
                 log.debug("KakaoPay 결제 상태 조회 성공: tid={}, status={}", tid, status);
                 return new KakakoStatusResponse(status, orderId, amount, jsonConverter.convertToJson(body));
