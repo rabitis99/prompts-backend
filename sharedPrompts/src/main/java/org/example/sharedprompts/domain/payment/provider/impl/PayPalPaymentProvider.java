@@ -109,7 +109,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
         validateRequired(currency, "currency");
 
         try {
-            amountPolicy.validate(amount); // 금액 검증만 수행
+            BigDecimal validatedAmount = amountPolicy.validate(amount);
             var response = paypalCaptureApiClient.capture(paymentKey, idempotencyKey);
             PaymentStatus status = statusMapper.map(response.status());
 
@@ -264,11 +264,11 @@ public class PayPalPaymentProvider implements PaymentProvider {
 
     @Override
     public boolean verifyWebhookSignature(String payload, String signature) {
-        if (payload == null || payload.isEmpty()) {
+        if (payload == null || payload.isBlank()) {
             log.warn("PayPal Webhook 검증 실패: payload가 비어있습니다");
             return false;
         }
-        if (signature == null || signature.isEmpty()) {
+        if (signature == null || signature.isBlank()) {
             log.warn("PayPal Webhook 검증 실패: signature가 비어있습니다");
             return false;
         }

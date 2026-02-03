@@ -28,10 +28,15 @@ import org.springframework.validation.annotation.Validated;
 @ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 @ConfigurationProperties(prefix = "payment.paypal")
 public class PaypalProperties {
-
+    @NotBlank(message = "PayPal clientId는 필수입니다 (payment.paypal.client-id)")
     private String clientId;
+
+    @NotBlank(message = "PayPal clientSecret은 필수입니다 (payment.paypal.client-secret)")
     private String clientSecret;
+
+    @NotBlank(message = "PayPal webhookId는 필수입니다 (payment.paypal.webhook-id)")
     private String webhookId;
+
     private String baseUrl = "https://api-m.paypal.com"; // 기본값: 프로덕션 URL
 
     @NotBlank(message = "PayPal return URL은 필수입니다 (payment.paypal.return-url)")
