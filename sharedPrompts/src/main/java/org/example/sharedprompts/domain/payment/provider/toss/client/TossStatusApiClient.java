@@ -16,10 +16,10 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 /**
- * TossPay 결제 상태 조회 API Client (v2 API)
+ * TossPay 결제 상태 조회 API Client (v1 API)
  *
  * <p>단일 책임: 결제 상태 조회 API 호출만 담당
- * <p>API: GET /v2/payments/{paymentKey}
+ * <p>API: GET /v1/payments/{paymentKey}
  */
 @Slf4j
 @Component

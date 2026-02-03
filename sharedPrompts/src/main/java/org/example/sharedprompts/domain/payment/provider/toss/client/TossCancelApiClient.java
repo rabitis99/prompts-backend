@@ -17,10 +17,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * TossPay 결제 취소/환불 API Client (v2 API)
+ * TossPay 결제 취소/환불 API Client (v1 API)
  *
  * <p>단일 책임: 결제 취소 및 환불 API 호출만 담당
- * <p>API: POST /v2/payments/{paymentKey}/cancel
+ * <p>API: POST /v1/payments/{paymentKey}/cancel
  */
 @Slf4j
 @Component("tossCancelApiClient")

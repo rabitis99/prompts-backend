@@ -74,7 +74,7 @@ public interface PaymentProvider {
      * 결제 승인/확인 요청
      *
      * <p>각 결제사 공식 권장 방식에 따라 호출:
-     * - Toss: POST /v2/payments/confirm
+     * - Toss: POST /v1/payments/confirm
      * - KakaoPay: POST /online/v1/payment/approve (ready 후, pg_token 필요)
      * - PayPal: POST /v2/checkout/orders/{orderId}/capture
      *
