@@ -11,6 +11,7 @@ import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayResp
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -149,7 +150,7 @@ public class KakaoCancelApiClient {
     }
 
     private void validateRequired(String value, String fieldName) {
-        if (value == null || value.isEmpty()) {
+        if (!StringUtils.hasText(value)) {
             throw new IllegalArgumentException(fieldName + "은(는) 필수입니다");
         }
     }
