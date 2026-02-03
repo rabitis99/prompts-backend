@@ -2,73 +2,50 @@ package org.example.sharedprompts.domain.payment.service.cashback.lock;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.javacrumbs.shedlock.core.LockConfiguration;
-import net.javacrumbs.shedlock.core.LockProvider;
-import net.javacrumbs.shedlock.core.SimpleLock;
+import org.example.sharedprompts.domain.payment.service.lock.DistributedLockService;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
  * 캐시백 락 관리 서비스
  *
- * <p>단일 책임: 분산 락 관리만 담당
+ * <p>단일 책임: 캐시백 도메인의 분산 락 관리
  *
- * <p><strong>알려진 제한사항 - 동시성 제어 일관성:</strong>
- * - CashbackLockService: ShedLock (LockProvider) 사용
- * - PointServiceImpl: ShedLock (LockProvider) 사용 (코드 중복)
- * - WebhookIdempotencyService: Redis setIfAbsent 직접 사용
- * - 동일한 기능을 서로 다른 방식으로 구현하여 유지보수 어려움
+ * <p><strong>2024-02-02 개선:</strong>
+ * 기존에 LockProvider를 직접 사용하던 방식에서 통일된 DistributedLockService를
+ * 사용하도록 리팩토링되었습니다. 이를 통해:
+ * <ul>
+ *   <li>코드 중복 제거 (PointServiceImpl과 동일한 락 로직 공유)</li>
+ *   <li>락 정책(타임아웃, 재시도) 중앙 관리</li>
+ *   <li>테스트 용이성 향상</li>
+ * </ul>
  *
- * <p><strong>권장 개선사항:</strong>
- * - 통일된 DistributedLockService 인터페이스 도입
- * - 락 타임아웃, 재시도, 에러 처리 정책을 중앙에서 관리
- * - 락 획득 실패 시 동작 일관되게 정의 (재시도 vs 즉시 실패)
+ * @see DistributedLockService
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CashbackLockService {
 
-    private final LockProvider lockProvider;
+    private final DistributedLockService distributedLockService;
 
     private static final String LOCK_PREFIX = "cashback:lock:";
     private static final String PAYMENT_LOCK_PREFIX = "cashback:payment:lock:";
-    private static final Duration LOCK_AT_MOST_FOR = Duration.ofSeconds(30); // 락 최대 유지 시간
-    private static final Duration LOCK_AT_LEAST_FOR = Duration.ofMillis(100); // 락 최소 유지 시간 (분산 환경에서 너무 빨리 해제되는 것 방지)
 
     /**
      * 분산락을 획득한 후 작업을 실행합니다.
      */
     public <T> T executeWithLock(Long cashbackId, Supplier<T> task) {
-        String lockName = getLockKey(cashbackId);
-        LockConfiguration lockConfig = new LockConfiguration(
-                Instant.now(),
-                lockName,
-                LOCK_AT_MOST_FOR,
-                LOCK_AT_LEAST_FOR
-        );
-
-        Optional<SimpleLock> lock = lockProvider.lock(lockConfig);
-        if (lock.isEmpty()) {
-            log.warn("Failed to acquire lock for cashback: {}", cashbackId);
-            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
-        }
+        String lockKey = getLockKey(cashbackId);
 
         try {
-            return task.get();
-        } catch (ApiException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Error executing task with lock for cashback: {}", cashbackId, e);
-            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
-        } finally {
-            lock.get().unlock();
+            return distributedLockService.executeWithLock(lockKey, task);
+        } catch (DistributedLockService.LockAcquisitionException e) {
+            log.warn("캐시백 락 획득 실패: cashbackId={}", cashbackId);
+            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, "캐시백 처리 중 동시성 오류가 발생했습니다.");
         }
     }
 
@@ -77,29 +54,13 @@ public class CashbackLockService {
      * 캐시백 적립 시 동일 결제에 대한 중복 적립을 방지합니다.
      */
     public <T> T executeWithLockForPayment(Long paymentId, Supplier<T> task) {
-        String lockName = getPaymentLockKey(paymentId);
-        LockConfiguration lockConfig = new LockConfiguration(
-                Instant.now(),
-                lockName,
-                LOCK_AT_MOST_FOR,
-                LOCK_AT_LEAST_FOR
-        );
-
-        Optional<SimpleLock> lock = lockProvider.lock(lockConfig);
-        if (lock.isEmpty()) {
-            log.warn("Failed to acquire lock for payment: {}", paymentId);
-            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
-        }
+        String lockKey = getPaymentLockKey(paymentId);
 
         try {
-            return task.get();
-        } catch (ApiException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Error executing task with lock for payment: {}", paymentId, e);
-            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
-        } finally {
-            lock.get().unlock();
+            return distributedLockService.executeWithLock(lockKey, task);
+        } catch (DistributedLockService.LockAcquisitionException e) {
+            log.warn("결제 기반 캐시백 락 획득 실패: paymentId={}", paymentId);
+            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, "캐시백 적립 중 동시성 오류가 발생했습니다.");
         }
     }
 

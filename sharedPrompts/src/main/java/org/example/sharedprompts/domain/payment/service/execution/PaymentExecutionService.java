@@ -162,6 +162,10 @@ public class PaymentExecutionService {
     /**
      * 결제 환불 실행
      *
+     * <p><strong>부분 환불 멱등성 (2024-02-02 개선):</strong>
+     * 부분 환불 시 현재 환불 누적 금액(refundedAmount)을 멱등성 키에 포함하여
+     * 동일 Payment에 대한 여러 번의 부분 환불 요청을 구분합니다.
+     *
      * @return 저장된 Payment 엔티티
      * @throws ApiException 환불 실패 시
      */
@@ -171,7 +175,8 @@ public class PaymentExecutionService {
             throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "외부 결제 ID가 없습니다.");
         }
 
-        String idempotencyKey = generateIdempotencyKey(payment, "refund");
+        // 부분 환불 구분을 위해 환불 전용 멱등성 키 생성
+        String idempotencyKey = generateRefundIdempotencyKey(payment);
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
 
         RefundResult result = provider.refundPayment(payment.getExternalPaymentId(), refundAmount, reason, idempotencyKey);
@@ -212,6 +217,36 @@ public class PaymentExecutionService {
                 payment.getPaymentMethod().name(),
                 payment.getId(),
                 action);
+    }
+
+    /**
+     * 멱등성 키 생성 (환불 전용 - 부분 환불 구분)
+     *
+     * <p><strong>부분 환불 지원 (2024-02-02 개선):</strong>
+     * 동일 Payment에 대해 여러 번의 부분 환불을 구분하기 위해
+     * 현재까지의 환불 누적 금액(refundedAmount)을 키에 포함합니다.
+     *
+     * <p><strong>예시:</strong>
+     * <ul>
+     *   <li>첫 번째 부분 환불: TOSS:123:refund:0</li>
+     *   <li>두 번째 부분 환불: TOSS:123:refund:5000</li>
+     *   <li>세 번째 부분 환불: TOSS:123:refund:10000</li>
+     * </ul>
+     *
+     * <p><strong>주의:</strong>
+     * 결제사에서 멱등성을 지원하지 않는 경우 (예: 카카오페이),
+     * 이 키는 애플리케이션 레벨에서의 중복 방지 용도로만 사용됩니다.
+     *
+     * @param payment Payment 엔티티
+     * @return 환불 멱등성 키
+     */
+    private String generateRefundIdempotencyKey(Payment payment) {
+        // refundedAmount를 포함하여 각 부분 환불 요청을 구분
+        // refundedAmount가 같은 상태에서 재시도하면 같은 키가 생성되어 멱등성 보장
+        return String.format("%s:%s:refund:%s",
+                payment.getPaymentMethod().name(),
+                payment.getId(),
+                payment.getRefundedAmount().stripTrailingZeros().toPlainString());
     }
 
     /**
