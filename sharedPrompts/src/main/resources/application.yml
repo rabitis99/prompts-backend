@@ -426,6 +426,7 @@ payment:
   paypal:
     client-id: ${PAYMENT_PAYPAL_CLIENT_ID:}
     client-secret: ${PAYMENT_PAYPAL_CLIENT_SECRET:}
+    webhook-id: ${PAYMENT_PAYPAL_WEBHOOK_ID}
     cancel-url: ${PAYMENT_PAYPAL_CANCEL_URL}
     return-url: ${PAYMENT_PAYPAL_RETURN_URL}
 
