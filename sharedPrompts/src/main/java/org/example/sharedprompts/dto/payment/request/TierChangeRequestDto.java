@@ -21,6 +21,7 @@ public class TierChangeRequestDto {
     @JsonProperty("tier")
     private UserTier tier;
 
+    @JsonProperty("reason")
     private String reason; // 변경 사유
 
     /**

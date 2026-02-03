@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/joo/prompts/backend/sharedPrompts/**)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\joo\\prompts\\backend\\sharedPrompts\\src\\main\\resources"
+    ]
+  }
+}

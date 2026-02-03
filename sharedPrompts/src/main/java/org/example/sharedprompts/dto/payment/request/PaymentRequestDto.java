@@ -28,6 +28,7 @@ public class PaymentRequestDto {
 
     @NotNull(message = "결제 금액을 입력해주세요.")
     @DecimalMin(value = "0.01", message = "결제 금액은 0.01 이상이어야 합니다.")
+    @JsonProperty("amount")
     private BigDecimal amount;
 
     @NotBlank(message = "통화를 입력해주세요.")

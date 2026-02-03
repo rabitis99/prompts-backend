@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PointResponseDto {
 
+    @JsonProperty("id")
     private Long id;
     
     @JsonProperty("user_id")
@@ -27,14 +28,19 @@ public class PointResponseDto {
     @JsonProperty("payment_id")
     private Long paymentId;
     
+    @JsonProperty("amount")
     private BigDecimal amount;
     
+    @JsonProperty("type")
     private String type;
     
+    @JsonProperty("description")
     private String description;
     
+    @JsonProperty("balance")
     private BigDecimal balance;
     
+    @JsonProperty("expired")
     private boolean expired;
     
     @JsonProperty("expired_at")

@@ -23,19 +23,28 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PaymentResponseDto {
 
+    @JsonProperty("id")
     private Long id;
+    
+    @JsonProperty("user_id")
     private Long userId;
+    
+    @JsonProperty("amount")
     private BigDecimal amount;
+    
+    @JsonProperty("currency")
     private String currency;
     
     @JsonProperty("payment_method")
     private PaymentMethod paymentMethod;
     
+    @JsonProperty("status")
     private PaymentStatus status;
     
     @JsonProperty("user_type")
     private PaymentUserType userType;
     
+    @JsonProperty("tier")
     private UserTier tier;
     
     @JsonProperty("external_payment_id")
@@ -62,6 +71,7 @@ public class PaymentResponseDto {
     @JsonProperty("used_point_amount")
     private BigDecimal usedPointAmount;
     
+    @JsonProperty("metadata")
     private String metadata;
     
     @JsonProperty("created_at")

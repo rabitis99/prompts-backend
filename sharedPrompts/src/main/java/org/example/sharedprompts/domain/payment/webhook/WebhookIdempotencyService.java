@@ -9,81 +9,100 @@ import java.time.Duration;
 
 /**
  * Webhook 멱등성 관리 서비스
- * 
- * <p>Redis를 사용하여 Webhook ID를 저장하고 중복 처리 방지
+ *
+ * <p>Redis를 사용하여 동시 처리 방지용 락을 제공합니다.
+ * 이 서비스는 단순히 동시성 제어를 위한 것이며, 진정한 멱등성은 DB 상태를 통해 보장됩니다.
+ *
+ * <p><strong>설계 원칙:</strong>
+ * <ul>
+ *   <li>Redis 락 실패가 메인 프로세스를 차단하지 않음</li>
+ *   <li>락은 TTL로 자동 만료되어 데드락 방지</li>
+ *   <li>예외 발생 시 락이 해제되어 재처리 가능</li>
+ * </ul>
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class WebhookIdempotencyService {
-    
-    private static final String WEBHOOK_IDEMPOTENCY_KEY_PREFIX = "webhook:idempotency:";
-    private static final Duration WEBHOOK_IDEMPOTENCY_TTL = Duration.ofDays(7); // 7일간 보관
-    
+
+    private static final String LOCK_KEY_PREFIX = "webhook:lock:";
+    private static final String LOCK_VALUE_PROCESSING = "processing";
+    private static final String LOCK_VALUE_PROCESSED = "processed";
+    private static final Duration LOCK_TTL = Duration.ofMinutes(5);
+    private static final Duration PROCESSED_TTL = Duration.ofDays(7);
+
     private final RedisTemplate<String, String> redisTemplate;
-    
+
     /**
-     * Webhook 처리 시도 (원자적 체크 + 마킹)
+     * 처리 락 획득 시도 (원자적 연산)
      *
-     * <p>TOCTOU 레이스 컨디션을 방지하기 위해 setIfAbsent를 사용하여
-     * 원자적으로 체크와 마킹을 수행합니다.
+     * <p>SETNX(SET if Not eXists)를 사용하여 원자적으로 락을 획득합니다.
+     * 이미 락이 존재하면 false를 반환합니다.
      *
      * @param webhookId Webhook ID
-     * @return 처리를 진행해야 하면 true, 이미 처리 중이거나 완료된 경우 false
+     * @return 락 획득 성공 시 true, 이미 락이 존재하면 false
      */
-    public boolean tryProcess(String webhookId) {
-        String key = WEBHOOK_IDEMPOTENCY_KEY_PREFIX + webhookId;
-        // setIfAbsent는 키가 없을 때만 설정하고 true 반환, 이미 존재하면 false 반환 (원자적 연산)
-        Boolean result = redisTemplate.opsForValue().setIfAbsent(key, "processing", WEBHOOK_IDEMPOTENCY_TTL);
+    public boolean tryAcquireLock(String webhookId) {
+        String key = LOCK_KEY_PREFIX + webhookId;
+        Boolean result = redisTemplate.opsForValue()
+                .setIfAbsent(key, LOCK_VALUE_PROCESSING, LOCK_TTL);
         boolean acquired = Boolean.TRUE.equals(result);
 
         if (acquired) {
-            log.debug("Webhook 처리 락 획득: webhookId={}", webhookId);
+            log.debug("Webhook 락 획득: webhookId={}", webhookId);
         } else {
-            log.debug("Webhook 이미 처리 중 또는 완료: webhookId={}", webhookId);
+            log.debug("Webhook 락 이미 존재: webhookId={}", webhookId);
         }
 
         return acquired;
     }
 
     /**
-     * Webhook이 이미 처리되었는지 확인
+     * 처리 완료 마킹
      *
-     * @param webhookId Webhook ID
-     * @return 이미 처리된 경우 true
-     * @deprecated tryProcess() 메서드 사용 권장 (원자적 체크+마킹)
-     */
-    @Deprecated
-    public boolean isAlreadyProcessed(String webhookId) {
-        String key = WEBHOOK_IDEMPOTENCY_KEY_PREFIX + webhookId;
-        Boolean exists = redisTemplate.hasKey(key);
-        return Boolean.TRUE.equals(exists);
-    }
-
-    /**
-     * Webhook을 처리 완료로 표시
+     * <p>락 값을 "processed"로 변경하고 TTL을 7일로 연장합니다.
+     * 이를 통해 동일 Webhook이 재전송되어도 빠르게 중복 여부를 확인할 수 있습니다.
      *
      * @param webhookId Webhook ID
      */
     public void markAsProcessed(String webhookId) {
-        String key = WEBHOOK_IDEMPOTENCY_KEY_PREFIX + webhookId;
-        redisTemplate.opsForValue().set(key, "processed", WEBHOOK_IDEMPOTENCY_TTL);
-        log.debug("Webhook 처리 완료 표시: webhookId={}", webhookId);
+        String key = LOCK_KEY_PREFIX + webhookId;
+        redisTemplate.opsForValue().set(key, LOCK_VALUE_PROCESSED, PROCESSED_TTL);
+        log.debug("Webhook 처리 완료 마킹: webhookId={}", webhookId);
     }
 
     /**
-     * Webhook 처리 실패 시 락 해제
+     * 락 해제 (처리 실패 시)
+     *
+     * <p>"processing" 상태일 때만 삭제하여, 이미 완료된 것은 보존합니다.
+     * 락 해제 실패 시에도 TTL로 자동 만료됩니다.
      *
      * @param webhookId Webhook ID
      */
-    public void releaseProcessingLock(String webhookId) {
-        String key = WEBHOOK_IDEMPOTENCY_KEY_PREFIX + webhookId;
+    public void releaseLock(String webhookId) {
+        String key = LOCK_KEY_PREFIX + webhookId;
         String value = redisTemplate.opsForValue().get(key);
-        // "processing" 상태일 때만 삭제 (완료된 것은 삭제하지 않음)
-        if ("processing".equals(value)) {
-            redisTemplate.delete(key);
-            log.debug("Webhook 처리 락 해제: webhookId={}", webhookId);
+
+        if (LOCK_VALUE_PROCESSING.equals(value)) {
+            Boolean deleted = redisTemplate.delete(key);
+            if (Boolean.TRUE.equals(deleted)) {
+                log.debug("Webhook 락 해제: webhookId={}", webhookId);
+            }
         }
     }
-}
 
+    /**
+     * Webhook이 이미 처리 완료 상태인지 확인
+     *
+     * <p>Redis에서 빠르게 중복 여부를 확인할 수 있지만,
+     * 최종 멱등성은 DB 상태를 통해 보장됩니다.
+     *
+     * @param webhookId Webhook ID
+     * @return 이미 처리 완료된 경우 true
+     */
+    public boolean isProcessed(String webhookId) {
+        String key = LOCK_KEY_PREFIX + webhookId;
+        String value = redisTemplate.opsForValue().get(key);
+        return LOCK_VALUE_PROCESSED.equals(value);
+    }
+}

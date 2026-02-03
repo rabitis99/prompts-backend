@@ -21,20 +21,70 @@ public interface PaymentProvider {
      * 이 Provider가 처리할 결제 수단 반환
      */
     PaymentMethod getPaymentMethod();
-    
+
+    /**
+     * 멱등성 키 지원 여부 반환
+     *
+     * <p>결제사별 멱등성 지원 현황:
+     * - Toss: 미지원 (paymentKey 자체가 고유 식별자 역할)
+     * - KakaoPay: 미지원 (tid 자체가 고유 식별자 역할)
+     * - PayPal: 지원 (PayPal-Request-Id 헤더)
+     *
+     * @return 멱등성 키 지원 여부
+     */
+    default boolean supportsIdempotency() {
+        return false;
+    }
+
+    /**
+     * 결제 준비 요청 (선택적 구현)
+     *
+     * <p>일부 결제사(KakaoPay, PayPal)는 결제 승인 전 준비 단계가 필요:
+     * - KakaoPay: POST /online/v1/payment/ready → tid 발급
+     * - PayPal: POST /v2/checkout/orders → orderId 생성
+     * - Toss: 클라이언트에서 결제 위젯이 paymentKey를 발급하므로 서버 준비 불필요
+     *
+     * @param orderId 주문 ID
+     * @param amount 결제 금액
+     * @param currency 통화 코드
+     * @param itemName 상품명
+     * @param userId 사용자 ID
+     * @return PrepareResult (tid, 리다이렉션 URL 등)
+     */
+    default PrepareResult preparePayment(
+            String orderId,
+            BigDecimal amount,
+            String currency,
+            String itemName,
+            String userId
+    ) {
+        return PrepareResult.notRequired();
+    }
+
+    /**
+     * 결제 준비 단계 필요 여부
+     *
+     * @return 준비 단계 필요 여부
+     */
+    default boolean requiresPreparation() {
+        return false;
+    }
+
     /**
      * 결제 승인/확인 요청
-     * 
+     *
      * <p>각 결제사 공식 권장 방식에 따라 호출:
      * - Toss: POST /v1/payments/confirm
-     * - KakaoPay: POST /online/v1/payment/approve (ready 후)
+     * - KakaoPay: POST /online/v1/payment/approve (ready 후, pg_token 필요)
      * - PayPal: POST /v2/checkout/orders/{orderId}/capture
-     * 
+     *
      * @param paymentKey 결제 키 (paymentKey, tid, orderId 등)
      * @param orderId 주문 ID
      * @param amount 결제 금액
      * @param currency 통화 코드
      * @param idempotencyKey 멱등성 키 (중복 호출 방지)
+     * @param userId 사용자 ID (KakaoPay의 partner_user_id 등에 사용)
+     * @param additionalParams 결제사별 추가 파라미터 (KakaoPay: pgToken 등)
      * @return PaymentResult (외부 API 응답을 도메인 모델로 변환)
      */
     PaymentResult confirmPayment(
@@ -42,8 +92,27 @@ public interface PaymentProvider {
             String orderId,
             BigDecimal amount,
             String currency,
-            String idempotencyKey
+            String idempotencyKey,
+            String userId,
+            java.util.Map<String, String> additionalParams
     );
+
+    /**
+     * 결제 승인/확인 요청 (추가 파라미터 없이 호출)
+     *
+     * @deprecated additionalParams를 포함한 메서드 사용 권장
+     */
+    @Deprecated
+    default PaymentResult confirmPayment(
+            String paymentKey,
+            String orderId,
+            BigDecimal amount,
+            String currency,
+            String idempotencyKey,
+            String userId
+    ) {
+        return confirmPayment(paymentKey, orderId, amount, currency, idempotencyKey, userId, java.util.Collections.emptyMap());
+    }
     
     /**
      * 결제 상태 조회
@@ -117,5 +186,28 @@ public interface PaymentProvider {
             String orderId,
             PaymentResult paymentResult
     ) {}
+
+    /**
+     * 결제 준비 결과
+     *
+     * @param required 준비 단계 필요 여부
+     * @param tid 결제 고유 ID (카카오페이의 tid, PayPal의 orderId 등)
+     * @param redirectUrl 사용자 인증을 위한 리다이렉션 URL
+     * @param metadata 추가 메타데이터
+     */
+    record PrepareResult(
+            boolean required,
+            String tid,
+            String redirectUrl,
+            String metadata
+    ) {
+        public static PrepareResult notRequired() {
+            return new PrepareResult(false, null, null, null);
+        }
+
+        public static PrepareResult success(String tid, String redirectUrl, String metadata) {
+            return new PrepareResult(true, tid, redirectUrl, metadata);
+        }
+    }
 }
 

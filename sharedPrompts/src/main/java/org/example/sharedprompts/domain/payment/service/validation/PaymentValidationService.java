@@ -13,6 +13,7 @@ import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * 결제 검증 서비스
@@ -57,10 +58,12 @@ public class PaymentValidationService {
     }
 
     /**
-     * 결제 취소 가능 상태 체크
+     * 결제 취소 가능 상태 체크 (비즈니스 검증 메서드 사용)
+     *
+     * @throws ApiException 취소 불가능한 상태일 경우
      */
     public void validateCancelableStatus(Payment payment) {
-        if (payment.getStatus() != PaymentStatus.PENDING && payment.getStatus() != PaymentStatus.SUCCESS) {
+        if (!validateCanCancelPayment(payment)) {
             throw new ApiException(ErrorCode.PAYMENT_INVALID_STATUS);
         }
     }
@@ -92,6 +95,136 @@ public class PaymentValidationService {
         }
 
         return refundAmount;
+    }
+
+    // ===== 상태 전이 검증 메서드 (엔티티에서 이동) =====
+
+    /**
+     * 특정 상태로 전이 가능한지 확인
+     *
+     * <p>결제 상태 전이 규칙:
+     * - PENDING → SUCCESS, FAILED, CANCELED
+     * - SUCCESS → CANCELED, REFUNDED, PARTIALLY_REFUNDED
+     * - PARTIALLY_REFUNDED → REFUNDED, PARTIALLY_REFUNDED (추가 환불)
+     * - FAILED, CANCELED, REFUNDED → 전이 불가
+     *
+     * @param payment 결제 엔티티
+     * @param targetStatus 전이할 목표 상태
+     * @return 전이 가능 여부
+     */
+    public boolean canTransitionTo(Payment payment, PaymentStatus targetStatus) {
+        return switch (payment.getStatus()) {
+            case PENDING -> targetStatus == PaymentStatus.SUCCESS
+                    || targetStatus == PaymentStatus.FAILED
+                    || targetStatus == PaymentStatus.CANCELED;
+            case SUCCESS -> targetStatus == PaymentStatus.CANCELED
+                    || targetStatus == PaymentStatus.REFUNDED
+                    || targetStatus == PaymentStatus.PARTIALLY_REFUNDED;
+            case PARTIALLY_REFUNDED -> targetStatus == PaymentStatus.REFUNDED
+                    || targetStatus == PaymentStatus.PARTIALLY_REFUNDED;
+            case FAILED, CANCELED, REFUNDED -> false; // 최종 상태에서는 전이 불가
+        };
+    }
+
+    /**
+     * 취소 가능 여부 확인 (기존 메서드 개선)
+     *
+     * <p>취소 가능 조건:
+     * - SUCCESS 상태이고 환불된 금액이 없음
+     * - PENDING 상태 (결제 진행 중 취소)
+     *
+     * @param payment 결제 엔티티
+     * @return 취소 가능 여부
+     */
+    public boolean validateCanCancelPayment(Payment payment) {
+        if (payment.getStatus() == PaymentStatus.PENDING) {
+            return true;
+        }
+        if (payment.getStatus() == PaymentStatus.SUCCESS) {
+            BigDecimal refundedAmount = payment.getRefundedAmount();
+            if (refundedAmount == null) {
+                return true; // null이면 환불된 금액이 없으므로 취소 가능
+            }
+            return refundedAmount.compareTo(BigDecimal.ZERO) == 0;
+        }
+        return false;
+    }
+
+    /**
+     * 환불 가능 여부 확인 (기존 메서드 개선)
+     *
+     * <p>환불 가능 조건:
+     * - SUCCESS 상태이거나 PARTIALLY_REFUNDED 상태
+     * - 환불 가능 금액이 남아있음
+     *
+     * @param payment 결제 엔티티
+     * @return 환불 가능 여부
+     */
+    public boolean validateCanRefundPayment(Payment payment) {
+        boolean statusAllowsRefund = payment.getStatus() == PaymentStatus.SUCCESS
+                || payment.getStatus() == PaymentStatus.PARTIALLY_REFUNDED;
+        BigDecimal refundableAmount = payment.getRefundableAmount();
+        if (refundableAmount == null) {
+            return false; // null이면 환불 가능 금액이 없음
+        }
+        boolean hasRefundableAmount = refundableAmount.compareTo(BigDecimal.ZERO) > 0;
+        return statusAllowsRefund && hasRefundableAmount;
+    }
+
+    /**
+     * 특정 금액 환불 가능 여부 확인
+     *
+     * @param payment 결제 엔티티
+     * @param refundAmount 환불할 금액
+     * @return 환불 가능 여부
+     */
+    public boolean validateCanRefundPaymentAmount(Payment payment, BigDecimal refundAmount) {
+        if (refundAmount == null) {
+            return false; // null 금액은 환불 불가
+        }
+        if (!validateCanRefundPayment(payment)) {
+            return false;
+        }
+        BigDecimal refundableAmount = payment.getRefundableAmount();
+        if (refundableAmount == null) {
+            return false; // null이면 환불 가능 금액이 없음
+        }
+        return refundAmount.compareTo(BigDecimal.ZERO) > 0
+                && refundAmount.compareTo(refundableAmount) <= 0;
+    }
+
+    /**
+     * 결제가 만료되었는지 확인
+     *
+     * <p>PENDING 상태에서 일정 시간 경과 시 만료로 간주
+     * 만료된 결제는 자동으로 취소되고 사용한 포인트가 복구되어야 함
+     *
+     * @param payment 결제 엔티티
+     * @param expiryMinutes 만료 시간 (분)
+     * @return 만료 여부
+     */
+    public boolean isPaymentExpired(Payment payment, long expiryMinutes) {
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            return false;
+        }
+        LocalDateTime expiryTime = payment.getCreatedAt().plusMinutes(expiryMinutes);
+        return LocalDateTime.now().isAfter(expiryTime);
+    }
+
+    /**
+     * 포인트를 사용했지만 결제가 완료되지 않은 상태인지 확인
+     *
+     * <p>이 상태의 결제는 포인트 복구가 필요할 수 있음
+     * - PENDING 상태이고 포인트를 사용했으면 사용자가 결제를 포기했을 가능성
+     * - 스케줄러를 통해 일정 시간 후 자동으로 포인트 복구 처리 권장
+     *
+     * @param payment 결제 엔티티
+     * @return 포인트 복구 필요 여부
+     */
+    public boolean hasUnrecoveredPoints(Payment payment) {
+        return payment.getStatus() == PaymentStatus.PENDING
+                && payment.getUsedPointAmount() != null
+                && payment.getUsedPointAmount().compareTo(BigDecimal.ZERO) > 0;
     }
 }
 

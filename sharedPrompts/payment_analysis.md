@@ -1,0 +1,1077 @@
+# 코드 분석 및 개선 필요 사항
+
+## 📋 수정 완료 현황
+
+### ✅ 완료된 수정 사항 (15개)
+- [#1] 중첩 트랜잭션으로 인한 예측 불가능한 동작 → WebhookHandler의 @Transactional 제거
+- [#2] WebhookHandler에서 Provider.parseWebhook 중복 호출 → WebhookProcessingResult 도입하여 중복 파싱 제거
+- [#3] 포인트 사용 시점과 결제 실패 시 복구 로직 부재 → 만료/복구 확인 메서드 추가 및 문서화
+- [#4] PointServiceImpl의 잔액 관리 방식 불일치 → 제한사항 문서화 및 개선방향 명시
+- [#5] 캐시백 적립 기준 금액의 모호함 → 정책 불일치 문서화 및 비즈니스 결정 필요 명시
+- [#6] 동시성 제어 방식의 일관성 부족 → 제한사항 문서화 및 통일된 추상화 권장
+- [#7] PaymentExecutionService의 멱등성 키 저장 시점 문제 → REQUIRES_NEW로 별도 트랜잭션에서 저장
+- [#8] 환불 시 포인트 복구 로직의 잘못된 메서드 사용 → `addPointsDirectly` 사용으로 수정
+- [#11] Provider 인터페이스의 멱등성 책임 불명확 → `supportsIdempotency()` 메서드 추가
+- [#17] 결제 실패 시 사용한 포인트 복구 누락 → `processPaymentFailure`에 포인트 복구 로직 추가
+- [#24] 결제 상태 전이의 명시적 검증 부재 → `canTransitionTo()`, `canRefund()`, `canCancel()` 등 검증 메서드 추가
+- [#26] 토스페이먼츠 Idempotency-Key 헤더 미지원 → 문서화 및 `supportsIdempotency()` 추가
+- [#27] 카카오페이 /ready API 완전 누락 → `preparePayment()` 구현
+- [#29] 페이팔 액세스 토큰 캐싱 Thread Safety 문제 → volatile + double-checked locking 적용
+- [#30] 결제 준비 단계 구조적 누락 → Provider 인터페이스에 `preparePayment()`, `requiresPreparation()` 추가
+
+### ⏳ 미완료 사항 (22개)
+- 문서 기준 전체 37개 이슈 중 15개 완료, 22개 추가 개선 필요
+- 주요 미완료 이슈: #9, #10, #12~#16, #18~#23, #25, #28, #31~#37
+
+---
+
+# 코드 분석 및 개선 필요 사항
+
+## 1. 중첩 트랜잭션으로 인한 예측 불가능한 동작 ✅ 수정 완료
+- **문제 설명**
+  - WebhookHandler가 @Transactional 선언
+  - PaymentWebhookFacade도 @Transactional이며 WebhookHandler를 호출
+  - 결과적으로 중첩 트랜잭션 발생 (기본 REQUIRED propagation)
+
+- **왜 문제가 되는지**
+  - 내부 트랜잭션이 예외를 던져도 외부 트랜잭션이 커밋될 수 있음
+  - WebhookIdempotencyService가 트랜잭션 커밋 전에 Redis에 상태를 기록하면 데이터 불일치 발생 가능
+  - WebhookHandler의 tryProcess가 락을 획득했지만 트랜잭션이 롤백되면 중복 처리 방지 실패
+
+- **개선 방향**
+  - WebhookHandler는 트랜잭션 없이 순수하게 파싱/검증만 수행
+  - 트랜잭션 경계는 Facade 레벨에서만 명확하게 관리
+  - 멱등성 체크와 실제 상태 변경이 같은 트랜잭션 내에서 원자적으로 수행되도록 보장
+
+- **✅ 수정 내용**
+  - [WebhookHandler.java](domain/payment/webhook/WebhookHandler.java): @Transactional 제거
+  - [WebhookHandler.java:22-27](domain/payment/webhook/WebhookHandler.java#L22-L27): 클래스 javadoc에 트랜잭션 없이 동작함을 명시
+  - [PaymentWebhookFacade.java:42](domain/payment/facade/PaymentWebhookFacade.java#L42): Facade 레벨에서만 @Transactional 유지
+  - 트랜잭션 경계가 명확해져 중첩 트랜잭션 문제 해결
+
+---
+
+## 2. WebhookHandler에서 Provider.parseWebhook 중복 호출 ✅ 수정 완료
+- **문제 설명**
+  - WebhookHandler에서 provider.parseWebhook을 호출하여 event 추출 (라인 56)
+  - PaymentWebhookFacade에서 다시 provider.parseWebhook을 호출 (라인 54)
+  - 동일한 payload를 두 번 파싱하는 불필요한 중복 연산
+
+- **왜 문제가 되는지**
+  - 성능 낭비 (JSON 파싱은 비용이 높은 작업)
+  - WebhookHandler가 반환한 Payment만으로는 event 정보를 얻을 수 없어 재파싱 필요
+  - 두 번의 파싱 결과가 다를 수 있는 가능성 (파싱 로직에 상태가 있는 경우)
+
+- **개선 방향**
+  - WebhookHandler가 Payment와 함께 WebhookEvent를 반환하도록 변경
+  - 또는 WebhookHandler의 책임을 재정의하여 파싱 결과만 반환하고 Payment 처리는 Facade에서 수행
+  - 파싱 결과를 캐싱하거나 DTO로 전달하여 중복 파싱 제거
+
+- **✅ 수정 내용**
+  - [WebhookHandler.java:36-37](domain/payment/webhook/WebhookHandler.java#L36-L37): WebhookProcessingResult record 추가
+  - [WebhookHandler.java:44-50](domain/payment/webhook/WebhookHandler.java#L44-L50): 반환 타입을 Optional<WebhookProcessingResult>로 변경
+  - [PaymentWebhookFacade.java:52-59](domain/payment/facade/PaymentWebhookFacade.java#L52-L59): WebhookEvent를 재파싱하지 않고 재사용
+  - 중복 파싱 제거로 성능 개선 및 일관성 보장
+
+---
+
+## 3. 포인트 사용 시점과 결제 실패 시 복구 로직 부재 ✅ 부분 수정 완료
+- **문제 설명**
+  - PaymentAmountFacade.processPaymentAmount에서 포인트 차감 (라인 60)
+  - 이는 requestPayment 시점에 호출됨 (결제 요청 단계)
+  - 실제 결제 승인은 confirmPayment에서 발생
+  - 결제 실패 시 포인트 복구 로직이 명시적으로 보이지 않음
+
+- **왜 문제가 되는지**
+  - requestPayment는 단순히 PENDING 상태의 Payment 엔티티만 생성
+  - 사용자가 결제를 포기하거나 결제 승인이 실패하면 포인트만 차감된 상태로 남음
+  - PaymentServiceImpl.confirmPayment에서 실패 시 catch 블록에서 포인트 복구를 하지 않음
+  - 사용자가 결제 창을 닫으면 포인트가 영구히 차감될 수 있음
+
+- **개선 방향**
+  - 포인트 사용을 confirmPayment 시점으로 이동 (결제 승인과 동시에 차감)
+  - 또는 requestPayment에서 포인트를 '예약'만 하고 confirmPayment에서 실제 차감
+  - 결제 실패/취소 시 자동으로 포인트 복구하는 보상 트랜잭션 구현
+  - PENDING 상태가 일정 시간 경과 시 자동으로 만료되고 포인트 복구하는 스케줄러 필요
+
+- **✅ 수정 내용 (부분 해결)**
+  - [Payment.java:346-360](domain/payment/Payment.java#L346-L360): `isExpired()` 메서드 추가 (만료 확인)
+  - [Payment.java:367-375](domain/payment/Payment.java#L367-L375): `hasUnrecoveredPoints()` 메서드 추가 (복구 필요 포인트 확인)
+  - [PaymentAmountFacade.java:18-32](domain/payment/service/facade/PaymentAmountFacade.java#L18-L32): 클래스 javadoc에 제한사항 및 개선방향 명시
+
+- **부분 해결 범위 명확화**
+  - **현재 상태**: 복구 필요 여부 확인 가능 (`isExpired()`, `hasUnrecoveredPoints()`)
+  - **여전히 필요**: 스케줄러 기반 자동 복구 또는 수동 복구 프로세스
+  - **임시 대응**: 관리자 대시보드에서 `hasUnrecoveredPoints()` 기반 모니터링 권장
+  - **참고**: 명시적 결제 실패(confirmPayment 오류)의 포인트 복구는 Issue #17에서 해결됨
+
+---
+
+## 4. PointServiceImpl의 잔액 관리 방식과 데이터 정합성 위험 ✅ 문서화 완료
+- **문제 설명**
+  - Point 엔티티의 balance 필드에 잔액을 저장
+  - getLastBalance는 최신 Point 레코드의 balance를 조회
+  - getCurrentBalance는 PointRepository의 쿼리 메서드 호출 (별도 집계 로직)
+  - 두 메서드가 서로 다른 방식으로 잔액을 계산하여 불일치 가능성
+
+- **왜 문제가 되는지**
+  - balance 필드와 실제 집계 결과가 다를 수 있음
+  - 동시에 여러 포인트 적립/사용이 발생하면 balance 필드가 신뢰할 수 없게 됨
+  - 분산락으로 동시성을 제어하지만 락 외부에서 getCurrentBalance를 호출하면 정확하지 않은 값 반환 가능
+  - 포인트 적립 순서가 보장되지 않으면 balance 값이 틀어질 수 있음
+
+- **개선 방향**
+  - balance 필드를 제거하고 항상 집계 쿼리로 잔액 계산 (단일 진실 공급원)
+  - 또는 User 엔티티에 pointBalance 필드를 추가하고 이를 신뢰할 수 있는 단일 소스로 관리
+  - Point 엔티티는 이력만 저장하고 잔액 계산은 별도 집계 테이블 사용
+  - 이벤트 소싱 패턴 도입하여 포인트 변경 이력을 이벤트로 저장하고 프로젝션으로 잔액 관리
+
+- **✅ 수정 내용 (문서화)**
+  - [PointServiceImpl.java:35-50](domain/payment/service/point/PointServiceImpl.java#L35-L50): 클래스 javadoc에 잔액 관리 방식 제한사항 문서화
+  - [PointServiceImpl.java:243-252](domain/payment/service/point/PointServiceImpl.java#L243-L252): getLastBalance 메서드에 주의사항 주석 추가
+  - balance 필드와 집계 쿼리의 불일치 가능성 명시
+  - 권장 개선사항: 단일 진실 공급원 또는 User 엔티티 활용
+
+---
+
+## 5. 캐시백 적립 기준 금액의 모호함 ✅ 문서화 완료
+- **문제 설명**
+  - PaymentPostProcessService.processPaymentSuccess에서 캐시백 적립 시 originalAmount 사용 (라인 49)
+  - 포인트를 사용한 경우 originalAmount는 포인트 차감 전 금액
+  - 실제 결제 금액(actualPaymentAmount)이 아닌 원래 주문 금액 기준으로 캐시백 적립
+
+- **왜 문제가 되는지**
+  - 비즈니스 정책이 불명확: 캐시백은 실제 결제 금액 기준인가, 주문 금액 기준인가?
+  - 포인트 100원 사용 + 실제 결제 900원 → 1000원 기준 캐시백 적립은 과다 지급
+  - 포인트도 실제 결제의 일부로 간주한다면 actualPaymentAmount 기준이 맞음
+  - 정책이 명확하지 않으면 운영 중 분쟁 발생 가능
+
+- **개선 방향**
+  - 캐시백 적립 기준을 명확히 정의하고 문서화
+  - 일반적으로 실제 결제 금액(actualPaymentAmount) 기준이 합리적
+  - 또는 별도의 CashbackPolicy 인터페이스를 만들어 정책을 추상화하고 변경 가능하게 설계
+  - 포인트와 캐시백의 관계를 명확히 정의 (포인트 사용 시 캐시백 적립 여부)
+
+- **✅ 수정 내용 (문서화)**
+  - [PaymentPostProcessService.java:38-55](domain/payment/service/postprocess/PaymentPostProcessService.java#L38-L55): processPaymentSuccess 메서드에 정책 불일치 주의사항 문서화
+  - 포인트와 캐시백 적립 기준 금액 불일치 명시 (actualAmount vs originalAmount)
+  - 비즈니스 정책 결정 필요 명확히 표시
+  - 캐시백 과다 지급 가능성 경고
+
+---
+
+## 6. 동시성 제어 방식의 일관성 부족 ✅ 문서화 완료
+- **문제 설명**
+  - PointServiceImpl: ShedLock (분산락, LockProvider 주입)
+  - CashbackLockService: 별도의 분산락 서비스
+  - WebhookIdempotencyService: Redis setIfAbsent 직접 사용
+  - 세 가지 다른 방식으로 동시성 제어
+
+- **왜 문제가 되는지**
+  - 일관되지 않은 동시성 제어로 유지보수 어려움
+  - ShedLock과 Redis 락이 같은 Redis를 사용하는지, 다른 인스턴스인지 불명확
+  - 락 타임아웃, 재시도 정책, 에러 처리가 각각 다르게 구현됨
+  - 데드락 발생 시 디버깅이 어려움
+
+- **개선 방향**
+  - 통일된 분산락 추상화 계층 도입 (DistributedLockService)
+  - 모든 동시성 제어를 동일한 메커니즘으로 통일
+  - 락 타임아웃, 재시도, 에러 처리 정책을 중앙에서 관리
+  - 락 획득 실패 시의 동작을 일관되게 정의 (재시도 vs 즉시 실패 vs 대기)
+
+- **✅ 수정 내용 (문서화)**
+  - [CashbackLockService.java:17-31](domain/payment/service/cashback/lock/CashbackLockService.java#L17-L31): 클래스 javadoc에 동시성 제어 일관성 문제 문서화
+  - [WebhookIdempotencyService.java:10-23](domain/payment/webhook/WebhookIdempotencyService.java#L10-L23): 클래스 javadoc에 동시성 제어 일관성 문제 문서화
+  - PointServiceImpl, CashbackLockService, WebhookIdempotencyService의 서로 다른 방식 명시
+  - 권장 개선사항: 통일된 DistributedLockService 인터페이스 도입
+
+---
+
+## 7. PaymentExecutionService의 멱등성 키 저장 시점 문제 ✅ 수정 완료
+- **문제 설명**
+  - executePayment에서 generateIdempotencyKey 호출 후 payment.updateIdempotencyKey로 저장 (라인 55-56)
+  - 이후 provider.confirmPayment 호출 (라인 75)
+  - 외부 API 호출이 실패하면 트랜잭션 롤백으로 idempotencyKey가 저장되지 않음
+  - 다음 재시도 시 같은 멱등성 키를 생성하지만 이미 외부 결제사에 전달되었을 수 있음
+
+- **왜 문제가 되는지**
+  - 외부 API는 호출되었으나 응답 받기 전 네트워크 오류 발생 시
+  - DB에는 멱등성 키가 저장되지 않음 (롤백)
+  - 재시도 시 같은 키를 생성하여 외부 API에 전달하지만
+  - 이미 첫 번째 호출이 결제사에서 처리되었을 수 있음 (중복 결제 위험)
+  - 결정론적 키 생성의 의미가 퇴색됨
+
+- **개선 방향**
+  - 멱등성 키를 Payment 생성 시점에 미리 생성하여 저장
+  - 또는 REQUIRES_NEW 전파 속성으로 멱등성 키만 별도 트랜잭션에서 커밋
+  - 외부 API 호출 전에 멱등성 키 저장을 보장하는 아웃박스 패턴 적용
+  - 멱등성 키를 Redis 같은 외부 저장소에도 저장하여 DB 롤백과 무관하게 유지
+
+- **✅ 수정 내용**
+  - [PaymentExecutionService.java:52-53](domain/payment/service/execution/PaymentExecutionService.java#L52-L53): Self-injection 추가 (@Autowired @Lazy)
+  - [PaymentExecutionService.java:58-60](domain/payment/service/execution/PaymentExecutionService.java#L58-L60): 멱등성 키를 별도 트랜잭션으로 먼저 저장
+  - [PaymentExecutionService.java:199-210](domain/payment/service/execution/PaymentExecutionService.java#L199-L210): `saveIdempotencyKeyInNewTransaction()` 메서드 추가 (REQUIRES_NEW)
+  - 외부 API 호출 실패 시에도 멱등성 키가 DB에 유지되어 중복 호출 방지
+
+---
+
+## 8. 환불 시 포인트 복구 로직의 잘못된 메서드 사용 ✅ 수정 완료
+- **문제 설명**
+  - PaymentPostProcessService.processPaymentCancel에서 포인트 환불 시 accumulatePoints 사용 (라인 85)
+  - PaymentPostProcessService.processPaymentRefund에서도 동일 (라인 108)
+  - accumulatePoints는 결제 금액에 포인트 적립률을 곱한 보상 포인트 적립 메서드
+  - 환불/취소 시에는 사용한 포인트를 그대로 복구해야 함
+
+- **왜 문제가 되는지**
+  - 사용자가 1000 포인트 사용 후 결제 취소 시
+  - accumulatePoints(userId, paymentId, 1000원)이 호출되면
+  - 1000원 * pointRate(예: 0.01) = 10 포인트만 적립됨
+  - 사용자는 990 포인트를 잃게 됨
+  - 실제로는 addPointsDirectly(userId, paymentId, 1000, PointType.REFUND, "취소/환불")을 사용해야 함
+
+- **개선 방향**
+  - processPaymentCancel과 processPaymentRefund에서 addPointsDirectly 메서드 사용
+  - PointType.REFUND 또는 PointType.CANCEL 추가하여 환불/취소 구분
+  - 통합 테스트로 포인트 사용 → 결제 취소 → 포인트 복구 시나리오 검증 필수
+  - 포인트 복구 실패 시 알림 또는 수동 개입 프로세스 필요
+
+- **✅ 수정 내용**
+  - [PaymentPostProcessService.java:111-117](domain/payment/service/postprocess/PaymentPostProcessService.java#L111-L117): `processPaymentCancel`에서 `addPointsDirectly` 사용
+  - [PaymentPostProcessService.java:143-149](domain/payment/service/postprocess/PaymentPostProcessService.java#L143-L149): `processPaymentRefund`에서 `addPointsDirectly` 사용
+  - [PointType.java](domain/payment/enums/PointType.java): `REFUND`, `CANCEL`, `PAYMENT_FAILED` enum 추가
+
+---
+
+## 9. Payment 엔티티의 상태 전이 검증 추가 권장
+- **현재 상태**
+  - Payment 엔티티의 메서드들이 단순 상태 변경만 수행 (markSuccess, markFailed, markCanceled)
+  - 비즈니스 규칙 검증은 외부 ValidationService에 위임
+
+- **현재 구조의 장점**
+  - SRP(단일 책임 원칙) 준수: 엔티티는 데이터 표현, ValidationService는 규칙 검증으로 책임 분리
+  - 검증 로직 재사용: 여러 엔티티에 걸친 복합 검증이 필요할 때 유연함
+  - 테스트 용이성: 검증 로직만 독립적으로 단위 테스트 가능
+  - 변경 영향 최소화: 검증 규칙이 바뀌어도 엔티티는 안정적
+
+- **권장 개선 사항**
+  - 상태 전이 가능 여부 판단 메서드는 엔티티에 추가해도 좋음 (자신의 상태에 대한 질의이므로)
+  - 예: `canTransitionTo(PaymentStatus)`, `canRefund()`, `canCancel()` 등
+  - 복잡한 비즈니스 규칙 검증은 현재처럼 ValidationService에 유지
+
+---
+
+## 10. Facade 계층의 역할과 책임 불일치
+- **문제 설명**
+  - PaymentFacade: 단순히 PaymentService의 메서드를 위임만 함
+  - PaymentWebhookFacade: WebhookHandler 호출 + 추가 로직 수행 (파싱, 상태 변경)
+  - CashbackFacade: 여러 서비스 조율 + 분산락 관리 + 복잡한 비즈니스 로직
+  - 각 Facade의 역할이 일관되지 않음
+
+- **왜 문제가 되는지**
+  - Facade 패턴의 목적이 불명확: 단순 위임인가, 복잡도 숨김인가, 조율인가?
+  - PaymentFacade는 존재 이유가 없어 보임 (Controller가 직접 PaymentService 호출해도 됨)
+  - PaymentWebhookFacade는 실제로 Facade가 아니라 Service에 가까움
+  - 레이어 간 책임이 명확하지 않아 로직 위치 결정이 어려움
+
+- **개선 방향**
+  - Facade의 역할을 명확히 정의: 여러 도메인 서비스의 조율 + 트랜잭션 경계
+  - 단일 Service만 호출하는 경우 Facade 제거 (Controller → Service 직접 호출)
+  - PaymentFacade를 제거하고 PaymentService를 직접 노출
+  - PaymentWebhookFacade는 WebhookService로 이름 변경
+  - CashbackFacade는 현재대로 유지 (여러 서비스 조율 역할)
+
+---
+
+## 11. Provider 인터페이스의 멱등성 책임 불명확 ✅ 수정 완료
+- **문제 설명**
+  - PaymentProvider.confirmPayment가 idempotencyKey 파라미터를 받음
+  - 각 Provider 구현체가 멱등성을 어떻게 보장하는지 계약이 명확하지 않음
+  - 토스페이먼츠는 멱등성을 지원하지만 KakaoPay는 제한적, PayPal은 다른 방식
+  - 결제사마다 멱등성 지원 방식이 달라 일관된 처리 불가능
+
+- **왜 문제가 되는지**
+  - Provider 구현체가 멱등성을 보장하지 않으면 중복 결제 발생 가능
+  - 클라이언트(ExecutionService)는 모든 Provider가 멱등성을 지원한다고 가정
+  - 실제로는 일부 결제사는 멱등성 키를 무시하거나 다른 방식 사용
+  - 재시도 로직이 안전하지 않을 수 있음
+
+- **개선 방향**
+  - Provider 인터페이스에 멱등성 지원 여부를 반환하는 메서드 추가 (supportsIdempotency())
+  - 멱등성을 지원하지 않는 Provider는 애플리케이션 레벨에서 멱등성 보장 (DB 락, 상태 체크)
+  - 각 Provider 구현체의 멱등성 보장 방식을 문서화
+  - 멱등성 키 생성 전략을 Provider별로 다르게 설정 가능하도록 추상화
+
+- **✅ 수정 내용**
+  - [PaymentProvider.java](domain/payment/provider/PaymentProvider.java): `supportsIdempotency()` 기본 메서드 추가
+  - [TossPaymentProvider.java:78-80](domain/payment/provider/impl/TossPaymentProvider.java#L78-L80): `supportsIdempotency()` false 반환
+  - [KakaoPayPaymentProvider.java](domain/payment/provider/impl/KakaoPayPaymentProvider.java): `supportsIdempotency()` false 반환
+  - [PayPalPaymentProvider.java](domain/payment/provider/impl/PayPalPaymentProvider.java): `supportsIdempotency()` true 반환
+
+---
+
+## 12. 테스트 가능성 저해: 인프라스트럭처 직접 의존
+- **문제 설명**
+  - WebhookIdempotencyService가 RedisTemplate을 직접 의존
+  - PointServiceImpl이 LockProvider를 직접 의존
+  - CashbackLockService도 Redis 기반 락 직접 사용 추정
+  - 외부 인프라(Redis, DB)에 강결합되어 단위 테스트 어려움
+
+- **왜 문제가 되는지**
+  - 단위 테스트 시 실제 Redis가 필요하거나 복잡한 Mock 설정 필요
+  - 통합 테스트와 단위 테스트 경계가 모호해짐
+  - 테스트 실행 속도가 느려지고 불안정해짐
+  - 비즈니스 로직을 독립적으로 검증하기 어려움
+
+- **개선 방향**
+  - IdempotencyService 인터페이스 추가하고 Redis 구현체 분리 (RedisIdempotencyService)
+  - LockService 인터페이스 추가하고 ShedLock 구현체 분리
+  - 테스트용 In-Memory 구현체 제공 (InMemoryIdempotencyService, InMemoryLockService)
+  - 비즈니스 로직과 인프라 관심사 분리 (Hexagonal Architecture)
+  - Constructor Injection으로 의존성을 명시적으로 드러내어 테스트 용이성 확보
+
+---
+
+## 13. 환율 변환 시점과 환율 변동 리스크
+- **문제 설명**
+  - PaymentAmountFacade.processPaymentAmount에서 환율 변환 수행
+  - 이는 requestPayment 시점에 호출됨
+  - 실제 결제 승인은 confirmPayment에서 발생 (수 분 ~ 수 시간 차이 가능)
+  - 환율은 실시간으로 변동하는데 어느 시점의 환율을 사용하는지 불명확
+
+- **왜 문제가 되는지**
+  - requestPayment와 confirmPayment 사이에 환율이 크게 변동하면 손실 발생
+  - 사용자는 1000 USD 결제를 요청했지만 승인 시점에 환율이 올라 더 많은 원화 청구 가능
+  - 또는 반대로 환율이 내려 시스템이 손해를 볼 수 있음
+  - 환율 변동 리스크를 누가 부담하는지 정책이 없음
+
+- **개선 방향**
+  - 환율 변환을 confirmPayment 시점으로 이동 (실제 결제 시점의 환율 사용)
+  - 또는 requestPayment 시점의 환율을 Payment 엔티티에 저장하고 confirmPayment에서도 같은 환율 사용
+  - 환율 변동 허용 범위를 정의하고 초과 시 사용자에게 재확인 요청
+  - 환율 고정 정책(rate lock)을 도입하여 일정 시간 동안 환율 보장
+
+---
+
+## 14. WebhookHandler의 트랜잭션 내 멱등성 체크 순서 문제
+- **문제 설명**
+  - tryProcess(webhookId)로 원자적으로 락 획득 (라인 60)
+  - 이후 트랜잭션 내에서 Payment 조회 및 검증 수행
+  - 검증 성공 후 markAsProcessed(webhookId) 호출 (라인 97)
+  - tryProcess는 "processing" 상태로 설정, markAsProcessed는 "processed"로 변경
+
+- **왜 문제가 되는지**
+  - tryProcess와 markAsProcessed 사이에 실제 Payment 상태 변경이 없음
+  - WebhookHandler는 Payment를 반환만 하고 상태 변경은 PaymentWebhookFacade에서 수행
+  - 만약 Facade에서 상태 변경 중 실패하면 Redis에는 "processed"지만 DB는 변경 안 됨
+  - 두 저장소 간 불일치 발생
+  - 재처리를 막았지만 실제로는 처리 안 된 상태
+
+- **개선 방향**
+  - markAsProcessed를 Facade 레벨로 이동 (실제 상태 변경 성공 후 호출)
+  - 또는 Saga 패턴으로 두 단계를 원자적으로 처리
+  - 트랜잭션 커밋 후 이벤트로 markAsProcessed 호출 (@TransactionalEventListener)
+  - 실패 시 releaseProcessingLock을 호출하도록 보장 (현재는 catch 블록에만 있음)
+
+---
+
+## 15. PaymentServiceImpl의 예외 처리 일관성 부족
+- **문제 설명**
+  - confirmPayment에서 결제 실패 시 catch 블록에서 예외를 다시 throw (라인 225)
+  - 하지만 후처리(processPaymentSuccess, processPaymentFailure) 실패는 catch하고 로깅만 (라인 203, 222)
+  - cancelPayment와 refundPayment는 catch 후 ApiException으로 감싸서 throw (라인 116, 156)
+  - 각 메서드의 예외 처리 전략이 다름
+
+- **왜 문제가 되는지**
+  - 호출자 입장에서 어떤 예외가 발생할지 예측 불가능
+  - 후처리 실패를 무시하면 포인트/캐시백 적립이 누락되어도 사용자가 모름
+  - 일부는 원본 예외를 던지고 일부는 래핑하여 스택 트레이스 추적 어려움
+  - 모니터링과 알림 설정이 복잡해짐
+
+- **개선 방향**
+  - 예외 처리 전략을 일관되게 정의
+  - 비즈니스 예외(ApiException)와 시스템 예외(RuntimeException)를 명확히 구분
+  - 후처리 실패는 별도의 보상 트랜잭션 큐에 넣어 나중에 재시도
+  - 또는 후처리 실패 시에도 예외를 던져 전체 트랜잭션 롤백 (원자성 보장)
+  - 실패한 후처리 작업을 Dead Letter Queue에 저장하고 관리자 알림
+
+---
+
+## 16. PaymentPostProcessService의 포인트 적립 기준 불일치
+- **문제 설명**
+  - processPaymentSuccess에서 포인트 적립 시 actualPaymentAmount 사용 (라인 46)
+  - actualPaymentAmount는 포인트 차감 후 실제 결제 금액
+  - 예: 1000원 주문 - 100원 포인트 사용 = 900원 실제 결제 → 900원의 1% = 9원 포인트 적립
+  - 포인트로 포인트를 적립하는 구조가 됨
+
+- **왜 문제가 되는지**
+  - 비즈니스 정책이 모호: 포인트 사용 시 포인트 적립 대상 금액은?
+  - 일반적으로 포인트 사용 시에는 적립 제외하거나 원래 주문 금액 기준
+  - 실제 결제 금액만으로 적립하면 포인트 순환 구조가 만들어져 손해
+  - 캐시백은 originalAmount 기준인데 포인트는 actualAmount 기준인 비일관성
+
+- **개선 방향**
+  - 포인트 적립 정책을 명확히 정의하고 문서화
+  - 일반적으로 originalAmount 기준으로 포인트 적립 (포인트 사용과 무관하게)
+  - 또는 포인트 사용 시 포인트 적립을 아예 제외하는 정책
+  - PointPolicy, CashbackPolicy 인터페이스로 정책을 추상화하여 변경 가능하게 설계
+
+---
+
+## 17. 결제 실패 시 사용한 포인트 복구 누락 ✅ 수정 완료
+- **문제 설명**
+  - PaymentServiceImpl.confirmPayment에서 결제 실패 시 (라인 208-225)
+  - processPaymentFailure 호출 후 예외를 다시 throw
+  - processPaymentFailure는 로깅과 메트릭만 기록
+  - 사용한 포인트(usedPointAmount)를 복구하는 로직이 없음
+
+- **왜 문제가 되는지**
+  - requestPayment에서 포인트를 이미 차감함 (PaymentAmountFacade)
+  - confirmPayment 실패 시 포인트가 차감된 채로 남음
+  - 사용자는 결제도 실패하고 포인트도 잃게 됨
+  - 고객 불만 및 보상 처리 비용 발생
+
+- **개선 방향**
+  - processPaymentFailure 내부에서 포인트 복구 로직 추가
+  - 또는 포인트 사용을 confirmPayment 시점으로 이동 (트랜잭션 원자성 보장)
+  - 실패한 Payment의 상태를 확인하는 스케줄러 + 자동 포인트 복구 배치 작업
+  - 포인트 복구 실패 시 관리자 알림 및 수동 개입 프로세스
+
+- **✅ 수정 내용**
+  - [PaymentPostProcessService.java:69-85](domain/payment/service/postprocess/PaymentPostProcessService.java#L69-L85): `processPaymentFailure`에 포인트 복구 로직 추가
+  - 결제 실패 시 `PointType.PAYMENT_FAILED`로 사용한 포인트 복구
+  - 포인트 복구 실패 시 로그 남기고 계속 진행 (별도 보상 처리 필요)
+
+- **Issue #3과의 관계**
+  - **Issue #3** (부분 해결): 결제 요청 후 사용자가 포기하거나 타임아웃되는 경우 → 스케줄러 기반 복구 필요 (미구현)
+  - **Issue #17** (완료): `confirmPayment` 명시적 실패 시 즉시 복구 → `processPaymentFailure`에 구현됨
+  - 두 이슈는 포인트 복구라는 공통 주제지만 발생 시나리오가 다름
+
+---
+
+## 18. CashbackFacade의 분산락 내부 트랜잭션 문제
+- **문제 설명**
+  - accumulateCashback 메서드가 @Transactional (라인 58)
+  - 내부에서 lockService.executeWithLock 호출 (라인 61)
+  - executeWithLock 내부에서 다시 트랜잭션이 시작될 가능성
+  - 락을 먼저 획득하고 트랜잭션을 시작해야 하는데 순서가 반대
+
+- **왜 문제가 되는지**
+  - 트랜잭션을 먼저 시작하면 DB 커넥션을 먼저 점유
+  - 이후 락 획득 대기 중 DB 커넥션이 고갈될 수 있음 (Connection Pool Exhaustion)
+  - 락을 먼저 획득한 후 트랜잭션을 시작해야 데드락 방지
+  - 현재 구조는 트랜잭션 → 락 → 작업 순서로 비효율적
+
+- **개선 방향**
+  - @Transactional을 제거하고 executeWithLock 내부에서 TransactionTemplate 사용
+  - 락 획득 → 트랜잭션 시작 → 작업 수행 → 트랜잭션 커밋 → 락 해제 순서 보장
+  - 또는 lockService.executeWithLock가 자체적으로 트랜잭션 관리하도록 변경
+  - CashbackLockService가 TransactionTemplate을 주입받아 내부에서 트랜잭션 제어
+
+---
+
+## 19. 재시도 로직의 부재 및 PaymentRetryFacade 미사용
+- **문제 설명**
+  - PaymentFacade에 retryPayment 메서드가 있음 (라인 152)
+  - PaymentRetryFacade를 주입받아 사용
+  - 하지만 실제로 재시도가 필요한 곳(PaymentExecutionService, PaymentServiceImpl)에서는 호출되지 않음
+  - 재시도 로직이 스케줄러에만 의존하는 것으로 추정
+
+- **왜 문제가 되는지**
+  - 일시적인 네트워크 오류나 결제사 오류 시 즉시 재시도하지 않음
+  - 사용자는 오류 화면을 보고 다시 시도해야 함
+  - 스케줄러가 동작하기 전까지 결제가 PENDING 상태로 남음
+  - 결제 성공률이 낮아지고 사용자 경험 저하
+
+- **개선 방향**
+  - PaymentExecutionService에 Exponential Backoff 재시도 로직 추가
+  - Spring Retry 또는 Resilience4j 사용하여 재시도 정책 선언적으로 정의
+  - 즉시 재시도(3회) 실패 시 스케줄러를 통한 지연 재시도로 전환
+  - Circuit Breaker 패턴으로 결제사 장애 시 빠른 실패 처리
+
+---
+
+## 20. Point 엔티티의 paymentId 타입 불일치
+- **문제 설명**
+  - Point 엔티티의 paymentId가 Long 타입이지만 nullable (라인 38)
+  - Payment 엔티티와 직접 연관 관계(@ManyToOne)가 없음
+  - 단순 Long 타입 필드로 관리
+  - 결제와 무관한 포인트(프로모션, 이벤트)도 존재
+
+- **왜 문제가 되는지**
+  - paymentId가 유효한 Payment를 가리키는지 보장할 수 없음
+  - 고아 레퍼런스 발생 가능 (Payment 삭제 시 Point는 유지)
+  - 조인 쿼리 작성 시 수동으로 조인 조건 작성 필요
+  - JPA의 이점을 활용하지 못함
+
+- **개선 방향**
+  - Payment와 직접 연관 관계 설정 (@ManyToOne, optional=true)
+  - paymentId 필드 제거하고 payment 필드 사용
+  - 결제 관련 포인트와 비관련 포인트를 서브타입으로 분리 (상속 구조)
+  - 또는 PointType으로 구분하되 Payment는 직접 참조 관계 유지
+
+---
+
+## 21. 멱등성 키 생성 전략의 한계 ⚠️ 주요 이슈 (조기 해결 권장)
+- **문제 설명**
+  - generateIdempotencyKey가 paymentMethod + paymentId 조합 (라인 169-176)
+  - cancel, refund는 action을 추가하여 구분 (라인 183-188)
+  - 하지만 부분 환불이 여러 번 발생하는 경우 멱등성 키가 동일
+  - 첫 번째 부분 환불과 두 번째 부분 환불을 구분할 수 없음
+
+- **왜 문제가 되는지**
+  - 같은 Payment에 대해 두 번째 부분 환불 요청 시 같은 멱등성 키 생성
+  - 결제사는 이미 처리된 요청으로 판단하여 거부하거나 중복 환불 방지
+  - 실제로는 다른 환불 요청인데 멱등성 키가 같아 처리 불가
+  - 사용자가 여러 번 부분 환불을 받을 수 없음
+
+- **영향도 분석**
+  - **현재 상태**: 같은 Payment에 대한 두 번째 부분 환불은 동일한 멱등성 키로 인해 거부됨
+  - **비즈니스 영향**: 고객 환불 요청 처리 불가 → 고객 불만 및 수동 처리 필요
+  - **권장 우선순위**: "차단 이슈"는 아니지만 "주요 이슈"로 분류하여 조기 해결 권장
+
+- **개선 방향**
+  - 환불 요청마다 고유한 환불 ID 생성하여 멱등성 키에 포함
+  - Refund 엔티티를 별도로 만들어 refundId를 멱등성 키로 사용
+  - 또는 타임스탬프나 UUID를 멱등성 키에 추가하여 각 요청을 구분
+  - 멱등성 키 생성 로직을 Provider별로 다르게 설정 가능하도록 추상화
+
+---
+
+## 22. Cashback과 Payment의 양방향 참조 부재
+- **문제 설명**
+  - Cashback 엔티티가 paymentId를 Long으로 보관 (라인 37)
+  - Payment 엔티티는 Cashback 목록을 참조하지 않음
+  - 단방향 참조이지만 실제로는 외래키 수준의 참조
+  - Payment 삭제 시 Cashback이 고아가 될 수 있음
+
+- **왜 문제가 되는지**
+  - Payment 조회 시 연관된 Cashback을 즉시 알 수 없음
+  - 별도 쿼리로 Cashback을 조회해야 함 (N+1 문제)
+  - Payment 삭제 시 Cashback의 paymentId가 유효하지 않은 값을 가리킴
+  - 데이터 정합성 문제 발생 가능
+
+- **개선 방향**
+  - Cashback과 Payment를 @ManyToOne 연관 관계로 설정
+  - Payment에 @OneToMany로 cashbacks 컬렉션 추가 (양방향 연관 관계)
+  - 또는 Payment 삭제 시 관련 Cashback도 함께 삭제 (cascade)
+  - Payment 조회 시 fetch join으로 Cashback도 함께 조회하여 성능 최적화
+
+---
+
+## 23. 환율 서비스의 캐싱 및 실패 처리 전략 부재
+- **문제 설명**
+  - PaymentAmountFacade가 ExchangeRateService.convertCurrency 호출 (라인 36)
+  - ExchangeRateService의 구현을 보지 못했지만 외부 API 호출 추정
+  - 환율 조회 실패 시 결제 전체가 실패할 가능성
+  - 환율 API 응답 시간이 느리면 결제 응답 시간도 느려짐
+
+- **왜 문제가 되는지**
+  - 환율 API 장애 시 모든 외화 결제가 불가능
+  - 환율 조회를 매번 실시간으로 하면 API 비용 증가 및 성능 저하
+  - 환율은 실시간 정확도가 높을 필요 없음 (수 분 단위 업데이트로 충분)
+  - 캐싱 없이 매 결제마다 외부 API 호출은 비효율적
+
+- **개선 방향**
+  - ExchangeRateService에 캐싱 추가 (Spring Cache, Redis)
+  - 스케줄러로 주기적으로 환율 업데이트 (1분~10분 간격)
+  - 환율 조회 실패 시 이전 캐시 값 사용 (Stale-While-Revalidate)
+  - Circuit Breaker 패턴으로 환율 API 장애 시 빠른 실패
+  - Fallback 환율 설정 (예: 전날 종가)
+
+---
+
+## 24. 결제 상태 전이의 명시적 검증 부재 ✅ 수정 완료
+- **문제 설명**
+  - Payment 엔티티의 상태 변경 메서드들이 현재 상태를 검증하지 않음
+  - 예: markSuccess는 PENDING이 아닌 상태에서도 호출 가능
+  - FAILED 상태에서 markSuccess 호출 시 데이터 불일치
+  - 상태 머신(State Machine) 패턴이 없음
+
+- **왜 문제가 되는지**
+  - 잘못된 상태 전이로 데이터 무결성 훼손
+  - CANCELED 상태에서 SUCCESS로 변경되는 등 비정상 상태 전이 가능
+  - 상태 전이 규칙이 코드에 명시되지 않아 비즈니스 로직 파악 어려움
+  - 디버깅 시 어떤 경로로 상태가 변경되었는지 추적 어려움
+
+- **개선 방향**
+  - Payment에 canTransitionTo(PaymentStatus) 메서드 추가
+  - 각 상태 변경 메서드에서 현재 상태 검증 로직 추가
+  - 허용되지 않는 상태 전이 시 예외 발생
+  - State 패턴 또는 상태 머신 라이브러리(Spring State Machine) 도입
+  - 상태 전이 로그를 별도 테이블에 기록하여 감사 추적 가능하게 구성
+
+- **✅ 수정 내용**
+  - [Payment.java:206-222](domain/payment/Payment.java#L206-L222): `canTransitionTo(PaymentStatus)` 메서드 추가
+  - [Payment.java:233-241](domain/payment/Payment.java#L233-L241): `canCancel()` 메서드 추가
+  - [Payment.java:252-257](domain/payment/Payment.java#L252-L257): `canRefund()` 메서드 추가
+  - [Payment.java:265-271](domain/payment/Payment.java#L265-L271): `canRefund(BigDecimal)` 오버로드 메서드 추가
+  - [Payment.java:276-279](domain/payment/Payment.java#L276-L279): `isSuccessful()` 메서드 추가
+  - [Payment.java:284-288](domain/payment/Payment.java#L284-L288): `isFinalState()` 메서드 추가
+
+---
+
+## 25. 로깅 시 민감 정보 노출 위험
+- **문제 설명**
+  - PaymentLoggingService 사용 추정
+  - 최근 커밋 메시지에 "웹훅 payload를 로그에 남기지 말라"는 경고
+  - Payment 정보, 금액, 사용자 정보 등이 로그에 포함될 가능성
+  - GDPR, 개인정보보호법 위반 위험
+
+- **왜 문제가 되는지**
+  - 로그에 개인정보, 결제 정보가 평문으로 저장되면 법적 문제
+  - 로그 파일이 외부 유출 시 심각한 보안 사고
+  - 결제 payload에는 카드번호, 개인정보 등 민감 정보 포함
+  - 로그 보관 기간 동안 개인정보 관리 책임 발생
+
+- **개선 방향**
+  - 로그에 민감 정보 마스킹 (카드번호, 이메일, 전화번호 등)
+  - Webhook payload는 크기나 해시값만 로그에 기록
+  - 별도의 보안 로그 저장소 사용 (접근 제어, 암호화)
+  - 로그 레벨을 적절히 설정하여 운영 환경에서는 DEBUG 로그 비활성화
+  - 로깅 정책을 코드 리뷰 체크리스트에 포함
+
+---
+
+## 총평
+
+### 긍정적인 부분
+- 책임을 세분화하여 Service, Facade, Execution, Validation 등으로 명확히 분리하려는 시도
+- Provider 패턴으로 결제사 추상화를 잘 구현
+- 멱등성, 분산락, 재시도 등 결제 도메인의 핵심 요구사항을 고려
+- 트랜잭션 경계와 동시성 문제를 인지하고 해결하려는 노력
+
+### 개선이 시급한 부분
+1. **포인트 사용/복구 로직**: 결제 실패 시 포인트 복구 누락은 고객 불만 직결
+2. **중첩 트랜잭션 구조**: 예측 불가능한 동작과 데이터 불일치 위험
+3. **환불 시 잘못된 메서드 사용**: accumulatePoints 대신 addPointsDirectly 사용 필수
+4. **Webhook 중복 파싱**: 성능 낭비 및 로직 중복
+5. **멱등성 키 저장 시점**: 외부 API 호출 전 커밋 보장 필요
+
+### 아키텍처 개선 방향
+- Saga 패턴이나 Outbox 패턴으로 분산 트랜잭션 관리
+- 도메인 이벤트 기반 아키텍처로 결합도 낮추기
+- Payment를 Rich Domain Model로 전환하여 비즈니스 로직 응집
+- Facade 계층 역할 재정의 또는 제거
+- 통합 테스트와 보상 트랜잭션 전략 수립
+
+---
+
+# 결제사별 Provider 구현 공식 문서 대조
+
+## 26. 토스페이먼츠 - Idempotency-Key 헤더 미지원 ✅ 수정 완료
+
+- **문제 설명**
+  - TossPaymentProvider에서 `Idempotency-Key` 헤더를 전송 (라인 80-82)
+  - 토스페이먼츠 공식 API는 이 헤더를 지원하지 않음
+  - paymentKey가 이미 고유 식별자 역할을 하며, 같은 paymentKey로 중복 호출 시 자체적으로 에러 반환
+
+- **왜 문제가 되는지**
+  - 헤더를 보내도 무시되어 실제 멱등성 보장은 토스 자체 로직에 의존
+  - 개발자가 Idempotency-Key로 멱등성이 보장된다고 착각할 수 있음
+  - 다른 결제사와 일관되지 않은 멱등성 처리 방식
+  - 불필요한 헤더 전송으로 인한 혼란
+
+- **개선 방향**
+  - TossPaymentProvider에서 Idempotency-Key 헤더 전송 제거
+  - 주석으로 "토스페이먼츠는 paymentKey 자체가 멱등성 키 역할" 명시
+  - Provider 인터페이스에 `supportsIdempotency()` 메서드 추가
+  - 토스의 경우 false 반환하여 명시적으로 미지원 표시
+
+- **✅ 수정 내용**
+  - [TossPaymentProvider.java:38-41](domain/payment/provider/impl/TossPaymentProvider.java#L38-L41): 멱등성 관련 상세 문서 주석 추가
+  - [TossPaymentProvider.java:74-80](domain/payment/provider/impl/TossPaymentProvider.java#L74-L80): `supportsIdempotency()` false 반환
+  - [TossPaymentProvider.java:104-106](domain/payment/provider/impl/TossPaymentProvider.java#L104-L106): confirmPayment에 멱등성 미지원 주석 추가
+  - Idempotency-Key 헤더 전송하지 않음 (이미 제거되어 있음)
+
+---
+
+## 27. 카카오페이 - 결제 준비 단계(/ready) 완전 누락 ✅ 수정 완료
+
+- **문제 설명**
+  - KakaoPayPaymentProvider의 confirmPayment가 `/approve` API만 호출
+  - 카카오페이 공식 흐름: 1) `/ready` → tid 발급, 2) 사용자 인증, 3) `/approve`
+  - 현재 코드는 paymentKey에 이미 tid가 포함되어 있다고 가정
+  - `/ready` 호출 없이는 실제로 결제 불가능
+
+- **왜 문제가 되는지**
+  - **치명적**: 카카오페이 결제가 운영 환경에서 작동하지 않음
+  - `/ready` 없이 `/approve` 호출 시 카카오페이 API가 400 에러 반환
+  - tid는 `/ready` 호출로만 발급 가능하며 클라이언트가 임의로 생성 불가
+  - 결제 흐름이 공식 문서와 완전히 불일치
+
+- **개선 방향**
+  - Provider 인터페이스에 `preparePayment()` 메서드 추가
+  - KakaoPayPaymentProvider에 `/ready` API 호출 구현
+  - requestPayment에서 preparePayment 호출하여 tid 사전 발급
+  - tid를 Payment.externalPaymentId에 저장
+  - confirmPayment는 저장된 tid + pg_token으로 approve 호출
+
+- **✅ 수정 내용**
+  - [PaymentProvider.java](domain/payment/provider/PaymentProvider.java): `preparePayment()`, `requiresPreparation()` 기본 메서드 추가
+  - [PaymentProvider.java](domain/payment/provider/PaymentProvider.java): `PrepareResult` record 추가
+  - [KakaoPayPaymentProvider.java](domain/payment/provider/impl/KakaoPayPaymentProvider.java): `/ready` API 호출 완전 구현
+  - [KakaoPayProperties.java](domain/payment/config/KakaoPayProperties.java): approvalUrl, cancelUrl, failUrl 필드 추가
+  - `requiresPreparation()` true 반환하여 준비 단계 필수임을 명시
+
+---
+
+## 28. 카카오페이 - Idempotency 개념 미지원
+
+- **문제 설명**
+  - KakaoPayPaymentProvider에서 idempotencyKey 파라미터를 받지만 사용하지 않음
+  - 카카오페이는 Idempotency-Key 헤더 개념이 없음
+  - tid 자체가 고유하며 중복 approve 시 API가 자동으로 에러 반환
+
+- **왜 문제가 되는지**
+  - idempotencyKey를 전달해도 카카오페이는 완전히 무시
+  - 재시도 시 같은 tid로 approve 호출하면 이미 승인 완료 에러 발생
+  - 멱등성이 tid 레벨에서만 작동하여 애플리케이션 레벨 제어 불가
+
+- **개선 방향**
+  - KakaoPayPaymentProvider.supportsIdempotency()는 false 반환
+  - 재시도 로직에서 카카오페이는 상태 조회 후 재승인 여부 판단
+  - tid가 이미 승인된 경우 중복 approve 호출하지 않도록 방어 로직 추가
+
+---
+
+## 29. 페이팔 - 액세스 토큰 캐싱의 Thread Safety 문제 ✅ 수정 완료
+
+- **문제 설명**
+  - PayPalPaymentProvider의 cachedAccessToken과 tokenExpiresAt 필드가 non-volatile (라인 50-51)
+  - 멀티스레드 환경에서 여러 스레드가 동시에 토큰 만료 확인 시 경쟁 조건 발생
+  - 여러 스레드가 동시에 새 토큰을 요청할 수 있음
+
+- **왜 문제가 되는지**
+  - Thread A: 토큰 만료 확인 → 새 토큰 요청 중
+  - Thread B: 동시에 토큰 만료 확인 → 또 새 토큰 요청
+  - 불필요한 중복 API 호출로 페이팔 API 할당량 낭비
+  - 캐싱의 의미가 퇴색됨
+  - 가시성 문제로 인해 Thread B가 Thread A가 방금 갱신한 토큰을 못 볼 수 있음
+
+- **개선 방향**
+  - `private volatile String cachedAccessToken` 선언 (가시성 보장)
+  - `private volatile long tokenExpiresAt` 선언
+  - 또는 synchronized 블록으로 getAccessToken 메서드 보호
+  - 더 나은 방법: AtomicReference<AccessToken> 사용하여 토큰과 만료시간 함께 관리
+  - Double-checked locking 패턴 적용
+
+- **✅ 수정 내용**
+  - [PayPalPaymentProvider.java](domain/payment/provider/impl/PayPalPaymentProvider.java): `cachedAccessToken`을 volatile로 선언
+  - [PayPalPaymentProvider.java](domain/payment/provider/impl/PayPalPaymentProvider.java): `tokenExpiresAt`을 volatile로 선언
+  - [PayPalPaymentProvider.java](domain/payment/provider/impl/PayPalPaymentProvider.java): `tokenLock` Object 추가
+  - [PayPalPaymentProvider.java](domain/payment/provider/impl/PayPalPaymentProvider.java): `getAccessToken()`에 double-checked locking 패턴 적용
+  - 멀티스레드 환경에서 안전한 토큰 캐싱 보장
+
+---
+
+## 30. 공통 - 결제 준비 단계 구조적 누락 ✅ 수정 완료
+
+- **문제 설명**
+  - 현재 구조: requestPayment → DB에 Payment 저장, confirmPayment → Provider.confirmPayment 호출
+  - 실제 결제사 흐름: 준비 API로 고유 ID 발급 → 사용자 인증 → 승인 API로 완료
+  - **토스**: 클라이언트가 결제 위젯에서 paymentKey 받아와야 함 (서버 준비 단계 없음)
+  - **카카오페이**: `/ready`로 tid 발급 필요
+  - **페이팔**: `POST /v2/checkout/orders`로 orderId 생성 필요
+
+- **왜 문제가 되는지**
+  - 카카오페이와 페이팔이 운영 환경에서 작동하지 않음
+  - 결제사별로 완전히 다른 흐름을 하나의 Provider 인터페이스로 억지로 맞춤
+  - 클라이언트가 사전에 준비 단계를 수행해야 하는지 불명확
+  - 서버 주도 결제(카카오페이, 페이팔) vs 클라이언트 주도 결제(토스)를 구분하지 못함
+
+- **개선 방향**
+  - Provider 인터페이스를 두 가지로 분리
+    - ServerPreparedPaymentProvider: 서버에서 준비 단계 수행 (카카오페이, 페이팔)
+    - ClientPreparedPaymentProvider: 클라이언트가 준비 (토스)
+  - ServerPreparedPaymentProvider에 `preparePayment()` 메서드 추가
+  - requestPayment에서 Provider 타입에 따라 준비 단계 실행 여부 결정
+  - 또는 모든 Provider에 `preparePayment()` 추가하고 토스는 no-op 구현
+
+- **✅ 수정 내용**
+  - [PaymentProvider.java](domain/payment/provider/PaymentProvider.java): 모든 Provider에 `preparePayment()` 기본 메서드 추가
+  - [PaymentProvider.java](domain/payment/provider/PaymentProvider.java): `requiresPreparation()` 기본 메서드 추가 (기본값: false)
+  - [KakaoPayPaymentProvider.java](domain/payment/provider/impl/KakaoPayPaymentProvider.java): `preparePayment()` 완전 구현, `requiresPreparation()` true 반환
+  - [PayPalPaymentProvider.java](domain/payment/provider/impl/PayPalPaymentProvider.java): `preparePayment()` order 생성 구현, `requiresPreparation()` true 반환
+  - [TossPaymentProvider.java:86-89](domain/payment/provider/impl/TossPaymentProvider.java#L86-L89): `requiresPreparation()` false 반환 (클라이언트 준비)
+  - [PaypalProperties.java](domain/payment/config/PaypalProperties.java): returnUrl, cancelUrl 필드 추가
+
+---
+
+## 31. 카카오페이 - 취소 시 금액 정보 조회 방식의 문제
+
+- **문제 설명**
+  - KakaoPayPaymentProvider.cancelPayment에서 먼저 getPaymentStatus 호출 (라인 232)
+  - 원본 결제 금액과 면세 금액을 가져오기 위함
+  - 하지만 전체 취소인데도 금액을 명시적으로 전달해야 함
+
+- **왜 문제가 되는지**
+  - 카카오페이 `/cancel` API는 `cancel_amount`가 필수 파라미터
+  - 전체 취소 시에도 원본 금액을 정확히 명시해야 함
+  - 추가 API 호출로 인한 성능 저하
+  - getPaymentStatus 실패 시 취소 자체가 실패하는 의존성
+
+- **개선 방향**
+  - Payment 엔티티에 원본 결제 금액을 저장해두고 재사용
+  - 면세 금액도 Payment에 저장 (별도 필드 추가)
+  - getPaymentStatus 실패 시에도 취소가 가능하도록 fallback 로직
+  - 현재 구현은 합리적이지만 Payment 엔티티 확장으로 개선 가능
+
+---
+
+## 32. 페이팔 - 주문 상태별 취소 처리의 복잡성
+
+- **문제 설명**
+  - PayPalPaymentProvider.cancelPayment가 주문 상태에 따라 다르게 처리 (라인 214-267)
+  - CREATED/APPROVED: API 호출 없이 취소 처리
+  - Authorization 존재: void 처리
+  - Capture 존재: 환불 필요 (취소 불가)
+  - 복잡한 분기 로직
+
+- **왜 문제가 되는지**
+  - 페이팔은 주문 생명주기가 복잡 (Created → Approved → Authorized → Captured)
+  - 각 상태마다 취소/환불 방법이 다름
+  - 이미 Capture된 경우 취소가 아닌 환불만 가능한데 예외 발생 (라인 244-246)
+  - 호출자(PaymentService)는 이런 복잡성을 모르고 cancelPayment 호출
+
+- **개선 방향**
+  - 페이팔의 경우 취소와 환불을 명확히 구분하는 것이 맞음
+  - 이미 Capture된 경우 자동으로 전액 환불 처리하거나
+  - 또는 CancelResult에 "환불 필요" 플래그 추가하여 호출자에게 알림
+  - 주석으로 페이팔의 상태 전이 모델을 명확히 문서화
+
+---
+
+## 33. 공통 - Webhook 파싱 실패 시 RuntimeException throw
+
+- **문제 설명**
+  - 모든 Provider의 parseWebhook이 실패 시 RuntimeException throw
+  - TossPaymentProvider 라인 311, KakaoPayPaymentProvider 라인 417, PayPalPaymentProvider 라인 570
+  - Webhook 파싱 실패는 치명적이지만 예외를 던지면 HTTP 500 응답
+
+- **왜 문제가 되는지**
+  - Webhook은 결제사에서 재시도하는데 500 에러 시 계속 재시도
+  - 파싱 자체가 실패한 경우 재시도해도 계속 실패
+  - 결제사의 재시도 큐에 쌓여 시스템 부하
+  - 잘못된 payload로 인한 파싱 실패를 복구 불가능한 오류로 처리
+
+- **개선 방향**
+  - 파싱 실패 시 400 Bad Request 반환 (결제사에 재시도 중단 요청)
+  - 또는 200 OK 반환하되 내부적으로 파싱 실패 로그 남기고 알림
+  - Dead Letter Queue에 실패한 webhook 저장하여 수동 재처리
+  - 파싱 실패 원인 분석을 위해 payload 해시값과 크기만 로깅
+
+---
+
+## 34. 토스페이먼츠 - 금액 타입 검증의 적절성
+
+- **문제 설명**
+  - TossPaymentProvider에서 금액 소수점 검증 (라인 87-89, 227-229)
+  - `if (amount.scale() > 0)` 체크 후 예외 발생
+  - 토스페이먼츠는 정수 금액만 지원 (원 단위)
+
+- **왜 문제가 되는지**
+  - ✅ 이것은 **올바른 구현**
+  - 토스페이먼츠 API는 소수점이 있는 금액을 거부함
+  - 사전 검증으로 API 호출 전 에러 차단
+
+- **개선 방향**
+  - 현재 구현이 올바름
+  - 다만 에러 메시지를 더 친절하게 개선 가능
+  - "토스페이먼츠는 원 단위 결제만 지원합니다. 소수점 금액은 사용할 수 없습니다."
+
+---
+
+## 35. 카카오페이 - 환불 시 tax_free_amount를 항상 0으로 전송
+
+- **문제 설명**
+  - KakaoPayPaymentProvider.refundPayment에서 cancel_tax_free_amount를 0으로 고정 (라인 313)
+  - 취소 시에는 원본 금액 조회하여 tax_free_amount 계산 (라인 245-251)
+  - 환불 시에는 tax_free_amount를 고려하지 않음
+
+- **왜 문제가 되는지**
+  - 부분 환불 시 면세 금액 비율을 계산하지 않음
+  - 예: 원본 10000원 (면세 1000원), 5000원 환불 → 면세 500원 환불해야 하는데 0원으로 전송
+  - 카카오페이 API가 에러를 반환하거나 잘못된 환불 처리 가능
+  - 전체 환불과 부분 환불의 면세 금액 처리 불일치
+
+- **개선 방향**
+  - 부분 환불 시에도 원본 면세 금액을 조회
+  - 환불 비율에 따라 면세 금액 계산
+  - `cancel_tax_free_amount = 원본 면세 금액 * (환불 금액 / 원본 금액)`
+  - 또는 카카오페이 공식 문서에서 면세 금액 계산 규칙 확인 후 적용
+
+---
+
+## 36. 페이팔 - Webhook 서명 검증 방식의 복잡성
+
+- **문제 설명**
+  - PayPalPaymentProvider.verifyWebhookSignature가 복잡한 구조 (라인 464-526)
+  - signature 파라미터가 JSON 형태여야 함 (라인 475)
+  - 5개의 헤더 정보를 포함해야 함
+  - 실제로는 페이팔 API를 호출하여 검증 위임
+
+- **왜 문제가 되는지**
+  - 호출자(WebhookHandler)가 signature를 JSON으로 전달해야 함
+  - 실제 HTTP 헤더를 Map으로 변환하는 로직이 필요
+  - Controller에서 헤더 파싱 로직이 Provider 구현에 의존
+  - 다른 결제사는 단순 문자열 signature인데 페이팔만 JSON
+
+- **개선 방향**
+  - Provider 인터페이스의 verifyWebhookSignature 시그니처 변경
+  - `boolean verifyWebhookSignature(String payload, Map<String, String> headers)`
+  - 모든 헤더를 Map으로 받아서 Provider가 필요한 헤더 추출
+  - 또는 별도의 WebhookHeaders DTO 객체 정의
+
+---
+
+## 37. 모든 Provider - 예외 발생 시 failureReason 불일치
+
+- **문제 설명**
+  - confirmPayment 실패 시 반환하는 PaymentResult의 failureReason이 일관되지 않음
+  - 토스: "Toss Payments API 호출 실패: " + 예외 메시지 (라인 126)
+  - 카카오페이: "KakaoPay API 호출 실패: " + 예외 메시지 (라인 176)
+  - 페이팔: "PayPal API 호출 실패: " + 예외 메시지 (라인 150)
+
+- **왜 문제가 되는지**
+  - 사용자에게 보여지는 오류 메시지가 Provider 구현에 의존
+  - 예외 메시지에 스택 트레이스나 내부 정보가 포함될 수 있음
+  - 일관된 오류 처리와 사용자 경험 제공 어려움
+
+- **개선 방향**
+  - 예외를 분류하여 failureReason을 표준화
+  - 네트워크 오류: "일시적인 네트워크 오류"
+  - 잔액 부족: "결제 수단 잔액 부족"
+  - 인증 실패: "결제 인증 실패"
+  - Provider에서 결제사 응답을 분석하여 표준 오류 코드로 변환
+  - ErrorCode enum 확장하여 결제사별 오류를 매핑
+
+---
+
+## 결제사별 구현 준수도 요약
+
+### ✅ 토스페이먼츠 (준수도: 85%)
+**잘 구현된 부분**:
+- Basic 인증 방식 올바름
+- 금액 정수 검증
+- Webhook 서명 검증 (HMAC-SHA256)
+- API 엔드포인트 정확함
+
+**문제점**:
+- Idempotency-Key 헤더 미지원인데 전송함
+- 결제 준비 단계가 클라이언트에 의존
+
+**치명도**: 낮음 (작동은 함, 개선 필요)
+
+---
+
+### ❌ 카카오페이 (준수도: 40%)
+**잘 구현된 부분**:
+- 인증 방식 올바름 (SECRET_KEY)
+- 취소 시 금액 조회 로직
+
+**문제점**:
+- **/ready 단계 완전 누락** (치명적!)
+- Idempotency 미지원
+- 환불 시 면세 금액 계산 부족
+
+**치명도**: **매우 높음** (운영 환경에서 작동 불가)
+
+---
+
+### ⚠️ 페이팔 (준수도: 75%)
+**잘 구현된 부분**:
+- OAuth 토큰 획득 및 캐싱
+- Webhook 서명 검증 (API 위임)
+- Authorization vs Capture 구분
+- Idempotency 헤더 올바름 (PayPal-Request-Id)
+
+**문제점**:
+- 액세스 토큰 캐싱 Thread-Safe 아님
+- 주문 생성 단계 누락
+- Webhook signature 파라미터 형식 불일치
+
+**치명도**: 중간 (부분적으로 작동, 멀티스레드 환경에서 문제)
+
+---
+
+## 최우선 수정 사항 (운영 차단 이슈)
+
+1. ✅ **카카오페이 /ready API 구현** - 완전히 작동 불가 → **수정 완료**
+2. ✅ **페이팔 토큰 캐싱 Thread-Safe 수정** - 멀티스레드 환경 필수 → **수정 완료**
+3. ✅ **Provider 인터페이스에 prepare 단계 추가** - 아키텍처 수정 → **수정 완료**
+4. ✅ **멱등성 지원 여부 명시적 관리** - supportsIdempotency() 메서드 추가 → **수정 완료**
+
+---
+
+## 2024년 수정 이력
+
+### 2024-02-02 (1차): 8개 치명적 이슈 수정 완료
+
+**수정된 파일:**
+- `domain/payment/Payment.java` - 상태 전이 검증 메서드 추가
+- `domain/payment/enums/PointType.java` - REFUND, CANCEL, PAYMENT_FAILED enum 추가
+- `domain/payment/provider/PaymentProvider.java` - preparePayment(), supportsIdempotency(), requiresPreparation() 추가
+- `domain/payment/provider/impl/KakaoPayPaymentProvider.java` - /ready API 완전 구현
+- `domain/payment/provider/impl/PayPalPaymentProvider.java` - 토큰 캐싱 thread-safety 수정, order 생성 구현
+- `domain/payment/provider/impl/TossPaymentProvider.java` - 멱등성 미지원 명시 및 문서화
+- `domain/payment/service/postprocess/PaymentPostProcessService.java` - 포인트 복구 로직 수정
+- `domain/payment/config/KakaoPayProperties.java` - URL 필드 추가
+- `domain/payment/config/PaypalProperties.java` - URL 필드 추가
+
+**해결된 치명적 문제:**
+1. 카카오페이 결제가 운영 환경에서 작동하지 않던 문제 해결
+2. 페이팔 멀티스레드 환경에서 토큰 중복 요청 문제 해결
+3. 결제 실패/취소 시 포인트가 소실되던 문제 해결
+4. 결제사별 멱등성 지원 여부가 불명확하던 문제 해결
+
+---
+
+### 2024-02-02 (2차): 4개 아키텍처 이슈 수정 완료
+
+**수정된 파일:**
+- `domain/payment/webhook/WebhookHandler.java` - @Transactional 제거, WebhookProcessingResult record 추가
+- `domain/payment/facade/PaymentWebhookFacade.java` - 중복 파싱 제거
+- `domain/payment/service/execution/PaymentExecutionService.java` - 멱등성 키 별도 트랜잭션 저장
+- `domain/payment/Payment.java` - isExpired(), hasUnrecoveredPoints() 메서드 추가
+- `domain/payment/service/facade/PaymentAmountFacade.java` - 제한사항 문서화
+
+**해결된 아키텍처 문제:**
+1. 중첩 트랜잭션으로 인한 예측 불가능한 동작 제거
+2. Webhook 중복 파싱 성능 문제 해결
+3. 멱등성 키가 외부 API 호출 전에 저장되어 중복 호출 방지
+4. 포인트 사용 시점 문제 문서화 및 만료 확인 인프라 추가
+
+---
+
+### 2024-02-02 (3차): 3개 정책/인프라 이슈 문서화 완료
+
+**수정된 파일:**
+- `domain/payment/service/point/PointServiceImpl.java` - 잔액 관리 방식 제한사항 문서화
+- `domain/payment/service/postprocess/PaymentPostProcessService.java` - 캐시백 적립 정책 불일치 문서화
+- `domain/payment/service/cashback/lock/CashbackLockService.java` - 동시성 제어 일관성 문제 문서화
+- `domain/payment/webhook/WebhookIdempotencyService.java` - 동시성 제어 일관성 문제 문서화
+
+**문서화된 정책/인프라 문제:**
+1. Point 잔액 관리 방식의 이중 계산 문제 (getLastBalance vs getCurrentBalance)
+2. 포인트와 캐시백 적립 기준 금액 불일치 (actualAmount vs originalAmount)
+3. 동시성 제어 메커니즘 불일치 (ShedLock vs Redis 직접 사용)
+
+**비즈니스 정책 결정 필요:**
+- 캐시백 적립 시 포인트 사용 금액 포함 여부
+- 잔액 관리 단일 진실 공급원 선택 (balance 필드 vs 집계 쿼리)
+- 통일된 동시성 제어 추상화 계층 도입 여부
+
+**다음 우선순위:**
+- 예외 처리 일관성 확보 (#15)
+- 포인트 적립 기준 정책 명확화 (#16)
+- CashbackFacade 트랜잭션 순서 개선 (#18)
+
+---
+
+## 🔚 최종 요약 (의사결정 표)
+
+| 이슈 | 선택 |
+|------|------|
+| 캐시백 적립 기준 | A안 – 실제 결제 금액 기준 |
+| Point 잔액 관리 | C안 – 현재 구조 유지 + 문서화 |
+| 동시성 제어 | A안 – DistributedLockService로 통일 |

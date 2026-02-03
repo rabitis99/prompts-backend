@@ -7,11 +7,14 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.datatype.jsr310.deser.InstantDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.InstantSerializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -31,6 +34,9 @@ public class JacksonConfig {
                 new LocalDateTimeSerializer(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         javaTimeModule.addDeserializer(LocalDateTime.class,
                 new LocalDateTimeDeserializer(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        // Instant: ISO-8601 형식으로 직렬화 (PayPal 등 외부 API UTC 타임스탬프 처리용)
+        javaTimeModule.addSerializer(Instant.class, InstantSerializer.INSTANCE);
+        javaTimeModule.addDeserializer(Instant.class, InstantDeserializer.INSTANT);
         mapper.registerModule(javaTimeModule);
 
         // 기타 설정
@@ -68,6 +74,9 @@ public class JacksonConfig {
                 new LocalDateTimeSerializer(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         javaTimeModule.addDeserializer(LocalDateTime.class,
                 new LocalDateTimeDeserializer(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        // Instant: ISO-8601 형식으로 직렬화 (PayPal 등 외부 API UTC 타임스탬프 처리용)
+        javaTimeModule.addSerializer(Instant.class, InstantSerializer.INSTANCE);
+        javaTimeModule.addDeserializer(Instant.class, InstantDeserializer.INSTANT);
         mapper.registerModule(javaTimeModule);
 
         // 기본 설정 (objectMapper()와 동일한 네이밍 전략 적용)

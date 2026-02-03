@@ -36,6 +36,9 @@ public class Payment extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    private Long version;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -185,8 +188,31 @@ public class Payment extends BaseEntity {
      * 재시도 가능 여부 확인
      */
     public boolean isRetryable(int maxRetry) {
-        return this.status == PaymentStatus.PENDING 
+        return this.status == PaymentStatus.PENDING
                 && this.retryCount < maxRetry;
+    }
+
+    // ===== 상태 조회 메서드 (검증 제거, 조회만 유지) =====
+
+    /**
+     * 결제 성공 상태인지 확인
+     *
+     * <p>성공 여부만 조회 (비즈니스 규칙 검증 없음)
+     */
+    public boolean isSuccessful() {
+        return this.status == PaymentStatus.SUCCESS
+                || this.status == PaymentStatus.PARTIALLY_REFUNDED;
+    }
+
+    /**
+     * 최종 상태인지 확인 (더 이상 상태 변경 불가)
+     *
+     * <p>상태 조회만 수행 (검증은 PaymentValidationService에서 담당)
+     */
+    public boolean isFinalState() {
+        return this.status == PaymentStatus.FAILED
+                || this.status == PaymentStatus.CANCELED
+                || this.status == PaymentStatus.REFUNDED;
     }
 
     /**
@@ -212,6 +238,13 @@ public class Payment extends BaseEntity {
      */
     public void updateExternalPaymentId(String externalPaymentId) {
         this.externalPaymentId = externalPaymentId;
+    }
+
+    /**
+     * 메타데이터 업데이트
+     */
+    public void updateMetadata(String metadata) {
+        this.metadata = metadata;
     }
 
     /**

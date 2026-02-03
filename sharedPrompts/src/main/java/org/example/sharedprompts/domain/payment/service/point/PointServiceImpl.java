@@ -34,8 +34,19 @@ import java.util.function.Supplier;
 
 /**
  * 포인트 서비스 구현체
- * 
+ *
  * 멀티 서버 환경에서 동시성 문제를 해결하기 위해 ShedLock 분산락을 사용합니다.
+ *
+ * <p><strong>알려진 제한사항 - 잔액 관리 방식:</strong>
+ * - Point 엔티티의 balance 필드에 누적 잔액 저장 (getLastBalance 사용)
+ * - getCurrentBalance는 별도 집계 쿼리 사용
+ * - 두 메서드가 다른 방식으로 잔액 계산하여 일시적 불일치 가능성 존재
+ * - 분산락으로 동시성 제어하지만, 락 외부에서 getCurrentBalance 호출 시 부정확할 수 있음
+ *
+ * <p><strong>권장 개선사항:</strong>
+ * - balance 필드 제거하고 항상 집계 쿼리로 잔액 계산 (단일 진실 공급원)
+ * - 또는 User 엔티티에 pointBalance 필드 추가하여 신뢰할 수 있는 단일 소스로 관리
+ * - Point 엔티티는 이력만 저장하고 잔액 계산은 별도 집계 테이블 사용
  */
 @Slf4j
 @Service
@@ -107,6 +118,13 @@ public class PointServiceImpl implements PointService {
         });
     }
 
+    /**
+     * 현재 포인트 잔액 조회 (집계 쿼리 사용)
+     *
+     * <p><strong>주의:</strong> 성능을 위해 분산락을 사용하지 않습니다.
+     * 동시 포인트 업데이트 중에는 일시적으로 부정확한 값을 반환할 수 있습니다.
+     * 정확한 잔액이 필요한 경우 락이 적용된 메서드 내부에서 getLastBalance()를 사용하세요.
+     */
     @Override
     public BigDecimal getCurrentBalance(Long userId) {
         return pointRepository.getCurrentBalance(userId);
@@ -188,8 +206,17 @@ public class PointServiceImpl implements PointService {
 
     /**
      * 직접 포인트 적립 비즈니스 로직
+     *
+     * <p>paymentId가 있는 경우 멱등성 체크를 수행하여 중복 적립을 방지합니다.
+     * 콜백 재시도 등으로 동일 결제에 대해 여러 번 호출되어도 한 번만 적립됩니다.
      */
     private void doAddPointsDirectly(Long userId, Long paymentId, BigDecimal pointAmount, PointType type, String description) {
+        // 멱등성 체크: paymentId + PointType 조합이 이미 존재하면 스킵
+        if (paymentId != null && pointRepository.existsByPaymentIdAndType(paymentId, type)) {
+            log.info("포인트 적립 스킵 (이미 처리됨): userId={}, paymentId={}, type={}", userId, paymentId, type);
+            return;
+        }
+
         User user = getUser(userId);
         BigDecimal lastBalance = getLastBalance(userId);
         BigDecimal newBalance = lastBalance.add(pointAmount);
@@ -232,12 +259,18 @@ public class PointServiceImpl implements PointService {
 
     /**
      * 마지막 잔액 조회
+     *
+     * <p><strong>주의:</strong> Point 엔티티의 balance 필드를 사용하여 잔액 조회
+     * - getCurrentBalance()와 다른 방식으로 계산하여 일시적 불일치 가능
+     * - 분산락 내부에서만 호출되어야 정확성 보장
+     * - 권장: balance 필드 대신 항상 집계 쿼리 사용 (향후 개선 필요)
      */
     private BigDecimal getLastBalance(Long userId) {
         List<Point> latestPoints = pointRepository.findLatestPointByUserId(userId);
-        return latestPoints.isEmpty() 
-                ? BigDecimal.ZERO 
-                : latestPoints.get(0).getBalance();
+        if (latestPoints.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return latestPoints.get(0).getBalance();
     }
 
     /**

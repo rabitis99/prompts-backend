@@ -19,7 +19,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PaymentStatusResponseDto {
 
+    @JsonProperty("id")
     private Long id;
+    
+    @JsonProperty("status")
     private PaymentStatus status;
     
     @JsonProperty("external_payment_id")
