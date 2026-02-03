@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.payment.service.notification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.FcmProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -21,6 +22,7 @@ import static org.example.sharedprompts.global.util.SensitiveDataMasker.maskToke
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class PushNotificationService {
 
     private final RestTemplate restTemplate;

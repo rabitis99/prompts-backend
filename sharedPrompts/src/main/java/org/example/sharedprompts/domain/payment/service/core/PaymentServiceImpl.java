@@ -6,6 +6,8 @@ import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
+import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
+import org.example.sharedprompts.domain.payment.provider.PaymentProviderFactory;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.payment.service.facade.AmountProcessingResult;
 import org.example.sharedprompts.domain.payment.service.facade.PaymentAmountFacade;
@@ -15,6 +17,8 @@ import org.example.sharedprompts.domain.payment.service.sync.PaymentStatusSyncSe
 import org.example.sharedprompts.domain.payment.service.validation.PaymentValidationService;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.example.sharedprompts.dto.payment.request.PaymentCancelRequestDto;
 import org.example.sharedprompts.dto.payment.request.PaymentConfirmRequest;
 import org.example.sharedprompts.dto.payment.request.PaymentRefundRequestDto;
@@ -51,6 +55,8 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentPostProcessService postProcessService;
     private final PaymentStatusSyncService statusSyncService;
     private final PaymentLoggingService loggingService;
+    private final PaymentProviderFactory providerFactory;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional
@@ -77,6 +83,54 @@ public class PaymentServiceImpl implements PaymentService {
 
             payment = paymentRepository.save(payment);
             loggingService.logPaymentRequest(payment);
+
+            // 카카오페이의 경우 결제 준비 단계가 필요함 (preparePayment 호출)
+            // preparePayment를 통해 tid와 next_redirect_pc_url을 받아와야 함
+            if (request.getPaymentMethod() == PaymentMethod.KAKAO_PAY) {
+                try {
+                    PaymentProvider provider = providerFactory.getProvider(PaymentMethod.KAKAO_PAY);
+                    
+                    if (provider.requiresPreparation()) {
+                        // 실제 결제 금액 계산 (포인트 사용 후 금액)
+                        BigDecimal actualAmount = amountResult.convertedAmount().subtract(
+                                amountResult.usedPointAmount() != null ? amountResult.usedPointAmount() : BigDecimal.ZERO
+                        );
+                        
+                        // 상품명 추출 (metadata에서 가져오거나 기본값 사용)
+                        String productName = extractProductName(request.getMetadata());
+                        
+                        var prepareResult = provider.preparePayment(
+                                String.valueOf(payment.getId()),
+                                actualAmount,
+                                request.getCurrency(),
+                                productName,
+                                String.valueOf(userId)
+                        );
+                        
+                        if (prepareResult.required() && prepareResult.redirectUrl() != null) {
+                            // externalPaymentId(tid) 저장
+                            payment.updateExternalPaymentId(prepareResult.tid());
+                            
+                            // metadata에 next_redirect_pc_url 추가
+                            String updatedMetadata = addRedirectUrlToMetadata(
+                                    request.getMetadata(),
+                                    prepareResult.redirectUrl()
+                            );
+                            payment.updateMetadata(updatedMetadata);
+                            
+                            payment = paymentRepository.save(payment);
+                            
+                            log.info("카카오페이 결제 준비 완료: paymentId={}, tid={}, redirectUrl={}",
+                                    payment.getId(), prepareResult.tid(), prepareResult.redirectUrl());
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("카카오페이 결제 준비 실패: paymentId={}, error={}",
+                            payment.getId(), e.getMessage(), e);
+                    throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR,
+                            "카카오페이 결제 준비 실패: " + e.getMessage());
+                }
+            }
 
             // 결제 요청은 Payment 엔티티만 생성하고 PENDING 상태로 유지
             // 실제 결제 승인은 /payments/confirm 엔드포인트를 통해 클라이언트에서 받은 paymentKey로 진행
@@ -369,6 +423,71 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         return PaymentResponseDto.from(payment);
+    }
+
+    /**
+     * metadata에서 상품명 추출
+     */
+    private String extractProductName(String metadata) {
+        if (metadata == null || metadata.isEmpty()) {
+            return "상품";
+        }
+        
+        try {
+            Map<String, Object> metadataMap = objectMapper.readValue(
+                    metadata,
+                    new TypeReference<Map<String, Object>>() {}
+            );
+            Object productName = metadataMap.get("product_name");
+            if (productName != null) {
+                return productName.toString();
+            }
+        } catch (Exception e) {
+            log.debug("metadata에서 상품명 추출 실패: {}", e.getMessage());
+        }
+        
+        return "상품";
+    }
+
+    /**
+     * metadata에 next_redirect_pc_url 추가
+     */
+    private String addRedirectUrlToMetadata(String existingMetadata, String redirectUrl) {
+        try {
+            Map<String, Object> metadataMap;
+            
+            if (existingMetadata != null && !existingMetadata.isEmpty()) {
+                try {
+                    metadataMap = objectMapper.readValue(
+                            existingMetadata,
+                            new TypeReference<Map<String, Object>>() {}
+                    );
+                } catch (Exception e) {
+                    // 기존 metadata가 유효한 JSON이 아닌 경우 새로 생성
+                    metadataMap = new java.util.HashMap<>();
+                }
+            } else {
+                metadataMap = new java.util.HashMap<>();
+            }
+            
+            // next_redirect_pc_url 추가
+            metadataMap.put("next_redirect_pc_url", redirectUrl);
+            metadataMap.put("redirect_url", redirectUrl); // 호환성을 위해 두 필드 모두 추가
+            
+            return objectMapper.writeValueAsString(metadataMap);
+        } catch (Exception e) {
+            log.error("metadata에 redirectUrl 추가 실패: {}", e.getMessage(), e);
+            // 실패 시 기본 JSON 생성
+            try {
+                Map<String, String> fallbackMap = new java.util.HashMap<>();
+                fallbackMap.put("next_redirect_pc_url", redirectUrl);
+                fallbackMap.put("redirect_url", redirectUrl);
+                return objectMapper.writeValueAsString(fallbackMap);
+            } catch (Exception ex) {
+                log.error("fallback metadata 생성 실패: {}", ex.getMessage());
+                return "{\"next_redirect_pc_url\":\"" + redirectUrl + "\",\"redirect_url\":\"" + redirectUrl + "\"}";
+            }
+        }
     }
 
 }

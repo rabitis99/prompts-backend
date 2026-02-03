@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
@@ -14,16 +15,19 @@ import org.springframework.validation.annotation.Validated;
  *
  * <p><strong>검증 전략:</strong>
  * - @ConfigurationProperties: 설정값을 자동으로 바인딩
+ * - @ConditionalOnProperty: payment.enabled=true일 때만 빈 로드 (배포 안전성)
  * - @Validated: 부팅 시점에 필수값 검증 (fail-fast)
  * - @NotBlank: secret, approvalUrl, cancelUrl, failUrl는 필수
  *
- * <p>설정값 누락 시 BindException이 발생하여 애플리케이션 부팅 실패
+ * <p>payment.enabled=false면 이 빈이 로드되지 않아 환경변수 없이도 부팅 가능.
+ * payment.enabled=true이고 설정값 누락 시 BindException 발생하여 애플리케이션 부팅 실패
  * (런타임이 아닌 부팅 시점에 오류 감지)
  */
 @Getter
 @Setter
 @Component
 @Validated
+@ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 @ConfigurationProperties(prefix = "payment.kakao")
 @NoArgsConstructor
 @AllArgsConstructor

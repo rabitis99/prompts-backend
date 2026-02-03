@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.payment.provider.kakao.util;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.payment.config.KakaoPayProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class KakaoPayHeadersProvider {
 
     private final KakaoPayProperties properties;

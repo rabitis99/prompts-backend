@@ -238,6 +238,13 @@ public class Payment extends BaseEntity {
     }
 
     /**
+     * 메타데이터 업데이트
+     */
+    public void updateMetadata(String metadata) {
+        this.metadata = metadata;
+    }
+
+    /**
      * Webhook 결과 적용
      *
      * <p>Webhook에서 받은 PaymentResult를 기반으로 상태 변경

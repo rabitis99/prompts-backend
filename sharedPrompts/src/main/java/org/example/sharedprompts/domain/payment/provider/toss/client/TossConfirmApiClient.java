@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.payment.provider.toss.dto.TossConfirmRes
 import org.example.sharedprompts.domain.payment.provider.toss.util.TossPayHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.toss.util.TossPayJsonConverter;
 import org.example.sharedprompts.domain.payment.provider.toss.util.TossPayResponseParser;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
@@ -25,6 +26,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class TossConfirmApiClient {
 
     private final TossPayProperties properties;

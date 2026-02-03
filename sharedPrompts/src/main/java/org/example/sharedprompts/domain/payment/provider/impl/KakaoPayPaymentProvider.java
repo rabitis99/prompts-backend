@@ -17,24 +17,26 @@ import org.example.sharedprompts.domain.payment.provider.kakao.policy.KakaoPayAm
 import org.example.sharedprompts.domain.payment.provider.kakao.policy.KakaoPayRefundPolicy;
 import org.example.sharedprompts.domain.payment.provider.kakao.webhook.KakaoPayWebhookParser;
 import org.example.sharedprompts.domain.payment.provider.kakao.webhook.KakaoPayWebhookVerifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
 /**
  * KakaoPay Payment Provider 구현체
- * 
+ *
  * <p>단일 책임: PaymentProvider 인터페이스 구현 및 모듈 조합
  * - client: 외부 API 호출
  * - mapper: 상태 매핑
  * - policy: 금액 검증/변환, 환불 정책
  * - webhook: 서명 검증과 payload 파싱
- * 
+ *
  * <p>Null 안전성: 모든 public API는 Null 반환 금지
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class KakaoPayPaymentProvider implements PaymentProvider {
 
     private final KakaoReadyApiClient kakaoReadyApiClient;

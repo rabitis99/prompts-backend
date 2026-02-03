@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.payment.service.notification.credential
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.FcmProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.WillNotClose;
@@ -11,6 +12,7 @@ import java.io.InputStream;
 
 @Component
 @Slf4j
+@ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class FcmCredentialsResolver {
 
     @WillNotClose

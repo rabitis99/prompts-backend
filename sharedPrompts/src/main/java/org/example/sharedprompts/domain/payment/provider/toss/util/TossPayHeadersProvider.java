@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.payment.provider.toss.util;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.payment.config.TossPayProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -16,6 +17,7 @@ import java.util.Base64;
  */
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class TossPayHeadersProvider {
 
     private final TossPayProperties properties;

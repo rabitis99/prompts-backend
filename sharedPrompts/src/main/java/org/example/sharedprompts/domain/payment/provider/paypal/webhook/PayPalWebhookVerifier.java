@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.PaypalProperties;
 import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalHeadersProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
@@ -15,7 +16,7 @@ import java.util.Map;
 
 /**
  * PayPal Webhook Verifier
- * 
+ *
  * <p>단일 책임: Webhook 서명 검증만 담당
  * - 상태 변경 없음
  * - Null 안전성 보장
@@ -24,6 +25,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class PayPalWebhookVerifier {
 
     private static final String VERIFY_ENDPOINT_PATH = "/v1/notifications/verify-webhook-signature";

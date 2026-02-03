@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoApproveR
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayJsonConverter;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayResponseParser;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
@@ -23,6 +24,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class KakaoApproveApiClient {
 
     private static final String KAKAO_PAY_API_URL = "https://open-api.kakaopay.com/online/v1/payment";

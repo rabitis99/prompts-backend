@@ -410,6 +410,8 @@ tag:
 # 결제 설정
 # =========================
 payment:
+  # 결제 기능 활성화 여부 (false면 결제 관련 빈이 로드되지 않아 환경변수 없이도 부팅 가능)
+  enabled: ${PAYMENT_ENABLED:false}
   kakao:
     secret: ${PAYMENT_KAKAO_SECRET:}
     cid: ${PAYMENT_KAKAO_CID:TC0ONETIME}

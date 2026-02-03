@@ -16,6 +16,7 @@ import org.example.sharedprompts.domain.payment.provider.toss.policy.TossPayAmou
 import org.example.sharedprompts.domain.payment.provider.toss.policy.TossPayRefundPolicy;
 import org.example.sharedprompts.domain.payment.provider.toss.webhook.TossPayWebhookParser;
 import org.example.sharedprompts.domain.payment.provider.toss.webhook.TossPayWebhookVerifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -34,6 +35,7 @@ import java.math.BigDecimal;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class TossPaymentProvider implements PaymentProvider {
 
     private final TossConfirmApiClient tossConfirmApiClient;

@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.payment.provider.paypal.util;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.PaypalProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -24,6 +25,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class PayPalHeadersProvider {
 
     private static final String PAYPAL_OAUTH_URL = "https://api-m.paypal.com/v1/oauth2/token";
