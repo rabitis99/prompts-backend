@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.payment.provider.paypal.dto;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * PayPal 환불 응답
@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 public record PaypalRefundResponse(
         BigDecimal refundedAmount,
         String status,
-        LocalDateTime refundedAt,
+        Instant refundedAt,
         String metadata
 ) {
 }

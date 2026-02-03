@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -55,7 +55,7 @@ public class PaypalVoidApiClient {
             if (response.getStatusCode() == HttpStatus.NO_CONTENT || response.getStatusCode() == HttpStatus.OK) {
                 log.info("PayPal Authorization void 성공: authorizationId={}", authorizationId);
                 String metadata = response.getBody() != null ? jsonConverter.convertToJson(response.getBody()) : "{}";
-                return new PaypalVoidResponse(LocalDateTime.now(), metadata);
+                return new PaypalVoidResponse(Instant.now(), metadata);
             }
 
             throw new RuntimeException("PayPal Authorization void 실패: status=" + response.getStatusCode());

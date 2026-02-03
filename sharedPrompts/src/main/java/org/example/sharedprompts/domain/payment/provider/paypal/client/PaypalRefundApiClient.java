@@ -12,7 +12,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -75,7 +75,7 @@ public class PaypalRefundApiClient {
                 Map<String, Object> body = response.getBody();
                 BigDecimal refundedAmount = responseParser.extractRefundedAmount(body, amount);
                 String status = (String) body.get("status");
-                LocalDateTime refundedAt = responseParser.parseRefundedAt(body);
+                Instant refundedAt = responseParser.parseRefundedAt(body);
 
                 log.info("PayPal 결제 환불 성공: captureId={}, refundedAmount={}", captureId, refundedAmount);
                 return new PaypalRefundResponse(

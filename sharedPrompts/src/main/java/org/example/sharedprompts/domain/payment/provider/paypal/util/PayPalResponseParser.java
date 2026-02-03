@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -144,40 +144,40 @@ public class PayPalResponseParser {
     /**
      * 승인 시간 파싱
      */
-    public LocalDateTime parseApprovedAt(Map<String, Object> body) {
+    public Instant parseApprovedAt(Map<String, Object> body) {
         try {
             Object createTimeObj = body.get("create_time");
             if (createTimeObj != null) {
                 String createTimeStr = createTimeObj.toString();
-                return OffsetDateTime.parse(createTimeStr, DateTimeFormatter.ISO_DATE_TIME).toLocalDateTime();
+                return OffsetDateTime.parse(createTimeStr, DateTimeFormatter.ISO_DATE_TIME).toInstant();
             }
         } catch (Exception e) {
             log.warn("승인 시간 파싱 실패: {}", e.getMessage());
         }
-        return LocalDateTime.now();
+        return Instant.now();
     }
 
     /**
      * 환불 시간 파싱
      */
-    public LocalDateTime parseRefundedAt(Map<String, Object> body) {
+    public Instant parseRefundedAt(Map<String, Object> body) {
         try {
             // PayPal 환불 응답에서 create_time 또는 update_time 사용
             Object createTimeObj = body.get("create_time");
             if (createTimeObj != null) {
                 String createTimeStr = createTimeObj.toString();
-                return OffsetDateTime.parse(createTimeStr, DateTimeFormatter.ISO_DATE_TIME).toLocalDateTime();
+                return OffsetDateTime.parse(createTimeStr, DateTimeFormatter.ISO_DATE_TIME).toInstant();
             }
             // create_time이 없으면 update_time 시도
             Object updateTimeObj = body.get("update_time");
             if (updateTimeObj != null) {
                 String updateTimeStr = updateTimeObj.toString();
-                return OffsetDateTime.parse(updateTimeStr, DateTimeFormatter.ISO_DATE_TIME).toLocalDateTime();
+                return OffsetDateTime.parse(updateTimeStr, DateTimeFormatter.ISO_DATE_TIME).toInstant();
             }
         } catch (Exception e) {
             log.warn("환불 시간 파싱 실패: {}", e.getMessage());
         }
-        return LocalDateTime.now();
+        return Instant.now();
     }
 
     // Helper Records

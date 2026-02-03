@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.payment.provider.paypal.dto;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * PayPal 주문 상태 조회 응답
@@ -10,7 +10,7 @@ public record PaypalOrderStatusResponse(
         String status,
         BigDecimal amount,
         String currency,
-        LocalDateTime approvedAt,
+        Instant approvedAt,
         String metadata
 ) {
     public PaypalOrderStatusResponse {
