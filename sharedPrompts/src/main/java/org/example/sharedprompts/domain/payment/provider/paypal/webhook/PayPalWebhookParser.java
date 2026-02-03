@@ -74,7 +74,9 @@ public class PayPalWebhookParser {
                     .metadata(objectMapper.writeValueAsString(resource))
                     .build();
 
-            return new PaymentProvider.WebhookEvent(eventType, externalPaymentId, externalPaymentId, paymentResult);
+            // orderId가 null이면 externalPaymentId를 사용 (fallback)
+            String orderIdForEvent = orderId != null ? orderId : externalPaymentId;
+            return new PaymentProvider.WebhookEvent(eventType, externalPaymentId, orderIdForEvent, paymentResult);
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             log.error("PayPal Webhook JSON 파싱 실패: error={}", e.getMessage(), e);
             throw new RuntimeException("PayPal Webhook JSON 파싱 실패: " + e.getMessage(), e);

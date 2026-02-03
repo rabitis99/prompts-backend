@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.PaypalProperties;
+import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalHeadersProvider;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
@@ -30,6 +31,7 @@ public class PayPalWebhookVerifier {
     private final PaypalProperties properties;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final PayPalHeadersProvider headersProvider;
 
     /**
      * Webhook 서명 검증
@@ -79,10 +81,7 @@ public class PayPalWebhookVerifier {
             }
 
             // PayPal verify-webhook-signature API 호출
-            String accessToken = getAccessToken();
-            HttpHeaders headers = new HttpHeaders();
-            headers.setBearerAuth(accessToken);
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders headers = headersProvider.createJsonHeaders();
 
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("auth_algo", authAlgo);
@@ -119,44 +118,6 @@ public class PayPalWebhookVerifier {
         } catch (Exception e) {
             log.error("PayPal Webhook 서명 검증 실패: error={}", e.getMessage(), e);
             return false;
-        }
-    }
-
-    /**
-     * PayPal 액세스 토큰 획득 (간단한 구현)
-     * 실제로는 PayPalApiClient의 토큰 관리 로직을 공유해야 하지만,
-     * 단일 책임 원칙을 위해 여기서도 구현
-     */
-    private String getAccessToken() {
-        // 실제 구현은 PayPalApiClient와 동일한 로직 사용
-        // 여기서는 간단히 구현 (실제로는 공통 서비스로 분리 권장)
-        try {
-            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            headers.setBasicAuth(properties.getClientId(), properties.getClientSecret());
-
-            org.springframework.util.MultiValueMap<String, String> body = new org.springframework.util.LinkedMultiValueMap<>();
-            body.add("grant_type", "client_credentials");
-
-            org.springframework.http.HttpEntity<org.springframework.util.MultiValueMap<String, String>> request = 
-                    new org.springframework.http.HttpEntity<>(body, headers);
-
-            String tokenEndpoint = properties.getBaseUrl() + "/v1/oauth2/token";
-            org.springframework.http.ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    tokenEndpoint,
-                    org.springframework.http.HttpMethod.POST,
-                    request,
-                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
-            );
-
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                return (String) response.getBody().get("access_token");
-            }
-
-            throw new RuntimeException("PayPal 액세스 토큰 획득 실패");
-        } catch (Exception e) {
-            log.error("PayPal 액세스 토큰 획득 실패: error={}", e.getMessage(), e);
-            throw new RuntimeException("PayPal 액세스 토큰 획득 실패", e);
         }
     }
 }

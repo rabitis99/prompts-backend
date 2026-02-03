@@ -27,6 +27,10 @@ public class PayPalStatusMapper {
             case "CANCELLED" -> PaymentStatus.CANCELED;
             case "PARTIALLY_REFUNDED" -> PaymentStatus.PARTIALLY_REFUNDED;
             case "REFUNDED" -> PaymentStatus.REFUNDED;
+            case "VOIDED" -> PaymentStatus.CANCELED;
+            case "PAYER_ACTION_REQUIRED" -> PaymentStatus.PENDING;
+            case "DECLINED" -> PaymentStatus.FAILED;
+            case "FAILED" -> PaymentStatus.FAILED;
             default -> PaymentStatus.PENDING;
         };
     }

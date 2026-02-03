@@ -5,18 +5,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
-import org.example.sharedprompts.domain.payment.model.PaymentResult;
 import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
 import org.example.sharedprompts.domain.payment.provider.PaymentProviderFactory;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
-import org.example.sharedprompts.domain.payment.validator.PaymentValidator;
+import org.example.sharedprompts.domain.payment.service.webhook.PaymentWebhookTransactionService;
 import org.example.sharedprompts.domain.payment.webhook.WebhookIdempotencyService;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.Optional;
 
 /**
@@ -36,7 +33,7 @@ public class PaymentWebhookFacade {
 
     private final PaymentProviderFactory providerFactory;
     private final PaymentRepository paymentRepository;
-    private final PaymentValidator paymentValidator;
+    private final PaymentWebhookTransactionService transactionService;
     private final WebhookIdempotencyService idempotencyService;
 
     /**
@@ -87,7 +84,7 @@ public class PaymentWebhookFacade {
             }
 
             // 5. 트랜잭션 내에서 결제 처리
-            Payment processedPayment = processPaymentInTransaction(payment, event);
+            Payment processedPayment = transactionService.processPaymentInTransaction(payment, event);
 
             // 6. DB 저장 성공 후 Redis에 처리 완료 마킹
             markRedisAsProcessed(webhookId, lockAcquired);
@@ -140,54 +137,6 @@ public class PaymentWebhookFacade {
         return status != PaymentStatus.PENDING;
     }
 
-    /**
-     * 트랜잭션 내에서 Payment 상태 변경 및 저장
-     *
-     * <p>Redis 작업은 이 트랜잭션과 독립적으로 수행됨
-     */
-    @Transactional
-    protected Payment processPaymentInTransaction(Payment payment, PaymentProvider.WebhookEvent event) {
-        // Double-check: 트랜잭션 시작 후 다시 상태 확인 (동시성 처리)
-        Payment freshPayment = paymentRepository.findById(payment.getId())
-                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
-
-        if (freshPayment.getStatus() != PaymentStatus.PENDING) {
-            log.info("Payment 상태가 이미 변경됨 (동시 처리): paymentId={}, status={}",
-                    freshPayment.getId(), freshPayment.getStatus());
-            return freshPayment;
-        }
-
-        // PaymentResult 검증 및 적용
-        PaymentResult paymentResult = event.paymentResult();
-        if (paymentResult != null) {
-            validatePaymentResult(freshPayment, paymentResult);
-            applyWebhookResult(freshPayment, paymentResult);
-        }
-
-        return paymentRepository.save(freshPayment);
-    }
-
-    /**
-     * PaymentResult 검증
-     */
-    private void validatePaymentResult(Payment payment, PaymentResult paymentResult) {
-        BigDecimal actualAmount = payment.getAmount().subtract(
-                payment.getUsedPointAmount() != null ? payment.getUsedPointAmount() : BigDecimal.ZERO
-        );
-        paymentValidator.validatePaymentResult(payment, paymentResult, actualAmount);
-    }
-
-    /**
-     * Webhook 결과를 Payment에 적용
-     */
-    private void applyWebhookResult(Payment payment, PaymentResult paymentResult) {
-        payment.applyWebhookResult(
-                paymentResult.getExternalPaymentId(),
-                paymentResult.getStatus(),
-                paymentResult.getApprovedAt(),
-                paymentResult.getFailureReason()
-        );
-    }
 
     /**
      * Redis에 처리 완료 마킹 (락을 획득한 경우에만)

@@ -101,8 +101,9 @@ public class PaymentAmountFacade {
         }
 
         // originalAmount null 체크 추가 (일관성)
+        // 데이터 불일치 상태는 실패로 표면화하여 포인트 환불 누락 방지
         if (originalAmount == null || originalAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            return BigDecimal.ZERO;
+            throw new ApiException(ErrorCode.PAYMENT_AMOUNT_INVALID);
         }
         // 전체 환불인 경우 사용한 포인트를 다시 적립
         if (refundAmount.compareTo(originalAmount) >= 0) {
