@@ -15,6 +15,7 @@ import org.example.sharedprompts.domain.payment.service.execution.PaymentExecuti
 import org.example.sharedprompts.domain.payment.service.postprocess.PaymentPostProcessService;
 import org.example.sharedprompts.domain.payment.service.sync.PaymentStatusSyncService;
 import org.example.sharedprompts.domain.payment.service.validation.PaymentValidationService;
+import org.example.sharedprompts.domain.payment.validator.PaymentValidator;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -57,6 +58,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentLoggingService loggingService;
     private final PaymentProviderFactory providerFactory;
     private final ObjectMapper objectMapper;
+    private final PaymentValidator paymentValidator;
 
     @Override
     @Transactional
@@ -249,6 +251,9 @@ public class PaymentServiceImpl implements PaymentService {
 
         validationService.validatePaymentOwnership(payment, userId);
 
+        // paymentKey 형식 검증
+        paymentValidator.validatePaymentKey(request.getPaymentKey(), payment.getPaymentMethod());
+
         // 결제사별 paymentKey 처리
         // - 토스페이먼츠: 클라이언트에서 받은 paymentKey를 externalPaymentId로 설정
         // - 카카오페이: ready 시 받은 tid가 이미 externalPaymentId에 저장되어 있음
@@ -268,10 +273,7 @@ public class PaymentServiceImpl implements PaymentService {
         // 카카오페이의 경우 pgToken을 additionalParams로 전달
         Map<String, String> additionalParams = Collections.emptyMap();
         if (payment.getPaymentMethod() == PaymentMethod.KAKAO_PAY) {
-            if (request.getPgToken() == null || request.getPgToken().isEmpty()) {
-                throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "pgToken", 
-                        "카카오페이 결제 승인을 위해서는 pgToken이 필수입니다");
-            }
+            paymentValidator.validateKakaoPayPgToken(request.getPgToken());
             additionalParams = Map.of("pgToken", request.getPgToken());
         }
 
