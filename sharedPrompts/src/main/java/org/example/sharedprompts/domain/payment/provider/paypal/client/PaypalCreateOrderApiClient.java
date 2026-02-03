@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.payment.provider.paypal.dto.PaypalCreate
 import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalJsonConverter;
 import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalResponseParser;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -33,6 +34,7 @@ public class PaypalCreateOrderApiClient {
     private static final String PAYPAL_ORDERS_URL = "https://api-m.paypal.com/v2/checkout/orders";
 
     private final PaypalProperties properties;
+    @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final PayPalHeadersProvider headersProvider;
     private final PayPalJsonConverter jsonConverter;

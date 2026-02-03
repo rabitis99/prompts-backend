@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.payment.config.KakaoPayProperties;
 import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoStatusResponse;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayJsonConverter;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -30,6 +31,7 @@ public class KakaoStatusApiClient {
     private static final String STATUS_ENDPOINT = "/order";
 
     private final KakaoPayProperties properties;
+    @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final KakaoPayHeadersProvider headersProvider;
     private final KakaoPayJsonConverter jsonConverter;

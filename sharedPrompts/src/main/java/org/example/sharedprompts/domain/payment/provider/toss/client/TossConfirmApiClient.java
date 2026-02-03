@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.payment.provider.toss.dto.TossConfirmRes
 import org.example.sharedprompts.domain.payment.provider.toss.util.TossPayHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.toss.util.TossPayJsonConverter;
 import org.example.sharedprompts.domain.payment.provider.toss.util.TossPayResponseParser;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -30,6 +31,7 @@ import java.util.Map;
 public class TossConfirmApiClient {
 
     private final TossPayProperties properties;
+    @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final TossPayHeadersProvider headersProvider;
     private final TossPayJsonConverter jsonConverter;
