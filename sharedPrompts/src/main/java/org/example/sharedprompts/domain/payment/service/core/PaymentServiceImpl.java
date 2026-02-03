@@ -484,10 +484,18 @@ public class PaymentServiceImpl implements PaymentService {
                 Map<String, String> fallbackMap = new java.util.HashMap<>();
                 fallbackMap.put("next_redirect_pc_url", redirectUrl);
                 fallbackMap.put("redirect_url", redirectUrl);
-                return objectMapper.writeValueAsString(fallbackMap);
-            } catch (Exception ex) {
-                log.error("fallback metadata 생성 실패: {}", ex.getMessage());
-                return "{\"next_redirect_pc_url\":\"" + redirectUrl + "\",\"redirect_url\":\"" + redirectUrl + "\"}";
+                return objectMapper.writeValueAsString(fallbackMap);} catch (Exception ex) {
+                log.error("fallback metadata 생성 실패", ex);
+                try {
+                    Map<String, String> fallback = Map.of(
+                            "next_redirect_pc_url", redirectUrl,
+                            "redirect_url", redirectUrl
+                    );
+                    return objectMapper.writeValueAsString(fallback);
+                } catch (Exception ignored) {
+                    log.error("fallback metadata ObjectMapper 재시도 실패", ignored);
+                    return "{}";
+                }
             }
         }
     }
