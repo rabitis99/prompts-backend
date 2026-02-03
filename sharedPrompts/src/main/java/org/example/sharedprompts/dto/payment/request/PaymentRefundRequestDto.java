@@ -1,5 +1,6 @@
 package org.example.sharedprompts.dto.payment.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -21,11 +22,14 @@ import java.math.BigDecimal;
 public class PaymentRefundRequestDto {
 
     @NotBlank(message = "결제 ID를 입력해주세요.")
+    @JsonProperty("payment_id")
     private String paymentId;
 
     @DecimalMin(value = "0.01", message = "환불 금액은 0.01 이상이어야 합니다.")
+    @JsonProperty("amount")
     private BigDecimal amount; // null이면 전체 환불, 값이 있으면 부분 환불
 
+    @JsonProperty("reason")
     private String reason; // 환불 사유
 
     /**

@@ -1,5 +1,6 @@
 package org.example.sharedprompts.dto.payment.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,9 +25,11 @@ public class PointUseRequestDto {
 
     @NotNull(message = "사용할 포인트를 입력해주세요.")
     @DecimalMin(value = "1", message = "포인트는 1 이상이어야 합니다.")
+    @JsonProperty("amount")
     private BigDecimal amount;
 
     @NotBlank(message = "사용 사유를 입력해주세요.")
+    @JsonProperty("description")
     private String description;
 
     /**

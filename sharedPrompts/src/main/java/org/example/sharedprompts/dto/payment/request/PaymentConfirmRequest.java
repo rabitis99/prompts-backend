@@ -1,5 +1,6 @@
 package org.example.sharedprompts.dto.payment.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
@@ -18,13 +19,18 @@ import org.example.sharedprompts.global.exception.ErrorCode;
 @Getter
 @NoArgsConstructor
 public class PaymentConfirmRequest {
+    @JsonProperty("order_id")
     private String orderId;
+    
+    @JsonProperty("amount")
     private long amount;
+    
     /**
      * 결제 세션 키
      * - 토스페이먼츠: Toss 위젯에서 받은 paymentKey (tgen_ 또는 t로 시작)
      * - 카카오페이: ready API에서 받은 tid
      */
+    @JsonProperty("payment_key")
     private String paymentKey;
     
     /**
@@ -36,6 +42,7 @@ public class PaymentConfirmRequest {
      * - 1회성 토큰이므로 승인 API 호출 후 즉시 무효화됨
      * - DB에 저장하지 않음
      */
+    @JsonProperty("pg_token")
     private String pgToken;
 
     public PaymentConfirmRequest(String orderId, long amount, String paymentKey) {

@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class CashbackResponseDto {
 
+    @JsonProperty("id")
     private Long id;
     
     @JsonProperty("user_id")
@@ -27,15 +28,19 @@ public class CashbackResponseDto {
     @JsonProperty("payment_id")
     private Long paymentId;
     
+    @JsonProperty("amount")
     private BigDecimal amount;
     
+    @JsonProperty("rate")
     private BigDecimal rate;
     
     @JsonProperty("payment_amount")
     private BigDecimal paymentAmount;
     
+    @JsonProperty("description")
     private String description;
     
+    @JsonProperty("paid")
     private boolean paid;
     
     @JsonProperty("paid_at")

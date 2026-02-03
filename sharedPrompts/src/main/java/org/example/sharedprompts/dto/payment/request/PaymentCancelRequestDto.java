@@ -1,5 +1,6 @@
 package org.example.sharedprompts.dto.payment.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,8 +19,10 @@ import org.example.sharedprompts.global.exception.ErrorCode;
 public class PaymentCancelRequestDto {
 
     @NotBlank(message = "결제 ID를 입력해주세요.")
+    @JsonProperty("payment_id")
     private String paymentId;
 
+    @JsonProperty("reason")
     private String reason; // 취소 사유
 
     /**

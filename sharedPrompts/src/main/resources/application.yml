@@ -424,6 +424,9 @@ payment:
   paypal:
     client-id: ${PAYMENT_PAYPAL_CLIENT_ID:}
     client-secret: ${PAYMENT_PAYPAL_CLIENT_SECRET:}
+    cancel-url: ${PAYMENT_PAYPAL_CANCEL_URL}
+    return-url: ${PAYMENT_PAYPAL_RETURN_URL}
+
   exchange-rate:
     api-key: ${EXCHANGE_RATE_API_KEY:}
     api-url: ${EXCHANGE_RATE_API_URL:https://api.exchangerate-api.com/v4/latest/}
