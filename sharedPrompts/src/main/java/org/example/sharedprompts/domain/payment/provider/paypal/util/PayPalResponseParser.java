@@ -52,12 +52,15 @@ public class PayPalResponseParser {
                     Map<String, Object> amountObj = (Map<String, Object>) captures.get(0).get("amount");
                     if (amountObj != null) {
                         String currency = (String) amountObj.get("currency_code");
+                        if (currency == null || currency.isBlank()) {
+                            throw new RuntimeException("PayPal 응답에서 currency_code가 없습니다");
+                        }
                         Object valueObj = amountObj.get("value");
                         if (valueObj == null) {
                             throw new RuntimeException("PayPal 응답에서 capture amount value가 null입니다");
                         }
                         BigDecimal amount = new BigDecimal(valueObj.toString());
-                        return new CaptureInfo(amount, currency != null ? currency : "USD");
+                        return new CaptureInfo(amount, currency);
                     }
                 }
             }
@@ -76,12 +79,15 @@ public class PayPalResponseParser {
             Map<String, Object> amount = (Map<String, Object>) purchaseUnits.get(0).get("amount");
             if (amount != null) {
                 String currency = (String) amount.get("currency_code");
+                if (currency == null || currency.isBlank()) {
+                    throw new RuntimeException("PayPal 응답에서 currency_code가 없습니다");
+                }
                 Object valueObj = amount.get("value");
                 if (valueObj == null) {
                     throw new RuntimeException("PayPal 응답에서 order amount value가 null입니다");
                 }
                 BigDecimal orderAmount = new BigDecimal(valueObj.toString());
-                return new OrderInfo(orderAmount, currency != null ? currency : "USD");
+                return new OrderInfo(orderAmount, currency);
             }
         }
         throw new RuntimeException("PayPal 응답에서 주문 정보를 찾을 수 없습니다");
