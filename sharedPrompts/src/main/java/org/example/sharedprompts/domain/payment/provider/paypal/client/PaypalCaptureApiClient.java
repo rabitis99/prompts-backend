@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.payment.provider.paypal.dto.PaypalCaptur
 import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalJsonConverter;
 import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalResponseParser;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
@@ -22,6 +23,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class PaypalCaptureApiClient {
 
     private static final String PAYPAL_ORDERS_URL = "https://api-m.paypal.com/v2/checkout/orders";
