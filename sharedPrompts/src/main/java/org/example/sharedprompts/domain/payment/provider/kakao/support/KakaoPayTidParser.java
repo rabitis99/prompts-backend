@@ -13,13 +13,14 @@ public class KakaoPayTidParser {
         String tid = paymentKey;
         String pgToken = null;
 
-        // pg_token 추출
+        // pg_token 추출 (빈 값은 null로 통일)
         if (paymentKey.contains("pg_token=")) {
             int start = paymentKey.indexOf("pg_token=") + 9;
             int end = paymentKey.indexOf("&", start);
-            pgToken = end == -1
+            String extracted = end == -1
                     ? paymentKey.substring(start)
                     : paymentKey.substring(start, end);
+            pgToken = extracted.isBlank() ? null : extracted;
         }
 
         // tid 추출
