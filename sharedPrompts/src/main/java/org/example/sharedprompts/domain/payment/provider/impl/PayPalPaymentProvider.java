@@ -236,16 +236,13 @@ public class PayPalPaymentProvider implements PaymentProvider {
         try {
             BigDecimal validatedAmount = amountPolicy.validate(amount);
 
-            // 주문에서 캡처 정보 조회
+            // 주문에서 캡처 정보 및 통화 코드 조회 (단일 API 호출로 최적화)
             var orderDetails = paypalStatusApiClient.getOrderDetails(externalPaymentId);
             String captureId = orderDetails.captureId();
             if (captureId == null || captureId.isEmpty()) {
                 throw new RuntimeException("PayPal 환불 실패: 캡처된 결제가 없습니다. externalPaymentId=" + externalPaymentId);
             }
-
-            // 주문에서 통화 코드 조회
-            var orderStatus = paypalStatusApiClient.getOrderStatus(externalPaymentId);
-            String currency = orderStatus.currency();
+            String currency = orderDetails.currency();
 
             var response = paypalRefundApiClient.refund(captureId, validatedAmount, currency, reason, idempotencyKey);
             PaymentStatus refundStatus = refundPolicy.determineStatus(response.refundedAmount(), validatedAmount, response.status());

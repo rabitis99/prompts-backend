@@ -28,6 +28,7 @@ public class PaypalProperties {
     private String clientId;
     private String clientSecret;
     private String webhookId;
+    private String baseUrl = "https://api-m.paypal.com"; // 기본값: 프로덕션 URL
 
     @NotBlank(message = "PayPal return URL은 필수입니다 (payment.paypal.return-url)")
     private String returnUrl;

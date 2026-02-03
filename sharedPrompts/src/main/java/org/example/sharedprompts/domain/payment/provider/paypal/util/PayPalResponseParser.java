@@ -32,7 +32,7 @@ public class PayPalResponseParser {
                 }
             }
         }
-        return "";
+        return null;
     }
 
     /**

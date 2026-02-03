@@ -15,7 +15,11 @@ import java.util.Map;
 @Component
 public class TossPayJsonConverter {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
+
+    public TossPayJsonConverter(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     /**
      * Map을 JSON 문자열로 변환

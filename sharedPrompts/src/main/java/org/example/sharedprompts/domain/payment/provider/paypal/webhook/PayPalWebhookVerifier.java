@@ -25,8 +25,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PayPalWebhookVerifier {
 
-    private static final String PAYPAL_API_URL = "https://api-m.paypal.com";
-    private static final String VERIFY_ENDPOINT = PAYPAL_API_URL + "/v1/notifications/verify-webhook-signature";
+    private static final String VERIFY_ENDPOINT_PATH = "/v1/notifications/verify-webhook-signature";
 
     private final PaypalProperties properties;
     private final RestTemplate restTemplate;
@@ -96,8 +95,9 @@ public class PayPalWebhookVerifier {
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
+            String verifyEndpoint = properties.getBaseUrl() + VERIFY_ENDPOINT_PATH;
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    VERIFY_ENDPOINT,
+                    verifyEndpoint,
                     HttpMethod.POST,
                     request,
                     new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
@@ -141,8 +141,9 @@ public class PayPalWebhookVerifier {
             org.springframework.http.HttpEntity<org.springframework.util.MultiValueMap<String, String>> request = 
                     new org.springframework.http.HttpEntity<>(body, headers);
 
+            String tokenEndpoint = properties.getBaseUrl() + "/v1/oauth2/token";
             org.springframework.http.ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    PAYPAL_API_URL + "/v1/oauth2/token",
+                    tokenEndpoint,
                     org.springframework.http.HttpMethod.POST,
                     request,
                     new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}

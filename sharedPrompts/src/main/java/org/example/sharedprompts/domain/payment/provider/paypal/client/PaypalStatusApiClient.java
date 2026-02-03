@@ -104,14 +104,16 @@ public class PaypalStatusApiClient {
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> body = response.getBody();
                 String status = (String) body.get("status");
-                if (status == null) {
-                    status = "UNKNOWN";
+                if (status == null || status.isEmpty()) {
+                    throw new RuntimeException("PayPal getOrderDetails 응답에 status가 없습니다");
                 }
 
                 String authorizationId = responseParser.extractAuthorizationId(body);
                 String captureId = responseParser.extractCaptureId(body);
+                PayPalResponseParser.OrderInfo orderInfo = responseParser.extractOrderInfo(body);
+                String currency = orderInfo.currency();
 
-                return new PaypalOrderDetailsResponse(status, authorizationId, captureId, jsonConverter.convertToJson(body));
+                return new PaypalOrderDetailsResponse(status, authorizationId, captureId, currency, jsonConverter.convertToJson(body));
             }
 
             throw new RuntimeException("PayPal 주문 정보 조회 실패: orderId=" + orderId);

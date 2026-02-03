@@ -74,13 +74,25 @@ public class PaymentPostProcessService {
         loggingService.logPaymentApprovalSuccess(payment, payment.getExternalPaymentId(), processingTime);
         loggingService.logPaymentStatusChange(payment, PaymentStatus.PENDING, PaymentStatus.SUCCESS);
 
-        // TODO: 비즈니스 정책 결정 후 수정 필요
-        // 권장: originalAmount 기준으로 포인트 적립 (포인트 사용과 무관)
+        // ⚠️ ISSUE: 포인트/캐시백 적립 기준 금액 정책 불일치
+        // 현재 구현:
+        // - 포인트: actualPaymentAmount (포인트 차감 후 실제 결제 금액) 기준
+        // - 캐시백: originalAmount (포인트 차감 전 원래 금액) 기준
+        // 
+        // 문제점:
+        // 1. 포인트로 포인트를 적립하는 구조 (포인트 사용분만큼 적립 손실)
+        // 2. 캐시백은 포인트 사용분도 포함하여 과다 지급 가능성
+        // 3. 두 정책이 서로 모순됨
+        //
+        // 권장 해결 방안:
+        // - 포인트 적립: originalAmount 기준 (포인트 사용과 무관하게 주문 금액 기준)
+        // - 캐시백 적립: actualPaymentAmount 기준 (실제 결제 금액 기준)
+        // - 또는 포인트 사용 시 포인트/캐시백 적립을 아예 제외
+        //
+        // 추적: 이슈 번호로 관리하거나 PointPolicy, CashbackPolicy 인터페이스로 추상화하여 유연하게 관리 권장
         // 포인트 적립 (현재: 실제 결제 금액 기준 - 정책 검토 필요)
         pointService.accumulatePoints(userId, payment.getId(), actualPaymentAmount);
 
-        // TODO: 비즈니스 정책 결정 후 수정 필요
-        // 권장: actualPaymentAmount 기준으로 캐시백 적립 (실제 결제 금액 기준)
         // 캐시백 적립 (현재: 원래 주문 금액 기준 - 정책 검토 필요)
         cashbackService.accumulateCashback(userId, payment.getId(), originalAmount);
 

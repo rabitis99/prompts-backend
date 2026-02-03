@@ -24,22 +24,7 @@ public class KakaoPayResponseParser {
      * @return LocalDateTime (파싱 실패 시 현재 시간)
      */
     public LocalDateTime parseApprovedAt(Map<String, Object> body) {
-        try {
-            Object approvedAtObj = body.get("approved_at");
-            if (approvedAtObj != null) {
-                String approvedAtStr = approvedAtObj.toString();
-                // KakaoPay는 Unix timestamp (초 단위) 또는 ISO 8601 형식 사용
-                try {
-                    long timestamp = Long.parseLong(approvedAtStr);
-                    return LocalDateTime.ofEpochSecond(timestamp, 0, java.time.ZoneOffset.of("+09:00"));
-                } catch (NumberFormatException e) {
-                    return OffsetDateTime.parse(approvedAtStr, DateTimeFormatter.ISO_DATE_TIME).toLocalDateTime();
-                }
-            }
-        } catch (Exception e) {
-            log.warn("승인 시간 파싱 실패: {}", e.getMessage());
-        }
-        return LocalDateTime.now();
+        return parseDateTime(body, "approved_at", "승인");
     }
 
     /**
@@ -49,19 +34,32 @@ public class KakaoPayResponseParser {
      * @return LocalDateTime (파싱 실패 시 현재 시간)
      */
     public LocalDateTime parseCanceledAt(Map<String, Object> body) {
+        return parseDateTime(body, "canceled_at", "취소");
+    }
+
+    /**
+     * 공통 날짜/시간 파싱 헬퍼 메서드
+     * 
+     * @param body 응답 본문
+     * @param fieldName 필드명
+     * @param fieldDescription 필드 설명 (로깅용)
+     * @return LocalDateTime (파싱 실패 시 현재 시간)
+     */
+    private LocalDateTime parseDateTime(Map<String, Object> body, String fieldName, String fieldDescription) {
         try {
-            Object canceledAtObj = body.get("canceled_at");
-            if (canceledAtObj != null) {
-                String canceledAtStr = canceledAtObj.toString();
+            Object dateTimeObj = body.get(fieldName);
+            if (dateTimeObj != null) {
+                String dateTimeStr = dateTimeObj.toString();
+                // KakaoPay는 Unix timestamp (초 단위) 또는 ISO 8601 형식 사용
                 try {
-                    long timestamp = Long.parseLong(canceledAtStr);
+                    long timestamp = Long.parseLong(dateTimeStr);
                     return LocalDateTime.ofEpochSecond(timestamp, 0, java.time.ZoneOffset.of("+09:00"));
                 } catch (NumberFormatException e) {
-                    return OffsetDateTime.parse(canceledAtStr, DateTimeFormatter.ISO_DATE_TIME).toLocalDateTime();
+                    return OffsetDateTime.parse(dateTimeStr, DateTimeFormatter.ISO_DATE_TIME).toLocalDateTime();
                 }
             }
         } catch (Exception e) {
-            log.warn("취소 시간 파싱 실패: {}", e.getMessage());
+            log.warn("{} 시간 파싱 실패: {}", fieldDescription, e.getMessage());
         }
         return LocalDateTime.now();
     }

@@ -8,10 +8,10 @@ import org.example.sharedprompts.domain.payment.model.CancelResult;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
 import org.example.sharedprompts.domain.payment.model.RefundResult;
 import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
-import org.example.sharedprompts.domain.payment.provider.kakao.client.KakakoReadyApiClient;
-import org.example.sharedprompts.domain.payment.provider.kakao.client.KakakoApproveApiClient;
-import org.example.sharedprompts.domain.payment.provider.kakao.client.KakakoStatusApiClient;
-import org.example.sharedprompts.domain.payment.provider.kakao.client.KakakoCancelApiClient;
+import org.example.sharedprompts.domain.payment.provider.kakao.client.KakaoApproveApiClient;
+import org.example.sharedprompts.domain.payment.provider.kakao.client.KakaoCancelApiClient;
+import org.example.sharedprompts.domain.payment.provider.kakao.client.KakaoReadyApiClient;
+import org.example.sharedprompts.domain.payment.provider.kakao.client.KakaoStatusApiClient;
 import org.example.sharedprompts.domain.payment.provider.kakao.mapper.KakaoPayStatusMapper;
 import org.example.sharedprompts.domain.payment.provider.kakao.policy.KakaoPayAmountPolicy;
 import org.example.sharedprompts.domain.payment.provider.kakao.policy.KakaoPayRefundPolicy;
@@ -37,10 +37,10 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor
 public class KakaoPayPaymentProvider implements PaymentProvider {
 
-    private final KakakoReadyApiClient kakakoReadyApiClient;
-    private final KakakoApproveApiClient kakakoApproveApiClient;
-    private final KakakoStatusApiClient kakakoStatusApiClient;
-    private final KakakoCancelApiClient kakakoCancelApiClient;
+    private final KakaoReadyApiClient kakaoReadyApiClient;
+    private final KakaoApproveApiClient kakaoApproveApiClient;
+    private final KakaoStatusApiClient kakaoStatusApiClient;
+    private final KakaoCancelApiClient kakaoCancelApiClient;
     private final KakaoPayAmountPolicy amountPolicy;
     private final KakaoPayRefundPolicy refundPolicy;
     private final KakaoPayStatusMapper statusMapper;
@@ -78,7 +78,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
 
         try {
             long kakaoAmount = amountPolicy.toKakaoAmount(amount);
-            var readyResponse = kakakoReadyApiClient.ready(orderId, userId, kakaoAmount, itemName);
+            var readyResponse = kakaoReadyApiClient.ready(orderId, userId, kakaoAmount, itemName);
             
             log.info("KakaoPay 결제 준비 성공: tid={}, orderId={}", readyResponse.tid(), orderId);
             return PrepareResult.success(
@@ -115,7 +115,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
         }
 
         try {
-            var response = kakakoApproveApiClient.approve(paymentKey, orderId, userId, pgToken);
+            var response = kakaoApproveApiClient.approve(paymentKey, orderId, userId, pgToken);
             PaymentStatus status = statusMapper.map(response.status());
 
             log.info("KakaoPay 결제 승인 성공: tid={}, orderId={}, status={}", paymentKey, orderId, status);
@@ -146,7 +146,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
         validateRequired(externalPaymentId, "externalPaymentId");
 
         try {
-            var response = kakakoStatusApiClient.status(externalPaymentId);
+            var response = kakaoStatusApiClient.status(externalPaymentId);
             PaymentStatus status = statusMapper.map(response.status());
             BigDecimal amount = amountPolicy.fromKakaoAmount(response.amount());
 
@@ -175,7 +175,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
         validateRequired(reason, "reason");
 
         try {
-            var response = kakakoCancelApiClient.cancel(externalPaymentId, reason);
+            var response = kakaoCancelApiClient.cancel(externalPaymentId, reason);
             
             log.info("KakaoPay 결제 취소 성공: tid={}", externalPaymentId);
             return CancelResult.builder()
@@ -199,7 +199,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
 
         try {
             long kakaoAmount = amountPolicy.toKakaoAmount(amount);
-            var response = kakakoCancelApiClient.refund(externalPaymentId, kakaoAmount, reason);
+            var response = kakaoCancelApiClient.refund(externalPaymentId, kakaoAmount, reason);
             
             BigDecimal refundedAmount = amountPolicy.fromKakaoAmount(response.refundedAmount());
             PaymentStatus refundStatus = refundPolicy.determineStatus(refundedAmount, amount);

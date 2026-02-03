@@ -24,7 +24,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class KakakoCancelApiClient {
+public class KakaoCancelApiClient {
 
     private static final String KAKAO_PAY_API_URL = "https://open-api.kakaopay.com/online/v1/payment";
     private static final String CANCEL_ENDPOINT = "/cancel";
@@ -34,7 +34,7 @@ public class KakakoCancelApiClient {
     private final KakaoPayHeadersProvider headersProvider;
     private final KakaoPayJsonConverter jsonConverter;
     private final KakaoPayResponseParser responseParser;
-    private final KakakoStatusApiClient kakakoStatusApiClient;
+    private final KakaoStatusApiClient kakaoStatusApiClient;
 
     /**
      * 결제 취소
@@ -53,7 +53,7 @@ public class KakakoCancelApiClient {
             HttpHeaders headers = headersProvider.createJsonHeaders();
 
             // 전체 취소를 위해 총 금액 조회
-            long totalAmount = kakakoStatusApiClient.status(tid).amount();
+            long totalAmount = kakaoStatusApiClient.status(tid).amount();
 
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("cid", properties.getCid());

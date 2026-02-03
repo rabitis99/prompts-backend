@@ -7,5 +7,6 @@ public record PaypalOrderDetailsResponse(
         String status,
         String authorizationId,
         String captureId,
+        String currency,
         String metadata
 ) {}

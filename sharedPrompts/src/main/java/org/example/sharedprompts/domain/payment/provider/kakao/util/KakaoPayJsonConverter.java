@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.payment.provider.kakao.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -14,6 +15,12 @@ import java.util.Map;
 @Component
 public class KakaoPayJsonConverter {
 
+    private final ObjectMapper objectMapper;
+
+    public KakaoPayJsonConverter(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
     /**
      * Map을 JSON 문자열로 변환
      * 
@@ -22,7 +29,6 @@ public class KakaoPayJsonConverter {
      */
     public String convertToJson(Map<String, Object> map) {
         try {
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
             return objectMapper.writeValueAsString(map);
         } catch (Exception e) {
             log.warn("JSON 변환 실패: {}", e.getMessage());

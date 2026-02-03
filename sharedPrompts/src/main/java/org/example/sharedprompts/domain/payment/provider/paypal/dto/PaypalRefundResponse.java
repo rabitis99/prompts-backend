@@ -12,12 +12,4 @@ public record PaypalRefundResponse(
         LocalDateTime refundedAt,
         String metadata
 ) {
-    public PaypalRefundResponse {
-        if (refundedAmount == null || refundedAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("refundedAmount는 0보다 커야 합니다");
-        }
-        if (refundedAt == null) {
-            throw new IllegalArgumentException("refundedAt는 필수입니다");
-        }
-    }
 }

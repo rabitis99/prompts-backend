@@ -87,7 +87,13 @@ public class TossConfirmApiClient {
                     throw new RuntimeException("TossPay confirm 응답에 orderId가 없습니다");
                 }
 
-                BigDecimal totalAmount = new BigDecimal(totalAmountObj.toString());
+                BigDecimal totalAmount;
+                try {
+                    totalAmount = new BigDecimal(totalAmountObj.toString());
+                } catch (NumberFormatException e) {
+                    log.error("TossPay confirm 응답의 totalAmount 형식이 올바르지 않습니다: {}", totalAmountObj);
+                    throw new RuntimeException("TossPay confirm 응답의 totalAmount 형식이 올바르지 않습니다: " + totalAmountObj, e);
+                }
 
                 log.info("TossPay 결제 승인 성공: paymentKey={}, orderId={}, status={}", paymentKey, orderId, status);
                 return new TossConfirmResponse(

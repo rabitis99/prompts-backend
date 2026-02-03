@@ -22,7 +22,7 @@ import java.util.Map;
 @Slf4j
 @Component("kakaoStatusApiClient")
 @RequiredArgsConstructor
-public class KakakoStatusApiClient {
+public class KakaoStatusApiClient {
 
     private static final String KAKAO_PAY_API_URL = "https://open-api.kakaopay.com/online/v1/payment";
     private static final String STATUS_ENDPOINT = "/order";
