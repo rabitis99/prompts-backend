@@ -5,8 +5,8 @@ import java.time.LocalDateTime;
 /**
  * KakaoPay 결제 승인 응답 DTO
  */
-public record KakakoApproveResponse(String status, LocalDateTime approvedAt, String metadata) {
-    public KakakoApproveResponse {
+public record KakaoApproveResponse(String status, LocalDateTime approvedAt, String metadata) {
+    public KakaoApproveResponse {
         if (status == null || status.isEmpty()) {
             throw new IllegalArgumentException("status는 필수입니다");
         }

@@ -3,8 +3,8 @@ package org.example.sharedprompts.domain.payment.provider.kakao.client;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.KakaoPayProperties;
-import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakakoCancelResponse;
-import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakakoRefundResponse;
+import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoCancelResponse;
+import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoRefundResponse;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayJsonConverter;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayResponseParser;
@@ -45,7 +45,7 @@ public class KakakoCancelApiClient {
      * @throws IllegalArgumentException 필수 필드 누락 시
      * @throws RuntimeException API 호출 실패 시
      */
-    public KakakoCancelResponse cancel(String tid, String reason) {
+    public KakaoCancelResponse cancel(String tid, String reason) {
         validateRequired(tid, "tid");
         validateRequired(reason, "reason");
 
@@ -73,7 +73,7 @@ public class KakakoCancelApiClient {
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> body = response.getBody();
                 log.info("KakaoPay 결제 취소 성공: tid={}", tid);
-                return new KakakoCancelResponse(
+                return new KakaoCancelResponse(
                         responseParser.parseCanceledAt(body),
                         jsonConverter.convertToJson(body)
                 );
@@ -96,7 +96,7 @@ public class KakakoCancelApiClient {
      * @throws IllegalArgumentException 필수 필드 누락 시
      * @throws RuntimeException API 호출 실패 시
      */
-    public KakakoRefundResponse refund(String tid, long amount, String reason) {
+    public KakaoRefundResponse refund(String tid, long amount, String reason) {
         validateRequired(tid, "tid");
         validateRequired(reason, "reason");
         if (amount <= 0) {
@@ -132,7 +132,7 @@ public class KakakoCancelApiClient {
                 }
 
                 log.info("KakaoPay 결제 환불 성공: tid={}, amount={}", tid, refundedAmount);
-                return new KakakoRefundResponse(
+                return new KakaoRefundResponse(
                         refundedAmount,
                         responseParser.parseCanceledAt(body),
                         jsonConverter.convertToJson(body)

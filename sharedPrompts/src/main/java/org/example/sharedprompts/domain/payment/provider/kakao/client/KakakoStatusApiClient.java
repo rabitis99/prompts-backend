@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.payment.provider.kakao.client;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.KakaoPayProperties;
-import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakakoStatusResponse;
+import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoStatusResponse;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayJsonConverter;
 import org.springframework.http.*;
@@ -40,7 +40,7 @@ public class KakakoStatusApiClient {
      * @throws IllegalArgumentException tid가 null이거나 비어있을 때
      * @throws RuntimeException API 호출 실패 시
      */
-    public KakakoStatusResponse status(String tid) {
+    public KakaoStatusResponse status(String tid) {
         validateRequired(tid, "tid");
 
         try {
@@ -85,7 +85,7 @@ public class KakakoStatusApiClient {
                 long amount = Long.parseLong(totalAmountObj.toString());
 
                 log.debug("KakaoPay 결제 상태 조회 성공: tid={}, status={}", tid, status);
-                return new KakakoStatusResponse(status, orderId, amount, jsonConverter.convertToJson(body));
+                return new KakaoStatusResponse(status, orderId, amount, jsonConverter.convertToJson(body));
             }
 
             throw new RuntimeException("KakaoPay 결제 상태 조회 실패: status=" + response.getStatusCode());

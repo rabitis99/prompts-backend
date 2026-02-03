@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.payment.provider.kakao.client;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.KakaoPayProperties;
-import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakakoApproveResponse;
+import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoApproveResponse;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayJsonConverter;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayResponseParser;
@@ -45,7 +45,7 @@ public class KakakoApproveApiClient {
      * @throws IllegalArgumentException 필수 필드 누락 시
      * @throws RuntimeException API 호출 실패 시
      */
-    public KakakoApproveResponse approve(String tid, String orderId, String userId, String pgToken) {
+    public KakaoApproveResponse approve(String tid, String orderId, String userId, String pgToken) {
         validateRequired(tid, "tid");
         validateRequired(orderId, "orderId");
         validateRequired(userId, "userId");
@@ -79,7 +79,7 @@ public class KakakoApproveApiClient {
                 }
 
                 log.info("KakaoPay 결제 승인 성공: tid={}, orderId={}, status={}", tid, orderId, status);
-                return new KakakoApproveResponse(
+                return new KakaoApproveResponse(
                         status,
                         responseParser.parseApprovedAt(body),
                         jsonConverter.convertToJson(body)

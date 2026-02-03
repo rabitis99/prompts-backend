@@ -3,8 +3,8 @@ package org.example.sharedprompts.domain.payment.provider.kakao.dto;
 /**
  * KakaoPay 결제 상태 조회 응답 DTO
  */
-public record KakakoStatusResponse(String status, String orderId, long amount, String metadata) {
-    public KakakoStatusResponse {
+public record KakaoStatusResponse(String status, String orderId, long amount, String metadata) {
+    public KakaoStatusResponse {
         if (status == null || status.isEmpty()) {
             throw new IllegalArgumentException("status는 필수입니다");
         }

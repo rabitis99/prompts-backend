@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.payment.provider.kakao.client;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.KakaoPayProperties;
-import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakakoReadyResponse;
+import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoReadyResponse;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayJsonConverter;
 import org.springframework.http.*;
@@ -43,7 +43,7 @@ public class KakakoReadyApiClient {
      * @throws IllegalArgumentException 필수 필드 누락 시
      * @throws RuntimeException API 호출 실패 시
      */
-    public KakakoReadyResponse ready(String orderId, String userId, long amount, String itemName) {
+    public KakaoReadyResponse ready(String orderId, String userId, long amount, String itemName) {
         validateRequired(orderId, "orderId");
         validateRequired(userId, "userId");
         validateRequired(itemName, "itemName");
@@ -88,7 +88,7 @@ public class KakakoReadyApiClient {
                 }
 
                 log.info("KakaoPay 결제 준비 성공: tid={}, orderId={}", tid, orderId);
-                return new KakakoReadyResponse(tid, redirectUrl, jsonConverter.convertToJson(body));
+                return new KakaoReadyResponse(tid, redirectUrl, jsonConverter.convertToJson(body));
             }
 
             throw new RuntimeException("KakaoPay 결제 준비 실패: status=" + response.getStatusCode());
