@@ -52,7 +52,10 @@ public class KakaoReadyApiClient {
         if (amount <= 0) {
             throw new IllegalArgumentException("결제 금액은 0보다 커야 합니다: amount=" + amount);
         }
-
+        validateRequired(properties.getCid(), "cid");
+        validateRequired(properties.getApprovalUrl(), "approvalUrl");
+        validateRequired(properties.getCancelUrl(), "cancelUrl");
+        validateRequired(properties.getFailUrl(), "failUrl");
         try {
             HttpHeaders headers = headersProvider.createJsonHeaders();
 
@@ -81,7 +84,7 @@ public class KakaoReadyApiClient {
                 Map<String, Object> body = response.getBody();
                 String tid = (String) body.get("tid");
                 String redirectUrl = (String) body.get("next_redirect_pc_url");
-                
+
                 if (tid == null || tid.isEmpty()) {
                     throw new RuntimeException("KakaoPay ready 응답에 tid가 없습니다");
                 }
