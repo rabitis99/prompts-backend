@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 /**
  * PayPal Payment Provider 구현체
@@ -120,7 +121,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
                     .amount(response.amount())
                     .currency(response.currency())
                     .orderId(orderId)
-                    .approvedAt(LocalDateTime.from(response.approvedAt()))
+                    .approvedAt(LocalDateTime.ofInstant(response.approvedAt(), ZoneId.systemDefault()))
                     .metadata(response.metadata())
                     .build();
         } catch (Exception e) {
@@ -151,7 +152,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
                     .amount(response.amount())
                     .currency(response.currency())
                     .orderId(externalPaymentId)
-                    .approvedAt(LocalDateTime.from(response.approvedAt()))
+                    .approvedAt(LocalDateTime.ofInstant(response.approvedAt(), ZoneId.systemDefault()))
                     .metadata(response.metadata())
                     .build();
         } catch (Exception e) {
@@ -195,7 +196,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
                 return CancelResult.builder()
                         .externalPaymentId(externalPaymentId)
                         .status(PaymentStatus.CANCELED)
-                        .canceledAt(LocalDateTime.from(voidResponse.canceledAt()))
+                        .canceledAt(LocalDateTime.ofInstant(voidResponse.canceledAt(), ZoneId.systemDefault()))
                         .reason(reason)
                         .metadata(voidResponse.metadata())
                         .build();
@@ -252,7 +253,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
                     .externalPaymentId(externalPaymentId)
                     .status(refundStatus)
                     .refundedAmount(response.refundedAmount())
-                    .refundedAt(LocalDateTime.from(response.refundedAt()))
+                    .refundedAt(LocalDateTime.ofInstant(response.refundedAt(), ZoneId.systemDefault()))
                     .reason(reason)
                     .metadata(response.metadata())
                     .build();
