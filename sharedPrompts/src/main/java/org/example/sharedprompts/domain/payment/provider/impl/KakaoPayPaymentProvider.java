@@ -75,6 +75,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
         validateRequired(orderId, "orderId");
         validateRequired(amount, "amount");
         validateRequired(currency, "currency");
+        validateKrwCurrency(currency);
         validateRequired(itemName, "itemName");
         validateRequired(userId, "userId");
 
@@ -108,6 +109,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
         validateRequired(orderId, "orderId");
         validateRequired(amount, "amount");
         validateRequired(currency, "currency");
+        validateKrwCurrency(currency);
         validateRequired(userId, "userId");
 
         // KakaoPay 신규 API는 pg_token 필수
@@ -268,6 +270,12 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
         }
         if (value.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException(fieldName + "은(는) 0보다 커야 합니다: " + value);
+        }
+    }
+
+    private void validateKrwCurrency(String currency) {
+        if (!"KRW".equalsIgnoreCase(currency)) {
+            throw new IllegalArgumentException("KakaoPay는 KRW만 지원합니다: currency=" + currency);
         }
     }
 }

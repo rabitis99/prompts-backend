@@ -21,6 +21,9 @@ public class KakaoPayTidParser {
                     ? paymentKey.substring(start)
                     : paymentKey.substring(start, end);
             pgToken = extracted.isBlank() ? null : extracted;
+            if (tid.isBlank()) {
+                throw new IllegalArgumentException("tid 값이 비어 있습니다.");
+            }
         }
 
         // tid 추출

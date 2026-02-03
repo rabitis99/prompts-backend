@@ -120,7 +120,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
                     .amount(response.amount())
                     .currency(response.currency())
                     .orderId(orderId)
-                    .approvedAt(response.approvedAt())
+                    .approvedAt(LocalDateTime.from(response.approvedAt()))
                     .metadata(response.metadata())
                     .build();
         } catch (Exception e) {
@@ -151,7 +151,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
                     .amount(response.amount())
                     .currency(response.currency())
                     .orderId(externalPaymentId)
-                    .approvedAt(response.approvedAt())
+                    .approvedAt(LocalDateTime.from(response.approvedAt()))
                     .metadata(response.metadata())
                     .build();
         } catch (Exception e) {
@@ -195,7 +195,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
                 return CancelResult.builder()
                         .externalPaymentId(externalPaymentId)
                         .status(PaymentStatus.CANCELED)
-                        .canceledAt(voidResponse.canceledAt())
+                        .canceledAt(LocalDateTime.from(voidResponse.canceledAt()))
                         .reason(reason)
                         .metadata(voidResponse.metadata())
                         .build();
@@ -252,7 +252,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
                     .externalPaymentId(externalPaymentId)
                     .status(refundStatus)
                     .refundedAmount(response.refundedAmount())
-                    .refundedAt(response.refundedAt())
+                    .refundedAt(LocalDateTime.from(response.refundedAt()))
                     .reason(reason)
                     .metadata(response.metadata())
                     .build();
