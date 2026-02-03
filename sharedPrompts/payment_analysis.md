@@ -19,8 +19,9 @@
 - [#29] 페이팔 액세스 토큰 캐싱 Thread Safety 문제 → volatile + double-checked locking 적용
 - [#30] 결제 준비 단계 구조적 누락 → Provider 인터페이스에 `preparePayment()`, `requiresPreparation()` 추가
 
-### ⏳ 미완료 사항
-- 나머지 19개 이슈는 추가 개선 필요
+### ⏳ 미완료 사항 (22개)
+- 문서 기준 전체 37개 이슈 중 15개 완료, 22개 추가 개선 필요
+- 주요 미완료 이슈: #9, #10, #12~#16, #18~#23, #25, #28, #31~#37
 
 ---
 
@@ -97,7 +98,12 @@
   - [Payment.java:346-360](domain/payment/Payment.java#L346-L360): `isExpired()` 메서드 추가 (만료 확인)
   - [Payment.java:367-375](domain/payment/Payment.java#L367-L375): `hasUnrecoveredPoints()` 메서드 추가 (복구 필요 포인트 확인)
   - [PaymentAmountFacade.java:18-32](domain/payment/service/facade/PaymentAmountFacade.java#L18-L32): 클래스 javadoc에 제한사항 및 개선방향 명시
-  - 완전한 해결을 위해서는 스케줄러 구현이 추가로 필요 (향후 과제)
+
+- **부분 해결 범위 명확화**
+  - **현재 상태**: 복구 필요 여부 확인 가능 (`isExpired()`, `hasUnrecoveredPoints()`)
+  - **여전히 필요**: 스케줄러 기반 자동 복구 또는 수동 복구 프로세스
+  - **임시 대응**: 관리자 대시보드에서 `hasUnrecoveredPoints()` 기반 모니터링 권장
+  - **참고**: 명시적 결제 실패(confirmPayment 오류)의 포인트 복구는 Issue #17에서 해결됨
 
 ---
 
@@ -435,6 +441,11 @@
   - 결제 실패 시 `PointType.PAYMENT_FAILED`로 사용한 포인트 복구
   - 포인트 복구 실패 시 로그 남기고 계속 진행 (별도 보상 처리 필요)
 
+- **Issue #3과의 관계**
+  - **Issue #3** (부분 해결): 결제 요청 후 사용자가 포기하거나 타임아웃되는 경우 → 스케줄러 기반 복구 필요 (미구현)
+  - **Issue #17** (완료): `confirmPayment` 명시적 실패 시 즉시 복구 → `processPaymentFailure`에 구현됨
+  - 두 이슈는 포인트 복구라는 공통 주제지만 발생 시나리오가 다름
+
 ---
 
 ## 18. CashbackFacade의 분산락 내부 트랜잭션 문제
@@ -500,7 +511,7 @@
 
 ---
 
-## 21. 멱등성 키 생성 전략의 한계
+## 21. 멱등성 키 생성 전략의 한계 ⚠️ 주요 이슈 (조기 해결 권장)
 - **문제 설명**
   - generateIdempotencyKey가 paymentMethod + paymentId 조합 (라인 169-176)
   - cancel, refund는 action을 추가하여 구분 (라인 183-188)
@@ -512,6 +523,11 @@
   - 결제사는 이미 처리된 요청으로 판단하여 거부하거나 중복 환불 방지
   - 실제로는 다른 환불 요청인데 멱등성 키가 같아 처리 불가
   - 사용자가 여러 번 부분 환불을 받을 수 없음
+
+- **영향도 분석**
+  - **현재 상태**: 같은 Payment에 대한 두 번째 부분 환불은 동일한 멱등성 키로 인해 거부됨
+  - **비즈니스 영향**: 고객 환불 요청 처리 불가 → 고객 불만 및 수동 처리 필요
+  - **권장 우선순위**: "차단 이슈"는 아니지만 "주요 이슈"로 분류하여 조기 해결 권장
 
 - **개선 방향**
   - 환불 요청마다 고유한 환불 ID 생성하여 멱등성 키에 포함

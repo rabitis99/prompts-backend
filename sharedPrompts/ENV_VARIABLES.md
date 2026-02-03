@@ -321,7 +321,7 @@
 | password.policy.require-lower-case | 소문자 필수 | true |
 | password.policy.require-digit | 숫자 필수 | true |
 | password.policy.require-special-char | 특수문자 필수 | true |
-| password.policy.special-chars | 허용 특수문자 목록 | !@#$%^&*()_+-=[]{}|;:,.<>? |
+| password.policy.special-chars | 허용 특수문자 목록 | `!@#$%^&*()_+-=[]{}\|;:,.<>?` |
 
 ---
 
