@@ -52,7 +52,6 @@ public class TossPayResponseParser {
      * 금액은 중요하지만 Toss 응답 구조 변경 가능성을 고려해
      * 파싱 실패 시 요청 금액으로 fallback 한다.
      */
-    @SuppressWarnings("unchecked")
     public long parseCanceledAmount(Map<String, Object> body, long requestedAmount) {
         try {
             Object cancelsObj = body.get("cancels");
