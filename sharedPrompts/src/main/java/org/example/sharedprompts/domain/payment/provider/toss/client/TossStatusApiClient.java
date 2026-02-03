@@ -63,18 +63,10 @@ public class TossStatusApiClient {
                 String currency = (String) body.get("currency");
                 String orderId = (String) body.get("orderId");
 
-                if (status == null || status.isEmpty()) {
-                    throw new RuntimeException("TossPay status 응답에 status가 없습니다");
-                }
-                if (totalAmountObj == null) {
-                    throw new RuntimeException("TossPay status 응답에 totalAmount가 없습니다");
-                }
-                if (currency == null || currency.isEmpty()) {
-                    throw new RuntimeException("TossPay status 응답에 currency가 없습니다");
-                }
-                if (orderId == null || orderId.isEmpty()) {
-                    throw new RuntimeException("TossPay status 응답에 orderId가 없습니다");
-                }
+                validateResponseString(status, "status");
+                validateResponseNotNull(totalAmountObj, "totalAmount");
+                validateResponseString(currency, "currency");
+                validateResponseString(orderId, "orderId");
 
                 BigDecimal totalAmount = new BigDecimal(totalAmountObj.toString());
 
@@ -99,6 +91,18 @@ public class TossStatusApiClient {
     private void validateRequired(String value, String fieldName) {
         if (value == null || value.isEmpty()) {
             throw new IllegalArgumentException(fieldName + "은(는) 필수입니다");
+        }
+    }
+
+    private void validateResponseString(String value, String fieldName) {
+        if (value == null || value.isEmpty()) {
+            throw new RuntimeException("TossPay status 응답에 " + fieldName + "가 없습니다");
+        }
+    }
+
+    private void validateResponseNotNull(Object value, String fieldName) {
+        if (value == null) {
+            throw new RuntimeException("TossPay status 응답에 " + fieldName + "가 없습니다");
         }
     }
 }
