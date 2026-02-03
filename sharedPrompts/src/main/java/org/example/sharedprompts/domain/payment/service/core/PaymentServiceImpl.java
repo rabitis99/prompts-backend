@@ -257,12 +257,12 @@ public class PaymentServiceImpl implements PaymentService {
         // 결제사별 paymentKey 처리
         // - 토스페이먼츠: 클라이언트에서 받은 paymentKey를 externalPaymentId로 설정
         // - 카카오페이: ready 시 받은 tid가 이미 externalPaymentId에 저장되어 있음
-        if (request.getPaymentKey() != null && !request.getPaymentKey().isEmpty()) {
-            // 카카오페이의 경우 ready 시 이미 tid가 저장되어 있으므로 업데이트하지 않음
-            // 토스페이먼츠의 경우 클라이언트에서 받은 paymentKey를 설정
-            if (payment.getPaymentMethod() != PaymentMethod.KAKAO_PAY) {
-                payment.updateExternalPaymentId(request.getPaymentKey());
+        if (payment.getPaymentMethod() != PaymentMethod.KAKAO_PAY) {
+            if (request.getPaymentKey() == null || request.getPaymentKey().isEmpty()) {
+                throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "paymentKey",
+                        "비카카오 결제는 paymentKey가 필수입니다");
             }
+            payment.updateExternalPaymentId(request.getPaymentKey());
         }
 
         // 실제 결제 금액 계산 (포인트 사용 후 금액)

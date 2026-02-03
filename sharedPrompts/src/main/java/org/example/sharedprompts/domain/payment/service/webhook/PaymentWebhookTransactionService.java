@@ -10,6 +10,7 @@ import org.example.sharedprompts.domain.payment.repository.payment.PaymentReposi
 import org.example.sharedprompts.domain.payment.validator.PaymentValidator;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,7 +54,14 @@ public class PaymentWebhookTransactionService {
             applyWebhookResult(freshPayment, paymentResult);
         }
 
-        return paymentRepository.save(freshPayment);
+        try {
+            return paymentRepository.saveAndFlush(freshPayment);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            // 낙관적 락 충돌: 다른 트랜잭션이 먼저 업데이트함
+            log.info("낙관적 락 충돌 발생 (동시 처리): paymentId={}", payment.getId());
+            return paymentRepository.findById(payment.getId())
+                    .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        }
     }
 
     /**

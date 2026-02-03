@@ -48,4 +48,31 @@ public class TossPayResponseParser {
         }
         return LocalDateTime.now();
     }
+
+    /**
+     * 취소 금액 파싱 (cancels 배열에서 가장 최근 취소 금액 추출)
+     *
+     * @param body API 응답 body
+     * @param requestedAmount 요청한 환불 금액 (파싱 실패 시 fallback)
+     * @return 실제 취소된 금액
+     */
+    @SuppressWarnings("unchecked")
+    public long parseCanceledAmount(Map<String, Object> body, long requestedAmount) {
+        try {
+            Object cancelsObj = body.get("cancels");
+            if (cancelsObj instanceof java.util.List<?> cancelsList && !cancelsList.isEmpty()) {
+                // 가장 최근 취소 정보 (마지막 요소)
+                Object lastCancel = cancelsList.get(cancelsList.size() - 1);
+                if (lastCancel instanceof Map<?, ?> cancelMap) {
+                    Object cancelAmountObj = cancelMap.get("cancelAmount");
+                    if (cancelAmountObj instanceof Number number) {
+                        return number.longValue();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("취소 금액 파싱 실패, 요청 금액 사용: {}", e.getMessage());
+        }
+        return requestedAmount;
+    }
 }

@@ -114,9 +114,11 @@ public class TossCancelApiClient {
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> body = response.getBody();
-                log.info("TossPay 결제 환불 성공: paymentKey={}, amount={}", paymentKey, amount);
+                long actualRefundedAmount = responseParser.parseCanceledAmount(body, amount);
+                log.info("TossPay 결제 환불 성공: paymentKey={}, requestedAmount={}, actualRefundedAmount={}",
+                        paymentKey, amount, actualRefundedAmount);
                 return new TossRefundResponse(
-                        amount,
+                        actualRefundedAmount,
                         responseParser.parseCanceledAt(body),
                         jsonConverter.convertToJson(body)
                 );
