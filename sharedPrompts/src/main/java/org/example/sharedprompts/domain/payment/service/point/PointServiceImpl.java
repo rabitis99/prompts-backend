@@ -206,8 +206,17 @@ public class PointServiceImpl implements PointService {
 
     /**
      * 직접 포인트 적립 비즈니스 로직
+     *
+     * <p>paymentId가 있는 경우 멱등성 체크를 수행하여 중복 적립을 방지합니다.
+     * 콜백 재시도 등으로 동일 결제에 대해 여러 번 호출되어도 한 번만 적립됩니다.
      */
     private void doAddPointsDirectly(Long userId, Long paymentId, BigDecimal pointAmount, PointType type, String description) {
+        // 멱등성 체크: paymentId + PointType 조합이 이미 존재하면 스킵
+        if (paymentId != null && pointRepository.existsByPaymentIdAndType(paymentId, type)) {
+            log.info("포인트 적립 스킵 (이미 처리됨): userId={}, paymentId={}, type={}", userId, paymentId, type);
+            return;
+        }
+
         User user = getUser(userId);
         BigDecimal lastBalance = getLastBalance(userId);
         BigDecimal newBalance = lastBalance.add(pointAmount);

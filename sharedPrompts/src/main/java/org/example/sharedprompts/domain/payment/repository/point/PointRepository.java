@@ -43,5 +43,16 @@ public interface PointRepository extends JpaRepository<Point, Long>, CustomPoint
      */
     @Query("SELECT p FROM Point p WHERE p.user.id = :userId ORDER BY p.createdAt DESC, p.id DESC")
     List<Point> findLatestPointByUserId(@Param("userId") Long userId);
+
+    /**
+     * 결제 ID와 포인트 타입으로 기존 포인트 내역 존재 여부 확인 (멱등성 체크)
+     * 콜백 재시도 시 중복 포인트 적립/복구 방지용
+     *
+     * @param paymentId 결제 ID
+     * @param type 포인트 타입
+     * @return 해당 조건의 포인트 내역 존재 여부
+     */
+    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Point p WHERE p.paymentId = :paymentId AND p.type = :type")
+    boolean existsByPaymentIdAndType(@Param("paymentId") Long paymentId, @Param("type") org.example.sharedprompts.domain.payment.enums.PointType type);
 }
 

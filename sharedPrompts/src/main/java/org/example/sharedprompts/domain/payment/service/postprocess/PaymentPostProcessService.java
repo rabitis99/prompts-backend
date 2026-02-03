@@ -143,15 +143,21 @@ public class PaymentPostProcessService {
     public void processPaymentCancel(Payment payment, Long userId, String reason, PaymentStatus oldStatus) {
         // 포인트 환불 처리 (사용했던 포인트 그대로 복구)
         if (payment.getUsedPointAmount() != null && payment.getUsedPointAmount().compareTo(BigDecimal.ZERO) > 0) {
-            pointService.addPointsDirectly(
-                    userId,
-                    payment.getId(),
-                    payment.getUsedPointAmount(),
-                    PointType.CANCEL,
-                    "결제 취소로 인한 포인트 복구"
-            );
-            log.info("결제 취소로 인한 포인트 복구: userId={}, paymentId={}, refundPointAmount={}",
-                    userId, payment.getId(), payment.getUsedPointAmount());
+            try {
+                pointService.addPointsDirectly(
+                        userId,
+                        payment.getId(),
+                        payment.getUsedPointAmount(),
+                        PointType.CANCEL,
+                        "결제 취소로 인한 포인트 복구"
+                );
+                log.info("결제 취소로 인한 포인트 복구: userId={}, paymentId={}, refundPointAmount={}",
+                        userId, payment.getId(), payment.getUsedPointAmount());
+            } catch (Exception pointException) {
+                // 포인트 복구 실패 시 로깅하고 계속 진행 (별도 보상 처리 필요)
+                log.error("결제 취소 후 포인트 복구 실패: userId={}, paymentId={}, amount={}, error={}",
+                        userId, payment.getId(), payment.getUsedPointAmount(), pointException.getMessage(), pointException);
+            }
         }
 
         // 로깅
@@ -175,15 +181,21 @@ public class PaymentPostProcessService {
                                     BigDecimal refundPointAmount, String reason, PaymentStatus oldStatus) {
         // 포인트 환불 처리 (사용했던 포인트 그대로 복구)
         if (refundPointAmount != null && refundPointAmount.compareTo(BigDecimal.ZERO) > 0) {
-            pointService.addPointsDirectly(
-                    userId,
-                    payment.getId(),
-                    refundPointAmount,
-                    PointType.REFUND,
-                    "결제 환불로 인한 포인트 복구"
-            );
-            log.info("결제 환불로 인한 포인트 복구: userId={}, paymentId={}, refundPointAmount={}",
-                    userId, payment.getId(), refundPointAmount);
+            try {
+                pointService.addPointsDirectly(
+                        userId,
+                        payment.getId(),
+                        refundPointAmount,
+                        PointType.REFUND,
+                        "결제 환불로 인한 포인트 복구"
+                );
+                log.info("결제 환불로 인한 포인트 복구: userId={}, paymentId={}, refundPointAmount={}",
+                        userId, payment.getId(), refundPointAmount);
+            } catch (Exception pointException) {
+                // 포인트 복구 실패 시 로깅하고 계속 진행 (별도 보상 처리 필요)
+                log.error("결제 환불 후 포인트 복구 실패: userId={}, paymentId={}, amount={}, error={}",
+                        userId, payment.getId(), refundPointAmount, pointException.getMessage(), pointException);
+            }
         }
 
         // 로깅
