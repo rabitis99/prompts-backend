@@ -190,8 +190,8 @@ public enum ErrorCode {
     PAYMENT_CURRENCY_MISMATCH("PY00416", HttpStatus.BAD_REQUEST, "통화 코드가 일치하지 않습니다."),
     PAYMENT_WEBHOOK_SIGNATURE_INVALID("PY00417", HttpStatus.BAD_REQUEST, "Webhook 서명이 유효하지 않습니다."),
     PAYMENT_CANCEL_FAILED("PY00418", HttpStatus.BAD_REQUEST, "결제 취소에 실패했습니다."),
-    PAYMENT_REFUND_FAILED("PY00419", HttpStatus.BAD_REQUEST, "결제 환불에 실패했습니다.")
-
+    PAYMENT_REFUND_FAILED("PY00419", HttpStatus.BAD_REQUEST, "결제 환불에 실패했습니다."),
+    PAYMENT_PROVIDER_RESPONSE_INVALID("PY00421", HttpStatus.BAD_REQUEST, "결제사 응답이 유효하지 않습니다."),
 
     ;
     private final String code;
