@@ -141,7 +141,11 @@ public class PaymentValidationService {
             return true;
         }
         if (payment.getStatus() == PaymentStatus.SUCCESS) {
-            return payment.getRefundedAmount().compareTo(BigDecimal.ZERO) == 0;
+            BigDecimal refundedAmount = payment.getRefundedAmount();
+            if (refundedAmount == null) {
+                return true; // null이면 환불된 금액이 없으므로 취소 가능
+            }
+            return refundedAmount.compareTo(BigDecimal.ZERO) == 0;
         }
         return false;
     }
@@ -159,7 +163,11 @@ public class PaymentValidationService {
     public boolean validateCanRefundPayment(Payment payment) {
         boolean statusAllowsRefund = payment.getStatus() == PaymentStatus.SUCCESS
                 || payment.getStatus() == PaymentStatus.PARTIALLY_REFUNDED;
-        boolean hasRefundableAmount = payment.getRefundableAmount().compareTo(BigDecimal.ZERO) > 0;
+        BigDecimal refundableAmount = payment.getRefundableAmount();
+        if (refundableAmount == null) {
+            return false; // null이면 환불 가능 금액이 없음
+        }
+        boolean hasRefundableAmount = refundableAmount.compareTo(BigDecimal.ZERO) > 0;
         return statusAllowsRefund && hasRefundableAmount;
     }
 
@@ -171,11 +179,18 @@ public class PaymentValidationService {
      * @return 환불 가능 여부
      */
     public boolean validateCanRefundPaymentAmount(Payment payment, BigDecimal refundAmount) {
+        if (refundAmount == null) {
+            return false; // null 금액은 환불 불가
+        }
         if (!validateCanRefundPayment(payment)) {
             return false;
         }
+        BigDecimal refundableAmount = payment.getRefundableAmount();
+        if (refundableAmount == null) {
+            return false; // null이면 환불 가능 금액이 없음
+        }
         return refundAmount.compareTo(BigDecimal.ZERO) > 0
-                && refundAmount.compareTo(payment.getRefundableAmount()) <= 0;
+                && refundAmount.compareTo(refundableAmount) <= 0;
     }
 
     /**

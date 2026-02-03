@@ -30,12 +30,10 @@ public class KakaoPayTidParser {
                     ? paymentKey.substring(start)
                     : paymentKey.substring(start, end);
         } else if (pgToken != null) {
-            int end = paymentKey.indexOf("pg_token=");
-            if (end > 0) {
-                tid = paymentKey.substring(0, end)
-                        .replace("?", "")
-                        .replace("&", "");
-            }
+            // tid 파라미터가 없고 pg_token만 있는 경우, tid가 누락된 것으로 간주
+            // fallback 로직은 제거하고 tid를 paymentKey 전체로 유지 (또는 명시적 오류 처리)
+            // 실제 tid가 없으면 파싱 실패로 처리하는 것이 안전함
+            throw new IllegalArgumentException("tid 파라미터가 누락되었습니다. paymentKey에 tid= 파라미터가 필요합니다.");
         }
 
         return new ParsedTid(tid, pgToken);

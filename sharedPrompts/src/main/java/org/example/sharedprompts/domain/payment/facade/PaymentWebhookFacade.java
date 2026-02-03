@@ -72,6 +72,7 @@ public class PaymentWebhookFacade {
             Optional<Payment> paymentOpt = paymentRepository.findByExternalPaymentId(externalPaymentId);
             if (paymentOpt.isEmpty()) {
                 log.warn("Webhook 수신했으나 Payment를 찾을 수 없음: externalPaymentId={}", externalPaymentId);
+                releaseRedisLockSafely(webhookId, lockAcquired, externalPaymentId, null);
                 return Optional.empty();
             }
 
@@ -81,6 +82,7 @@ public class PaymentWebhookFacade {
             if (isAlreadyProcessed(payment)) {
                 log.info("Payment 이미 처리 완료: paymentId={}, status={}, externalPaymentId={}",
                         payment.getId(), payment.getStatus(), externalPaymentId);
+                releaseRedisLockSafely(webhookId, lockAcquired, externalPaymentId, null);
                 return Optional.of(payment);
             }
 
@@ -208,20 +210,31 @@ public class PaymentWebhookFacade {
     private void releaseRedisLockSafely(String webhookId, boolean lockAcquired,
                                          String externalPaymentId, Exception originalException) {
         if (!lockAcquired) {
-            log.error("Webhook 처리 중 오류 발생: webhookId={}, externalPaymentId={}",
-                    webhookId, externalPaymentId, originalException);
+            if (originalException != null) {
+                log.error("Webhook 처리 중 오류 발생: webhookId={}, externalPaymentId={}",
+                        webhookId, externalPaymentId, originalException);
+            }
             return;
         }
 
         try {
             idempotencyService.releaseLock(webhookId);
-            log.error("Webhook 처리 중 오류 발생 (Redis 락 해제됨): webhookId={}, externalPaymentId={}",
-                    webhookId, externalPaymentId, originalException);
+            if (originalException != null) {
+                log.error("Webhook 처리 중 오류 발생 (Redis 락 해제됨): webhookId={}, externalPaymentId={}",
+                        webhookId, externalPaymentId, originalException);
+            } else {
+                log.debug("Redis 락 해제 완료: webhookId={}, externalPaymentId={}", webhookId, externalPaymentId);
+            }
         } catch (Exception releaseException) {
             // Redis 락 해제 실패는 로그만 남김 (TTL로 자동 만료)
-            log.error("Webhook 처리 중 오류 발생 (Redis 락 해제 실패, TTL로 자동 만료됨): " +
-                            "webhookId={}, externalPaymentId={}, releaseError={}",
-                    webhookId, externalPaymentId, releaseException.getMessage(), originalException);
+            if (originalException != null) {
+                log.error("Webhook 처리 중 오류 발생 (Redis 락 해제 실패, TTL로 자동 만료됨): " +
+                                "webhookId={}, externalPaymentId={}, releaseError={}",
+                        webhookId, externalPaymentId, releaseException.getMessage(), originalException);
+            } else {
+                log.warn("Redis 락 해제 실패 (TTL로 자동 만료됨): webhookId={}, externalPaymentId={}, error={}",
+                        webhookId, externalPaymentId, releaseException.getMessage());
+            }
         }
     }
 

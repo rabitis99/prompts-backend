@@ -73,10 +73,9 @@ public class PaypalCreateOrderApiClient {
             requestBody.put("purchase_units", List.of(purchaseUnit));
 
             Map<String, Object> applicationContext = new HashMap<>();
-            applicationContext.put("return_url",
-                    properties.getReturnUrl() != null ? properties.getReturnUrl() : "https://localhost/payment/paypal/success");
-            applicationContext.put("cancel_url",
-                    properties.getCancelUrl() != null ? properties.getCancelUrl() : "https://localhost/payment/paypal/cancel");
+            // PaypalProperties에서 @NotBlank로 검증되므로 null이 될 수 없음
+            applicationContext.put("return_url", properties.getReturnUrl());
+            applicationContext.put("cancel_url", properties.getCancelUrl());
             requestBody.put("application_context", applicationContext);
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);

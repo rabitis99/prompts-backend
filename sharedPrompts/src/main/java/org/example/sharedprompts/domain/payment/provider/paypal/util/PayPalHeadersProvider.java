@@ -107,7 +107,13 @@ public class PayPalHeadersProvider {
 
                 long newExpiresAt = System.currentTimeMillis();
                 if (expiresIn != null) {
-                    newExpiresAt += (((Number) expiresIn).longValue() - 300) * 1000; // 만료 5분 전에 갱신
+                    long expiresInSeconds = ((Number) expiresIn).longValue();
+                    // 최소 TTL 설정: 300초(5분) 이하인 경우 300초로 설정
+                    long effectiveExpiresIn = Math.max(expiresInSeconds, 300);
+                    newExpiresAt += (effectiveExpiresIn - 300) * 1000; // 만료 5분 전에 갱신
+                } else {
+                    // expires_in이 없는 경우 기본값 3600초(1시간) 사용
+                    newExpiresAt += (3600 - 300) * 1000; // 만료 5분 전에 갱신
                 }
 
                 this.tokenExpiresAt = newExpiresAt;

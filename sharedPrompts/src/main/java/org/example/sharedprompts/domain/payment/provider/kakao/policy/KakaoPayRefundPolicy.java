@@ -20,6 +20,9 @@ public class KakaoPayRefundPolicy {
             BigDecimal refundedAmount,
             BigDecimal originalAmount
     ) {
+        if (refundedAmount == null) {
+            throw new IllegalArgumentException("refundedAmount는 null일 수 없습니다");
+        }
         if (originalAmount != null && refundedAmount.compareTo(originalAmount) >= 0) {
             return PaymentStatus.REFUNDED;
         }

@@ -75,12 +75,13 @@ public class PaypalRefundApiClient {
                 Map<String, Object> body = response.getBody();
                 BigDecimal refundedAmount = responseParser.extractRefundedAmount(body, amount);
                 String status = (String) body.get("status");
+                LocalDateTime refundedAt = responseParser.parseRefundedAt(body);
 
                 log.info("PayPal 결제 환불 성공: captureId={}, refundedAmount={}", captureId, refundedAmount);
                 return new PaypalRefundResponse(
                         refundedAmount,
                         status != null ? status : "COMPLETED",
-                        LocalDateTime.now(),
+                        refundedAt,
                         jsonConverter.convertToJson(body)
                 );
             }

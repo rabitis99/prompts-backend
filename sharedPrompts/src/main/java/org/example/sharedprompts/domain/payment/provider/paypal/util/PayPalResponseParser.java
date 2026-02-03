@@ -52,7 +52,11 @@ public class PayPalResponseParser {
                     Map<String, Object> amountObj = (Map<String, Object>) captures.get(0).get("amount");
                     if (amountObj != null) {
                         String currency = (String) amountObj.get("currency_code");
-                        BigDecimal amount = new BigDecimal(amountObj.get("value").toString());
+                        Object valueObj = amountObj.get("value");
+                        if (valueObj == null) {
+                            throw new RuntimeException("PayPal 응답에서 capture amount value가 null입니다");
+                        }
+                        BigDecimal amount = new BigDecimal(valueObj.toString());
                         return new CaptureInfo(amount, currency != null ? currency : "USD");
                     }
                 }
@@ -72,7 +76,11 @@ public class PayPalResponseParser {
             Map<String, Object> amount = (Map<String, Object>) purchaseUnits.get(0).get("amount");
             if (amount != null) {
                 String currency = (String) amount.get("currency_code");
-                BigDecimal orderAmount = new BigDecimal(amount.get("value").toString());
+                Object valueObj = amount.get("value");
+                if (valueObj == null) {
+                    throw new RuntimeException("PayPal 응답에서 order amount value가 null입니다");
+                }
+                BigDecimal orderAmount = new BigDecimal(valueObj.toString());
                 return new OrderInfo(orderAmount, currency != null ? currency : "USD");
             }
         }
@@ -145,6 +153,29 @@ public class PayPalResponseParser {
             }
         } catch (Exception e) {
             log.warn("승인 시간 파싱 실패: {}", e.getMessage());
+        }
+        return LocalDateTime.now();
+    }
+
+    /**
+     * 환불 시간 파싱
+     */
+    public LocalDateTime parseRefundedAt(Map<String, Object> body) {
+        try {
+            // PayPal 환불 응답에서 create_time 또는 update_time 사용
+            Object createTimeObj = body.get("create_time");
+            if (createTimeObj != null) {
+                String createTimeStr = createTimeObj.toString();
+                return OffsetDateTime.parse(createTimeStr, DateTimeFormatter.ISO_DATE_TIME).toLocalDateTime();
+            }
+            // create_time이 없으면 update_time 시도
+            Object updateTimeObj = body.get("update_time");
+            if (updateTimeObj != null) {
+                String updateTimeStr = updateTimeObj.toString();
+                return OffsetDateTime.parse(updateTimeStr, DateTimeFormatter.ISO_DATE_TIME).toLocalDateTime();
+            }
+        } catch (Exception e) {
+            log.warn("환불 시간 파싱 실패: {}", e.getMessage());
         }
         return LocalDateTime.now();
     }
