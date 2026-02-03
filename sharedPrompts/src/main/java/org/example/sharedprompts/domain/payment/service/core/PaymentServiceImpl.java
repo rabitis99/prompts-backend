@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.payment.service.core;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Payment;
+import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
@@ -29,6 +30,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * 결제 서비스 구현체
@@ -192,9 +195,15 @@ public class PaymentServiceImpl implements PaymentService {
 
         validationService.validatePaymentOwnership(payment, userId);
 
-        // 클라이언트에서 받은 paymentKey를 externalPaymentId로 설정
+        // 결제사별 paymentKey 처리
+        // - 토스페이먼츠: 클라이언트에서 받은 paymentKey를 externalPaymentId로 설정
+        // - 카카오페이: ready 시 받은 tid가 이미 externalPaymentId에 저장되어 있음
         if (request.getPaymentKey() != null && !request.getPaymentKey().isEmpty()) {
-            payment.updateExternalPaymentId(request.getPaymentKey());
+            // 카카오페이의 경우 ready 시 이미 tid가 저장되어 있으므로 업데이트하지 않음
+            // 토스페이먼츠의 경우 클라이언트에서 받은 paymentKey를 설정
+            if (payment.getPaymentMethod() != PaymentMethod.KAKAO_PAY) {
+                payment.updateExternalPaymentId(request.getPaymentKey());
+            }
         }
 
         // 실제 결제 금액 계산 (포인트 사용 후 금액)
@@ -202,9 +211,19 @@ public class PaymentServiceImpl implements PaymentService {
                 payment.getUsedPointAmount() != null ? payment.getUsedPointAmount() : BigDecimal.ZERO
         );
 
+        // 카카오페이의 경우 pgToken을 additionalParams로 전달
+        Map<String, String> additionalParams = Collections.emptyMap();
+        if (payment.getPaymentMethod() == PaymentMethod.KAKAO_PAY) {
+            if (request.getPgToken() == null || request.getPgToken().isEmpty()) {
+                throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "pgToken", 
+                        "카카오페이 결제 승인을 위해서는 pgToken이 필수입니다");
+            }
+            additionalParams = Map.of("pgToken", request.getPgToken());
+        }
+
         try {
             // PaymentExecutionService를 통한 결제 실행
-            payment = executionService.executePayment(payment, actualAmount);
+            payment = executionService.executePayment(payment, actualAmount, additionalParams);
 
             long processingTime = System.currentTimeMillis() - startTime;
 

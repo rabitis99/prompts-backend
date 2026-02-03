@@ -417,13 +417,13 @@ payment:
     cancel-url: ${PAYMENT_KAKAO_CANCEL_URL}
     fail-url: ${PAYMENT_KAKAO_FAIL_URL}
   toss:
-    api-key: ${TOSS_API_KEY:}
-    secret-key: ${TOSS_SECRET:}
-    base-url: ${TOSS_BASE_URL:https://api.tosspayments.com/v1/payments}
-    confirm-endpoint: ${TOSS_CONFIRM_ENDPOINT:/confirm}
+    api-key: ${PAYMENT_TOSS_API_KEY:}
+    secret-key: ${PAYMENT_TOSS_SECRET_KEY:}
+    base-url: ${PAYMENT_TOSS_BASE_URL:https://api.tosspayments.com/v1/payments}
+    confirm-endpoint: ${PAYMENT_TOSS_CONFIRM_ENDPOINT:/confirm}
   paypal:
-    client-id: ${PAYPAL_CLIENT_ID:}
-    client-secret: ${PAYPAL_CLIENT_SECRET:}
+    client-id: ${PAYMENT_PAYPAL_CLIENT_ID:}
+    client-secret: ${PAYMENT_PAYPAL_CLIENT_SECRET:}
   exchange-rate:
     api-key: ${EXCHANGE_RATE_API_KEY:}
     api-url: ${EXCHANGE_RATE_API_URL:https://api.exchangerate-api.com/v4/latest/}
