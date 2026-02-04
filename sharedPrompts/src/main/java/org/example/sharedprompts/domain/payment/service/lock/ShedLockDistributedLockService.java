@@ -87,6 +87,12 @@ public class ShedLockDistributedLockService implements DistributedLockService {
 
     @Override
     public boolean tryLock(String lockKey, Duration lockAtMostFor) {
+        // 이미 동일 키로 락을 보유 중인 경우 중복 획득 방지 (락 누수 방지)
+        if (activeLocks.containsKey(lockKey)) {
+            log.warn("이미 보유 중인 락 키로 tryLock 시도: lockKey={}", lockKey);
+            return false;
+        }
+
         LockConfiguration lockConfig = new LockConfiguration(
                 Instant.now(),
                 lockKey,

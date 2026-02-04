@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.TransactionDefinition;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -78,6 +79,9 @@ public class PointServiceImpl implements PointService {
         this.paymentRepository = paymentRepository;
         this.lockProvider = lockProvider;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        // REQUIRES_NEW 전파로 설정하여 상위 트랜잭션과 독립적으로 실행
+        // 락 획득 → 트랜잭션 시작 순서를 보장
+        this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     private static final String LOCK_PREFIX = "point:lock:";
@@ -225,11 +229,19 @@ public class PointServiceImpl implements PointService {
         BigDecimal lastBalance = getLastBalance(userId);
         BigDecimal newBalance = lastBalance.add(pointAmount);
 
-        // Payment 엔티티 조회 (paymentId가 있는 경우만)
+        // Payment 엔티티 조회 및 검증 (paymentId가 있는 경우만)
         org.example.sharedprompts.domain.payment.Payment payment = null;
         if (paymentId != null) {
             payment = paymentRepository.findById(paymentId)
-                    .orElse(null); // paymentId가 유효하지 않으면 null로 처리
+                    .orElseThrow(() -> new ApiException(
+                            ErrorCode.INVALID_INPUT_VALUE, "유효하지 않은 결제 ID입니다: paymentId=" + paymentId));
+            
+            // 결제 소유자 검증: paymentId가 제공되면 반드시 해당 사용자의 결제여야 함
+            if (!payment.getUser().getId().equals(userId)) {
+                throw new ApiException(
+                        ErrorCode.INVALID_INPUT_VALUE,
+                        "결제 소유자와 사용자 정보가 일치하지 않습니다: paymentId=" + paymentId + ", userId=" + userId);
+            }
         }
 
         Point point = Point.builder()

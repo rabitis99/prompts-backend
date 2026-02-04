@@ -259,10 +259,14 @@ public class PaymentExecutionService {
     private String generateRefundIdempotencyKey(Payment payment) {
         // refundedAmount를 포함하여 각 부분 환불 요청을 구분
         // refundedAmount가 같은 상태에서 재시도하면 같은 키가 생성되어 멱등성 보장
+        // null 방어: DB에서 로드 시 null일 수 있으므로 기본값 사용
+        BigDecimal refundedAmount = payment.getRefundedAmount() != null
+                ? payment.getRefundedAmount()
+                : BigDecimal.ZERO;
         return String.format("%s:%s:refund:%s",
                 payment.getPaymentMethod().name(),
                 payment.getId(),
-                payment.getRefundedAmount().stripTrailingZeros().toPlainString());
+                refundedAmount.stripTrailingZeros().toPlainString());
     }
 
     /**

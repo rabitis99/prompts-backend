@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.payment.service.cashback.facade;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Cashback;
 import org.example.sharedprompts.domain.payment.config.RewardProperties;
@@ -17,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.TransactionDefinition;
 
 import java.math.BigDecimal;
 
@@ -39,7 +39,6 @@ import java.math.BigDecimal;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class CashbackFacade {
 
     private final CashbackRepository cashbackRepository;
@@ -49,6 +48,28 @@ public class CashbackFacade {
     private final CashbackExecutionService executionService;
     private final CashbackLockService lockService;
     private final TransactionTemplate transactionTemplate;
+
+    /**
+     * REQUIRES_NEW 전파로 설정된 TransactionTemplate을 생성합니다.
+     * 상위 트랜잭션과 독립적으로 실행되어 락 획득 → 트랜잭션 시작 순서를 보장합니다.
+     */
+    public CashbackFacade(
+            CashbackRepository cashbackRepository,
+            RewardProperties rewardProperties,
+            CashbackValidationService validationService,
+            CashbackAmountService amountService,
+            CashbackExecutionService executionService,
+            CashbackLockService lockService,
+            org.springframework.transaction.PlatformTransactionManager transactionManager) {
+        this.cashbackRepository = cashbackRepository;
+        this.rewardProperties = rewardProperties;
+        this.validationService = validationService;
+        this.amountService = amountService;
+        this.executionService = executionService;
+        this.lockService = lockService;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
 
     /**
      * 캐시백 이력 조회

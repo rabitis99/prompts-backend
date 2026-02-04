@@ -48,21 +48,18 @@ public class KakaoCancelApiClient {
      * 
      * @param tid 결제 고유 ID (필수)
      * @param reason 취소 사유 (필수)
+     * @param totalAmount 총 금액 (필수)
+     * @param taxFreeAmount 면세 금액 (필수)
      * @return CancelResponse
      * @throws IllegalArgumentException 필수 필드 누락 시
      * @throws RuntimeException API 호출 실패 시
      */
-    public KakaoCancelResponse cancel(String tid, String reason) {
+    public KakaoCancelResponse cancel(String tid, String reason, long totalAmount, long taxFreeAmount) {
         validateRequired(tid, "tid");
         validateRequired(reason, "reason");
 
         try {
             HttpHeaders headers = headersProvider.createJsonHeaders();
-
-            // 전체 취소를 위해 총 금액 및 면세 금액 조회
-            var statusResponse = kakaoStatusApiClient.status(tid);
-            long totalAmount = statusResponse.amount();
-            long taxFreeAmount = statusResponse.taxFreeAmount();
 
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("cid", properties.getCid());
