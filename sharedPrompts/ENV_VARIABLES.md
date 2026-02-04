@@ -158,7 +158,7 @@
 |--------|----------|---------|
 | payment.exchange-rate.api-key | 환율 API 키 | {EXCHANGE_RATE_API_KEY} |
 | payment.exchange-rate.api-url | 환율 API URL | https://api.exchangerate-api.com/v4/latest/ |
-| payment.exchange-rate.schedule | 환율 업데이트 스케줄 (cron) | 0 0 * * * ? (매 시간 정각, 1시간 간격) |
+| payment.exchange-rate.schedule | 환율 업데이트 스케줄 (cron) | `0 0 * * * ?` (매 시간 정각, 1시간 간격) |
 
 ---
 
@@ -209,7 +209,7 @@
 |--------|----------|---------|
 | rate-limit.log.cleanup.enabled | 로그 정리 활성화 | true |
 | rate-limit.log.cleanup.retention-days | 로그 보관일(일) | 90 |
-| rate-limit.log.cleanup.schedule | 정리 스케줄 (cron) | 0 0 3 * * ? |
+| rate-limit.log.cleanup.schedule | 정리 스케줄 (cron) | `0 0 3 * * ?` |
 
 ---
 
@@ -261,7 +261,7 @@
 | notification.cache.unread-count-ttl | 읽지 않은 알림 캐시 TTL(초) | 60 |
 | notification.cleanup.enabled | 알림 정리 활성화 | true |
 | notification.cleanup.retention-days | 알림 보관일(일) | 90 |
-| notification.cleanup.schedule | 알림 정리 스케줄 (cron) | 0 0 2 * * ? |
+| notification.cleanup.schedule | 알림 정리 스케줄 (cron) | `0 0 2 * * ?` |
 | notification.duplicate.check-window-minutes | 중복 알림 확인 윈도우(분) | 5 |
 
 ---

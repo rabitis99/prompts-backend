@@ -193,7 +193,7 @@ public class PaymentServiceImpl implements PaymentService {
     /**
      * 결제 환불 처리
      *
-     * <p><strong>동시성 보호 (2024-02-02 개선):</strong>
+     * <p><strong>동시성 보호 (2026-02-04 개선):</strong>
      * 분산 락을 사용하여 동일 Payment에 대한 동시 환불 요청을 직렬화합니다.
      * 이를 통해 멱등성 키 생성 시 refundedAmount 읽기 경쟁 조건을 방지합니다.
      */
@@ -404,7 +404,7 @@ public class PaymentServiceImpl implements PaymentService {
     /**
      * 관리자용 결제 환불 처리
      *
-     * <p><strong>동시성 보호 (2024-02-02 개선):</strong>
+     * <p><strong>동시성 보호 (2026-02-04 개선):</strong>
      * 분산 락을 사용하여 동일 Payment에 대한 동시 환불 요청을 직렬화합니다.
      * 이를 통해 멱등성 키 생성 시 refundedAmount 읽기 경쟁 조건을 방지합니다.
      */
@@ -518,9 +518,9 @@ public class PaymentServiceImpl implements PaymentService {
                 return objectMapper.writeValueAsString(fallbackMap);
             } catch (Exception ex) {
                 log.error("fallback metadata 생성 실패", ex);
-                // ObjectMapper 실패 시 하드코딩된 JSON 반환
-                return String.format("{\"next_redirect_pc_url\":\"%s\",\"redirect_url\":\"%s\"}", 
-                        redirectUrl.replace("\"", "\\\""), redirectUrl.replace("\"", "\\\""));
+                // ObjectMapper 실패 시 안전한 기본값 반환 (URL에 특수문자가 있을 수 있으므로)
+                log.error("redirectUrl을 metadata에 추가할 수 없습니다: {}", redirectUrl);
+                return "{}";
             }
         }
     }

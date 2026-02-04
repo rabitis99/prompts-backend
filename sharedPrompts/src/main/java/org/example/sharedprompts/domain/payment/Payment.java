@@ -234,8 +234,9 @@ public class Payment extends BaseEntity {
      */
     public void scheduleNextRetry(long baseDelayMs) {
         long maxDelayMs = 3600000L; // 최대 1시간
-        long delayMs = baseDelayMs * (long) Math.pow(2, this.retryCount);
-        delayMs = Math.min(delayMs, maxDelayMs);
+        // 오버플로우 방지를 위해 지수 계산 결과를 먼저 제한
+        double exponentialFactor = Math.min(Math.pow(2, this.retryCount), maxDelayMs / (double) baseDelayMs + 1);
+        long delayMs = Math.min((long) (baseDelayMs * exponentialFactor), maxDelayMs);
         this.nextRetryAt = LocalDateTime.now().plus(Duration.ofMillis(delayMs));
     }
     

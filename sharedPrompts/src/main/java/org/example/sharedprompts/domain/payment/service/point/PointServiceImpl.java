@@ -217,14 +217,11 @@ public class PointServiceImpl implements PointService {
      *
      * <p>paymentId가 있는 경우 멱등성 체크를 수행하여 중복 적립을 방지합니다.
      * 콜백 재시도 등으로 동일 결제에 대해 여러 번 호출되어도 한 번만 적립됩니다.
+     *
+     * <p><strong>보안:</strong> 소유자 검증을 멱등성 체크보다 먼저 수행하여
+     * 다른 사용자의 paymentId로 멱등성 체크를 우회하는 것을 방지합니다.
      */
     private void doAddPointsDirectly(Long userId, Long paymentId, BigDecimal pointAmount, PointType type, String description) {
-        // 멱등성 체크: paymentId + PointType 조합이 이미 존재하면 스킵
-        if (paymentId != null && pointRepository.existsByPaymentIdAndType(paymentId, type)) {
-            log.info("포인트 적립 스킵 (이미 처리됨): userId={}, paymentId={}, type={}", userId, paymentId, type);
-            return;
-        }
-
         User user = getUser(userId);
         BigDecimal lastBalance = getLastBalance(userId);
         BigDecimal newBalance = lastBalance.add(pointAmount);
@@ -237,10 +234,18 @@ public class PointServiceImpl implements PointService {
                             ErrorCode.INVALID_INPUT_VALUE, "유효하지 않은 결제 ID입니다: paymentId=" + paymentId));
             
             // 결제 소유자 검증: paymentId가 제공되면 반드시 해당 사용자의 결제여야 함
+            // 멱등성 체크보다 먼저 수행하여 보안 강화
             if (!payment.getUser().getId().equals(userId)) {
                 throw new ApiException(
                         ErrorCode.INVALID_INPUT_VALUE,
                         "결제 소유자와 사용자 정보가 일치하지 않습니다: paymentId=" + paymentId + ", userId=" + userId);
+            }
+            
+            // 멱등성 체크: paymentId + userId + PointType 조합이 이미 존재하면 스킵
+            // 소유자 검증 후 수행하여 다른 사용자의 paymentId로 우회 불가
+            if (pointRepository.existsByPaymentIdAndUserIdAndType(paymentId, userId, type)) {
+                log.info("포인트 적립 스킵 (이미 처리됨): userId={}, paymentId={}, type={}", userId, paymentId, type);
+                return;
             }
         }
 

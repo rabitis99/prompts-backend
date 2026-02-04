@@ -60,6 +60,19 @@ public class KakaoReadyApiClient {
         validateRequired(properties.getFailUrl(), "failUrl");
         try {
             HttpHeaders headers = headersProvider.createJsonHeaders();
+            
+            // 디버깅을 위한 헤더 로깅 (민감 정보는 마스킹)
+            String authHeader = headers.getFirst("Authorization");
+            if (authHeader != null) {
+                // Authorization 헤더의 형식 확인 (실제 secret은 마스킹)
+                String maskedHeader = authHeader.length() > 20 
+                    ? authHeader.substring(0, 20) + "***" 
+                    : "SECRET_KEY ***";
+                log.info("KakaoPay API 호출 준비 - URL: {}{}, Authorization 헤더 형식: {}", 
+                        KAKAO_PAY_API_URL, READY_ENDPOINT, maskedHeader);
+            } else {
+                log.error("KakaoPay API 호출 - Authorization 헤더가 없습니다!");
+            }
 
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("cid", properties.getCid());
@@ -72,6 +85,9 @@ public class KakaoReadyApiClient {
             requestBody.put("approval_url", properties.getApprovalUrl());
             requestBody.put("cancel_url", properties.getCancelUrl());
             requestBody.put("fail_url", properties.getFailUrl());
+
+            log.debug("KakaoPay 결제 준비 요청: cid={}, orderId={}, amount={}", 
+                    properties.getCid(), orderId, amount);
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
@@ -99,6 +115,24 @@ public class KakaoReadyApiClient {
             }
 
             throw new RuntimeException("KakaoPay 결제 준비 실패: status=" + response.getStatusCode());
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            // 403 에러에 대한 상세 정보 로깅
+            String errorDetails = e.getResponseBodyAsString();
+            log.error("KakaoPay 결제 준비 API 호출 실패: orderId={}, status={}, error={}", 
+                    orderId, e.getStatusCode(), errorDetails, e);
+            
+            // 403 에러인 경우 더 명확한 에러 메시지 제공
+            if (e.getStatusCode() == org.springframework.http.HttpStatus.FORBIDDEN) {
+                log.error("KakaoPay 403 Forbidden - 가능한 원인:");
+                log.error("1. PAYMENT_KAKAO_SECRET 환경변수가 올바르게 설정되었는지 확인");
+                log.error("2. KakaoPay 개발자 콘솔에서 Secret Key(dev)가 올바른지 확인");
+                log.error("3. IP 화이트리스트 설정이 있는지 확인");
+                log.error("4. CID({})가 올바른지 확인", properties.getCid());
+                throw new RuntimeException(
+                    String.format("KakaoPay 인증 실패 (403): %s. PAYMENT_KAKAO_SECRET 환경변수와 KakaoPay 개발자 콘솔 설정을 확인하세요.", 
+                        errorDetails != null ? errorDetails : e.getMessage()), e);
+            }
+            throw new RuntimeException("KakaoPay 결제 준비 실패: " + e.getMessage(), e);
         } catch (RestClientException e) {
             log.error("KakaoPay 결제 준비 API 호출 실패: orderId={}, error={}", orderId, e.getMessage(), e);
             throw new RuntimeException("KakaoPay 결제 준비 실패: " + e.getMessage(), e);
