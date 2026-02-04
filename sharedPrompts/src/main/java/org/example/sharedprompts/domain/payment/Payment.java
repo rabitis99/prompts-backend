@@ -227,48 +227,6 @@ public class Payment extends BaseEntity {
                 || this.status == PaymentStatus.REFUNDED;
     }
 
-    /**
-     * 취소 가능 여부 확인
-     *
-     * <p>취소 가능 조건:
-     * - PENDING 상태 (결제 진행 중 취소)
-     * - SUCCESS 상태이고 환불된 금액이 없음
-     *
-     * @return 취소 가능 여부
-     */
-    public boolean canCancel() {
-        if (this.status == PaymentStatus.PENDING) {
-            return true;
-        }
-        if (this.status == PaymentStatus.SUCCESS) {
-            BigDecimal refundedAmount = this.refundedAmount;
-            if (refundedAmount == null) {
-                return true; // null이면 환불된 금액이 없으므로 취소 가능
-            }
-            return refundedAmount.compareTo(BigDecimal.ZERO) == 0;
-        }
-        return false;
-    }
-
-    /**
-     * 환불 가능 여부 확인
-     *
-     * <p>환불 가능 조건:
-     * - SUCCESS 상태이거나 PARTIALLY_REFUNDED 상태
-     * - 환불 가능 금액이 남아있음
-     *
-     * @return 환불 가능 여부
-     */
-    public boolean canRefund() {
-        boolean statusAllowsRefund = this.status == PaymentStatus.SUCCESS
-                || this.status == PaymentStatus.PARTIALLY_REFUNDED;
-        BigDecimal refundableAmount = getRefundableAmount();
-        if (refundableAmount == null) {
-            return false; // null이면 환불 가능 금액이 없음
-        }
-        boolean hasRefundableAmount = refundableAmount.compareTo(BigDecimal.ZERO) > 0;
-        return statusAllowsRefund && hasRefundableAmount;
-    }
 
     /**
      * 지수 백오프를 적용하여 다음 재시도 시간 예약

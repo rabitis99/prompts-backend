@@ -113,14 +113,8 @@ public class PaymentWebhookFacade {
 
         try {
             return provider.parseWebhook(payload);
-        } catch (IllegalArgumentException e) {
-            // 잘못된 payload 형식: 400 Bad Request 반환하여 재시도 중단 요청
-            log.error("Webhook 파싱 실패 (잘못된 payload 형식): paymentMethod={}, error={}, payloadSize={}",
-                    paymentMethod, e.getMessage(), payload != null ? payload.length() : 0);
-            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_RESPONSE_INVALID, 
-                    "Webhook payload 파싱 실패: " + e.getMessage());
         } catch (RuntimeException e) {
-            // 파싱 실패는 복구 불가능한 오류로 간주하여 400 반환
+            // 파싱 실패(잘못된 형식 포함)는 복구 불가능한 오류로 간주하여 400 반환
             log.error("Webhook 파싱 실패: paymentMethod={}, error={}, payloadSize={}",
                     paymentMethod, e.getMessage(), payload != null ? payload.length() : 0);
             throw new ApiException(ErrorCode.PAYMENT_PROVIDER_RESPONSE_INVALID,

@@ -75,6 +75,9 @@ public interface DistributedLockService {
     /**
      * 락 획득을 시도합니다 (논블로킹).
      *
+     * <p><strong>주의:</strong> 이 메서드로 획득한 락은 반드시 {@link #unlock(String)}을
+     * 호출하여 해제해야 합니다. 가능하면 {@link #executeWithLock(String, Supplier)}을 사용하세요.
+     *
      * @param lockKey 락 키
      * @param lockAtMostFor 락 최대 유지 시간
      * @return 락 획득 성공 여부

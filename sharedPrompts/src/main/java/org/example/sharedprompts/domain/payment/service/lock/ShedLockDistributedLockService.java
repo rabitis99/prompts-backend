@@ -72,8 +72,6 @@ public class ShedLockDistributedLockService implements DistributedLockService {
 
         try {
             return task.get();
-        } catch (LockAcquisitionException e) {
-            throw e;
         } catch (Exception e) {
             log.error("락 내 작업 실행 중 오류: lockKey={}", lockKey, e);
             throw e;

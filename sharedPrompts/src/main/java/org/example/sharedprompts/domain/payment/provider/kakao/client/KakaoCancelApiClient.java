@@ -16,6 +16,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -122,8 +124,11 @@ public class KakaoCancelApiClient {
             // cancel_tax_free_amount = 원본 면세 금액 * (환불 금액 / 원본 금액)
             long cancelTaxFreeAmount = 0;
             if (originalAmount > 0 && originalTaxFreeAmount > 0) {
-                // 정밀도를 위해 long으로 계산 후 반올림
-                cancelTaxFreeAmount = Math.round((double) originalTaxFreeAmount * amount / originalAmount);
+                // 정수 오버플로우 방지 및 정밀도 유지를 위해 BigDecimal 사용
+                cancelTaxFreeAmount = BigDecimal.valueOf(originalTaxFreeAmount)
+                        .multiply(BigDecimal.valueOf(amount))
+                        .divide(BigDecimal.valueOf(originalAmount), 0, RoundingMode.HALF_UP)
+                        .longValue();
             }
 
             Map<String, Object> requestBody = new HashMap<>();
