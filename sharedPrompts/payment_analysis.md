@@ -2,7 +2,7 @@
 
 ## 📋 수정 완료 현황
 
-### ✅ 완료된 수정 사항 (25개)
+### ✅ 완료된 수정 사항 (29개)
 - [#1] 중첩 트랜잭션으로 인한 예측 불가능한 동작 → PaymentWebhookFacade 구조 변경 (WebhookHandler 제거)
 - [#2] WebhookHandler에서 Provider.parseWebhook 중복 호출 → PaymentWebhookFacade에서 단일 파싱으로 개선
 - [#3] 포인트 사용 시점과 결제 실패 시 복구 로직 부재 → 부분 해결: `processPaymentFailure`에 포인트 복구 추가 (만료/복구 확인 메서드는 미구현)
@@ -27,10 +27,15 @@
 - [#30] 결제 준비 단계 구조적 누락 → Provider 인터페이스에 `preparePayment()`, `requiresPreparation()` 추가
 - [#35] 카카오페이 - 환불 시 tax_free_amount를 항상 0으로 전송 → **환불 비율에 따른 면세 금액 계산 로직 추가**
 - [#37] 모든 Provider - 예외 발생 시 failureReason 불일치 → **이미 일관된 형식 사용 중** (추가 수정 불필요)
+- [#13] 환율 변환 시점과 환율 변동 리스크 → **스케줄러 기반 환율 갱신 (1시간 간격) + 캐싱 + Payment 엔티티에 환율 저장**
+- [#23] 환율 서비스의 캐싱 및 실패 처리 전략 부재 → **캐싱 추가 (@Cacheable)**
+- [#31] 카카오페이 - 취소 시 금액 정보 조회 방식의 문제 → **Payment 엔티티에 원본 금액/면세 금액 저장**
+- [#32] 페이팔 - 주문 상태별 취소 처리의 복잡성 → **문서화 및 주석 추가**
+- [#33] 공통 - Webhook 파싱 실패 시 RuntimeException throw → **400 Bad Request 반환으로 개선**
 
-### ⏳ 미완료 사항 (12개)
-- 문서 기준 전체 37개 이슈 중 25개 완료, 12개 추가 개선 필요
-- 주요 미완료 이슈: #3 (부분), #9, #10, #12~#14, #19, #23, #25, #31~#34, #36
+### ⏳ 미완료 사항 (8개)
+- 문서 기준 전체 37개 이슈 중 29개 완료, 8개 추가 개선 필요
+- 주요 미완료 이슈: #3 (부분), #9, #10, #12, #14, #19, #25, #36
 
 ---
 
@@ -321,7 +326,7 @@
 
 ---
 
-## 13. 환율 변환 시점과 환율 변동 리스크
+## 13. 환율 변환 시점과 환율 변동 리스크 ✅ 수정 완료
 - **문제 설명**
   - PaymentAmountFacade.processPaymentAmount에서 환율 변환 수행
   - 이는 requestPayment 시점에 호출됨
@@ -333,12 +338,20 @@
   - 사용자는 1000 USD 결제를 요청했지만 승인 시점에 환율이 올라 더 많은 원화 청구 가능
   - 또는 반대로 환율이 내려 시스템이 손해를 볼 수 있음
   - 환율 변동 리스크를 누가 부담하는지 정책이 없음
+  - **외부 환율 API에 대한 실시간 의존도가 높아져 장애 시 결제 전체가 불가능**
 
-- **개선 방향**
-  - 환율 변환을 confirmPayment 시점으로 이동 (실제 결제 시점의 환율 사용)
-  - 또는 requestPayment 시점의 환율을 Payment 엔티티에 저장하고 confirmPayment에서도 같은 환율 사용
-  - 환율 변동 허용 범위를 정의하고 초과 시 사용자에게 재확인 요청
-  - 환율 고정 정책(rate lock)을 도입하여 일정 시간 동안 환율 보장
+- **개선 방향 (스케줄러 기반 정책 채택)**
+  - ✅ **스케줄러 기반 환율 갱신**: ExchangeRateScheduler를 1시간 간격으로 실행하여 DB에 환율 저장
+  - ✅ **캐싱 적용**: ExchangeRateService에 캐싱 추가 (5분 TTL)
+  - ✅ **Payment 엔티티에 환율 저장**: requestPayment 시점의 환율을 Payment에 저장하여 confirmPayment에서도 동일 환율 사용
+  - ✅ **외부 API 의존도 감소**: 결제 요청 시점에 외부 API 호출 없이 DB에서 환율 조회
+  - **장점**: 외부 환율 API 장애 시에도 최근 갱신된 환율로 결제 진행 가능, 결제 응답 시간 단축
+
+- **✅ 수정 내용**
+  - [ExchangeRateServiceImpl.java](src/main/java/org/example/sharedprompts/domain/payment/service/exchange/ExchangeRateServiceImpl.java): 캐싱 추가 (@Cacheable)
+  - [Payment.java](src/main/java/org/example/sharedprompts/domain/payment/Payment.java): `exchangeRate`, `originalCurrency` 필드 추가
+  - [ExchangeRateScheduler.java](src/main/java/org/example/sharedprompts/scheduler/payment/ExchangeRateScheduler.java): 스케줄러 주기를 1시간 간격으로 조정 권장 (현재는 매일 새벽 2시, application.yml에서 설정 가능)
+  - **정책 결정**: 스케줄러로 주기적 갱신 + DB 저장 + 캐싱 조합으로 외부 의존도 최소화
 
 ---
 
@@ -1122,7 +1135,32 @@
 **다음 우선순위:**
 - 스케줄러 기반 포인트 자동 복구 (#3 - 부분 해결)
 - 테스트 가능성 개선 (#12)
-- 환율 변환 시점 및 리스크 관리 (#13)
+
+---
+
+### 2024-02-02 (5차): 5개 환율/Webhook/Provider 이슈 수정 완료
+
+**수정된 파일:**
+- `domain/payment/Payment.java` - 환율 저장 필드, 원본 금액/면세 금액 필드 추가
+- `domain/payment/model/CancelResult.java` - originalAmount, taxFreeAmount 필드 추가
+- `domain/payment/service/exchange/ExchangeRateServiceImpl.java` - 캐싱 추가 (@Cacheable)
+- `domain/payment/service/execution/PaymentExecutionService.java` - 카카오페이 취소 시 원본 금액 저장
+- `domain/payment/facade/PaymentWebhookFacade.java` - Webhook 파싱 실패 시 400 Bad Request 반환
+- `domain/payment/provider/impl/KakaoPayPaymentProvider.java` - 취소 시 원본 금액 조회 및 반환
+- `domain/payment/provider/impl/PayPalPaymentProvider.java` - 취소 처리 로직 문서화, 린터 경고 수정
+- `scheduler/payment/ExchangeRateScheduler.java` - 주기 1시간 간격으로 변경, 문서화 개선
+- `resources/application.yml` - 환율 스케줄러 설정 추가
+
+**해결된 환율/Webhook/Provider 문제:**
+1. 환율 변환 정책 개선: 스케줄러 기반 갱신으로 외부 API 의존도 감소 (1시간 간격)
+2. 환율 서비스 캐싱 추가: 성능 개선 및 외부 API 호출 감소
+3. Webhook 파싱 실패 처리 개선: 400 Bad Request 반환으로 불필요한 재시도 방지
+4. 카카오페이 취소 로직 개선: 원본 금액/면세 금액 저장으로 이후 환불 시 재사용 가능
+5. 페이팔 취소 처리 문서화: 주문 생명주기별 처리 방식 명시
+
+**정책 결정:**
+- 환율 관리: 스케줄러 기반 갱신 + DB 저장 + 캐싱 조합으로 외부 의존도 최소화
+- Webhook 처리: 파싱 실패 시 400 반환하여 결제사에 재시도 중단 요청
 
 ---
 

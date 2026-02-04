@@ -156,6 +156,12 @@ public class PaymentExecutionService {
         }
 
         payment.markCanceled();
+        
+        // 카카오페이 취소 시 원본 금액 및 면세 금액 저장 (이후 환불 시 재사용)
+        if (result.getOriginalAmount() != null && result.getTaxFreeAmount() != null) {
+            payment.updateOriginalAmounts(result.getOriginalAmount(), result.getTaxFreeAmount());
+        }
+        
         return paymentRepository.save(payment);
     }
     

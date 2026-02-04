@@ -100,6 +100,8 @@ public class PaymentWebhookFacade {
 
     /**
      * Webhook 파싱 및 서명 검증
+     * 
+     * <p>파싱 실패 시 400 Bad Request 반환하여 결제사에 재시도 중단 요청
      */
     private PaymentProvider.WebhookEvent parseAndVerifyWebhook(
             PaymentProvider provider, String payload, String signature, PaymentMethod paymentMethod) {
@@ -109,7 +111,21 @@ public class PaymentWebhookFacade {
             throw new ApiException(ErrorCode.PAYMENT_WEBHOOK_SIGNATURE_INVALID);
         }
 
-        return provider.parseWebhook(payload);
+        try {
+            return provider.parseWebhook(payload);
+        } catch (IllegalArgumentException e) {
+            // 잘못된 payload 형식: 400 Bad Request 반환하여 재시도 중단 요청
+            log.error("Webhook 파싱 실패 (잘못된 payload 형식): paymentMethod={}, error={}, payloadSize={}",
+                    paymentMethod, e.getMessage(), payload != null ? payload.length() : 0);
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_RESPONSE_INVALID, 
+                    "Webhook payload 파싱 실패: " + e.getMessage());
+        } catch (RuntimeException e) {
+            // 파싱 실패는 복구 불가능한 오류로 간주하여 400 반환
+            log.error("Webhook 파싱 실패: paymentMethod={}, error={}, payloadSize={}",
+                    paymentMethod, e.getMessage(), payload != null ? payload.length() : 0);
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_RESPONSE_INVALID,
+                    "Webhook payload 파싱 실패: " + e.getMessage());
+        }
     }
 
     /**

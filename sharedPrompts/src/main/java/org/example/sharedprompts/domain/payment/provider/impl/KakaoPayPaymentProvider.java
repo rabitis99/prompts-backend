@@ -179,15 +179,23 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
         validateRequired(reason, "reason");
 
         try {
+            // 취소 전 원본 금액 조회 (취소 API 호출 전에 조회하여 Payment 엔티티에 저장)
+            var statusResponse = kakaoStatusApiClient.status(externalPaymentId);
+            BigDecimal originalAmount = amountPolicy.fromKakaoAmount(statusResponse.amount());
+            BigDecimal taxFreeAmount = amountPolicy.fromKakaoAmount(statusResponse.taxFreeAmount());
+
             var response = kakaoCancelApiClient.cancel(externalPaymentId, reason);
             
-            log.info("KakaoPay 결제 취소 성공: tid={}", externalPaymentId);
+            log.info("KakaoPay 결제 취소 성공: tid={}, originalAmount={}, taxFreeAmount={}", 
+                    externalPaymentId, originalAmount, taxFreeAmount);
             return CancelResult.builder()
                     .externalPaymentId(externalPaymentId)
                     .status(PaymentStatus.CANCELED)
                     .canceledAt(response.canceledAt())
                     .reason(reason)
                     .metadata(response.metadata())
+                    .originalAmount(originalAmount)
+                    .taxFreeAmount(taxFreeAmount)
                     .build();
         } catch (Exception e) {
             log.error("KakaoPay 결제 취소 실패: tid={}, error={}", externalPaymentId, e.getMessage(), e);

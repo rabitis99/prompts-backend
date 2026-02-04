@@ -90,6 +90,18 @@ public class Payment extends BaseEntity {
     @Builder.Default
     private BigDecimal usedPointAmount = BigDecimal.ZERO; // 사용한 포인트 금액
 
+    @Column(precision = 19, scale = 2)
+    private BigDecimal originalAmount; // 원본 결제 금액 (카카오페이 취소/환불 시 사용)
+
+    @Column(precision = 19, scale = 2)
+    private BigDecimal taxFreeAmount; // 면세 금액 (카카오페이 취소/환불 시 사용)
+
+    @Column(precision = 19, scale = 6)
+    private BigDecimal exchangeRate; // 환율 (requestPayment 시점의 환율 저장)
+
+    @Column(length = 3)
+    private String originalCurrency; // 원본 통화 코드 (환율 변환 전 통화)
+
     @Column(columnDefinition = "TEXT")
     private String metadata; // 추가 메타데이터 (JSON 형태)
 
@@ -288,6 +300,28 @@ public class Payment extends BaseEntity {
      */
     public void updateMetadata(String metadata) {
         this.metadata = metadata;
+    }
+
+    /**
+     * 원본 결제 금액 및 면세 금액 저장 (카카오페이 취소/환불 시 사용)
+     *
+     * @param originalAmount 원본 결제 금액
+     * @param taxFreeAmount 면세 금액
+     */
+    public void updateOriginalAmounts(BigDecimal originalAmount, BigDecimal taxFreeAmount) {
+        this.originalAmount = originalAmount;
+        this.taxFreeAmount = taxFreeAmount;
+    }
+
+    /**
+     * 환율 정보 저장 (requestPayment 시점의 환율)
+     *
+     * @param exchangeRate 환율
+     * @param originalCurrency 원본 통화 코드
+     */
+    public void updateExchangeRate(BigDecimal exchangeRate, String originalCurrency) {
+        this.exchangeRate = exchangeRate;
+        this.originalCurrency = originalCurrency;
     }
 
     /**
