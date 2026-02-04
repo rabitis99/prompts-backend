@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -60,19 +61,6 @@ public class KakaoReadyApiClient {
         validateRequired(properties.getFailUrl(), "failUrl");
         try {
             HttpHeaders headers = headersProvider.createJsonHeaders();
-            
-            // 디버깅을 위한 헤더 로깅 (민감 정보는 마스킹)
-            String authHeader = headers.getFirst("Authorization");
-            if (authHeader != null) {
-                // Authorization 헤더의 형식 확인 (실제 secret은 마스킹)
-                String maskedHeader = authHeader.length() > 20 
-                    ? authHeader.substring(0, 20) + "***" 
-                    : "SECRET_KEY ***";
-                log.info("KakaoPay API 호출 준비 - URL: {}{}, Authorization 헤더 형식: {}", 
-                        KAKAO_PAY_API_URL, READY_ENDPOINT, maskedHeader);
-            } else {
-                log.error("KakaoPay API 호출 - Authorization 헤더가 없습니다!");
-            }
 
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("cid", properties.getCid());
@@ -82,7 +70,9 @@ public class KakaoReadyApiClient {
             requestBody.put("quantity", 1);
             requestBody.put("total_amount", amount);
             requestBody.put("tax_free_amount", 0);
-            requestBody.put("approval_url", properties.getApprovalUrl());
+            // 프론트 success 페이지가 결제 승인에 필요한 정보를 복원할 수 있도록 쿼리 파라미터 포함
+            // (tid는 ready 응답 이후에만 알 수 있으므로 포함 불가)
+            requestBody.put("approval_url", buildApprovalUrl(orderId, amount));
             requestBody.put("cancel_url", properties.getCancelUrl());
             requestBody.put("fail_url", properties.getFailUrl());
 
@@ -143,6 +133,22 @@ public class KakaoReadyApiClient {
         if (value == null || value.isEmpty()) {
             throw new IllegalArgumentException(fieldName + "은(는) 필수입니다");
         }
+    }
+
+    /**
+     * KakaoPay approval_url 구성
+     *
+     * <p>카카오 결제 완료 후 success 페이지로 리다이렉트될 때
+     * 프론트가 결제 승인에 필요한 값을 복원할 수 있도록 orderId/amount를 함께 전달합니다.
+     */
+    private String buildApprovalUrl(String orderId, long amount) {
+        // properties.approvalUrl은 "https://yourdomain.com/payment/success" 형태의 base URL을 가정
+        // 기존 쿼리 파라미터가 있더라도 안전하게 append 되도록 UriComponentsBuilder 사용
+        return UriComponentsBuilder.fromUriString(properties.getApprovalUrl())
+                .queryParam("orderId", orderId)
+                .queryParam("amount", amount)
+                .build(true)
+                .toUriString();
     }
 }
 

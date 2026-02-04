@@ -77,7 +77,22 @@ public class PaymentExecutionService {
         // 멱등성 키 생성 및 별도 트랜잭션으로 저장
         // 외부 API 호출 전에 멱등성 키를 커밋하여 API 호출 실패 시에도 유지
         String idempotencyKey = generateIdempotencyKey(payment);
+        
+        // 메인 트랜잭션에서 수정된 값들을 보존 (예: externalPaymentId)
+        // 별도 트랜잭션에서 저장 후 재로드 시 메모리상의 변경사항이 손실될 수 있음
+        String preservedExternalPaymentId = payment.getExternalPaymentId();
+        
         self.saveIdempotencyKeyInNewTransaction(payment.getId(), idempotencyKey);
+        
+        // 별도 트랜잭션에서 version이 증가했으므로 엔티티를 재로드하여 최신 버전으로 업데이트
+        // 이를 통해 optimistic locking 실패를 방지
+        payment = paymentRepository.findById(payment.getId())
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        
+        // 보존된 값들을 복원
+        if (preservedExternalPaymentId != null && !preservedExternalPaymentId.equals(payment.getExternalPaymentId())) {
+            payment.updateExternalPaymentId(preservedExternalPaymentId);
+        }
         payment.updateIdempotencyKey(idempotencyKey);
 
         // Provider 선택 및 결제 승인 호출
@@ -191,6 +206,11 @@ public class PaymentExecutionService {
         // 이를 통해 동시 요청 시 동일한 refundedAmount를 읽어 같은 키가 생성되는 경쟁 조건을 방지
         String idempotencyKey = generateRefundIdempotencyKey(payment);
         self.saveIdempotencyKeyInNewTransaction(payment.getId(), idempotencyKey);
+        
+        // 별도 트랜잭션에서 version이 증가했으므로 엔티티를 재로드하여 최신 버전으로 업데이트
+        // 이를 통해 optimistic locking 실패를 방지
+        payment = paymentRepository.findById(payment.getId())
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
         payment.updateIdempotencyKey(idempotencyKey);
 
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
