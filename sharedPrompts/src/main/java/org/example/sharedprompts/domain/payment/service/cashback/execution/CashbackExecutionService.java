@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Cashback;
 import org.example.sharedprompts.domain.payment.enums.PointType;
 import org.example.sharedprompts.domain.payment.repository.cashback.CashbackRepository;
+import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.payment.service.point.PointService;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
@@ -29,6 +30,7 @@ public class CashbackExecutionService {
 
     private final CashbackRepository cashbackRepository;
     private final UserRepository userRepository;
+    private final PaymentRepository paymentRepository;
     private final PointService pointService;
 
     /**
@@ -41,9 +43,13 @@ public class CashbackExecutionService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
         
+        // Payment 엔티티 조회 (필수)
+        org.example.sharedprompts.domain.payment.Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "결제를 찾을 수 없습니다."));
+        
         Cashback cashback = Cashback.builder()
                 .user(user)
-                .paymentId(paymentId)
+                .payment(payment)
                 .amount(cashbackAmount)
                 .rate(rate)
                 .paymentAmount(paymentAmount)
@@ -99,7 +105,7 @@ public class CashbackExecutionService {
 
     private void processCashbackPayment(Cashback cashback, Long userId, boolean isAdmin) {
         BigDecimal cashbackAmount = cashback.getAmount();
-        Long paymentId = cashback.getPaymentId();
+        Long paymentId = cashback.getPayment().getId();
         Long cashbackId = cashback.getId();
 
         String descriptionPrefix = isAdmin

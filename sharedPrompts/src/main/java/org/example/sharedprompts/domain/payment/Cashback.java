@@ -33,8 +33,9 @@ public class Cashback extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false)
-    private Long paymentId; // 결제와 연관
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "payment_id", nullable = false)
+    private Payment payment; // 결제와 연관
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount; // 캐시백 금액

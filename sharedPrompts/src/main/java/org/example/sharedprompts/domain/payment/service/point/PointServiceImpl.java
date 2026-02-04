@@ -9,6 +9,7 @@ import java.time.Instant;
 import org.example.sharedprompts.domain.payment.Point;
 import org.example.sharedprompts.domain.payment.config.RewardProperties;
 import org.example.sharedprompts.domain.payment.enums.PointType;
+import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.payment.repository.point.PointRepository;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
@@ -56,6 +57,7 @@ public class PointServiceImpl implements PointService {
     private final PointRepository pointRepository;
     private final RewardProperties rewardProperties;
     private final UserRepository userRepository;
+    private final PaymentRepository paymentRepository;
     /**
      * LockProvider 주입 (@Primary로 지정된 메인 LockProvider 사용)
      * fallback이 활성화되어 있으면 fallbackLockProvider를, 없으면 lockProvider를 사용
@@ -67,11 +69,13 @@ public class PointServiceImpl implements PointService {
             PointRepository pointRepository,
             RewardProperties rewardProperties,
             UserRepository userRepository,
+            PaymentRepository paymentRepository,
             LockProvider lockProvider,
             PlatformTransactionManager transactionManager) {
         this.pointRepository = pointRepository;
         this.rewardProperties = rewardProperties;
         this.userRepository = userRepository;
+        this.paymentRepository = paymentRepository;
         this.lockProvider = lockProvider;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
@@ -221,9 +225,16 @@ public class PointServiceImpl implements PointService {
         BigDecimal lastBalance = getLastBalance(userId);
         BigDecimal newBalance = lastBalance.add(pointAmount);
 
+        // Payment 엔티티 조회 (paymentId가 있는 경우만)
+        org.example.sharedprompts.domain.payment.Payment payment = null;
+        if (paymentId != null) {
+            payment = paymentRepository.findById(paymentId)
+                    .orElse(null); // paymentId가 유효하지 않으면 null로 처리
+        }
+
         Point point = Point.builder()
                 .user(user)
-                .paymentId(paymentId)
+                .payment(payment)
                 .amount(pointAmount)
                 .type(type)
                 .description(description)

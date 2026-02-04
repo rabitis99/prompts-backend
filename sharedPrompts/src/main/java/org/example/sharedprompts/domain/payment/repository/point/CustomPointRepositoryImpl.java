@@ -78,7 +78,7 @@ public class CustomPointRepositoryImpl implements CustomPointRepository {
                 .select(point.id)
                 .from(point)
                 .where(
-                        point.paymentId.eq(paymentId),
+                        point.payment.id.eq(paymentId),
                         point.user.id.eq(userId)
                 )
                 .orderBy(point.createdAt.desc())
@@ -91,7 +91,7 @@ public class CustomPointRepositoryImpl implements CustomPointRepository {
                 .select(point.count())
                 .from(point)
                 .where(
-                        point.paymentId.eq(paymentId),
+                        point.payment.id.eq(paymentId),
                         point.user.id.eq(userId)
                 )
                 .fetchOne();
@@ -131,7 +131,7 @@ public class CustomPointRepositoryImpl implements CustomPointRepository {
         List<Long> ids = queryFactory
                 .select(point.id)
                 .from(point)
-                .where(point.paymentId.eq(paymentId))
+                .where(point.payment.id.eq(paymentId))
                 .orderBy(point.createdAt.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -141,7 +141,7 @@ public class CustomPointRepositoryImpl implements CustomPointRepository {
         Long totalCount = queryFactory
                 .select(point.count())
                 .from(point)
-                .where(point.paymentId.eq(paymentId))
+                .where(point.payment.id.eq(paymentId))
                 .fetchOne();
 
         long total = totalCount != null ? totalCount : 0L;

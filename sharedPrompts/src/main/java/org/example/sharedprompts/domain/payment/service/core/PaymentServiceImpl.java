@@ -173,7 +173,8 @@ public class PaymentServiceImpl implements PaymentService {
                 postProcessService.processPaymentCancel(payment, userId, request.getReasonOrDefault(), oldStatus);
             } catch (Exception postProcessException) {
                 // 후처리 실패는 로깅만 수행 (취소는 성공했으므로 예외를 던지지 않음)
-                // TODO: 포인트 복구 실패 시 보상 트랜잭션 필요
+                // TODO: 보상 트랜잭션 큐에 추가하여 나중에 재시도하거나 관리자 알림 필요
+                // 포인트 복구 실패 시 별도 보상 처리 프로세스 필요
                 log.error("결제 취소 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
                         payment.getId(), userId, postProcessException.getMessage(), postProcessException);
             }
@@ -220,7 +221,8 @@ public class PaymentServiceImpl implements PaymentService {
                 );
             } catch (Exception postProcessException) {
                 // 후처리 실패는 로깅만 수행 (환불은 성공했으므로 예외를 던지지 않음)
-                // TODO: 포인트 복구 실패 시 보상 트랜잭션 필요
+                // TODO: 보상 트랜잭션 큐에 추가하여 나중에 재시도하거나 관리자 알림 필요
+                // 포인트 복구 실패 시 별도 보상 처리 프로세스 필요
                 log.error("결제 환불 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
                         payment.getId(), userId, postProcessException.getMessage(), postProcessException);
             }
@@ -293,7 +295,8 @@ public class PaymentServiceImpl implements PaymentService {
                 );
             } catch (Exception postProcessException) {
                 // 후처리 실패는 로깅만 수행 (결제는 성공했으므로 예외를 던지지 않음)
-                // TODO: 보상 트랜잭션 큐에 넣어 나중에 재시도하거나 관리자 알림 필요
+                // TODO: 보상 트랜잭션 큐에 추가하여 나중에 재시도하거나 관리자 알림 필요
+                // 포인트/캐시백 적립 실패 시 별도 보상 처리 프로세스 필요
                 log.error("결제 승인 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
                         payment.getId(), userId, postProcessException.getMessage(), postProcessException);
             }
@@ -313,11 +316,14 @@ public class PaymentServiceImpl implements PaymentService {
                 );
             } catch (Exception postProcessException) {
                 // 후처리 실패는 로깅만 수행
+                // TODO: 보상 트랜잭션 큐에 추가하여 나중에 재시도하거나 관리자 알림 필요
+                // 현재는 로깅만 수행하여 결제 실패 자체는 사용자에게 전달
                 log.error("결제 실패 후처리 중 오류 발생: paymentId={}, userId={}, error={}",
                         payment.getId(), userId, postProcessException.getMessage(), postProcessException);
             }
 
             // 일관된 예외 처리: ApiException으로 래핑하여 throw
+            // 후처리 실패는 별도로 처리하되, 결제 실패 자체는 사용자에게 전달
             log.error("결제 승인 실패: paymentId={}, userId={}, error={}", payment.getId(), userId, e.getMessage(), e);
             throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 승인 실패: " + e.getMessage());
         }
