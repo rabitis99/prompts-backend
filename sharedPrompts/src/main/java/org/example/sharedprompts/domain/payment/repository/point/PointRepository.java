@@ -52,7 +52,19 @@ public interface PointRepository extends JpaRepository<Point, Long>, CustomPoint
      * @param type 포인트 타입
      * @return 해당 조건의 포인트 내역 존재 여부
      */
-    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Point p WHERE p.paymentId = :paymentId AND p.type = :type")
+    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Point p WHERE p.payment.id = :paymentId AND p.type = :type")
     boolean existsByPaymentIdAndType(@Param("paymentId") Long paymentId, @Param("type") org.example.sharedprompts.domain.payment.enums.PointType type);
+
+    /**
+     * 결제 ID, 사용자 ID, 포인트 타입으로 기존 포인트 내역 존재 여부 확인 (멱등성 체크)
+     * 소유자 검증을 포함한 안전한 멱등성 체크
+     *
+     * @param paymentId 결제 ID
+     * @param userId 사용자 ID
+     * @param type 포인트 타입
+     * @return 해당 조건의 포인트 내역 존재 여부
+     */
+    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Point p WHERE p.payment.id = :paymentId AND p.user.id = :userId AND p.type = :type")
+    boolean existsByPaymentIdAndUserIdAndType(@Param("paymentId") Long paymentId, @Param("userId") Long userId, @Param("type") org.example.sharedprompts.domain.payment.enums.PointType type);
 }
 

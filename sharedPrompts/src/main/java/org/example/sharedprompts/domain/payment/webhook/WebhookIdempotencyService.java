@@ -10,15 +10,39 @@ import java.time.Duration;
 /**
  * Webhook 멱등성 관리 서비스
  *
- * <p>Redis를 사용하여 동시 처리 방지용 락을 제공합니다.
+ * <p>Redis를 사용하여 동시 처리 방지 및 처리 상태 추적을 제공합니다.
  * 이 서비스는 단순히 동시성 제어를 위한 것이며, 진정한 멱등성은 DB 상태를 통해 보장됩니다.
+ *
+ * <p><strong>DistributedLockService와의 차이점:</strong>
+ * 이 서비스는 단순한 락이 아닌 3단계 상태(없음 → processing → processed)를 관리합니다.
+ * <ul>
+ *   <li>DistributedLockService: 락 획득 → 작업 실행 → 락 해제 (2단계)</li>
+ *   <li>WebhookIdempotencyService: 락 획득 → 작업 실행 → 처리 완료 마킹 (3단계, 완료 상태 유지)</li>
+ * </ul>
  *
  * <p><strong>설계 원칙:</strong>
  * <ul>
  *   <li>Redis 락 실패가 메인 프로세스를 차단하지 않음</li>
  *   <li>락은 TTL로 자동 만료되어 데드락 방지</li>
  *   <li>예외 발생 시 락이 해제되어 재처리 가능</li>
+ *   <li>처리 완료된 Webhook은 7일간 "processed" 상태로 유지되어 중복 처리 방지</li>
  * </ul>
+ *
+ * <p><strong>권장 사용 패턴:</strong>
+ * <pre>{@code
+ * if (!idempotencyService.tryAcquireLock(webhookId)) {
+ *     return; // 이미 처리 중
+ * }
+ * try {
+ *     processWebhook();
+ *     idempotencyService.markAsProcessed(webhookId);
+ * } catch (Exception e) {
+ *     idempotencyService.releaseLock(webhookId);
+ *     throw e;
+ * }
+ * }</pre>
+ *
+ * @see org.example.sharedprompts.domain.payment.service.lock.DistributedLockService
  */
 @Slf4j
 @Service

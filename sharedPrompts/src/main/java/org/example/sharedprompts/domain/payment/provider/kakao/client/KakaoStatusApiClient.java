@@ -88,8 +88,15 @@ public class KakaoStatusApiClient {
                 }
                 long amount = Long.parseLong(totalAmountObj.toString());
 
-                log.debug("KakaoPay 결제 상태 조회 성공: tid={}, status={}", tid, status);
-                return new KakaoStatusResponse(status, orderId, amount, jsonConverter.convertToJson(body));
+                // tax_free_amount 파싱 (없으면 0으로 처리)
+                Object taxFreeAmountObj = amountMap.get("tax_free");
+                long taxFreeAmount = 0;
+                if (taxFreeAmountObj != null) {
+                    taxFreeAmount = Long.parseLong(taxFreeAmountObj.toString());
+                }
+
+                log.debug("KakaoPay 결제 상태 조회 성공: tid={}, status={}, amount={}, taxFreeAmount={}", tid, status, amount, taxFreeAmount);
+                return new KakaoStatusResponse(status, orderId, amount, taxFreeAmount, jsonConverter.convertToJson(body));
             }
 
             throw new RuntimeException("KakaoPay 결제 상태 조회 실패: status=" + response.getStatusCode());

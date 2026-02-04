@@ -77,7 +77,22 @@ public class PaymentExecutionService {
         // 멱등성 키 생성 및 별도 트랜잭션으로 저장
         // 외부 API 호출 전에 멱등성 키를 커밋하여 API 호출 실패 시에도 유지
         String idempotencyKey = generateIdempotencyKey(payment);
+        
+        // 메인 트랜잭션에서 수정된 값들을 보존 (예: externalPaymentId)
+        // 별도 트랜잭션에서 저장 후 재로드 시 메모리상의 변경사항이 손실될 수 있음
+        String preservedExternalPaymentId = payment.getExternalPaymentId();
+        
         self.saveIdempotencyKeyInNewTransaction(payment.getId(), idempotencyKey);
+        
+        // 별도 트랜잭션에서 version이 증가했으므로 엔티티를 재로드하여 최신 버전으로 업데이트
+        // 이를 통해 optimistic locking 실패를 방지
+        payment = paymentRepository.findById(payment.getId())
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        
+        // 보존된 값들을 복원
+        if (preservedExternalPaymentId != null && !preservedExternalPaymentId.equals(payment.getExternalPaymentId())) {
+            payment.updateExternalPaymentId(preservedExternalPaymentId);
+        }
         payment.updateIdempotencyKey(idempotencyKey);
 
         // Provider 선택 및 결제 승인 호출
@@ -156,11 +171,26 @@ public class PaymentExecutionService {
         }
 
         payment.markCanceled();
+        
+        // 카카오페이 취소 시 원본 금액 및 면세 금액 저장 (이후 환불 시 재사용)
+        if (result.getOriginalAmount() != null && result.getTaxFreeAmount() != null) {
+            payment.updateOriginalAmounts(result.getOriginalAmount(), result.getTaxFreeAmount());
+        }
+        
         return paymentRepository.save(payment);
     }
     
     /**
      * 결제 환불 실행
+     *
+     * <p><strong>부분 환불 멱등성 (2026-02-04 개선):</strong>
+     * 부분 환불 시 현재 환불 누적 금액(refundedAmount)을 멱등성 키에 포함하여
+     * 동일 Payment에 대한 여러 번의 부분 환불 요청을 구분합니다.
+     *
+     * <p><strong>동시성 보호 (2026-02-04 개선):</strong>
+     * 멱등성 키를 외부 API 호출 전에 별도 트랜잭션(REQUIRES_NEW)으로 먼저 저장하여
+     * 동시 요청 시 동일한 키가 생성되는 경쟁 조건을 방지합니다.
+     * executePayment()와 동일한 패턴을 따릅니다.
      *
      * @return 저장된 Payment 엔티티
      * @throws ApiException 환불 실패 시
@@ -171,7 +201,18 @@ public class PaymentExecutionService {
             throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "외부 결제 ID가 없습니다.");
         }
 
-        String idempotencyKey = generateIdempotencyKey(payment, "refund");
+        // 부분 환불 구분을 위해 환불 전용 멱등성 키 생성
+        // 동시성 보호: 외부 API 호출 전에 멱등성 키를 별도 트랜잭션으로 먼저 저장
+        // 이를 통해 동시 요청 시 동일한 refundedAmount를 읽어 같은 키가 생성되는 경쟁 조건을 방지
+        String idempotencyKey = generateRefundIdempotencyKey(payment);
+        self.saveIdempotencyKeyInNewTransaction(payment.getId(), idempotencyKey);
+        
+        // 별도 트랜잭션에서 version이 증가했으므로 엔티티를 재로드하여 최신 버전으로 업데이트
+        // 이를 통해 optimistic locking 실패를 방지
+        payment = paymentRepository.findById(payment.getId())
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        payment.updateIdempotencyKey(idempotencyKey);
+
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
 
         RefundResult result = provider.refundPayment(payment.getExternalPaymentId(), refundAmount, reason, idempotencyKey);
@@ -212,6 +253,40 @@ public class PaymentExecutionService {
                 payment.getPaymentMethod().name(),
                 payment.getId(),
                 action);
+    }
+
+    /**
+     * 멱등성 키 생성 (환불 전용 - 부분 환불 구분)
+     *
+     * <p><strong>부분 환불 지원 (2026-02-04 개선):</strong>
+     * 동일 Payment에 대해 여러 번의 부분 환불을 구분하기 위해
+     * 현재까지의 환불 누적 금액(refundedAmount)을 키에 포함합니다.
+     *
+     * <p><strong>예시:</strong>
+     * <ul>
+     *   <li>첫 번째 부분 환불: TOSS:123:refund:0</li>
+     *   <li>두 번째 부분 환불: TOSS:123:refund:5000</li>
+     *   <li>세 번째 부분 환불: TOSS:123:refund:10000</li>
+     * </ul>
+     *
+     * <p><strong>주의:</strong>
+     * 결제사에서 멱등성을 지원하지 않는 경우 (예: 카카오페이),
+     * 이 키는 애플리케이션 레벨에서의 중복 방지 용도로만 사용됩니다.
+     *
+     * @param payment Payment 엔티티
+     * @return 환불 멱등성 키
+     */
+    private String generateRefundIdempotencyKey(Payment payment) {
+        // refundedAmount를 포함하여 각 부분 환불 요청을 구분
+        // refundedAmount가 같은 상태에서 재시도하면 같은 키가 생성되어 멱등성 보장
+        // null 방어: DB에서 로드 시 null일 수 있으므로 기본값 사용
+        BigDecimal refundedAmount = payment.getRefundedAmount() != null
+                ? payment.getRefundedAmount()
+                : BigDecimal.ZERO;
+        return String.format("%s:%s:refund:%s",
+                payment.getPaymentMethod().name(),
+                payment.getId(),
+                refundedAmount.stripTrailingZeros().toPlainString());
     }
 
     /**

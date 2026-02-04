@@ -110,7 +110,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
         validateRequired(currency, "currency");
 
         try {
-            BigDecimal validatedAmount = amountPolicy.validate(amount);
+            amountPolicy.validate(amount); // 금액 검증만 수행
             var response = paypalCaptureApiClient.capture(paymentKey, idempotencyKey);
             PaymentStatus status = statusMapper.map(response.status());
 
@@ -165,6 +165,26 @@ public class PayPalPaymentProvider implements PaymentProvider {
         }
     }
 
+    /**
+     * 결제 취소
+     *
+     * <p>PayPal 주문 생명주기에 따른 취소 처리:
+     * <ul>
+     *   <li><strong>CREATED/APPROVED</strong>: 미인증/미캡처 상태 → API 호출 없이 시스템에서 취소 처리</li>
+     *   <li><strong>Authorization 존재</strong>: 인증되었으나 미캡처 → void 처리 (Authorization 취소)</li>
+     *   <li><strong>Capture 존재</strong>: 이미 캡처된 결제 → 취소 불가, 환불(refund) 사용 필요</li>
+     * </ul>
+     *
+     * <p><strong>주의사항:</strong>
+     * 이미 Capture된 결제는 취소가 아닌 환불만 가능합니다.
+     * 호출자는 이미 Capture된 경우를 사전에 확인하고 refundPayment를 호출해야 합니다.
+     *
+     * @param externalPaymentId 외부 결제 ID (PayPal orderId)
+     * @param reason 취소 사유
+     * @param idempotencyKey 멱등성 키
+     * @return CancelResult 취소 결과
+     * @throws RuntimeException 이미 Capture된 결제는 취소 불가 (환불 사용 필요)
+     */
     @Override
     public CancelResult cancelPayment(String externalPaymentId, String reason, String idempotencyKey) {
         validateRequired(externalPaymentId, "externalPaymentId");

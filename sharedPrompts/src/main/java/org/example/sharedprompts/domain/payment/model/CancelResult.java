@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -37,6 +38,16 @@ public class CancelResult {
      * 추가 메타데이터 (JSON 형태)
      */
     private final String metadata;
+
+    /**
+     * 원본 결제 금액 (카카오페이 취소 시 사용, 선택적)
+     */
+    private final BigDecimal originalAmount;
+
+    /**
+     * 면세 금액 (카카오페이 취소 시 사용, 선택적)
+     */
+    private final BigDecimal taxFreeAmount;
 
     /**
      * 취소 성공 여부

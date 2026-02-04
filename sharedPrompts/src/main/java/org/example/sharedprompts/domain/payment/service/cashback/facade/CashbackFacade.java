@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.payment.service.cashback.facade;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Cashback;
 import org.example.sharedprompts.domain.payment.config.RewardProperties;
@@ -16,21 +15,30 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.TransactionDefinition;
 
 import java.math.BigDecimal;
 
 /**
  * 캐시백 Facade
- * 
+ *
  * <p>클라이언트 단일 진입점, 내부적으로 세분화된 서비스들을 조율
  * - CashbackValidationService: 검증
  * - CashbackAmountService: 금액 계산
  * - CashbackExecutionService: 적립/지급 실행
  * - CashbackLockService: 락 관리
+ *
+ * <p><strong>트랜잭션 순서 (2024-02-02 개선):</strong>
+ * 락 획득 → 트랜잭션 시작 → 작업 수행 → 트랜잭션 커밋 → 락 해제
+ * <ul>
+ *   <li>기존: @Transactional이 메서드 레벨에서 트랜잭션을 먼저 시작 → 락 획득</li>
+ *   <li>개선: 락을 먼저 획득한 후 TransactionTemplate으로 트랜잭션 시작</li>
+ *   <li>효과: DB 커넥션 고갈 방지, 데드락 위험 감소</li>
+ * </ul>
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class CashbackFacade {
 
     private final CashbackRepository cashbackRepository;
@@ -39,6 +47,29 @@ public class CashbackFacade {
     private final CashbackAmountService amountService;
     private final CashbackExecutionService executionService;
     private final CashbackLockService lockService;
+    private final TransactionTemplate transactionTemplate;
+
+    /**
+     * REQUIRES_NEW 전파로 설정된 TransactionTemplate을 생성합니다.
+     * 상위 트랜잭션과 독립적으로 실행되어 락 획득 → 트랜잭션 시작 순서를 보장합니다.
+     */
+    public CashbackFacade(
+            CashbackRepository cashbackRepository,
+            RewardProperties rewardProperties,
+            CashbackValidationService validationService,
+            CashbackAmountService amountService,
+            CashbackExecutionService executionService,
+            CashbackLockService lockService,
+            org.springframework.transaction.PlatformTransactionManager transactionManager) {
+        this.cashbackRepository = cashbackRepository;
+        this.rewardProperties = rewardProperties;
+        this.validationService = validationService;
+        this.amountService = amountService;
+        this.executionService = executionService;
+        this.lockService = lockService;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
 
     /**
      * 캐시백 이력 조회
@@ -54,44 +85,64 @@ public class CashbackFacade {
      *
      * <p>동시성 문제 방지를 위해 paymentId 기반 분산 락을 적용합니다.
      * TOCTOU 문제를 방지하기 위해 락 내에서 중복 검증을 수행합니다.
+     *
+     * <p><strong>트랜잭션 순서:</strong>
+     * 1. 분산 락 획득 (DB 커넥션 없이)
+     * 2. TransactionTemplate으로 트랜잭션 시작
+     * 3. 중복 검증 및 적립 실행
+     * 4. 트랜잭션 커밋
+     * 5. 락 해제
      */
-    @Transactional
     public void accumulateCashback(Long userId, Long paymentId, BigDecimal paymentAmount) {
         // 동시성 문제 방지를 위해 paymentId 기반 분산 락 적용
+        // 락 획득 → 트랜잭션 시작 순서로 DB 커넥션 고갈 방지
         lockService.executeWithLockForPayment(paymentId, () -> {
-            // 락 내에서 중복 적립 방지 검증 (TOCTOU 방지)
-            if (validationService.isAlreadyAccumulated(paymentId)) {
-                return null;
-            }
+            // 락 내에서 트랜잭션 실행
+            transactionTemplate.executeWithoutResult(status -> {
+                // 락 내에서 중복 적립 방지 검증 (TOCTOU 방지)
+                if (validationService.isAlreadyAccumulated(paymentId)) {
+                    return;
+                }
 
-            // 캐시백 금액 계산
-            BigDecimal cashbackRate = rewardProperties.getCashbackRate();
-            BigDecimal cashbackAmount = amountService.calculateCashbackAmount(paymentAmount, cashbackRate);
+                // 캐시백 금액 계산
+                BigDecimal cashbackRate = rewardProperties.getCashbackRate();
+                BigDecimal cashbackAmount = amountService.calculateCashbackAmount(paymentAmount, cashbackRate);
 
-            // 캐시백 적립 실행
-            if (cashbackAmount.compareTo(BigDecimal.ZERO) > 0) {
-                executionService.accumulateCashback(userId, paymentId, cashbackAmount, paymentAmount, cashbackRate);
-            }
+                // 캐시백 적립 실행
+                if (cashbackAmount.compareTo(BigDecimal.ZERO) > 0) {
+                    executionService.accumulateCashback(userId, paymentId, cashbackAmount, paymentAmount, cashbackRate);
+                }
+            });
             return null;
         });
     }
 
     /**
      * 캐시백 지급
+     *
+     * <p><strong>트랜잭션 순서:</strong>
+     * 1. 분산 락 획득 (DB 커넥션 없이)
+     * 2. TransactionTemplate으로 트랜잭션 시작
+     * 3. 검증 및 지급 실행
+     * 4. 트랜잭션 커밋
+     * 5. 락 해제
      */
-    @Transactional
     public void payCashback(Long userId, Long cashbackId) {
         // 동시성 문제 방지를 위해 분산 락 적용
+        // 락 획득 → 트랜잭션 시작 순서로 DB 커넥션 고갈 방지
         lockService.executeWithLock(cashbackId, () -> {
-            Cashback cashback = cashbackRepository.findById(cashbackId)
-                    .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "캐시백을 찾을 수 없습니다."));
+            // 락 내에서 트랜잭션 실행
+            transactionTemplate.executeWithoutResult(status -> {
+                Cashback cashback = cashbackRepository.findById(cashbackId)
+                        .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "캐시백을 찾을 수 없습니다."));
 
-            // 검증
-            validationService.validateOwnership(cashback, userId);
-            validationService.validateNotPaid(cashback);
+                // 검증
+                validationService.validateOwnership(cashback, userId);
+                validationService.validateNotPaid(cashback);
 
-            // 지급 실행 (이미 조회한 엔티티 전달하여 중복 조회 제거)
-            executionService.payCashback(cashback, userId, false);
+                // 지급 실행 (이미 조회한 엔티티 전달하여 중복 조회 제거)
+                executionService.payCashback(cashback, userId, false);
+            });
             return null;
         });
     }
@@ -136,23 +187,33 @@ public class CashbackFacade {
 
     /**
      * 캐시백 지급 (관리자용 - 소유권 검증 없음)
+     *
+     * <p><strong>트랜잭션 순서:</strong>
+     * 1. 분산 락 획득 (DB 커넥션 없이)
+     * 2. TransactionTemplate으로 트랜잭션 시작
+     * 3. 검증 및 지급 실행
+     * 4. 트랜잭션 커밋
+     * 5. 락 해제
      */
-    @Transactional
     public void payCashbackForAdmin(Long cashbackId) {
         // 동시성 문제 방지를 위해 분산 락 적용
+        // 락 획득 → 트랜잭션 시작 순서로 DB 커넥션 고갈 방지
         lockService.executeWithLock(cashbackId, () -> {
-            Cashback cashback = cashbackRepository.findById(cashbackId)
-                    .orElseThrow(() -> new ApiException(
-                            ErrorCode.NOT_FOUND,
-                            "캐시백을 찾을 수 없습니다."
-                    ));
+            // 락 내에서 트랜잭션 실행
+            transactionTemplate.executeWithoutResult(status -> {
+                Cashback cashback = cashbackRepository.findById(cashbackId)
+                        .orElseThrow(() -> new ApiException(
+                                ErrorCode.NOT_FOUND,
+                                "캐시백을 찾을 수 없습니다."
+                        ));
 
-            // 관리자는 소유권 검증 없이 미지급 상태만 검증
-            validationService.validateNotPaid(cashback);
+                // 관리자는 소유권 검증 없이 미지급 상태만 검증
+                validationService.validateNotPaid(cashback);
 
-            // 지급 실행 (이미 조회한 엔티티 전달하여 중복 조회 제거)
-            Long userId = cashback.getUser().getId();
-            executionService.payCashback(cashback, userId, true);
+                // 지급 실행 (이미 조회한 엔티티 전달하여 중복 조회 제거)
+                Long userId = cashback.getUser().getId();
+                executionService.payCashback(cashback, userId, true);
+            });
             return null;
         });
     }

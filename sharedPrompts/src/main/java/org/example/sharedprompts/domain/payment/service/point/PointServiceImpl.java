@@ -9,6 +9,7 @@ import java.time.Instant;
 import org.example.sharedprompts.domain.payment.Point;
 import org.example.sharedprompts.domain.payment.config.RewardProperties;
 import org.example.sharedprompts.domain.payment.enums.PointType;
+import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.payment.repository.point.PointRepository;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.TransactionDefinition;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -56,6 +58,7 @@ public class PointServiceImpl implements PointService {
     private final PointRepository pointRepository;
     private final RewardProperties rewardProperties;
     private final UserRepository userRepository;
+    private final PaymentRepository paymentRepository;
     /**
      * LockProvider 주입 (@Primary로 지정된 메인 LockProvider 사용)
      * fallback이 활성화되어 있으면 fallbackLockProvider를, 없으면 lockProvider를 사용
@@ -67,13 +70,18 @@ public class PointServiceImpl implements PointService {
             PointRepository pointRepository,
             RewardProperties rewardProperties,
             UserRepository userRepository,
+            PaymentRepository paymentRepository,
             LockProvider lockProvider,
             PlatformTransactionManager transactionManager) {
         this.pointRepository = pointRepository;
         this.rewardProperties = rewardProperties;
         this.userRepository = userRepository;
+        this.paymentRepository = paymentRepository;
         this.lockProvider = lockProvider;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        // REQUIRES_NEW 전파로 설정하여 상위 트랜잭션과 독립적으로 실행
+        // 락 획득 → 트랜잭션 시작 순서를 보장
+        this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     private static final String LOCK_PREFIX = "point:lock:";
@@ -209,21 +217,41 @@ public class PointServiceImpl implements PointService {
      *
      * <p>paymentId가 있는 경우 멱등성 체크를 수행하여 중복 적립을 방지합니다.
      * 콜백 재시도 등으로 동일 결제에 대해 여러 번 호출되어도 한 번만 적립됩니다.
+     *
+     * <p><strong>보안:</strong> 소유자 검증을 멱등성 체크보다 먼저 수행하여
+     * 다른 사용자의 paymentId로 멱등성 체크를 우회하는 것을 방지합니다.
      */
     private void doAddPointsDirectly(Long userId, Long paymentId, BigDecimal pointAmount, PointType type, String description) {
-        // 멱등성 체크: paymentId + PointType 조합이 이미 존재하면 스킵
-        if (paymentId != null && pointRepository.existsByPaymentIdAndType(paymentId, type)) {
-            log.info("포인트 적립 스킵 (이미 처리됨): userId={}, paymentId={}, type={}", userId, paymentId, type);
-            return;
-        }
-
         User user = getUser(userId);
         BigDecimal lastBalance = getLastBalance(userId);
         BigDecimal newBalance = lastBalance.add(pointAmount);
 
+        // Payment 엔티티 조회 및 검증 (paymentId가 있는 경우만)
+        org.example.sharedprompts.domain.payment.Payment payment = null;
+        if (paymentId != null) {
+            payment = paymentRepository.findById(paymentId)
+                    .orElseThrow(() -> new ApiException(
+                            ErrorCode.INVALID_INPUT_VALUE, "유효하지 않은 결제 ID입니다: paymentId=" + paymentId));
+            
+            // 결제 소유자 검증: paymentId가 제공되면 반드시 해당 사용자의 결제여야 함
+            // 멱등성 체크보다 먼저 수행하여 보안 강화
+            if (!payment.getUser().getId().equals(userId)) {
+                throw new ApiException(
+                        ErrorCode.INVALID_INPUT_VALUE,
+                        "결제 소유자와 사용자 정보가 일치하지 않습니다: paymentId=" + paymentId + ", userId=" + userId);
+            }
+            
+            // 멱등성 체크: paymentId + userId + PointType 조합이 이미 존재하면 스킵
+            // 소유자 검증 후 수행하여 다른 사용자의 paymentId로 우회 불가
+            if (pointRepository.existsByPaymentIdAndUserIdAndType(paymentId, userId, type)) {
+                log.info("포인트 적립 스킵 (이미 처리됨): userId={}, paymentId={}, type={}", userId, paymentId, type);
+                return;
+            }
+        }
+
         Point point = Point.builder()
                 .user(user)
-                .paymentId(paymentId)
+                .payment(payment)
                 .amount(pointAmount)
                 .type(type)
                 .description(description)

@@ -65,9 +65,18 @@ public class ExchangeRateScheduler {
     }
 
     /**
-     * 매일 새벽 2시 환율 업데이트
+     * 환율 업데이트 (기본 1시간 간격)
+     * 
+     * <p><strong>스케줄러 기반 환율 정책:</strong>
+     * - 외부 환율 API에 대한 실시간 의존도를 줄이기 위해 스케줄러로 주기적 갱신
+     * - 기본값: 1시간 간격 (application.yml에서 설정 가능)
+     * - 장점: 외부 API 장애 시에도 최근 갱신된 환율로 결제 진행 가능
+     * 
+     * <p><strong>설정 방법:</strong>
+     * application.yml에서 `payment.exchange-rate.schedule` 속성으로 cron 표현식 설정
+     * 예: `0 0 * * * ?` (매 시간 정각), `0 0 0/1 * * ?` (1시간 간격)
      */
-    @Scheduled(cron = "${payment.exchange-rate.schedule:0 0 2 * * ?}")
+    @Scheduled(cron = "${payment.exchange-rate.schedule:0 0 * * * ?}")
     @SchedulerLock(
             name = "ExchangeRateScheduler",
             lockAtMostFor = "30m",

@@ -411,7 +411,7 @@ tag:
 # =========================
 payment:
   # 결제 기능 활성화 여부 (false면 결제 관련 빈이 로드되지 않아 환경변수 없이도 부팅 가능)
-  enabled: ${PAYMENT_ENABLED:false}
+  enabled: ${PAYMENT_ENABLED:true}
   kakao:
     secret: ${PAYMENT_KAKAO_SECRET:}
     cid: ${PAYMENT_KAKAO_CID:TC0ONETIME}
@@ -433,6 +433,10 @@ payment:
   exchange-rate:
     api-key: ${EXCHANGE_RATE_API_KEY:}
     api-url: ${EXCHANGE_RATE_API_URL:https://api.exchangerate-api.com/v4/latest/}
+    # 환율 업데이트 스케줄러 주기 (cron 표현식)
+    # 기본값: 매 시간 정각 (1시간 간격) - 0 0 * * * ?
+    # 다른 예시: 매일 새벽 2시 (0 0 2 * * ?), 30분 간격 (0 0/30 * * * ?)
+    schedule: ${EXCHANGE_RATE_SCHEDULE:0 0 * * * ?}
   webhook:
     secret: ${PAYMENT_WEBHOOK_SECRET:}
   retry:

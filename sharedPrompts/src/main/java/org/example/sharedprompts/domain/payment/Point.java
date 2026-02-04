@@ -34,8 +34,9 @@ public class Point extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = true)
-    private Long paymentId; // 결제와 연관된 경우
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_id", nullable = true)
+    private Payment payment; // 결제와 연관된 경우 (결제 관련 포인트만 해당)
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount; // 적립/사용 포인트 (양수: 적립, 음수: 사용)

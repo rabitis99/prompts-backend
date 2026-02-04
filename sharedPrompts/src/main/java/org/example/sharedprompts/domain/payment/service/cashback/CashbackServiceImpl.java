@@ -30,14 +30,24 @@ public class CashbackServiceImpl implements CashbackService {
         return cashbackFacade.getCashbackHistory(customerId, pageable);
     }
 
+    /**
+     * 캐시백 적립
+     * 
+     * <p>트랜잭션은 CashbackFacade 내부의 TransactionTemplate으로 관리됩니다.
+     * 락 획득 → 트랜잭션 시작 순서를 보장하기 위해 @Transactional을 제거했습니다.
+     */
     @Override
-    @Transactional
     public void accumulateCashback(Long userId, Long paymentId, BigDecimal paymentAmount) {
         cashbackFacade.accumulateCashback(userId, paymentId, paymentAmount);
     }
 
+    /**
+     * 캐시백 지급
+     * 
+     * <p>트랜잭션은 CashbackFacade 내부의 TransactionTemplate으로 관리됩니다.
+     * 락 획득 → 트랜잭션 시작 순서를 보장하기 위해 @Transactional을 제거했습니다.
+     */
     @Override
-    @Transactional
     public void payCashback(Long userId, Long cashbackId) {
         cashbackFacade.payCashback(userId, cashbackId);
     }
@@ -64,8 +74,13 @@ public class CashbackServiceImpl implements CashbackService {
         return cashbackFacade.getAllUnpaidCashbacks(pageable);
     }
 
+    /**
+     * 캐시백 지급 (관리자용)
+     * 
+     * <p>트랜잭션은 CashbackFacade 내부의 TransactionTemplate으로 관리됩니다.
+     * 락 획득 → 트랜잭션 시작 순서를 보장하기 위해 @Transactional을 제거했습니다.
+     */
     @Override
-    @Transactional
     public void payCashbackForAdmin(Long cashbackId) {
         cashbackFacade.payCashbackForAdmin(cashbackId);
     }

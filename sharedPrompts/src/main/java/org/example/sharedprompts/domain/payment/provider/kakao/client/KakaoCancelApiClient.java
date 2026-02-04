@@ -16,6 +16,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,25 +48,24 @@ public class KakaoCancelApiClient {
      * 
      * @param tid 결제 고유 ID (필수)
      * @param reason 취소 사유 (필수)
+     * @param totalAmount 총 금액 (필수)
+     * @param taxFreeAmount 면세 금액 (필수)
      * @return CancelResponse
      * @throws IllegalArgumentException 필수 필드 누락 시
      * @throws RuntimeException API 호출 실패 시
      */
-    public KakaoCancelResponse cancel(String tid, String reason) {
+    public KakaoCancelResponse cancel(String tid, String reason, long totalAmount, long taxFreeAmount) {
         validateRequired(tid, "tid");
         validateRequired(reason, "reason");
 
         try {
             HttpHeaders headers = headersProvider.createJsonHeaders();
 
-            // 전체 취소를 위해 총 금액 조회
-            long totalAmount = kakaoStatusApiClient.status(tid).amount();
-
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("cid", properties.getCid());
             requestBody.put("tid", tid);
             requestBody.put("cancel_amount", totalAmount);
-            requestBody.put("cancel_tax_free_amount", 0);
+            requestBody.put("cancel_tax_free_amount", taxFreeAmount);
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
@@ -111,11 +112,27 @@ public class KakaoCancelApiClient {
         try {
             HttpHeaders headers = headersProvider.createJsonHeaders();
 
+            // 원본 결제 정보 조회 (면세 금액 계산을 위해)
+            var statusResponse = kakaoStatusApiClient.status(tid);
+            long originalAmount = statusResponse.amount();
+            long originalTaxFreeAmount = statusResponse.taxFreeAmount();
+
+            // 환불 비율에 따라 면세 금액 계산
+            // cancel_tax_free_amount = 원본 면세 금액 * (환불 금액 / 원본 금액)
+            long cancelTaxFreeAmount = 0;
+            if (originalAmount > 0 && originalTaxFreeAmount > 0) {
+                // 정수 오버플로우 방지 및 정밀도 유지를 위해 BigDecimal 사용
+                cancelTaxFreeAmount = BigDecimal.valueOf(originalTaxFreeAmount)
+                        .multiply(BigDecimal.valueOf(amount))
+                        .divide(BigDecimal.valueOf(originalAmount), 0, RoundingMode.HALF_UP)
+                        .longValue();
+            }
+
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("cid", properties.getCid());
             requestBody.put("tid", tid);
             requestBody.put("cancel_amount", amount);
-            requestBody.put("cancel_tax_free_amount", 0);
+            requestBody.put("cancel_tax_free_amount", cancelTaxFreeAmount);
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
