@@ -12,6 +12,7 @@ import org.example.sharedprompts.domain.payment.repository.payment.PaymentReposi
 import org.example.sharedprompts.domain.payment.service.facade.AmountProcessingResult;
 import org.example.sharedprompts.domain.payment.service.facade.PaymentAmountFacade;
 import org.example.sharedprompts.domain.payment.service.execution.PaymentExecutionService;
+import org.example.sharedprompts.domain.payment.service.lock.DistributedLockService;
 import org.example.sharedprompts.domain.payment.service.postprocess.PaymentPostProcessService;
 import org.example.sharedprompts.domain.payment.service.sync.PaymentStatusSyncService;
 import org.example.sharedprompts.domain.payment.service.validation.PaymentValidationService;
@@ -59,6 +60,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentProviderFactory providerFactory;
     private final ObjectMapper objectMapper;
     private final PaymentValidator paymentValidator;
+    private final DistributedLockService distributedLockService;
 
     @Override
     @Transactional
@@ -188,52 +190,64 @@ public class PaymentServiceImpl implements PaymentService {
         return PaymentResponseDto.from(payment);
     }
 
+    /**
+     * 결제 환불 처리
+     *
+     * <p><strong>동시성 보호 (2024-02-02 개선):</strong>
+     * 분산 락을 사용하여 동일 Payment에 대한 동시 환불 요청을 직렬화합니다.
+     * 이를 통해 멱등성 키 생성 시 refundedAmount 읽기 경쟁 조건을 방지합니다.
+     */
     @Override
     @Transactional
     public PaymentResponseDto refundPayment(Long userId, PaymentRefundRequestDto request) {
-        Payment payment = paymentRepository.findById(request.getPaymentIdAsLong())
-                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        Long paymentId = request.getPaymentIdAsLong();
+        String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":refund";
 
-        validationService.validatePaymentOwnership(payment, userId);
-        validationService.validateRefundableStatus(payment);
-        BigDecimal refundAmount = validationService.validateRefundAmount(request.getAmount(), payment);
+        return distributedLockService.executeWithLock(lockKey, () -> {
+            Payment payment = paymentRepository.findById(paymentId)
+                    .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
-        try {
-            PaymentStatus oldStatus = payment.getStatus();
-
-            // PaymentExecutionService를 통한 환불 실행
-            payment = executionService.executeRefund(payment, refundAmount, request.getReasonOrDefault());
-
-            BigDecimal refundPointAmount = amountFacade.calculateRefundPointAmount(
-                    payment.getUsedPointAmount(),
-                    payment.getAmount(),
-                    refundAmount
-            );
+            validationService.validatePaymentOwnership(payment, userId);
+            validationService.validateRefundableStatus(payment);
+            BigDecimal refundAmount = validationService.validateRefundAmount(request.getAmount(), payment);
 
             try {
-                postProcessService.processPaymentRefund(
-                        payment,
-                        userId,
-                        refundAmount,
-                        refundPointAmount,
-                        request.getReasonOrDefault(),
-                        oldStatus
+                PaymentStatus oldStatus = payment.getStatus();
+
+                // PaymentExecutionService를 통한 환불 실행
+                payment = executionService.executeRefund(payment, refundAmount, request.getReasonOrDefault());
+
+                BigDecimal refundPointAmount = amountFacade.calculateRefundPointAmount(
+                        payment.getUsedPointAmount(),
+                        payment.getAmount(),
+                        refundAmount
                 );
-            } catch (Exception postProcessException) {
-                // 후처리 실패는 로깅만 수행 (환불은 성공했으므로 예외를 던지지 않음)
-                // TODO: 보상 트랜잭션 큐에 추가하여 나중에 재시도하거나 관리자 알림 필요
-                // 포인트 복구 실패 시 별도 보상 처리 프로세스 필요
-                log.error("결제 환불 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
-                        payment.getId(), userId, postProcessException.getMessage(), postProcessException);
+
+                try {
+                    postProcessService.processPaymentRefund(
+                            payment,
+                            userId,
+                            refundAmount,
+                            refundPointAmount,
+                            request.getReasonOrDefault(),
+                            oldStatus
+                    );
+                } catch (Exception postProcessException) {
+                    // 후처리 실패는 로깅만 수행 (환불은 성공했으므로 예외를 던지지 않음)
+                    // TODO: 보상 트랜잭션 큐에 추가하여 나중에 재시도하거나 관리자 알림 필요
+                    // 포인트 복구 실패 시 별도 보상 처리 프로세스 필요
+                    log.error("결제 환불 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
+                            payment.getId(), userId, postProcessException.getMessage(), postProcessException);
+                }
+
+            } catch (Exception e) {
+                // 일관된 예외 처리: ApiException으로 래핑하여 throw
+                log.error("결제 환불 실패: paymentId={}, userId={}, error={}", paymentId, userId, e.getMessage(), e);
+                throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 환불 실패: " + e.getMessage());
             }
 
-        } catch (Exception e) {
-            // 일관된 예외 처리: ApiException으로 래핑하여 throw
-            log.error("결제 환불 실패: paymentId={}, userId={}, error={}", request.getPaymentId(), userId, e.getMessage(), e);
-            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 환불 실패: " + e.getMessage());
-        }
-
-        return PaymentResponseDto.from(payment);
+            return PaymentResponseDto.from(payment);
+        });
     }
 
     @Override
@@ -387,50 +401,61 @@ public class PaymentServiceImpl implements PaymentService {
         return PaymentResponseDto.from(payment);
     }
 
+    /**
+     * 관리자용 결제 환불 처리
+     *
+     * <p><strong>동시성 보호 (2024-02-02 개선):</strong>
+     * 분산 락을 사용하여 동일 Payment에 대한 동시 환불 요청을 직렬화합니다.
+     * 이를 통해 멱등성 키 생성 시 refundedAmount 읽기 경쟁 조건을 방지합니다.
+     */
     @Override
     @Transactional
     public PaymentResponseDto refundPaymentForAdmin(Long paymentId, PaymentRefundRequestDto request, Long adminId) {
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":refund";
 
-        // 관리자는 소유권 검증 없이 환불 가능
-        validationService.validateRefundableStatus(payment);
-        BigDecimal refundAmount = validationService.validateRefundAmount(request.getAmount(), payment);
+        return distributedLockService.executeWithLock(lockKey, () -> {
+            Payment payment = paymentRepository.findById(paymentId)
+                    .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
-        try {
-            PaymentStatus oldStatus = payment.getStatus();
-
-            // PaymentExecutionService를 통한 환불 실행
-            payment = executionService.executeRefund(payment, refundAmount, request.getReasonOrDefault());
-
-            BigDecimal refundPointAmount = amountFacade.calculateRefundPointAmount(
-                    payment.getUsedPointAmount(),
-                    payment.getAmount(),
-                    refundAmount
-            );
+            // 관리자는 소유권 검증 없이 환불 가능
+            validationService.validateRefundableStatus(payment);
+            BigDecimal refundAmount = validationService.validateRefundAmount(request.getAmount(), payment);
 
             try {
-                postProcessService.processPaymentRefund(
-                        payment,
-                        payment.getUser().getId(),
-                        refundAmount,
-                        refundPointAmount,
-                        request.getReasonOrDefault(),
-                        oldStatus
+                PaymentStatus oldStatus = payment.getStatus();
+
+                // PaymentExecutionService를 통한 환불 실행
+                payment = executionService.executeRefund(payment, refundAmount, request.getReasonOrDefault());
+
+                BigDecimal refundPointAmount = amountFacade.calculateRefundPointAmount(
+                        payment.getUsedPointAmount(),
+                        payment.getAmount(),
+                        refundAmount
                 );
-            } catch (Exception postProcessException) {
-                // 후처리 실패는 로깅만 수행 (환불은 성공했으므로 예외를 던지지 않음)
-                log.error("관리자 결제 환불 성공 후 후처리 실패: paymentId={}, adminId={}, error={}",
-                        paymentId, adminId, postProcessException.getMessage(), postProcessException);
+
+                try {
+                    postProcessService.processPaymentRefund(
+                            payment,
+                            payment.getUser().getId(),
+                            refundAmount,
+                            refundPointAmount,
+                            request.getReasonOrDefault(),
+                            oldStatus
+                    );
+                } catch (Exception postProcessException) {
+                    // 후처리 실패는 로깅만 수행 (환불은 성공했으므로 예외를 던지지 않음)
+                    log.error("관리자 결제 환불 성공 후 후처리 실패: paymentId={}, adminId={}, error={}",
+                            paymentId, adminId, postProcessException.getMessage(), postProcessException);
+                }
+
+            } catch (Exception e) {
+                // 일관된 예외 처리: ApiException으로 래핑하여 throw
+                log.error("관리자 결제 환불 실패: paymentId={}, adminId={}, error={}", paymentId, adminId, e.getMessage(), e);
+                throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 환불 실패: " + e.getMessage());
             }
 
-        } catch (Exception e) {
-            // 일관된 예외 처리: ApiException으로 래핑하여 throw
-            log.error("관리자 결제 환불 실패: paymentId={}, adminId={}, error={}", paymentId, adminId, e.getMessage(), e);
-            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 환불 실패: " + e.getMessage());
-        }
-
-        return PaymentResponseDto.from(payment);
+            return PaymentResponseDto.from(payment);
+        });
     }
 
     /**

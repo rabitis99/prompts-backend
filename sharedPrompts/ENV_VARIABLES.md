@@ -158,7 +158,7 @@
 |--------|----------|---------|
 | payment.exchange-rate.api-key | 환율 API 키 | {EXCHANGE_RATE_API_KEY} |
 | payment.exchange-rate.api-url | 환율 API URL | https://api.exchangerate-api.com/v4/latest/ |
-| payment.exchange-rate.schedule | 환율 업데이트 스케줄 (cron) | 0 0 2 * * ? |
+| payment.exchange-rate.schedule | 환율 업데이트 스케줄 (cron) | 0 0 * * * ? (매 시간 정각, 1시간 간격) |
 
 ---
 

@@ -56,7 +56,7 @@ public class CashbackResponseDto {
         return CashbackResponseDto.builder()
                 .id(cashback.getId())
                 .userId(cashback.getUser().getId())
-                .paymentId(cashback.getPaymentId())
+                .paymentId(cashback.getPayment().getId())
                 .amount(cashback.getAmount())
                 .rate(cashback.getRate())
                 .paymentAmount(cashback.getPaymentAmount())

@@ -434,8 +434,8 @@ payment:
     api-key: ${EXCHANGE_RATE_API_KEY:}
     api-url: ${EXCHANGE_RATE_API_URL:https://api.exchangerate-api.com/v4/latest/}
     # 환율 업데이트 스케줄러 주기 (cron 표현식)
-    # 기본값: 매 시간 정각 (0 0 * * * ?)
-    # 예시: 1시간 간격 (0 0 0/1 * * ?), 매일 새벽 2시 (0 0 2 * * ?)
+    # 기본값: 매 시간 정각 (1시간 간격) - 0 0 * * * ?
+    # 다른 예시: 매일 새벽 2시 (0 0 2 * * ?), 30분 간격 (0 0/30 * * * ?)
     schedule: ${EXCHANGE_RATE_SCHEDULE:0 0 * * * ?}
   webhook:
     secret: ${PAYMENT_WEBHOOK_SECRET:}

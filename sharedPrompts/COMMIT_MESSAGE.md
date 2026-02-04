@@ -1,60 +1,59 @@
-fix(payment): 결제 시스템 개선 - 환율 정책, Webhook 처리, 카카오페이 취소 로직
+fix(payment): 부분 환불 동시성 문제 해결 및 환율 스케줄러 문서 일관성 개선
 
 ## 주요 변경사항
 
-### 환율 관리 정책 개선 (#13, #23)
-- 스케줄러 기반 환율 갱신으로 외부 API 의존도 감소
-  - ExchangeRateScheduler 주기를 1시간 간격으로 변경 (기본값)
-  - application.yml에 schedule 설정 추가
-- ExchangeRateService에 캐싱 추가 (@Cacheable)
-- Payment 엔티티에 환율 저장 필드 추가 (exchangeRate, originalCurrency)
-- 장점: 외부 API 장애 시에도 최근 갱신된 환율로 결제 진행 가능
+### 부분 환불 멱등성 키 생성 동시성 문제 해결
+- executeRefund()에 REQUIRES_NEW 기반 키 저장 추가
+  - executePayment()와 동일한 패턴으로 외부 API 호출 전에 멱등성 키를 별도 트랜잭션으로 먼저 저장
+  - 동시 요청 시 동일한 refundedAmount를 읽어 같은 키가 생성되는 경쟁 조건 방지
+- 환불 처리에 분산 락 적용
+  - refundPayment()와 refundPaymentForAdmin()에 DistributedLockService 적용
+  - 락 키: "payment:{paymentId}:refund" 형식으로 동일 Payment에 대한 동시 환불 요청 직렬화
+  - 이중 보호: REQUIRES_NEW 트랜잭션 + 분산 락으로 동시성 문제 완전 해결
 
-### Webhook 처리 개선 (#33)
-- Webhook 파싱 실패 시 400 Bad Request 반환
-- 결제사에 재시도 중단 요청하여 불필요한 재시도 방지
-- 파싱 실패 원인 로깅 개선 (payload 크기 포함)
-
-### 카카오페이 취소 로직 개선 (#31)
-- Payment 엔티티에 원본 금액/면세 금액 저장 필드 추가
-- CancelResult에 originalAmount, taxFreeAmount 필드 추가
-- 취소 시 원본 금액 정보를 Payment에 저장하여 이후 환불 시 재사용
-
-### 페이팔 취소 처리 문서화 (#32)
-- PayPal 주문 생명주기에 따른 취소 처리 로직 문서화
-- CREATED/APPROVED, Authorization, Capture 상태별 처리 방식 명시
+### 환율 스케줄러 실행 주기 문서 일관성 개선
+- application.yml 주석 명확화
+  - 기본값: 매 시간 정각 (1시간 간격) 명시
+  - 예시 정리: 다른 옵션(매일 새벽 2시, 30분 간격) 명시
+- 환경 변수 문서 일관성 수정
+  - TODO_PAYMENT_MODULE.md: 1시간 간격으로 변경
+  - PAYMENT_MODULE_SETUP.md: 3곳 수정 (환경 변수 예시, 설명 텍스트)
+  - ENV_VARIABLES.md: 기본값을 1시간 간격으로 명시
+  - payment_analysis.md: "현재는 매일 새벽 2시" 문구 제거
 
 ## 수정된 파일
 
-### 도메인 모델
-- `domain/payment/Payment.java` - 환율 저장 필드, 원본 금액/면세 금액 필드 추가
-- `domain/payment/model/CancelResult.java` - originalAmount, taxFreeAmount 필드 추가
-
 ### 서비스
-- `domain/payment/service/exchange/ExchangeRateServiceImpl.java` - 캐싱 추가
-- `domain/payment/service/execution/PaymentExecutionService.java` - 카카오페이 취소 시 원본 금액 저장
-- `domain/payment/facade/PaymentWebhookFacade.java` - Webhook 파싱 실패 시 400 반환
-
-### Provider
-- `domain/payment/provider/impl/KakaoPayPaymentProvider.java` - 취소 시 원본 금액 조회 및 반환
-- `domain/payment/provider/impl/PayPalPaymentProvider.java` - 취소 처리 로직 문서화, 린터 경고 수정
-
-### 스케줄러
-- `scheduler/payment/ExchangeRateScheduler.java` - 주기 1시간 간격으로 변경, 문서화 개선
+- `domain/payment/service/execution/PaymentExecutionService.java`
+  - executeRefund()에 saveIdempotencyKeyInNewTransaction() 호출 추가
+  - 동시성 보호 주석 추가
+- `domain/payment/service/core/PaymentServiceImpl.java`
+  - DistributedLockService 의존성 추가
+  - refundPayment()에 분산 락 적용
+  - refundPaymentForAdmin()에 분산 락 적용
 
 ### 설정
-- `resources/application.yml` - 환율 스케줄러 설정 추가
+- `resources/application.yml` - 환율 스케줄러 주석 및 예시 수정
 
-## 완료 현황
+### 문서
+- `TODO_PAYMENT_MODULE.md` - 환경 변수 예시 수정
+- `PAYMENT_MODULE_SETUP.md` - 환경 변수 예시 및 설명 수정
+- `ENV_VARIABLES.md` - 기본값 명시 수정
+- `payment_analysis.md` - 불일치 내용 수정
 
-- 완료: 29개 이슈 (이전: 25개)
-- 미완료: 8개 이슈 (#3 부분, #9, #10, #12, #14, #19, #25, #36)
+## 해결된 문제
+
+### 부분 환불 동시성 문제
+- 문제: 동시 부분 환불 요청 시 동일한 멱등성 키 생성으로 결제사 중복 거부
+- 해결: REQUIRES_NEW 트랜잭션 + 분산 락으로 이중 보호
+- 효과: 동시 요청 시에도 각 요청이 고유한 멱등성 키로 처리됨
+
+### 환율 스케줄러 문서 불일치
+- 문제: 코드 기본값(1시간 간격)과 문서/환경 변수 예시(매일 새벽 2시) 불일치
+- 해결: 모든 문서를 1시간 간격으로 통일
+- 효과: 문서와 코드의 일관성 확보, 설정 오류 방지
 
 ## 관련 이슈
 
-- #13: 환율 변환 시점과 환율 변동 리스크
-- #23: 환율 서비스의 캐싱 및 실패 처리 전략 부재
-- #31: 카카오페이 취소 시 금액 정보 조회 방식의 문제
-- #32: 페이팔 주문 상태별 취소 처리의 복잡성
-- #33: Webhook 파싱 실패 시 RuntimeException throw
-
+- 부분 환불 멱등성 키 생성의 동시성 문제
+- 환율 스케줄러 실행 주기 불일치

@@ -56,7 +56,7 @@ public class PointResponseDto {
         return PointResponseDto.builder()
                 .id(point.getId())
                 .userId(point.getUser().getId())
-                .paymentId(point.getPaymentId())
+                .paymentId(point.getPayment().getId())
                 .amount(point.getAmount())
                 .type(point.getType().name())
                 .description(point.getDescription())

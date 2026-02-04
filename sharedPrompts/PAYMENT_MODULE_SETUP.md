@@ -171,7 +171,7 @@ domain/payment/
   ```bash
   # ExchangeRate-API 무료 플랜 사용 시 (API 키 불필요)
   EXCHANGE_RATE_API_URL=https://api.exchangerate-api.com/v4/latest/
-  PAYMENT_EXCHANGE_RATE_SCHEDULE=0 0 2 * * ?  # 매일 새벽 2시 (기본값)
+  PAYMENT_EXCHANGE_RATE_SCHEDULE=0 0 * * * ?  # 매 시간 정각 (1시간 간격, 기본값)
   
   # 유료 플랜 또는 다른 API 사용 시에만 필요
   EXCHANGE_RATE_API_KEY=your_exchange_rate_api_key  # 선택사항
@@ -179,7 +179,7 @@ domain/payment/
 - **구현 상태**: ✅ 엔티티 기반 구조 완료, 스케줄러 및 Webhook 구현 완료
 - **구현 내용**:
   - `ExchangeRate` 엔티티로 환율 정보 관리
-  - `ExchangeRateScheduler`로 주기적으로 환율 업데이트 (기본: 매일 새벽 2시)
+  - `ExchangeRateScheduler`로 주기적으로 환율 업데이트 (기본: 1시간 간격)
     - ShedLock을 사용한 분산 락 처리
     - 지원 통화: KRW, EUR, JPY, CNY, GBP (기준 통화: USD)
     - 애플리케이션 시작 시 초기 로드 (`@PostConstruct`)
@@ -437,7 +437,7 @@ MAIL_SMTP_STARTTLS_ENABLE=true
 # 환율 API
 # ExchangeRate-API 무료 플랜 사용 시 API 키 불필요
 EXCHANGE_RATE_API_URL=https://api.exchangerate-api.com/v4/latest/
-PAYMENT_EXCHANGE_RATE_SCHEDULE=0 0 2 * * ?  # 매일 새벽 2시
+PAYMENT_EXCHANGE_RATE_SCHEDULE=0 0 * * * ?  # 매 시간 정각 (1시간 간격, 기본값)
 # 유료 플랜 또는 다른 API 사용 시에만 필요
 EXCHANGE_RATE_API_KEY=your_exchange_rate_api_key  # 선택사항
 

@@ -172,6 +172,11 @@ public class PaymentExecutionService {
      * 부분 환불 시 현재 환불 누적 금액(refundedAmount)을 멱등성 키에 포함하여
      * 동일 Payment에 대한 여러 번의 부분 환불 요청을 구분합니다.
      *
+     * <p><strong>동시성 보호 (2024-02-02 개선):</strong>
+     * 멱등성 키를 외부 API 호출 전에 별도 트랜잭션(REQUIRES_NEW)으로 먼저 저장하여
+     * 동시 요청 시 동일한 키가 생성되는 경쟁 조건을 방지합니다.
+     * executePayment()와 동일한 패턴을 따릅니다.
+     *
      * @return 저장된 Payment 엔티티
      * @throws ApiException 환불 실패 시
      */
@@ -182,7 +187,12 @@ public class PaymentExecutionService {
         }
 
         // 부분 환불 구분을 위해 환불 전용 멱등성 키 생성
+        // 동시성 보호: 외부 API 호출 전에 멱등성 키를 별도 트랜잭션으로 먼저 저장
+        // 이를 통해 동시 요청 시 동일한 refundedAmount를 읽어 같은 키가 생성되는 경쟁 조건을 방지
         String idempotencyKey = generateRefundIdempotencyKey(payment);
+        self.saveIdempotencyKeyInNewTransaction(payment.getId(), idempotencyKey);
+        payment.updateIdempotencyKey(idempotencyKey);
+
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
 
         RefundResult result = provider.refundPayment(payment.getExternalPaymentId(), refundAmount, reason, idempotencyKey);

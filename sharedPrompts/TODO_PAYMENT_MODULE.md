@@ -26,7 +26,7 @@ MAIL_SMTP_STARTTLS_ENABLE=true
 # 환율 API
 EXCHANGE_RATE_API_KEY=your_exchange_rate_api_key
 EXCHANGE_RATE_API_URL=https://api.exchangerate-api.com/v4/latest/
-PAYMENT_EXCHANGE_RATE_SCHEDULE=0 0 2 * * ?
+PAYMENT_EXCHANGE_RATE_SCHEDULE=0 0 * * * ?  # 매 시간 정각 (1시간 간격, 기본값)
 ```
 
 **작업 내용**:

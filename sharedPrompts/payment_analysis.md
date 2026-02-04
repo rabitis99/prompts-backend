@@ -350,7 +350,7 @@
 - **✅ 수정 내용**
   - [ExchangeRateServiceImpl.java](src/main/java/org/example/sharedprompts/domain/payment/service/exchange/ExchangeRateServiceImpl.java): 캐싱 추가 (@Cacheable)
   - [Payment.java](src/main/java/org/example/sharedprompts/domain/payment/Payment.java): `exchangeRate`, `originalCurrency` 필드 추가
-  - [ExchangeRateScheduler.java](src/main/java/org/example/sharedprompts/scheduler/payment/ExchangeRateScheduler.java): 스케줄러 주기를 1시간 간격으로 조정 권장 (현재는 매일 새벽 2시, application.yml에서 설정 가능)
+  - [ExchangeRateScheduler.java](src/main/java/org/example/sharedprompts/scheduler/payment/ExchangeRateScheduler.java): 스케줄러 주기 기본값 1시간 간격 (application.yml에서 설정 가능)
   - **정책 결정**: 스케줄러로 주기적 갱신 + DB 저장 + 캐싱 조합으로 외부 의존도 최소화
 
 ---
