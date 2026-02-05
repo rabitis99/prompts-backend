@@ -33,7 +33,7 @@ public class TossPayProperties {
      * 토스페이먼츠 시크릿 키 (필수)
      */
     @NotBlank(message = "토스페이먼츠 시크릿 키는 필수입니다 (payment.toss.secret-key)")
-    private String secret;
+    private String secretKey;
 
     /**
      * 토스페이먼츠 API Base URL (기본값: https://api.tosspayments.com/v1/payments)

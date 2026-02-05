@@ -43,7 +43,7 @@ public class TossPayWebhookVerifier {
         }
 
         try {
-            String secret = properties.getSecret();
+            String secret = properties.getSecretKey();
             if (secret == null || secret.isEmpty()) {
                 log.warn("TossPay Webhook secret이 설정되지 않았습니다");
                 return false;

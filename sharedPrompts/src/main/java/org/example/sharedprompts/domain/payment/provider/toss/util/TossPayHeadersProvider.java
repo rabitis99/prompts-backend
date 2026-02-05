@@ -27,7 +27,7 @@ public class TossPayHeadersProvider {
      */
     public HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
-        String secret = properties.getSecret();
+        String secret = properties.getSecretKey();
         if (secret == null || secret.isEmpty()) {
             throw new IllegalStateException("TossPay secret이 설정되지 않았습니다");
         }
