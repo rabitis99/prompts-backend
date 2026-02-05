@@ -13,10 +13,6 @@ import java.util.Map;
 
 /**
  * KakaoPay Webhook Parser
- * 
- * <p>단일 책임: Webhook payload 파싱만 담당
- * - 상태 변경 없음
- * - Null 안전성 보장
  */
 @Slf4j
 @Component
@@ -26,14 +22,6 @@ public class KakaoPayWebhookParser {
     private final ObjectMapper objectMapper;
     private final KakaoPayStatusMapper statusMapper;
 
-    /**
-     * Webhook payload 파싱
-     * 
-     * @param payload Webhook 페이로드 (필수)
-     * @return WebhookEvent
-     * @throws IllegalArgumentException payload가 null이거나 비어있을 때
-     * @throws RuntimeException 파싱 실패 시
-     */
     public PaymentProvider.WebhookEvent parse(String payload) {
         if (payload == null || payload.isEmpty()) {
             throw new IllegalArgumentException("KakaoPay Webhook payload는 필수입니다");

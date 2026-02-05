@@ -24,14 +24,6 @@ import java.math.BigDecimal;
 
 /**
  * KakaoPay Payment Provider 구현체
- *
- * <p>단일 책임: PaymentProvider 인터페이스 구현 및 모듈 조합
- * - client: 외부 API 호출
- * - mapper: 상태 매핑
- * - policy: 금액 검증/변환, 환불 정책
- * - webhook: 서명 검증과 payload 파싱
- *
- * <p>Null 안전성: 모든 public API는 Null 반환 금지
  */
 @Slf4j
 @Component
@@ -56,7 +48,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
 
     @Override
     public boolean supportsIdempotency() {
-        return false; // KakaoPay는 tid 자체가 고유 식별자
+        return false;
     }
 
     @Override
@@ -72,12 +64,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             String itemName,
             String userId
     ) {
-        validateRequired(orderId, "orderId");
-        validateRequired(amount, "amount");
-        validateRequired(currency, "currency");
         validateKrwCurrency(currency);
-        validateRequired(itemName, "itemName");
-        validateRequired(userId, "userId");
 
         try {
             long kakaoAmount = amountPolicy.toKakaoAmount(amount);
@@ -97,7 +84,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
 
     @Override
     public PaymentResult confirmPayment(
-            String paymentKey, // KakaoPay에서는 tid
+            String paymentKey,
             String orderId,
             BigDecimal amount,
             String currency,
@@ -105,17 +92,11 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             String userId,
             java.util.Map<String, String> additionalParams
     ) {
-        validateRequired(paymentKey, "paymentKey (tid)");
-        validateRequired(orderId, "orderId");
-        validateRequired(amount, "amount");
-        validateRequired(currency, "currency");
         validateKrwCurrency(currency);
-        validateRequired(userId, "userId");
 
-        // KakaoPay 신규 API는 pg_token 필수
         String pgToken = additionalParams != null ? additionalParams.get("pgToken") : null;
         if (pgToken == null || pgToken.isEmpty()) {
-            throw new IllegalArgumentException("pgToken은(는) 필수입니다 (KakaoPay 결제 승인 시 필수)");
+            throw new IllegalArgumentException("pgToken은(는) 필수입니다");
         }
 
         try {
@@ -147,8 +128,6 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
 
     @Override
     public PaymentResult getPaymentStatus(String externalPaymentId) {
-        validateRequired(externalPaymentId, "externalPaymentId");
-
         try {
             var response = kakaoStatusApiClient.status(externalPaymentId);
             PaymentStatus status = statusMapper.map(response.status());
@@ -175,11 +154,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
 
     @Override
     public CancelResult cancelPayment(String externalPaymentId, String reason, String idempotencyKey) {
-        validateRequired(externalPaymentId, "externalPaymentId");
-        validateRequired(reason, "reason");
-
         try {
-            // 취소 전 원본 금액 조회 (취소 API 호출 전에 조회하여 Payment 엔티티에 저장)
             var statusResponse = kakaoStatusApiClient.status(externalPaymentId);
             long totalAmount = statusResponse.amount();
             long taxFreeAmount = statusResponse.taxFreeAmount();
@@ -207,10 +182,6 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
 
     @Override
     public RefundResult refundPayment(String externalPaymentId, BigDecimal amount, String reason, String idempotencyKey) {
-        validateRequired(externalPaymentId, "externalPaymentId");
-        validateRequired(amount, "amount");
-        validateRequired(reason, "reason");
-
         try {
             long kakaoAmount = amountPolicy.toKakaoAmount(amount);
             var response = kakaoCancelApiClient.refund(externalPaymentId, kakaoAmount, reason);
@@ -235,51 +206,19 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
 
     @Override
     public boolean verifyWebhookSignature(String payload, String signature) {
-        if (payload == null || payload.isEmpty()) {
-            log.warn("KakaoPay Webhook 검증 실패: payload가 비어있습니다");
+        if (payload == null || payload.isEmpty() || signature == null || signature.isEmpty()) {
             return false;
         }
-        if (signature == null || signature.isEmpty()) {
-            log.warn("KakaoPay Webhook 검증 실패: signature가 비어있습니다");
-            return false;
-        }
-
-        boolean verified = webhookVerifier.verify(payload, signature);
-        if (!verified) {
-            log.warn("KakaoPay Webhook 서명 검증 실패");
-        }
-        return verified;
+        return webhookVerifier.verify(payload, signature);
     }
 
     @Override
     public WebhookEvent parseWebhook(String payload) {
-        if (payload == null || payload.isEmpty()) {
-            throw new IllegalArgumentException("KakaoPay Webhook payload는 필수입니다");
-        }
-
         try {
-            WebhookEvent event = webhookParser.parse(payload);
-            log.debug("KakaoPay Webhook 파싱 성공: eventType={}, externalPaymentId={}", 
-                    event.eventType(), event.externalPaymentId());
-            return event;
+            return webhookParser.parse(payload);
         } catch (Exception e) {
             log.error("KakaoPay Webhook 파싱 실패: error={}", e.getMessage(), e);
             throw new RuntimeException("KakaoPay Webhook 파싱 실패: " + e.getMessage(), e);
-        }
-    }
-
-    private void validateRequired(String value, String fieldName) {
-        if (value == null || value.isEmpty()) {
-            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다");
-        }
-    }
-
-    private void validateRequired(BigDecimal value, String fieldName) {
-        if (value == null) {
-            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다");
-        }
-        if (value.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException(fieldName + "은(는) 0보다 커야 합니다: " + value);
         }
     }
 

@@ -22,9 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * KakaoPay 결제 취소/환불 API Client (신규 API - open-api.kakaopay.com)
- *
- * <p>단일 책임: 결제 취소 및 환불 API 호출만 담당
+ * KakaoPay 결제 취소/환불 API Client
  */
 @Slf4j
 @Component
@@ -43,17 +41,6 @@ public class KakaoCancelApiClient {
     private final KakaoPayResponseParser responseParser;
     private final KakaoStatusApiClient kakaoStatusApiClient;
 
-    /**
-     * 결제 취소
-     * 
-     * @param tid 결제 고유 ID (필수)
-     * @param reason 취소 사유 (필수)
-     * @param totalAmount 총 금액 (필수)
-     * @param taxFreeAmount 면세 금액 (필수)
-     * @return CancelResponse
-     * @throws IllegalArgumentException 필수 필드 누락 시
-     * @throws RuntimeException API 호출 실패 시
-     */
     public KakaoCancelResponse cancel(String tid, String reason, long totalAmount, long taxFreeAmount) {
         validateRequired(tid, "tid");
         validateRequired(reason, "reason");
@@ -92,16 +79,6 @@ public class KakaoCancelApiClient {
         }
     }
 
-    /**
-     * 결제 환불
-     * 
-     * @param tid 결제 고유 ID (필수)
-     * @param amount 환불 금액 (원 단위, 필수)
-     * @param reason 환불 사유 (필수)
-     * @return RefundResponse
-     * @throws IllegalArgumentException 필수 필드 누락 시
-     * @throws RuntimeException API 호출 실패 시
-     */
     public KakaoRefundResponse refund(String tid, long amount, String reason) {
         validateRequired(tid, "tid");
         validateRequired(reason, "reason");
@@ -112,16 +89,12 @@ public class KakaoCancelApiClient {
         try {
             HttpHeaders headers = headersProvider.createJsonHeaders();
 
-            // 원본 결제 정보 조회 (면세 금액 계산을 위해)
             var statusResponse = kakaoStatusApiClient.status(tid);
             long originalAmount = statusResponse.amount();
             long originalTaxFreeAmount = statusResponse.taxFreeAmount();
 
-            // 환불 비율에 따라 면세 금액 계산
-            // cancel_tax_free_amount = 원본 면세 금액 * (환불 금액 / 원본 금액)
             long cancelTaxFreeAmount = 0;
             if (originalAmount > 0 && originalTaxFreeAmount > 0) {
-                // 정수 오버플로우 방지 및 정밀도 유지를 위해 BigDecimal 사용
                 cancelTaxFreeAmount = BigDecimal.valueOf(originalTaxFreeAmount)
                         .multiply(BigDecimal.valueOf(amount))
                         .divide(BigDecimal.valueOf(originalAmount), 0, RoundingMode.HALF_UP)
@@ -145,7 +118,6 @@ public class KakaoCancelApiClient {
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> body = response.getBody();
-                // 신규 API는 canceled_amount 객체로 반환됨
                 @SuppressWarnings("unchecked")
                 Map<String, Object> canceledAmountMap = (Map<String, Object>) body.get("canceled_amount");
                 long refundedAmount = amount;

@@ -17,9 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * KakaoPay 결제 상태 조회 API Client (신규 API - open-api.kakaopay.com)
- *
- * <p>단일 책임: 결제 상태 조회 API 호출만 담당
+ * KakaoPay 결제 상태 조회 API Client
  */
 @Slf4j
 @Component("kakaoStatusApiClient")
@@ -36,14 +34,6 @@ public class KakaoStatusApiClient {
     private final KakaoPayHeadersProvider headersProvider;
     private final KakaoPayJsonConverter jsonConverter;
 
-    /**
-     * 결제 상태 조회
-     * 
-     * @param tid 결제 고유 ID (필수)
-     * @return StatusResponse
-     * @throws IllegalArgumentException tid가 null이거나 비어있을 때
-     * @throws RuntimeException API 호출 실패 시
-     */
     public KakaoStatusResponse status(String tid) {
         validateRequired(tid, "tid");
 
@@ -68,7 +58,6 @@ public class KakaoStatusApiClient {
                 String status = (String) body.get("status");
                 String orderId = (String) body.get("partner_order_id");
 
-                // 신규 API는 amount가 객체로 반환됨
                 @SuppressWarnings("unchecked")
                 Map<String, Object> amountMap = (Map<String, Object>) body.get("amount");
 
@@ -88,7 +77,6 @@ public class KakaoStatusApiClient {
                 }
                 long amount = Long.parseLong(totalAmountObj.toString());
 
-                // tax_free_amount 파싱 (없으면 0으로 처리)
                 Object taxFreeAmountObj = amountMap.get("tax_free");
                 long taxFreeAmount = 0;
                 if (taxFreeAmountObj != null) {

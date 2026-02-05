@@ -37,10 +37,8 @@ public class KakaoPayWebhookVerifier {
 
             return MessageDigest.isEqual(expected, actual);
         } catch (IllegalStateException e) {
-            // 시크릿 누락은 명시적으로 예외를 던짐
             throw e;
         } catch (Exception e) {
-            // 서명 검증 실패 로깅
             log.warn("Webhook signature verification failed: {}", e.getMessage());
             return false;
         }
