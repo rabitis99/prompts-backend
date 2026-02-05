@@ -12,7 +12,6 @@ import org.example.sharedprompts.domain.payment.domain.entity.Payment;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentUserType;
-import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
 import org.example.sharedprompts.domain.user.User;
 
 import java.math.BigDecimal;
@@ -39,14 +38,6 @@ public class PaymentRequestDto {
     @JsonProperty("payment_method")
     private PaymentMethod paymentMethod;
 
-    @NotNull(message = "사용자 타입을 선택해주세요.")
-    @JsonProperty("user_type")
-    private PaymentUserType userType;
-
-    @NotNull(message = "사용자 티어를 선택해주세요.")
-    @JsonProperty("tier")
-    private UserTier tier;
-
     @JsonProperty("use_point_amount")
     @DecimalMin(value = "0", message = "사용할 포인트는 0 이상이어야 합니다.")
     private BigDecimal usePointAmount; // 사용할 포인트 금액 (선택사항)
@@ -56,6 +47,7 @@ public class PaymentRequestDto {
 
     /**
      * Payment 엔티티 빌더 생성
+     * 서버에서 사용자의 현재 정보를 사용하여 Payment 엔티티를 생성합니다.
      */
     public Payment.PaymentBuilder toPaymentBuilder(User user, BigDecimal convertedAmount, BigDecimal usedPointAmount) {
         return Payment.builder()
@@ -65,7 +57,13 @@ public class PaymentRequestDto {
                 .paymentMethod(this.paymentMethod)
                 .status(PaymentStatus.PENDING)
                 .usedPointAmount(usedPointAmount)
-                .metadata(this.metadata);
+                .metadata(this.metadata)
+                .userType(determineUserType(user))
+                .tier(user.getTier());
+    }
+
+    private PaymentUserType determineUserType(User user) {
+        return PaymentUserType.PERSONAL;
     }
 }
 

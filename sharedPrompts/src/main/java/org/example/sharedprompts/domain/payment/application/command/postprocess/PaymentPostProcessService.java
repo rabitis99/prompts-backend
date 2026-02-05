@@ -14,9 +14,11 @@ import org.example.sharedprompts.domain.payment.service.point.PointService;
 import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PaymentJpaAdapter;
 import org.example.sharedprompts.domain.payment.application.command.postprocess.policy.CashbackAccrualPolicy;
 import org.example.sharedprompts.domain.payment.application.command.postprocess.policy.PointAccrualPolicy;
+import org.example.sharedprompts.domain.payment.service.user.tier.UserTierService;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -34,21 +36,7 @@ public class PaymentPostProcessService {
     private final PointAccrualPolicy pointAccrualPolicy;
     private final CashbackAccrualPolicy cashbackAccrualPolicy;
     private final PaymentJpaAdapter paymentJpaAdapter;
-
-    public void processPaymentSuccess(Payment payment, Long userId, BigDecimal actualPaymentAmount,
-                                     BigDecimal originalAmount, long processingTime) {
-        if (payment.getStatus() != PaymentStatus.SUCCESS) {
-            log.warn("결제 성공 후처리 스킵: 결제 상태가 SUCCESS가 아님. paymentId={}, status={}", 
-                    payment.getId(), payment.getStatus());
-            return;
-        }
-
-        loggingService.logPaymentApprovalSuccess(payment, payment.getExternalPaymentId(), processingTime);
-        PaymentStatus oldStatus = payment.getStatus() != PaymentStatus.SUCCESS ? PaymentStatus.PENDING : payment.getStatus();
-        loggingService.logPaymentStatusChange(payment, oldStatus, PaymentStatus.SUCCESS);
-
-        executeSuccessPostProcessing(payment, userId, actualPaymentAmount, originalAmount, processingTime);
-    }
+    private final UserTierService userTierService;
 
     public void processPaymentFailure(Payment payment, Long userId, String errorMessage,
                                      Exception exception, long processingTime) {
@@ -79,7 +67,7 @@ public class PaymentPostProcessService {
         );
     }
 
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processPaymentCancelAfterCommit(Long paymentId, Long userId, String reason) {
         Payment payment = paymentJpaAdapter.findById(paymentId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
@@ -115,7 +103,7 @@ public class PaymentPostProcessService {
         eventPublisher.publishPaymentCanceled(payment.getId(), userId, reason);
     }
 
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processPaymentRefundAfterCommit(Long paymentId, Long userId, BigDecimal refundAmount,
                                                BigDecimal refundPointAmount, String reason) {
         Payment payment = paymentJpaAdapter.findById(paymentId)
@@ -153,7 +141,7 @@ public class PaymentPostProcessService {
         eventPublisher.publishPaymentRefunded(payment.getId(), userId, reason);
     }
 
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processPaymentSuccessAfterCommit(Long paymentId, Long userId, BigDecimal actualPaymentAmount,
                                                  BigDecimal originalAmount, long processingTime) {
         Payment payment = paymentJpaAdapter.findById(paymentId)
@@ -186,6 +174,13 @@ public class PaymentPostProcessService {
         BigDecimal cashbackBasisAmount = cashbackAccrualPolicy.determineBasisAmount(
                 originalAmount, actualPaymentAmount, usedPointAmount);
         cashbackService.accumulateCashback(userId, payment.getId(), cashbackBasisAmount);
+
+        try {
+            userTierService.upgradeTierIfEligible(userId, originalAmount);
+        } catch (Exception tierException) {
+            log.error("티어 업그레이드 실패: userId={}, paymentId={}, error={}",
+                    userId, payment.getId(), tierException.getMessage(), tierException);
+        }
 
         log.debug("리워드 적립 완료: paymentId={}, pointPolicy={}, pointBasis={}, cashbackPolicy={}, cashbackBasis={}",
                 payment.getId(),

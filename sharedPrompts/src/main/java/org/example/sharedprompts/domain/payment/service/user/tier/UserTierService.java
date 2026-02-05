@@ -36,5 +36,10 @@ public interface UserTierService {
      * 사용자의 티어 변경 이력 조회
      */
     Page<UserTierHistoryResponseDto> getTierHistory(Long userId, Pageable pageable);
+
+    /**
+     * 결제 성공 시 티어 자동 업그레이드
+     */
+    void upgradeTierIfEligible(Long userId, java.math.BigDecimal paymentAmount);
 }
 

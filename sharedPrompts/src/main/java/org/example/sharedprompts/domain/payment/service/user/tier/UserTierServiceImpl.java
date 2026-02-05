@@ -19,6 +19,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+
 /**
  * 사용자 티어 서비스 구현체
  */
@@ -31,6 +33,7 @@ public class UserTierServiceImpl implements UserTierService {
     private final UserRepository userRepository;
     private final PaymentJpaAdapter paymentJpaAdapter;
     private final UserTierHistoryJpaAdapter tierHistoryJpaAdapter;
+    private final TierUpgradePolicy tierUpgradePolicy;
 
     @Override
     public UserTier getTier(Long userId) {
@@ -118,6 +121,35 @@ public class UserTierServiceImpl implements UserTierService {
         
         return tierHistoryJpaAdapter.findByUserIdWithFetchJoin(userId, pageable)
                 .map(UserTierHistoryResponseDto::from);
+    }
+
+    @Override
+    @Transactional
+    public void upgradeTierIfEligible(Long userId, BigDecimal paymentAmount) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+
+        BigDecimal totalPaymentAmount = paymentJpaAdapter.sumTotalPaymentAmount(userId, PaymentStatus.SUCCESS);
+        
+        UserTier currentTier = user.getTier();
+        UserTier calculatedTier = tierUpgradePolicy.calculateTier(totalPaymentAmount, currentTier);
+
+        if (calculatedTier.ordinal() > currentTier.ordinal()) {
+            log.info("티어 자동 업그레이드: userId={}, currentTier={}, newTier={}, totalPaymentAmount={}",
+                    userId, currentTier, calculatedTier, totalPaymentAmount);
+
+            UserTierHistory history = UserTierHistory.builder()
+                    .user(user)
+                    .previousTier(currentTier)
+                    .newTier(calculatedTier)
+                    .changedBy(userId)
+                    .reason("결제 성공으로 인한 자동 업그레이드")
+                    .build();
+            tierHistoryJpaAdapter.save(history);
+
+            user.changeTier(calculatedTier);
+            recalculateDailyLimit(userId);
+        }
     }
 }
 
