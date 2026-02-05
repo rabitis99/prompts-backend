@@ -5,7 +5,7 @@ import lombok.*;
 import org.example.sharedprompts.global.entity.BaseEntity;
 import org.example.sharedprompts.domain.user.enums.Provider;
 import org.example.sharedprompts.domain.user.enums.Role;
-import org.example.sharedprompts.domain.payment.enums.UserTier;
+import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
 
 import java.time.LocalDateTime;
 

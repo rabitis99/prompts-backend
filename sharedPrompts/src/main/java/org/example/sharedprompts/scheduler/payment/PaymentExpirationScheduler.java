@@ -4,12 +4,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
-import org.example.sharedprompts.domain.payment.Payment;
-import org.example.sharedprompts.domain.payment.properties.PaymentExpirationProperties;
-import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
-import org.example.sharedprompts.domain.payment.enums.PointType;
-import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
-import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
+import org.example.sharedprompts.domain.payment.domain.entity.Payment;
+import org.example.sharedprompts.domain.payment.config.properties.PaymentExpirationProperties;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
+import org.example.sharedprompts.domain.payment.domain.enums.PointType;
+import org.example.sharedprompts.domain.payment.infrastructure.monitoring.PaymentLoggingService;
+import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PaymentJpaAdapter;
 import org.example.sharedprompts.domain.payment.service.point.PointService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -37,7 +37,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PaymentExpirationScheduler {
 
-    private final PaymentRepository paymentRepository;
+    private final PaymentJpaAdapter paymentJpaAdapter;
     private final PointService pointService;
     private final PaymentExpirationProperties expirationProperties;
     private final PaymentLoggingService loggingService;
@@ -64,7 +64,7 @@ public class PaymentExpirationScheduler {
                 .minus(Duration.ofMinutes(expirationProperties.getExpirationMinutes()));
 
         // 만료된 PENDING 결제 조회 (복구되지 않은 포인트가 있는 결제만)
-        List<Payment> expiredPayments = paymentRepository.findExpiredPendingPayments(
+        List<Payment> expiredPayments = paymentJpaAdapter.findExpiredPendingPayments(
                 PaymentStatus.PENDING,
                 expirationTime
         );
@@ -129,7 +129,7 @@ public class PaymentExpirationScheduler {
         // 결제 상태를 FAILED로 변경 (만료 사유 기록)
         String expirationReason = String.format("결제 만료 (요청 후 %d분 경과)", expirationProperties.getExpirationMinutes());
         payment.markFailed(expirationReason);
-        paymentRepository.save(payment);
+        paymentJpaAdapter.save(payment);
 
         // 로깅
         loggingService.logPaymentStatusChange(payment, PaymentStatus.PENDING, PaymentStatus.FAILED);

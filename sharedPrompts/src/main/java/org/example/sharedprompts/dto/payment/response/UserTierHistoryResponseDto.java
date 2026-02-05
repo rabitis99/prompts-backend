@@ -5,8 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.sharedprompts.domain.payment.UserTierHistory;
-import org.example.sharedprompts.domain.payment.enums.UserTier;
+import org.example.sharedprompts.domain.payment.domain.entity.UserTierHistory;
+import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
 
 import java.time.LocalDateTime;
 

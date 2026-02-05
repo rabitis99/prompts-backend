@@ -2,7 +2,7 @@ package org.example.sharedprompts.controller.payment;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
+import org.example.sharedprompts.domain.payment.infrastructure.monitoring.PaymentLoggingService;
 import org.example.sharedprompts.global.annotation.AdminOnly;
 import org.example.sharedprompts.scheduler.payment.ExchangeRateScheduler;
 import org.springframework.http.ResponseEntity;

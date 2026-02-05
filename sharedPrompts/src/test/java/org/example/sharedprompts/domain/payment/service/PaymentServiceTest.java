@@ -1,12 +1,15 @@
 package org.example.sharedprompts.domain.payment.service;
 
-import org.example.sharedprompts.domain.payment.Payment;
-import org.example.sharedprompts.domain.payment.enums.*;
+import org.example.sharedprompts.domain.payment.domain.entity.Payment;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentUserType;
+import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
 import org.example.sharedprompts.domain.payment.repository.PaymentRepository;
 import org.example.sharedprompts.domain.payment.service.cashback.CashbackService;
 import org.example.sharedprompts.domain.payment.service.core.PaymentServiceImpl;
-import org.example.sharedprompts.domain.payment.service.event.PaymentEventPublisher;
-import org.example.sharedprompts.domain.payment.service.exchange.ExchangeRateService;
+import org.example.sharedprompts.domain.payment.infrastructure.messaging.event.PaymentEventPublisher;
+import org.example.sharedprompts.domain.payment.infrastructure.external.exchange.ExchangeRateService;
 import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderService;
 import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderServiceFactory;
 import org.example.sharedprompts.domain.payment.service.point.PointService;

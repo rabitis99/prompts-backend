@@ -1,9 +1,9 @@
 package org.example.sharedprompts.domain.payment.service.cashback.facade;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.Cashback;
-import org.example.sharedprompts.domain.payment.properties.RewardProperties;
-import org.example.sharedprompts.domain.payment.repository.cashback.CashbackRepository;
+import org.example.sharedprompts.domain.payment.domain.entity.Cashback;
+import org.example.sharedprompts.domain.payment.config.properties.RewardProperties;
+import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.CashbackJpaAdapter;
 import org.example.sharedprompts.domain.payment.service.cashback.amount.CashbackAmountService;
 import org.example.sharedprompts.domain.payment.service.cashback.execution.CashbackExecutionService;
 import org.example.sharedprompts.domain.payment.service.cashback.lock.CashbackLockService;
@@ -41,7 +41,7 @@ import java.math.BigDecimal;
 @Component
 public class CashbackFacade {
 
-    private final CashbackRepository cashbackRepository;
+    private final CashbackJpaAdapter cashbackJpaAdapter;
     private final RewardProperties rewardProperties;
     private final CashbackValidationService validationService;
     private final CashbackAmountService amountService;
@@ -54,14 +54,14 @@ public class CashbackFacade {
      * 상위 트랜잭션과 독립적으로 실행되어 락 획득 → 트랜잭션 시작 순서를 보장합니다.
      */
     public CashbackFacade(
-            CashbackRepository cashbackRepository,
+            CashbackJpaAdapter cashbackJpaAdapter,
             RewardProperties rewardProperties,
             CashbackValidationService validationService,
             CashbackAmountService amountService,
             CashbackExecutionService executionService,
             CashbackLockService lockService,
             org.springframework.transaction.PlatformTransactionManager transactionManager) {
-        this.cashbackRepository = cashbackRepository;
+        this.cashbackJpaAdapter = cashbackJpaAdapter;
         this.rewardProperties = rewardProperties;
         this.validationService = validationService;
         this.amountService = amountService;
@@ -76,7 +76,7 @@ public class CashbackFacade {
      */
     @Transactional(readOnly = true)
     public Page<CashbackResponseDto> getCashbackHistory(Long customerId, Pageable pageable) {
-        return cashbackRepository.findByUserIdWithFetchJoin(customerId, pageable)
+        return cashbackJpaAdapter.findByUserIdWithFetchJoin(customerId, pageable)
                 .map(CashbackResponseDto::from);
     }
 
@@ -133,7 +133,7 @@ public class CashbackFacade {
         lockService.executeWithLock(cashbackId, () -> {
             // 락 내에서 트랜잭션 실행
             transactionTemplate.executeWithoutResult(status -> {
-                Cashback cashback = cashbackRepository.findById(cashbackId)
+                Cashback cashback = cashbackJpaAdapter.findById(cashbackId)
                         .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "캐시백을 찾을 수 없습니다."));
 
                 // 검증
@@ -152,7 +152,7 @@ public class CashbackFacade {
      */
     @Transactional(readOnly = true)
     public Page<CashbackResponseDto> getUnpaidCashbacks(Long customerId, Pageable pageable) {
-        return cashbackRepository.findUnpaidByUserIdWithFetchJoin(customerId, pageable)
+        return cashbackJpaAdapter.findUnpaidByUserIdWithFetchJoin(customerId, pageable)
                 .map(CashbackResponseDto::from);
     }
 
@@ -161,7 +161,7 @@ public class CashbackFacade {
      */
     @Transactional(readOnly = true)
     public BigDecimal getUnpaidCashbackTotal(Long userId) {
-        BigDecimal total = cashbackRepository.getUnpaidCashbackTotal(userId);
+        BigDecimal total = cashbackJpaAdapter.getUnpaidCashbackTotal(userId);
         return total != null ? total : BigDecimal.ZERO;
     }
 
@@ -172,7 +172,7 @@ public class CashbackFacade {
      */
     @Transactional(readOnly = true)
     public BigDecimal getAllUnpaidCashbackTotal() {
-        BigDecimal total = cashbackRepository.getAllUnpaidCashbackTotal();
+        BigDecimal total = cashbackJpaAdapter.getAllUnpaidCashbackTotal();
         return total != null ? total : BigDecimal.ZERO;
     }
 
@@ -181,7 +181,7 @@ public class CashbackFacade {
      */
     @Transactional(readOnly = true)
     public Page<CashbackResponseDto> getAllUnpaidCashbacks(Pageable pageable) {
-        return cashbackRepository.findAllUnpaidWithFetchJoin(pageable)
+        return cashbackJpaAdapter.findAllUnpaidWithFetchJoin(pageable)
                 .map(CashbackResponseDto::from);
     }
 
@@ -201,7 +201,7 @@ public class CashbackFacade {
         lockService.executeWithLock(cashbackId, () -> {
             // 락 내에서 트랜잭션 실행
             transactionTemplate.executeWithoutResult(status -> {
-                Cashback cashback = cashbackRepository.findById(cashbackId)
+                Cashback cashback = cashbackJpaAdapter.findById(cashbackId)
                         .orElseThrow(() -> new ApiException(
                                 ErrorCode.NOT_FOUND,
                                 "캐시백을 찾을 수 없습니다."

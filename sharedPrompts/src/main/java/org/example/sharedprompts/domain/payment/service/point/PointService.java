@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.payment.service.point;
 
-import org.example.sharedprompts.domain.payment.enums.PointType;
+import org.example.sharedprompts.domain.payment.domain.enums.PointType;
 import org.example.sharedprompts.dto.payment.response.PointBalanceResponseDto;
 import org.example.sharedprompts.dto.payment.response.PointResponseDto;
 import org.springframework.data.domain.Page;

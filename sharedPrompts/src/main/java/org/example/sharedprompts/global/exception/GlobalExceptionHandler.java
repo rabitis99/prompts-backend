@@ -3,6 +3,7 @@ package org.example.sharedprompts.global.exception;
 import io.jsonwebtoken.JwtException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.domain.payment.domain.exception.PaymentMethodException;
 import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import jakarta.persistence.OptimisticLockException;
 import org.example.sharedprompts.global.exception.enums.OptimisticLockEntityType;
@@ -57,10 +58,12 @@ public class GlobalExceptionHandler {
     }
 
     // PaymentMethod 관련 예외 처리
-    @ExceptionHandler(org.example.sharedprompts.domain.payment.exception.PaymentMethodException.class)
-    public ResponseEntity<?> handlePaymentMethodException(org.example.sharedprompts.domain.payment.exception.PaymentMethodException e) {
+    // PaymentMethodException은 PaymentDomainException(ApiException)을 상속하므로
+    // 이미 ErrorCode와 메시지가 포함되어 있어 그대로 반환
+    @ExceptionHandler(PaymentMethodException.class)
+    public ResponseEntity<?> handlePaymentMethodException(PaymentMethodException e) {
         log.warn("PaymentMethodException: {}", e.getMessage());
-        return CustomResponseHelper.fail(new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "payment_method"));
+        return CustomResponseHelper.fail(e); // PaymentMethodException은 이미 ApiException이므로 그대로 반환
     }
 
     // Enum 변환 실패 등 IllegalArgumentException 처리
