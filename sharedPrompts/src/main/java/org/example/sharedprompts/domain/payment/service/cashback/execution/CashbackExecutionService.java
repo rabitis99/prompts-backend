@@ -2,10 +2,11 @@ package org.example.sharedprompts.domain.payment.service.cashback.execution;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.Cashback;
-import org.example.sharedprompts.domain.payment.enums.PointType;
-import org.example.sharedprompts.domain.payment.repository.cashback.CashbackRepository;
-import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
+import org.example.sharedprompts.domain.payment.domain.entity.Cashback;
+import org.example.sharedprompts.domain.payment.domain.entity.Payment;
+import org.example.sharedprompts.domain.payment.domain.enums.PointType;
+import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.CashbackJpaAdapter;
+import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PaymentJpaAdapter;
 import org.example.sharedprompts.domain.payment.service.point.PointService;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
@@ -28,9 +29,9 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor
 public class CashbackExecutionService {
 
-    private final CashbackRepository cashbackRepository;
+    private final CashbackJpaAdapter cashbackJpaAdapter;
     private final UserRepository userRepository;
-    private final PaymentRepository paymentRepository;
+    private final PaymentJpaAdapter paymentJpaAdapter;
     private final PointService pointService;
 
     /**
@@ -44,7 +45,7 @@ public class CashbackExecutionService {
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
         
         // Payment 엔티티 조회 (필수)
-        org.example.sharedprompts.domain.payment.Payment payment = paymentRepository.findById(paymentId)
+        Payment payment = paymentJpaAdapter.findById(paymentId)
                 .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "결제를 찾을 수 없습니다."));
         
         Cashback cashback = Cashback.builder()
@@ -57,7 +58,7 @@ public class CashbackExecutionService {
                 .paid(false)
                 .build();
 
-        cashback = cashbackRepository.save(cashback);
+        cashback = cashbackJpaAdapter.save(cashback);
         log.info("캐시백 적립 완료: paymentId={}, userId={}, amount={}", paymentId, userId, cashbackAmount);
         
         return cashback;
@@ -68,7 +69,7 @@ public class CashbackExecutionService {
      */
     @Transactional
     public void payCashback(Long userId, Long cashbackId) {
-        Cashback cashback = cashbackRepository.findById(cashbackId)
+        Cashback cashback = cashbackJpaAdapter.findById(cashbackId)
                 .orElseThrow(() -> new ApiException(
                         ErrorCode.NOT_FOUND,
                         "캐시백을 찾을 수 없습니다."
@@ -83,7 +84,7 @@ public class CashbackExecutionService {
      */
     @Transactional
     public void payCashbackForAdmin(Long cashbackId) {
-        Cashback cashback = cashbackRepository.findById(cashbackId)
+        Cashback cashback = cashbackJpaAdapter.findById(cashbackId)
                 .orElseThrow(() -> new ApiException(
                         ErrorCode.NOT_FOUND,
                         "캐시백을 찾을 수 없습니다."
@@ -119,7 +120,7 @@ public class CashbackExecutionService {
             
             // 지급 완료 처리 (도메인 메서드 사용)
             cashback.markAsPaid();
-            cashbackRepository.save(cashback);
+            cashbackJpaAdapter.save(cashback);
             
             if (isAdmin) {
                 log.info("캐시백 지급 완료 (관리자): cashbackId={}, userId={}, amount={}, paymentId={}", 

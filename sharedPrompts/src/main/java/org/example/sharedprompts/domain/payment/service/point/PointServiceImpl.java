@@ -2,12 +2,13 @@ package org.example.sharedprompts.domain.payment.service.point;
 
 import lombok.extern.slf4j.Slf4j;
 
-import org.example.sharedprompts.domain.payment.Point;
-import org.example.sharedprompts.domain.payment.properties.RewardProperties;
-import org.example.sharedprompts.domain.payment.enums.PointType;
-import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
-import org.example.sharedprompts.domain.payment.repository.point.PointRepository;
-import org.example.sharedprompts.domain.payment.service.lock.DistributedLockService;
+import org.example.sharedprompts.domain.payment.domain.entity.Point;
+import org.example.sharedprompts.domain.payment.config.properties.RewardProperties;
+import org.example.sharedprompts.domain.payment.domain.entity.Payment;
+import org.example.sharedprompts.domain.payment.domain.enums.PointType;
+import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PaymentJpaAdapter;
+import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PointJpaAdapter;
+import org.example.sharedprompts.domain.payment.infrastructure.transaction.DistributedLockService;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.dto.payment.request.PointUseRequestDto;
@@ -65,10 +66,10 @@ import java.util.function.Supplier;
 @Transactional(readOnly = true)
 public class PointServiceImpl implements PointService {
 
-    private final PointRepository pointRepository;
+    private final PointJpaAdapter pointJpaAdapter;
     private final RewardProperties rewardProperties;
     private final UserRepository userRepository;
-    private final PaymentRepository paymentRepository;
+    private final PaymentJpaAdapter paymentJpaAdapter;
     /**
      * 분산락 추상화 계층 (테스트/인프라 분리 목적)
      */
@@ -76,16 +77,16 @@ public class PointServiceImpl implements PointService {
     private final TransactionTemplate transactionTemplate;
 
     public PointServiceImpl(
-            PointRepository pointRepository,
+            PointJpaAdapter pointJpaAdapter,
             RewardProperties rewardProperties,
             UserRepository userRepository,
-            PaymentRepository paymentRepository,
+            PaymentJpaAdapter paymentJpaAdapter,
             DistributedLockService distributedLockService,
             PlatformTransactionManager transactionManager) {
-        this.pointRepository = pointRepository;
+        this.pointJpaAdapter = pointJpaAdapter;
         this.rewardProperties = rewardProperties;
         this.userRepository = userRepository;
-        this.paymentRepository = paymentRepository;
+        this.paymentJpaAdapter = paymentJpaAdapter;
         this.distributedLockService = distributedLockService;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         // REQUIRES_NEW 전파로 설정하여 상위 트랜잭션과 독립적으로 실행
@@ -140,7 +141,7 @@ public class PointServiceImpl implements PointService {
      */
     @Override
     public BigDecimal getCurrentBalance(Long userId) {
-        return pointRepository.getCurrentBalance(userId);
+        return pointJpaAdapter.getCurrentBalance(userId);
     }
 
     @Override
@@ -154,20 +155,20 @@ public class PointServiceImpl implements PointService {
 
     @Override
     public Page<PointResponseDto> getPointHistory(Long userId, Pageable pageable) {
-        return pointRepository.findByUserIdWithFetchJoin(userId, pageable)
+        return pointJpaAdapter.findByUserIdWithFetchJoin(userId, pageable)
                 .map(PointResponseDto::from);
     }
 
     @Override
     public Page<PointResponseDto> getPointsByPayment(Long paymentId, Long userId, Pageable pageable) {
-        Page<Point> points = pointRepository.findByPaymentIdAndUserIdWithFetchJoin(paymentId, userId, pageable);
+        Page<Point> points = pointJpaAdapter.findByPaymentIdAndUserIdWithFetchJoin(paymentId, userId, pageable);
         return points.map(PointResponseDto::from);
     }
 
     @Override
     public Page<PointResponseDto> getPointsByPaymentForAdmin(Long paymentId, Pageable pageable) {
         // 관리자는 소유권 검증 없이 모든 결제의 포인트 조회 가능
-        Page<Point> points = pointRepository.findByPaymentIdWithFetchJoin(paymentId, pageable);
+        Page<Point> points = pointJpaAdapter.findByPaymentIdWithFetchJoin(paymentId, pageable);
         return points.map(PointResponseDto::from);
     }
 
@@ -226,9 +227,9 @@ public class PointServiceImpl implements PointService {
         BigDecimal newBalance = lastBalance.add(pointAmount);
 
         // Payment 엔티티 조회 및 검증 (paymentId가 있는 경우만)
-        org.example.sharedprompts.domain.payment.Payment payment = null;
+        Payment payment = null;
         if (paymentId != null) {
-            payment = paymentRepository.findById(paymentId)
+            payment = paymentJpaAdapter.findById(paymentId)
                     .orElseThrow(() -> new ApiException(
                             ErrorCode.INVALID_INPUT_VALUE, "유효하지 않은 결제 ID입니다: paymentId=" + paymentId));
             
@@ -242,7 +243,7 @@ public class PointServiceImpl implements PointService {
             
             // 멱등성 체크: paymentId + userId + PointType 조합이 이미 존재하면 스킵
             // 소유자 검증 후 수행하여 다른 사용자의 paymentId로 우회 불가
-            if (pointRepository.existsByPaymentIdAndUserIdAndType(paymentId, userId, type)) {
+            if (pointJpaAdapter.existsByPaymentIdAndUserIdAndType(paymentId, userId, type)) {
                 log.info("포인트 적립 스킵 (이미 처리됨): userId={}, paymentId={}, type={}", userId, paymentId, type);
                 return;
             }
@@ -258,7 +259,7 @@ public class PointServiceImpl implements PointService {
                 .expired(false)
                 .build();
 
-        pointRepository.save(point);
+        pointJpaAdapter.save(point);
     }
 
     /**
@@ -273,7 +274,7 @@ public class PointServiceImpl implements PointService {
         BigDecimal newBalance = lastBalance.subtract(amount);
         Point point = createUsePoint(user, amount, description, newBalance);
         
-        pointRepository.save(point);
+        pointJpaAdapter.save(point);
     }
 
     /**
@@ -293,7 +294,7 @@ public class PointServiceImpl implements PointService {
      * - 권장: balance 필드 대신 항상 집계 쿼리 사용 (향후 개선 필요)
      */
     private BigDecimal getLastBalance(Long userId) {
-        List<Point> latestPoints = pointRepository.findLatestPointByUserId(userId);
+        List<Point> latestPoints = pointJpaAdapter.findLatestPointByUserId(userId);
         if (latestPoints.isEmpty()) {
             return BigDecimal.ZERO;
         }
@@ -331,7 +332,7 @@ public class PointServiceImpl implements PointService {
      */
     private BigDecimal calculateExpiringSoon(Long userId) {
         LocalDateTime expiryDate = LocalDateTime.now().plusDays(30);
-        return pointRepository.findExpiringPoints(userId, expiryDate)
+        return pointJpaAdapter.findExpiringPoints(userId, expiryDate)
                 .stream()
                 .filter(p -> !p.isExpired() && p.getAmount().compareTo(BigDecimal.ZERO) > 0)
                 .map(Point::getAmount)

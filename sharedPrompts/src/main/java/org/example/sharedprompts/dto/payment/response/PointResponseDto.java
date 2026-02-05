@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.sharedprompts.domain.payment.Point;
+import org.example.sharedprompts.domain.payment.domain.entity.Point;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

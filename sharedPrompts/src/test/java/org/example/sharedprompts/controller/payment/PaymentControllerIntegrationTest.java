@@ -1,11 +1,8 @@
 package org.example.sharedprompts.controller.payment;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.example.sharedprompts.domain.auth.AuthUser;
-import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
-import org.example.sharedprompts.domain.payment.enums.PaymentUserType;
-import org.example.sharedprompts.domain.user.enums.Provider;
-import org.example.sharedprompts.domain.user.enums.Role;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentUserType;
 import org.example.sharedprompts.dto.payment.request.PaymentRequestDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

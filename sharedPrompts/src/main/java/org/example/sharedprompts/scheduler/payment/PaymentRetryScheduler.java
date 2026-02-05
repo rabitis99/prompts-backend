@@ -4,14 +4,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
-import org.example.sharedprompts.domain.payment.Payment;
-import org.example.sharedprompts.domain.payment.properties.RetryProperties;
-import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
-import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
-import org.example.sharedprompts.domain.payment.facade.PaymentRetryFacade;
-import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
-import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
-import org.example.sharedprompts.domain.payment.service.execution.PaymentExecutionService;
+import org.example.sharedprompts.domain.payment.domain.entity.Payment;
+import org.example.sharedprompts.domain.payment.config.properties.RetryProperties;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
+import org.example.sharedprompts.domain.payment.application.facade.PaymentRetryFacade;
+import org.example.sharedprompts.domain.payment.infrastructure.monitoring.PaymentLoggingService;
+import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PaymentJpaAdapter;
+import org.example.sharedprompts.domain.payment.application.command.PaymentExecutionService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PaymentRetryScheduler {
 
-    private final PaymentRepository paymentRepository;
+    private final PaymentJpaAdapter paymentJpaAdapter;
     private final PaymentExecutionService executionService;
     private final RetryProperties retryProperties;
     private final PaymentRetryFacade retryFacade;
@@ -55,7 +55,7 @@ public class PaymentRetryScheduler {
         log.info("PaymentRetryScheduler started");
 
         // nextRetryAt 기반으로 재시도 가능한 결제 조회 (PENDING 상태만)
-        List<Payment> pendingPayments = paymentRepository.findRetryablePayments(
+        List<Payment> pendingPayments = paymentJpaAdapter.findRetryablePayments(
                 PaymentStatus.PENDING,
                 retryProperties.getMaxAttempts(),
                 LocalDateTime.now()

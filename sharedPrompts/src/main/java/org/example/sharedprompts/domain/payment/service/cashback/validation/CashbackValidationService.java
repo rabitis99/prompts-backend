@@ -2,8 +2,8 @@ package org.example.sharedprompts.domain.payment.service.cashback.validation;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.Cashback;
-import org.example.sharedprompts.domain.payment.repository.cashback.CashbackRepository;
+import org.example.sharedprompts.domain.payment.domain.entity.Cashback;
+import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.CashbackJpaAdapter;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class CashbackValidationService {
 
-    private final CashbackRepository cashbackRepository;
+    private final CashbackJpaAdapter cashbackJpaAdapter;
 
     /**
      * 중복 적립 방지 검증
@@ -29,7 +29,7 @@ public class CashbackValidationService {
      * @return 이미 적립된 경우 true, 아니면 false
      */
     public boolean isAlreadyAccumulated(Long paymentId) {
-        boolean exists = cashbackRepository.findByPaymentId(paymentId).isPresent();
+        boolean exists = cashbackJpaAdapter.findByPaymentId(paymentId).isPresent();
         if (exists) {
             log.warn("이미 캐시백이 적립된 결제입니다: paymentId={}", paymentId);
         }

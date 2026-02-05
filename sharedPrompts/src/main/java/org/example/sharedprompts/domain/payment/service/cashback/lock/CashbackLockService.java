@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.payment.service.cashback.lock;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.service.lock.DistributedLockService;
+import org.example.sharedprompts.domain.payment.infrastructure.transaction.DistributedLockService;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;

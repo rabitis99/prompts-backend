@@ -8,8 +8,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.sharedprompts.domain.payment.Point;
-import org.example.sharedprompts.domain.payment.enums.PointType;
+import org.example.sharedprompts.domain.payment.domain.entity.Point;
+import org.example.sharedprompts.domain.payment.domain.enums.PointType;
 import org.example.sharedprompts.domain.user.User;
 
 import java.math.BigDecimal;
