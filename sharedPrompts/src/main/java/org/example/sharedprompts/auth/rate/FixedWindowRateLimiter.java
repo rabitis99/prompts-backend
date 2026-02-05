@@ -1,8 +1,9 @@
 package org.example.sharedprompts.auth.rate;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.lua.LuaScripts;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
@@ -15,13 +16,17 @@ import java.util.List;
  * - LuaScripts.INCREMENT_WITH_TTL 스크립트를 사용해 INCR + EXPIRE를 원자적으로 수행합니다.
  * - 고정 윈도우(window) 방식으로 분 단위 요청 횟수를 제한합니다.
  * - 시간 윈도우가 고정되어 있어 윈도우 경계에서 버스트가 발생할 수 있습니다.
+ * 
+ * 주의: StringRedisTemplate을 사용하여 숫자 값을 문자열로 저장합니다.
+ * INCR 명령은 숫자 문자열에만 작동하므로, JSON 직렬화를 사용하는 RedisTemplate<String, Object>는 사용하지 않습니다.
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class FixedWindowRateLimiter implements RateLimiter {
 
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate redisTemplate;
     
     /**
      * Lua 스크립트 객체를 정적 필드로 캐시하여 재사용합니다.
@@ -89,11 +94,35 @@ public class FixedWindowRateLimiter implements RateLimiter {
     }
 
     private List<Long> executeIncrementWithTtl(String key, long windowSeconds) {
-        return redisTemplate.execute(
+        // 스크립트 실행 전 Redis 상태 확인
+        Long ttlBefore = redisTemplate.getExpire(key);
+        Boolean existsBefore = redisTemplate.hasKey(key);
+        
+        List<Long> result = redisTemplate.execute(
                 INCREMENT_WITH_TTL_SCRIPT,
                 Collections.singletonList(key),
                 String.valueOf(windowSeconds)
         );
+        
+        // 스크립트 실행 후 Redis 상태 확인
+        Long ttlAfter = redisTemplate.getExpire(key);
+        
+        // 디버깅: TTL이 -1인 경우 상세 로그 출력
+        if (result != null && result.size() >= 2) {
+            long currentCount = result.get(0);
+            long ttl = result.get(1);
+            if (ttl == -1) {
+                // TTL이 -1인 경우는 키가 존재하지만 TTL이 설정되지 않은 상태
+                log.error("[Rate Limit TTL Issue] Key: {}, Count: {}, TTL: -1, WindowSeconds: {}. " +
+                        "Before: exists={}, ttl={}. After: ttl={}. " +
+                        "This key exists but has no TTL. The script should have set TTL.", 
+                        key, currentCount, windowSeconds, existsBefore, ttlBefore, ttlAfter);
+            } else {
+                log.debug("[Rate Limit] Key: {}, Count: {}, TTL: {}s", key, currentCount, ttl);
+            }
+        }
+        
+        return result;
     }
 }
 

@@ -39,7 +39,7 @@ public class PayPalWebhookVerifier {
      * Webhook 서명 검증
      * 
      * <p>PayPal은 POST /v1/notifications/verify-webhook-signature 엔드포인트를 사용합니다.
-     * signature 파라미터는 JSON 형태로 다음 헤더 정보를 포함해야 합니다:
+     * (권장) headers(Map) 기반으로 다음 헤더 정보를 전달받아 검증합니다:
      * - transmissionId: PAYPAL-TRANSMISSION-ID 헤더
      * - transmissionTime: PAYPAL-TRANSMISSION-TIME 헤더
      * - certUrl: PAYPAL-CERT-URL 헤더
@@ -47,16 +47,16 @@ public class PayPalWebhookVerifier {
      * - transmissionSig: PAYPAL-TRANSMISSION-SIG 헤더
      * 
      * @param payload Webhook 페이로드 (필수)
-     * @param signature 서명 정보 (JSON 형태, 필수)
+     * @param headers 서명 검증에 필요한 PayPal 헤더들
      * @return 검증 성공 여부
      */
-    public boolean verify(String payload, String signature) {
+    public boolean verify(String payload, Map<String, String> headers) {
         if (payload == null || payload.isEmpty()) {
             log.warn("PayPal Webhook 검증 실패: payload가 비어있습니다");
             return false;
         }
-        if (signature == null || signature.isEmpty()) {
-            log.warn("PayPal Webhook 검증 실패: signature가 비어있습니다");
+        if (headers == null || headers.isEmpty()) {
+            log.warn("PayPal Webhook 검증 실패: headers가 비어있습니다");
             return false;
         }
 
@@ -67,15 +67,19 @@ public class PayPalWebhookVerifier {
                 return false;
             }
 
-            // signature 파라미터에서 PayPal 헤더 정보 파싱
-            @SuppressWarnings("unchecked")
-            Map<String, String> signatureData = objectMapper.readValue(signature, Map.class);
+            // 헤더 키는 클라이언트/서버에 따라 대소문자 변형이 있을 수 있으므로 case-insensitive로 접근
+            Map<String, String> normalized = new HashMap<>();
+            for (Map.Entry<String, String> e : headers.entrySet()) {
+                if (e.getKey() != null) {
+                    normalized.put(e.getKey().toLowerCase(), e.getValue());
+                }
+            }
 
-            String transmissionId = signatureData.get("transmissionId");
-            String transmissionTime = signatureData.get("transmissionTime");
-            String certUrl = signatureData.get("certUrl");
-            String authAlgo = signatureData.get("authAlgo");
-            String transmissionSig = signatureData.get("transmissionSig");
+            String transmissionId = normalized.get("paypal-transmission-id");
+            String transmissionTime = normalized.get("paypal-transmission-time");
+            String certUrl = normalized.get("paypal-cert-url");
+            String authAlgo = normalized.get("paypal-auth-algo");
+            String transmissionSig = normalized.get("paypal-transmission-sig");
 
             if (transmissionId == null || transmissionSig == null) {
                 log.warn("PayPal Webhook 서명 검증에 필요한 헤더가 누락되었습니다");
@@ -83,7 +87,7 @@ public class PayPalWebhookVerifier {
             }
 
             // PayPal verify-webhook-signature API 호출
-            HttpHeaders headers = headersProvider.createJsonHeaders();
+            HttpHeaders requestHeaders = headersProvider.createJsonHeaders();
 
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("auth_algo", authAlgo);
@@ -94,7 +98,7 @@ public class PayPalWebhookVerifier {
             requestBody.put("webhook_id", webhookId);
             requestBody.put("webhook_event", objectMapper.readValue(payload, Map.class));
 
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, requestHeaders);
 
             String verifyEndpoint = properties.getBaseUrl() + VERIFY_ENDPOINT_PATH;
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
@@ -119,6 +123,24 @@ public class PayPalWebhookVerifier {
             return false;
         } catch (Exception e) {
             log.error("PayPal Webhook 서명 검증 실패: error={}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * 하위 호환: signature(JSON) 문자열로 전달받던 구버전 API
+     */
+    public boolean verify(String payload, String signature) {
+        if (signature == null || signature.isEmpty()) {
+            log.warn("PayPal Webhook 검증 실패: signature가 비어있습니다");
+            return false;
+        }
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, String> signatureData = objectMapper.readValue(signature, Map.class);
+            return verify(payload, signatureData);
+        } catch (Exception e) {
+            log.error("PayPal Webhook signature(JSON) 파싱 실패: error={}", e.getMessage(), e);
             return false;
         }
     }

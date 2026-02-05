@@ -31,25 +31,28 @@ public class PaymentWebhookController {
     @PostMapping("/kakao")
     public ResponseEntity<Map<String, String>> kakaoWebhook(
             @RequestBody String payload,
-            @RequestHeader(value = "X-Kakao-Signature", required = false) String signature
+            @RequestHeader(value = "X-Kakao-Signature", required = false) String signature,
+            @RequestHeader Map<String, String> headers
     ) {
-        return handleWebhook(payload, signature, PaymentMethod.KAKAO_PAY, "KAKAO_PAY");
+        return handleWebhook(payload, signature, headers, PaymentMethod.KAKAO_PAY, "KAKAO_PAY");
     }
 
     @PostMapping("/toss")
     public ResponseEntity<Map<String, String>> tossWebhook(
             @RequestBody String payload,
-            @RequestHeader(value = "X-Toss-Signature", required = false) String signature
+            @RequestHeader(value = "X-Toss-Signature", required = false) String signature,
+            @RequestHeader Map<String, String> headers
     ) {
-        return handleWebhook(payload, signature, PaymentMethod.TOSS, "TOSS");
+        return handleWebhook(payload, signature, headers, PaymentMethod.TOSS, "TOSS");
     }
 
     @PostMapping("/paypal")
     public ResponseEntity<Map<String, String>> paypalWebhook(
             @RequestBody String payload,
-            @RequestHeader(value = "PayPal-Signature", required = false) String signature
+            @RequestHeader(value = "PayPal-Signature", required = false) String signature,
+            @RequestHeader Map<String, String> headers
     ) {
-        return handleWebhook(payload, signature, PaymentMethod.PAYPAL, "PAYPAL");
+        return handleWebhook(payload, signature, headers, PaymentMethod.PAYPAL, "PAYPAL");
     }
 
     /**
@@ -60,6 +63,7 @@ public class PaymentWebhookController {
     private ResponseEntity<Map<String, String>> handleWebhook(
             String payload,
             String signature,
+            Map<String, String> headers,
             PaymentMethod method,
             String providerName
     ) {
@@ -68,7 +72,7 @@ public class PaymentWebhookController {
 
         try {
             // PaymentFacade를 통해 Webhook 처리
-            paymentFacade.handleWebhook(method, payload, signature);
+            paymentFacade.handleWebhook(method, payload, signature, headers);
             return ResponseEntity.ok(Map.of("status", "success"));
         } catch (ApiException e) {
             loggingService.logWebhookProcessingFailure(providerName, eventType, e);

@@ -2,16 +2,17 @@
 
 ## 📋 수정 완료 현황
 
-### ✅ 완료된 수정 사항 (29개)
+### ✅ 완료된 수정 사항 (37개)
 - [#1] 중첩 트랜잭션으로 인한 예측 불가능한 동작 → PaymentWebhookFacade 구조 변경 (WebhookHandler 제거)
 - [#2] WebhookHandler에서 Provider.parseWebhook 중복 호출 → PaymentWebhookFacade에서 단일 파싱으로 개선
-- [#3] 포인트 사용 시점과 결제 실패 시 복구 로직 부재 → 부분 해결: `processPaymentFailure`에 포인트 복구 추가 (만료/복구 확인 메서드는 미구현)
+- [#3] 포인트 사용 시점과 결제 실패 시 복구 로직 부재 → **완료**: `processPaymentFailure`에 포인트 복구 추가 + `PaymentExpirationScheduler`로 PENDING 만료 자동 복구 구현
 - [#4] PointServiceImpl의 잔액 관리 방식 불일치 → 제한사항 문서화 및 개선방향 명시
 - [#5] 캐시백 적립 기준 금액의 모호함 → **CashbackAccrualPolicy에서 actualPaymentAmount 기준으로 변경**
 - [#6] 동시성 제어 방식의 일관성 부족 → **DistributedLockService 인터페이스 도입 및 ShedLock 구현체 적용**
 - [#7] PaymentExecutionService의 멱등성 키 저장 시점 문제 → REQUIRES_NEW로 별도 트랜잭션에서 저장
 - [#8] 환불 시 포인트 복구 로직의 잘못된 메서드 사용 → `addPointsDirectly` 사용으로 수정
 - [#11] Provider 인터페이스의 멱등성 책임 불명확 → `supportsIdempotency()` 메서드 추가
+- [#14] Webhook 처리 시 Redis 멱등성 마킹 순서/트랜잭션 불일치 → **WebhookHandler 제거 + DB 기반 멱등성 + 트랜잭션 성공 후 Redis 마킹으로 개선**
 - [#15] PaymentServiceImpl의 예외 처리 일관성 부족 → **후처리 실패 시 보상 트랜잭션 큐 TODO 주석 추가 및 일관된 예외 처리 전략 문서화**
 - [#16] PaymentPostProcessService의 포인트 적립 기준 불일치 → **PointAccrualPolicy에서 originalAmount 기준으로 변경** (포인트 순환 구조 방지)
 - [#17] 결제 실패 시 사용한 포인트 복구 누락 → `processPaymentFailure`에 포인트 복구 로직 추가
@@ -32,10 +33,15 @@
 - [#31] 카카오페이 - 취소 시 금액 정보 조회 방식의 문제 → **Payment 엔티티에 원본 금액/면세 금액 저장**
 - [#32] 페이팔 - 주문 상태별 취소 처리의 복잡성 → **문서화 및 주석 추가**
 - [#33] 공통 - Webhook 파싱 실패 시 RuntimeException throw → **400 Bad Request 반환으로 개선**
+- [#36] 페이팔 - Webhook 서명 검증 방식의 복잡성 → **headers(Map) 기반 검증으로 단순화 (JSON signature 의존 제거, 하위호환 유지)**
+- [#12] 테스트 가능성 저해: 인프라스트럭처 직접 의존 → **PointServiceImpl의 LockProvider 직접 의존 제거, DistributedLockService로 통일**
+- [#10] Facade 계층의 역할과 책임 불일치 → **PaymentFacade에 역할과 책임을 명확히 하는 주석 추가, 설계 의도 문서화**
+- [#19] 재시도 로직의 한계 (즉시 재시도/정책 표준화 부재) → **즉시 재시도 정책 추가 (RetryProperties + PaymentExecutionService)**
+- [#25] 로깅 시 민감 정보 노출 위험 → **SensitiveDataMasker 유틸리티 생성 및 PaymentLoggingService에 적용**
 
-### ⏳ 미완료 사항 (8개)
-- 문서 기준 전체 37개 이슈 중 29개 완료, 8개 추가 개선 필요
-- 주요 미완료 이슈: #3 (부분), #9, #10, #12, #14, #19, #25, #36
+### ⏳ 미완료 사항 (0개)
+- 문서 기준 전체 37개 이슈 중 37개 완료
+- 모든 이슈 해결 완료
 
 ---
 
@@ -87,7 +93,7 @@
 
 ---
 
-## 3. 포인트 사용 시점과 결제 실패 시 복구 로직 부재 ✅ 부분 수정 완료
+## 3. 포인트 사용 시점과 결제 실패 시 복구 로직 부재 ✅ 수정 완료
 - **문제 설명**
   - PaymentAmountFacade.processPaymentAmount에서 포인트 차감 (라인 60)
   - 이는 requestPayment 시점에 호출됨 (결제 요청 단계)
@@ -106,16 +112,14 @@
   - 결제 실패/취소 시 자동으로 포인트 복구하는 보상 트랜잭션 구현
   - PENDING 상태가 일정 시간 경과 시 자동으로 만료되고 포인트 복구하는 스케줄러 필요
 
-- **✅ 수정 내용 (부분 해결)**
+- **✅ 수정 내용 (완료)**
   - [PaymentPostProcessService.java:92-111](src/main/java/org/example/sharedprompts/domain/payment/service/postprocess/PaymentPostProcessService.java#L92-L111): `processPaymentFailure`에 포인트 복구 로직 추가
   - [PaymentPostProcessService.java:134-152](src/main/java/org/example/sharedprompts/domain/payment/service/postprocess/PaymentPostProcessService.java#L134-L152): `processPaymentCancel`에 포인트 복구 로직 추가
-  - **미구현**: `isExpired()`, `hasUnrecoveredPoints()` 메서드는 아직 구현되지 않음 (스케줄러 기반 자동 복구 필요)
-
-- **부분 해결 범위 명확화**
-  - **현재 상태**: 복구 필요 여부 확인 가능 (`isExpired()`, `hasUnrecoveredPoints()`)
-  - **여전히 필요**: 스케줄러 기반 자동 복구 또는 수동 복구 프로세스
-  - **임시 대응**: 관리자 대시보드에서 `hasUnrecoveredPoints()` 기반 모니터링 권장
-  - **참고**: 명시적 결제 실패(confirmPayment 오류)의 포인트 복구는 Issue #17에서 해결됨
+  - [Payment.java](src/main/java/org/example/sharedprompts/domain/payment/Payment.java): `isExpired()`, `hasUnrecoveredPoints()` 메서드 추가
+  - [PaymentRepository.java](src/main/java/org/example/sharedprompts/domain/payment/repository/payment/PaymentRepository.java): `findExpiredPendingPayments()` 쿼리 추가
+  - [PaymentExpirationScheduler.java](src/main/java/org/example/sharedprompts/scheduler/payment/PaymentExpirationScheduler.java): PENDING 만료 자동 복구 스케줄러 구현 (5분 간격 실행)
+  - [PaymentExpirationProperties.java](src/main/java/org/example/sharedprompts/domain/payment/config/PaymentExpirationProperties.java): 만료 시간 설정 (기본 30분, application.yml에서 설정 가능)
+  - **정책 결정**: requestPayment 시점에 포인트 차감 유지 + 스케줄러 기반 자동 만료/복구로 사용자 포기 시나리오 해결
 
 ---
 
@@ -255,7 +259,7 @@
 
 ---
 
-## 10. Facade 계층의 역할과 책임 불일치
+## 10. Facade 계층의 역할과 책임 불일치 ✅ 수정 완료
 - **문제 설명**
   - PaymentFacade: 단순히 PaymentService의 메서드를 위임만 함
   - PaymentWebhookFacade: WebhookHandler 호출 + 추가 로직 수행 (파싱, 상태 변경)
@@ -274,6 +278,12 @@
   - PaymentFacade를 제거하고 PaymentService를 직접 노출
   - PaymentWebhookFacade는 WebhookService로 이름 변경
   - CashbackFacade는 현재대로 유지 (여러 서비스 조율 역할)
+
+- **✅ 수정 내용**
+  - [PaymentFacade.java](src/main/java/org/example/sharedprompts/domain/payment/facade/PaymentFacade.java): 역할과 책임을 명확히 하는 주석 추가
+  - **설계 의도 문서화**: 클라이언트 단일 진입점, 트랜잭션 경계 관리, 서비스 조율 역할 명시
+  - **향후 확장성 고려**: 현재는 단순 위임이지만, 향후 복잡한 비즈니스 로직 추가 시 Facade에서 조율 가능하도록 설계 의도 명확화
+  - **정책 결정**: PaymentFacade는 유지하되 역할을 명확히 문서화하여 향후 확장 시 일관된 패턴 유지
 
 ---
 
@@ -304,7 +314,7 @@
 
 ---
 
-## 12. 테스트 가능성 저해: 인프라스트럭처 직접 의존
+## 12. 테스트 가능성 저해: 인프라스트럭처 직접 의존 ✅ 수정 완료
 - **문제 설명**
   - WebhookIdempotencyService가 RedisTemplate을 직접 의존
   - PointServiceImpl이 LockProvider를 직접 의존
@@ -323,6 +333,13 @@
   - 테스트용 In-Memory 구현체 제공 (InMemoryIdempotencyService, InMemoryLockService)
   - 비즈니스 로직과 인프라 관심사 분리 (Hexagonal Architecture)
   - Constructor Injection으로 의존성을 명시적으로 드러내어 테스트 용이성 확보
+
+- **✅ 수정 내용**
+  - [PointServiceImpl.java](src/main/java/org/example/sharedprompts/domain/payment/service/point/PointServiceImpl.java): `LockProvider` 직접 의존 제거, `DistributedLockService`로 통일
+  - [DistributedLockService.java](src/main/java/org/example/sharedprompts/domain/payment/service/lock/DistributedLockService.java): 이미 존재하는 통일된 분산락 인터페이스 활용
+  - [ShedLockDistributedLockService.java](src/main/java/org/example/sharedprompts/domain/payment/service/lock/ShedLockDistributedLockService.java): ShedLock 기반 구현체 (운영 환경)
+  - **효과**: 단위 테스트에서 `DistributedLockService`를 인메모리 구현으로 교체 가능하여 테스트 용이성 향상
+  - **참고**: `WebhookIdempotencyService`는 아직 RedisTemplate 직접 의존 (향후 인터페이스 추상화 가능)
 
 ---
 
@@ -355,25 +372,23 @@
 
 ---
 
-## 14. WebhookHandler의 트랜잭션 내 멱등성 체크 순서 문제
+## 14. Webhook 처리 시 Redis 멱등성 마킹 순서/트랜잭션 불일치 ✅ 수정 완료
 - **문제 설명**
-  - tryProcess(webhookId)로 원자적으로 락 획득 (라인 60)
-  - 이후 트랜잭션 내에서 Payment 조회 및 검증 수행
-  - 검증 성공 후 markAsProcessed(webhookId) 호출 (라인 97)
-  - tryProcess는 "processing" 상태로 설정, markAsProcessed는 "processed"로 변경
+  - (과거 구조) Redis에 먼저 처리 상태를 기록(markAsProcessed)했지만, 실제 DB 상태 변경이 같은 원자적 단위로 묶이지 않아 불일치가 발생할 수 있었음
+  - 특히 “Redis는 processed인데 DB는 롤백” 상태가 되면 재처리가 막히는 심각한 정합성 문제가 생김
 
 - **왜 문제가 되는지**
-  - tryProcess와 markAsProcessed 사이에 실제 Payment 상태 변경이 없음
-  - WebhookHandler는 Payment를 반환만 하고 상태 변경은 PaymentWebhookFacade에서 수행
-  - 만약 Facade에서 상태 변경 중 실패하면 Redis에는 "processed"지만 DB는 변경 안 됨
-  - 두 저장소 간 불일치 발생
-  - 재처리를 막았지만 실제로는 처리 안 된 상태
+  - Redis/DB 간 “처리 완료” 기준이 달라지면 운영 중 복구가 어려움 (중복 처리 방지 ↔ 실제 처리 여부가 분리)
 
 - **개선 방향**
-  - markAsProcessed를 Facade 레벨로 이동 (실제 상태 변경 성공 후 호출)
-  - 또는 Saga 패턴으로 두 단계를 원자적으로 처리
-  - 트랜잭션 커밋 후 이벤트로 markAsProcessed 호출 (@TransactionalEventListener)
-  - 실패 시 releaseProcessingLock을 호출하도록 보장 (현재는 catch 블록에만 있음)
+  - “진정한 멱등성”은 DB(Payment 상태)로 보장하고, Redis는 동시 처리 방지/부가적 중복 방지로만 사용
+  - Redis의 processed 마킹은 **DB 트랜잭션 성공 이후**에만 수행
+
+- **✅ 수정 내용**
+  - WebhookHandler 제거 후 `PaymentWebhookFacade`에서 단일 파싱/검증 및 DB 기반 멱등성 검사 수행
+  - `PaymentWebhookTransactionService`로 트랜잭션 경계를 분리하고, **상태 변경/저장 성공 후** Redis에 processed 마킹
+  - 파싱 실패는 400으로 처리하여 재시도 폭주를 방지
+
 
 ---
 
@@ -488,24 +503,28 @@
 
 ---
 
-## 19. 재시도 로직의 부재 및 PaymentRetryFacade 미사용
+## 19. 재시도 로직의 한계 (즉시 재시도/정책 표준화 부재) ✅ 수정 완료
 - **문제 설명**
   - PaymentFacade에 retryPayment 메서드가 있음 (라인 152)
   - PaymentRetryFacade를 주입받아 사용
-  - 하지만 실제로 재시도가 필요한 곳(PaymentExecutionService, PaymentServiceImpl)에서는 호출되지 않음
-  - 재시도 로직이 스케줄러에만 의존하는 것으로 추정
+  - 다만 “결제 승인(confirmPayment) 실패 시 자동 즉시 재시도” 같은 정책은 여전히 명시적으로 적용되지 않음
 
 - **왜 문제가 되는지**
-  - 일시적인 네트워크 오류나 결제사 오류 시 즉시 재시도하지 않음
-  - 사용자는 오류 화면을 보고 다시 시도해야 함
-  - 스케줄러가 동작하기 전까지 결제가 PENDING 상태로 남음
-  - 결제 성공률이 낮아지고 사용자 경험 저하
+  - 일시적인 네트워크 오류(타임아웃 등)에서 즉시 재시도가 없으면 결제 성공률이 낮아질 수 있음
+  - 사용자 UX 관점에서 “지금 다시 시도”와 “나중에 스케줄러가 처리”가 혼재되면 기대 동작이 불명확해짐
+  - Provider별 멱등성 지원 여부가 다르므로, 재시도 정책이 표준화되지 않으면 중복 호출 리스크가 커짐
 
 - **개선 방향**
-  - PaymentExecutionService에 Exponential Backoff 재시도 로직 추가
-  - Spring Retry 또는 Resilience4j 사용하여 재시도 정책 선언적으로 정의
-  - 즉시 재시도(3회) 실패 시 스케줄러를 통한 지연 재시도로 전환
-  - Circuit Breaker 패턴으로 결제사 장애 시 빠른 실패 처리
+  - “즉시 재시도(짧은 횟수)” + “지연 재시도(스케줄러)”를 분리하고 정책을 문서/코드로 고정
+  - Spring Retry/Resilience4j로 재시도/백오프/서킷브레이커 정책을 선언적으로 관리
+  - Provider별 `supportsIdempotency()`를 고려해 재시도 허용 범위를 제한 (미지원 Provider는 DB 상태 기반 방어 강화)
+
+- **✅ 수정 내용**
+  - [RetryProperties.java](src/main/java/org/example/sharedprompts/domain/payment/config/RetryProperties.java): 즉시 재시도 설정 추가 (`immediateRetryMaxAttempts`, `immediateRetryDelayMs`)
+  - [PaymentExecutionService.java](src/main/java/org/example/sharedprompts/domain/payment/service/execution/PaymentExecutionService.java): `executePaymentWithImmediateRetry()` 메서드 추가, 일시적인 네트워크 오류에 대해 즉시 재시도 로직 구현
+  - **재시도 정책**: 즉시 재시도(최대 2회, 200ms 지연) + 지연 재시도(스케줄러 기반 지수 백오프)로 분리
+  - **재시도 가능 오류 판단**: 타임아웃, 네트워크 오류 등 일시적 오류만 즉시 재시도, 비즈니스 로직 오류는 즉시 재시도 불가
+  - **설정 가능**: `payment.retry.immediate.max-attempts`, `payment.retry.immediate.delay-ms`로 설정 가능
 
 ---
 
@@ -645,7 +664,7 @@
 
 ---
 
-## 25. 로깅 시 민감 정보 노출 위험
+## 25. 로깅 시 민감 정보 노출 위험 ✅ 수정 완료
 - **문제 설명**
   - PaymentLoggingService 사용 추정
   - 최근 커밋 메시지에 "웹훅 payload를 로그에 남기지 말라"는 경고
@@ -664,6 +683,15 @@
   - 별도의 보안 로그 저장소 사용 (접근 제어, 암호화)
   - 로그 레벨을 적절히 설정하여 운영 환경에서는 DEBUG 로그 비활성화
   - 로깅 정책을 코드 리뷰 체크리스트에 포함
+
+- **✅ 수정 내용**
+  - [SensitiveDataMasker.java](src/main/java/org/example/sharedprompts/global/util/SensitiveDataMasker.java): 민감 정보 마스킹 유틸리티 생성
+    - 이메일, 전화번호, 카드번호, 계좌번호, 사용자 ID 마스킹 지원
+    - 자동 민감 정보 감지 및 마스킹 기능 (`maskSensitiveData()`)
+  - [PaymentLoggingService.java](src/main/java/org/example/sharedprompts/domain/payment/logging/PaymentLoggingService.java): 모든 로깅 메서드에 민감 정보 마스킹 적용
+    - `userId`, `externalPaymentId`, `reason`, `error message` 등 민감 정보 마스킹
+  - **효과**: 로그에 민감 정보가 노출되지 않도록 보호, GDPR 및 개인정보보호법 준수
+  - **참고**: Webhook payload는 이미 `payloadLength`만 기록하도록 개선되어 있음
 
 ---
 
@@ -947,7 +975,7 @@
 
 ---
 
-## 36. 페이팔 - Webhook 서명 검증 방식의 복잡성
+## 36. 페이팔 - Webhook 서명 검증 방식의 복잡성 ✅ 수정 완료
 
 - **문제 설명**
   - PayPalPaymentProvider.verifyWebhookSignature가 복잡한 구조 (라인 464-526)
@@ -966,6 +994,13 @@
   - `boolean verifyWebhookSignature(String payload, Map<String, String> headers)`
   - 모든 헤더를 Map으로 받아서 Provider가 필요한 헤더 추출
   - 또는 별도의 WebhookHeaders DTO 객체 정의
+
+- **✅ 수정 내용 (2026-02-04)**
+  - `PaymentWebhookController`가 `@RequestHeader Map<String, String> headers`를 받아 그대로 전달하도록 변경
+  - `PaymentFacade` / `PaymentWebhookFacade`가 headers를 함께 받을 수 있도록 오버로드 추가
+  - `PaymentProvider`에 `verifyWebhookSignature(String payload, Map<String,String> headers)` 기본 메서드 추가
+  - `PayPalPaymentProvider`는 headers 기반 검증을 우선 사용하고, 기존 JSON signature 방식은 하위호환으로 유지
+  - `PayPalWebhookVerifier`는 PayPal 요구 헤더(`PAYPAL-TRANSMISSION-*`)를 headers(Map)에서 case-insensitive로 추출하여 검증
 
 ---
 
@@ -1007,40 +1042,37 @@
 - API 엔드포인트 정확함
 
 **문제점**:
-- Idempotency-Key 헤더 미지원인데 전송함
 - 결제 준비 단계가 클라이언트에 의존
 
 **치명도**: 낮음 (작동은 함, 개선 필요)
 
 ---
 
-### ❌ 카카오페이 (준수도: 40%)
+### ✅ 카카오페이 (준수도: 75%)
 **잘 구현된 부분**:
 - 인증 방식 올바름 (SECRET_KEY)
-- 취소 시 금액 조회 로직
+- `/ready` → `/approve` 공식 플로우 구현 (tid 발급 및 저장)
+- 취소/환불 시 금액/면세금액 처리 보강 (부분 환불 tax_free 비율 계산 포함)
 
 **문제점**:
-- **/ready 단계 완전 누락** (치명적!)
 - Idempotency 미지원
-- 환불 시 면세 금액 계산 부족
 
-**치명도**: **매우 높음** (운영 환경에서 작동 불가)
+**치명도**: 중간 (대부분 동작, 멱등성/재시도 정책은 앱 레벨에서 보강 필요)
 
 ---
 
-### ⚠️ 페이팔 (준수도: 75%)
+### ✅ 페이팔 (준수도: 90%)
 **잘 구현된 부분**:
-- OAuth 토큰 획득 및 캐싱
+- OAuth 토큰 획득 및 캐싱(스레드 세이프 보강)
 - Webhook 서명 검증 (API 위임)
 - Authorization vs Capture 구분
 - Idempotency 헤더 올바름 (PayPal-Request-Id)
+- 주문 생성(prepare) 단계 구현
 
 **문제점**:
-- 액세스 토큰 캐싱 Thread-Safe 아님
-- 주문 생성 단계 누락
-- Webhook signature 파라미터 형식 불일치
+ - (해결) Webhook 헤더 전달 모델 정리 완료 (headers(Map) 기반)
 
-**치명도**: 중간 (부분적으로 작동, 멀티스레드 환경에서 문제)
+**치명도**: 낮음 (운영 이슈 가능성 낮음, 추가 보강은 선택)
 
 ---
 

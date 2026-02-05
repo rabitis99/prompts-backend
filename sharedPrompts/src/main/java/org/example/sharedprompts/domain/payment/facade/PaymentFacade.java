@@ -25,12 +25,31 @@ import java.util.Optional;
 /**
  * Payment Facade
  * 
- * <p>클라이언트(Controller, Scheduler 등)의 단일 진입점
- * - 결제 실행, Webhook 처리, 검증, 재시도 등 통합 제공
- * - 내부적으로 세분화된 Service/Facade 호출:
- *   - PaymentService: 결제 실행, 상태 조회, 내역 조회 등
- *   - PaymentWebhookFacade: Webhook 처리
- *   - PaymentRetryFacade: 재시도 처리
+ * <p><strong>역할 및 책임:</strong>
+ * <ul>
+ *   <li><strong>클라이언트 단일 진입점:</strong> Controller, Scheduler 등에서 사용하는 통합 인터페이스</li>
+ *   <li><strong>트랜잭션 경계 관리:</strong> 각 메서드에서 적절한 트랜잭션 경계 설정</li>
+ *   <li><strong>서비스 조율:</strong> 여러 Service/Facade를 조율하여 복잡한 비즈니스 로직 처리</li>
+ * </ul>
+ * 
+ * <p><strong>내부 구조:</strong>
+ * <ul>
+ *   <li><strong>PaymentService:</strong> 결제 실행, 상태 조회, 내역 조회 등 핵심 비즈니스 로직</li>
+ *   <li><strong>PaymentWebhookFacade:</strong> Webhook 파싱, 검증, 상태 변경 등 Webhook 전용 처리</li>
+ *   <li><strong>PaymentRetryFacade:</strong> 재시도 상태 관리 및 재시도 실행</li>
+ * </ul>
+ * 
+ * <p><strong>설계 의도:</strong>
+ * <ul>
+ *   <li>Controller가 여러 Service를 직접 호출하는 것을 방지하여 결합도 감소</li>
+ *   <li>트랜잭션 경계를 Facade 레벨에서 명확히 관리</li>
+ *   <li>향후 복잡한 비즈니스 로직 추가 시 Facade에서 조율 가능</li>
+ * </ul>
+ * 
+ * <p><strong>참고:</strong>
+ * 현재는 대부분의 메서드가 PaymentService를 단순 위임하고 있으나,
+ * 향후 복잡한 비즈니스 로직(예: 결제 + 포인트 적립 + 알림 발송)이 추가될 경우
+ * Facade에서 여러 서비스를 조율하는 역할을 수행할 수 있습니다.
  */
 @Slf4j
 @Component
@@ -139,6 +158,19 @@ public class PaymentFacade {
     @Transactional
     public Optional<Payment> handleWebhook(PaymentMethod paymentMethod, String payload, String signature) {
         return webhookFacade.handleWebhook(paymentMethod, payload, signature);
+    }
+
+    /**
+     * Webhook 처리 (headers 포함)
+     */
+    @Transactional
+    public Optional<Payment> handleWebhook(
+            PaymentMethod paymentMethod,
+            String payload,
+            String signature,
+            java.util.Map<String, String> headers
+    ) {
+        return webhookFacade.handleWebhook(paymentMethod, payload, signature, headers);
     }
     
     /**

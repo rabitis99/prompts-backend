@@ -76,8 +76,8 @@ public class KakaoReadyApiClient {
             requestBody.put("cancel_url", properties.getCancelUrl());
             requestBody.put("fail_url", properties.getFailUrl());
 
-            log.debug("KakaoPay 결제 준비 요청: cid={}, orderId={}, amount={}", 
-                    properties.getCid(), orderId, amount);
+            log.debug("KakaoPay 결제 준비 요청: cid={}, orderId={}, userId={}, amount={}, itemName={}, approvalUrl={}",
+                    properties.getCid(), orderId, userId, amount, itemName, requestBody.get("approval_url"));
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 

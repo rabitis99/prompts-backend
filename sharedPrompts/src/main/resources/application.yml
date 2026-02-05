@@ -449,7 +449,8 @@ payment:
   fcm:
     enabled: ${PAYMENT_FCM_ENABLED:true}
     project-id: ${PAYMENT_FCM_PROJECT_ID:sharedprompt-8ed9d}
-    credentials-path: ${PAYMENT_FCM_CREDENTIALS_PATH}
+    credentials-path: ${PAYMENT_FCM_CREDENTIALS_PATH:}
+    classpath-resource: ${PAYMENT_FCM_CLASSPATH_RESOURCE:firebase/sharedprompt-8ed9d-firebase-adminsdk-fbsvc-601af9062b.json}
 
 # =========================
 # 이메일 설정

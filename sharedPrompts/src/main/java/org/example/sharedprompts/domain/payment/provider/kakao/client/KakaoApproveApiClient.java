@@ -78,8 +78,38 @@ public class KakaoApproveApiClient {
                 Map<String, Object> body = response.getBody();
                 String status = (String) body.get("status");
                 
+                // 에러 필드 확인 (KakaoPay 에러 응답 형식)
+                String errorCode = (String) body.get("code");
+                String errorMsg = (String) body.get("msg");
+                String error = (String) body.get("error");
+                
+                if (errorCode != null || errorMsg != null || error != null) {
+                    String responseBodyJson = jsonConverter.convertToJson(body);
+                    String errorMessage = String.format(
+                            "KakaoPay approve 에러 응답: code=%s, msg=%s, error=%s, responseBody=%s", 
+                            errorCode, errorMsg, error, responseBodyJson);
+                    log.error("KakaoPay approve API 에러: tid={}, orderId={}, {}", tid, orderId, errorMessage);
+                    throw new RuntimeException(errorMessage);
+                }
+                
+                // status가 없는 경우, approved_at 필드로 성공 여부 판단
+                // KakaoPay approve API는 성공 시 status 필드가 없을 수 있음
                 if (status == null || status.isEmpty()) {
-                    throw new RuntimeException("KakaoPay approve 응답에 status가 없습니다");
+                    // approved_at이 있으면 성공으로 간주
+                    Object approvedAt = body.get("approved_at");
+                    if (approvedAt != null) {
+                        // 성공 응답이지만 status 필드가 없는 경우, 기본값으로 SUCCESS_PAYMENT 설정
+                        status = "SUCCESS_PAYMENT";
+                        log.debug("KakaoPay approve 응답에 status가 없지만 approved_at이 있어 성공으로 간주: tid={}, orderId={}", 
+                                tid, orderId);
+                    } else {
+                        // status도 없고 approved_at도 없으면 에러
+                        String responseBodyJson = jsonConverter.convertToJson(body);
+                        log.error("KakaoPay approve 응답에 status와 approved_at이 모두 없습니다: tid={}, orderId={}, responseBody={}", 
+                                tid, orderId, responseBodyJson);
+                        throw new RuntimeException(
+                                String.format("KakaoPay approve 응답에 status와 approved_at이 모두 없습니다. 응답 본문: %s", responseBodyJson));
+                    }
                 }
 
                 log.info("KakaoPay 결제 승인 성공: tid={}, orderId={}, status={}", tid, orderId, status);
@@ -91,6 +121,24 @@ public class KakaoApproveApiClient {
             }
 
             throw new RuntimeException("KakaoPay 결제 승인 실패: status=" + response.getStatusCode());
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            // HTTP 4xx 에러에 대한 상세 정보 로깅
+            String errorDetails = e.getResponseBodyAsString();
+            log.error("KakaoPay 결제 승인 API 호출 실패: tid={}, orderId={}, status={}, error={}", 
+                    tid, orderId, e.getStatusCode(), errorDetails, e);
+            
+            // 403 에러인 경우 더 명확한 에러 메시지 제공
+            if (e.getStatusCode() == org.springframework.http.HttpStatus.FORBIDDEN) {
+                log.error("KakaoPay 403 Forbidden - 가능한 원인:");
+                log.error("1. PAYMENT_KAKAO_SECRET 환경변수가 올바르게 설정되었는지 확인");
+                log.error("2. KakaoPay 개발자 콘솔에서 Secret Key(dev)가 올바른지 확인");
+                log.error("3. IP 화이트리스트 설정이 있는지 확인");
+                log.error("4. CID({})가 올바른지 확인", properties.getCid());
+                throw new RuntimeException(
+                    String.format("KakaoPay 인증 실패 (403): %s. PAYMENT_KAKAO_SECRET 환경변수와 KakaoPay 개발자 콘솔 설정을 확인하세요.", 
+                        errorDetails != null ? errorDetails : e.getMessage()), e);
+            }
+            throw new RuntimeException("KakaoPay 결제 승인 실패: " + e.getMessage(), e);
         } catch (RestClientException e) {
             log.error("KakaoPay 결제 승인 API 호출 실패: tid={}, orderId={}, error={}", tid, orderId, e.getMessage(), e);
             throw new RuntimeException("KakaoPay 결제 승인 실패: " + e.getMessage(), e);

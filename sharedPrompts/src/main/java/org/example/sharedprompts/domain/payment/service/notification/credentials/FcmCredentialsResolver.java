@@ -26,11 +26,13 @@ public class FcmCredentialsResolver {
         }
 
         // 2. application.yml 설정
-        if (props.getCredentialsPath() != null &&
-                !props.getCredentialsPath().isBlank()) {
+        String credentialsPath = props.getCredentialsPath();
+        if (credentialsPath != null && 
+                !credentialsPath.isBlank() &&
+                !credentialsPath.trim().startsWith("#")) {  // 주석 제외
 
-            log.debug("payment.fcm.credentials-path 사용: {}", props.getCredentialsPath());
-            return new FileInputStream(props.getCredentialsPath());
+            log.debug("payment.fcm.credentials-path 사용: {}", credentialsPath);
+            return new FileInputStream(credentialsPath);
         }
 
         // 3. classpath (설정된 경로 또는 기본값)

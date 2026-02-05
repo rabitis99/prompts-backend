@@ -8,6 +8,7 @@ import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
 import org.example.sharedprompts.domain.payment.provider.PaymentProviderFactory;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
+import org.example.sharedprompts.domain.payment.service.lock.DistributedLockService;
 import org.example.sharedprompts.domain.payment.service.webhook.PaymentWebhookTransactionService;
 import org.example.sharedprompts.domain.payment.webhook.WebhookIdempotencyService;
 import org.example.sharedprompts.global.exception.ApiException;
@@ -35,6 +36,7 @@ public class PaymentWebhookFacade {
     private final PaymentRepository paymentRepository;
     private final PaymentWebhookTransactionService transactionService;
     private final WebhookIdempotencyService idempotencyService;
+    private final DistributedLockService distributedLockService;
 
     /**
      * Webhook 처리 (메인 진입점)
@@ -54,9 +56,21 @@ public class PaymentWebhookFacade {
      * @return 처리된 Payment (이미 처리된 경우 기존 Payment 반환)
      */
     public Optional<Payment> handleWebhook(PaymentMethod paymentMethod, String payload, String signature) {
+        return handleWebhook(paymentMethod, payload, signature, java.util.Collections.emptyMap());
+    }
+
+    /**
+     * Webhook 처리 (메인 진입점) - headers 포함 버전
+     */
+    public Optional<Payment> handleWebhook(
+            PaymentMethod paymentMethod,
+            String payload,
+            String signature,
+            java.util.Map<String, String> headers
+    ) {
         // 1. Webhook 파싱 및 서명 검증
         PaymentProvider provider = providerFactory.getProvider(paymentMethod);
-        PaymentProvider.WebhookEvent event = parseAndVerifyWebhook(provider, payload, signature, paymentMethod);
+        PaymentProvider.WebhookEvent event = parseAndVerifyWebhook(provider, payload, signature, headers, paymentMethod);
 
         String webhookId = generateWebhookId(paymentMethod, event);
         String externalPaymentId = event.externalPaymentId();
@@ -83,8 +97,10 @@ public class PaymentWebhookFacade {
                 return Optional.of(payment);
             }
 
-            // 5. 트랜잭션 내에서 결제 처리
-            Payment processedPayment = transactionService.processPaymentInTransaction(payment, event);
+            // 5. Payment 단위 분산 락으로 상태 변경 직렬화 (confirm/cancel/refund/webhook 간 충돌 방지)
+            String lockKey = distributedLockService.createLockKey("payment", payment.getId()) + ":state";
+            Payment processedPayment = distributedLockService.executeWithLock(lockKey,
+                    () -> transactionService.processPaymentInTransaction(payment, event));
 
             // 6. DB 저장 성공 후 Redis에 처리 완료 마킹
             markRedisAsProcessed(webhookId, lockAcquired);
@@ -104,9 +120,21 @@ public class PaymentWebhookFacade {
      * <p>파싱 실패 시 400 Bad Request 반환하여 결제사에 재시도 중단 요청
      */
     private PaymentProvider.WebhookEvent parseAndVerifyWebhook(
-            PaymentProvider provider, String payload, String signature, PaymentMethod paymentMethod) {
+            PaymentProvider provider,
+            String payload,
+            String signature,
+            java.util.Map<String, String> headers,
+            PaymentMethod paymentMethod
+    ) {
 
-        if (!provider.verifyWebhookSignature(payload, signature)) {
+        boolean verified = false;
+        if (headers != null && !headers.isEmpty()) {
+            verified = provider.verifyWebhookSignature(payload, headers);
+        } else {
+            verified = provider.verifyWebhookSignature(payload, signature);
+        }
+
+        if (!verified) {
             log.error("Webhook 서명 검증 실패: paymentMethod={}", paymentMethod);
             throw new ApiException(ErrorCode.PAYMENT_WEBHOOK_SIGNATURE_INVALID);
         }

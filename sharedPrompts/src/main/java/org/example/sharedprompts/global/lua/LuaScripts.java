@@ -30,7 +30,8 @@ public class LuaScripts {
      * 
      * Fixed Window Rate Limiting을 위해:
      * - 키가 없을 때만 EXPIRE를 설정합니다 (TTL 갱신 방지)
-     * - 키가 이미 있으면 TTL을 변경하지 않아 윈도우가 정확히 리셋됩니다.
+     * - 키가 이미 있지만 TTL이 없는 경우에도 EXPIRE를 설정합니다 (영구키 방지)
+     * - 키가 이미 있고 TTL이 있으면 TTL을 변경하지 않아 윈도우가 정확히 리셋됩니다.
      * - 현재 카운트와 TTL을 함께 반환하여 추가 Redis 호출을 방지합니다.
      *
      * KEYS[1] : 대상 key
@@ -44,21 +45,51 @@ public class LuaScripts {
         local key = KEYS[1]
         local ttl = tonumber(ARGV[1])
 
+        -- INCR 전에 TTL을 확인하여 키 존재 여부와 TTL 상태를 정확히 파악
+        -- 이렇게 하면 TTL이 -1인 기존 키도 확실히 감지할 수 있음
+        local existingTtl = redis.call('TTL', key)
+        local isNewKey = (existingTtl == -2)  -- 키가 존재하지 않음
+        local hasNoTtl = (existingTtl == -1)   -- 키는 있지만 TTL이 없음 (영구키)
+
+        -- INCR 수행
         local newVal = redis.call('INCR', key)
 
-        -- Fixed Window: 키가 없을 때만 TTL 설정 (키가 이미 있으면 TTL 유지)
-        -- newVal == 1이면 키가 방금 생성된 것이므로 TTL 설정
-        if newVal == 1 and ttl and ttl > 0 then
-            redis.call('EXPIRE', key, ttl)
+        -- Fixed Window: TTL 갱신(연장) 방지
+        -- - isNewKey: 키가 존재하지 않았으므로 TTL 설정
+        -- - hasNoTtl: 키가 존재하지만 TTL이 없는 경우 (과거 버그/수동 생성 등) TTL 설정하여 영구키 방지
+        local remainingTtl
+        if ttl and ttl > 0 then
+            if isNewKey or hasNoTtl then
+                -- 새 키이거나 TTL이 없는 키: TTL 설정
+                -- EXPIRE 명령을 최대 3번까지 시도하여 확실히 TTL 설정
+                local expireSuccess = false
+                for i = 1, 3 do
+                    local expireResult = redis.call('EXPIRE', key, ttl)
+                    if expireResult == 1 then
+                        expireSuccess = true
+                        break
+                    end
+                end
+                
+                -- TTL 조회하여 확인
+                remainingTtl = redis.call('TTL', key)
+                
+                -- EXPIRE가 성공했는데도 TTL이 -1이면 강제로 PEXPIRE 시도 (밀리초 단위)
+                if remainingTtl == -1 and expireSuccess then
+                    redis.call('PEXPIRE', key, ttl * 1000)
+                    remainingTtl = redis.call('TTL', key)
+                end
+            else
+                -- 키가 이미 있고 TTL이 있는 경우: TTL을 변경하지 않고 현재 TTL 조회
+                remainingTtl = redis.call('TTL', key)
+            end
+        else
+            -- TTL 파라미터가 없거나 0인 경우: 현재 TTL 조회
+            remainingTtl = redis.call('TTL', key)
         end
 
-        -- TTL 조회 (초 단위)
-        local remainingTtl = redis.call('TTL', key)
+        -- TTL 정규화: -2 (키 없음)는 -1로 변환 (이론적으로 발생하지 않아야 함)
         if remainingTtl == -2 then
-            -- 키가 존재하지 않음 (이론적으로 발생하지 않아야 함)
-            remainingTtl = -1
-        elseif remainingTtl == -1 then
-            -- TTL이 설정되지 않음
             remainingTtl = -1
         end
 

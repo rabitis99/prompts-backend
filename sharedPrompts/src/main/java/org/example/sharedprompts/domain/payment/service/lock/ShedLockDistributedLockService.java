@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.core.LockConfiguration;
 import net.javacrumbs.shedlock.core.LockProvider;
 import net.javacrumbs.shedlock.core.SimpleLock;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.example.sharedprompts.global.exception.ApiException;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -73,7 +75,15 @@ public class ShedLockDistributedLockService implements DistributedLockService {
         try {
             return task.get();
         } catch (Exception e) {
-            log.error("락 내 작업 실행 중 오류: lockKey={}", lockKey, e);
+            // 비즈니스 예외 / 낙관락 충돌은 "오류"가 아니라 예상 가능한 흐름일 수 있으므로
+            // ERROR 로그를 남기지 않도록 로그 레벨을 조정합니다.
+            if (e instanceof ObjectOptimisticLockingFailureException) {
+                log.debug("락 내 작업에서 낙관적 락 충돌 발생: lockKey={}, message={}", lockKey, e.getMessage());
+            } else if (e instanceof ApiException) {
+                log.warn("락 내 작업에서 비즈니스 예외 발생: lockKey={}, message={}", lockKey, e.getMessage());
+            } else {
+                log.error("락 내 작업 실행 중 오류: lockKey={}", lockKey, e);
+            }
             throw e;
         } finally {
             try {

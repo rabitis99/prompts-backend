@@ -11,8 +11,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.example.sharedprompts.domain.payment.provider.toss.exception.DuplicateOrderIdException;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -112,6 +115,49 @@ public class TossConfirmApiClient {
             }
 
             throw new RuntimeException("TossPay 결제 승인 실패: status=" + response.getStatusCode());
+        } catch (HttpServerErrorException e) {
+            // HTTP 5xx 에러 처리 (S021 중복 주문번호 오류 포함)
+            String errorDetails = e.getResponseBodyAsString();
+            log.error("TossPay 결제 승인 API 호출 실패 (5xx): paymentKey={}, orderId={}, status={}, error={}", 
+                    paymentKey, orderId, e.getStatusCode(), errorDetails, e);
+            
+            // S021 오류 감지: 이미 사용된 주문번호
+            if (errorDetails != null && (errorDetails.contains("S021") || 
+                errorDetails.contains("이미 사용된 주문번호") ||
+                errorDetails.contains("FAILED_PAYMENT_INTERNAL_SYSTEM_PROCESSING"))) {
+                log.warn("TossPay 중복 주문번호 오류 감지 (S021): paymentKey={}, orderId={}. " +
+                        "결제가 이미 확인되었을 가능성이 있습니다. Payment 상태를 확인하세요.", 
+                        paymentKey, orderId);
+                throw new DuplicateOrderIdException(
+                    "TossPay 중복 주문번호 오류 (S021): 이미 사용된 주문번호입니다. " +
+                    "결제가 이미 확인되었을 가능성이 있습니다.",
+                    paymentKey, orderId, e);
+            }
+            
+            throw new RuntimeException("TossPay 결제 승인 실패 (5xx): " + e.getMessage(), e);
+        } catch (HttpClientErrorException e) {
+            // HTTP 4xx 에러에 대한 상세 정보 로깅
+            String errorDetails = e.getResponseBodyAsString();
+            log.error("TossPay 결제 승인 API 호출 실패: paymentKey={}, orderId={}, status={}, error={}", 
+                    paymentKey, orderId, e.getStatusCode(), errorDetails, e);
+            
+            // 403 에러인 경우 더 명확한 에러 메시지 제공
+            if (e.getStatusCode() == HttpStatus.FORBIDDEN) {
+                log.error("TossPay 403 Forbidden - 가능한 원인:");
+                log.error("1. PAYMENT_TOSS_SECRET_KEY 환경변수가 올바르게 설정되었는지 확인");
+                log.error("2. TossPayments 개발자 콘솔에서 Secret Key가 올바른지 확인");
+                log.error("3. API Key와 Secret Key가 동일한 환경(테스트/프로덕션)에 속하는지 확인");
+                log.error("4. IP 화이트리스트 설정이 있는지 확인");
+                log.error("5. paymentKey({})가 유효하고 만료되지 않았는지 확인", paymentKey);
+                log.error("6. orderId({})가 올바른 형식인지 확인", orderId);
+                
+                // 에러 응답에서 code와 message 추출 시도
+                String errorMessage = extractErrorMessage(errorDetails);
+                throw new RuntimeException(
+                    String.format("TossPay 인증 실패 (403): %s. PAYMENT_TOSS_SECRET_KEY 환경변수와 TossPayments 개발자 콘솔 설정을 확인하세요.", 
+                        errorMessage != null ? errorMessage : errorDetails != null ? errorDetails : e.getMessage()), e);
+            }
+            throw new RuntimeException("TossPay 결제 승인 실패: " + e.getMessage(), e);
         } catch (RestClientException e) {
             log.error("TossPay 결제 승인 API 호출 실패: paymentKey={}, orderId={}, error={}", paymentKey, orderId, e.getMessage(), e);
             throw new RuntimeException("TossPay 결제 승인 실패: " + e.getMessage(), e);
@@ -122,5 +168,59 @@ public class TossConfirmApiClient {
         if (value == null || value.isEmpty()) {
             throw new IllegalArgumentException(fieldName + "은(는) 필수입니다");
         }
+    }
+
+    /**
+     * TossPayments 에러 응답에서 메시지 추출
+     * 
+     * @param errorResponseBody JSON 형식의 에러 응답 본문
+     * @return 추출된 에러 메시지, 파싱 실패 시 null
+     */
+    private String extractErrorMessage(String errorResponseBody) {
+        if (errorResponseBody == null || errorResponseBody.isEmpty()) {
+            return null;
+        }
+        
+        try {
+            // 간단한 JSON 파싱: "code"와 "message" 필드 추출
+            // 예: {"code":"FORBIDDEN_REQUEST","message":"허용되지 않은 요청입니다."}
+            if (errorResponseBody.contains("\"code\"") || errorResponseBody.contains("\"message\"")) {
+                // message 필드 추출 시도
+                int messageStart = errorResponseBody.indexOf("\"message\"");
+                if (messageStart != -1) {
+                    int colonIndex = errorResponseBody.indexOf(":", messageStart);
+                    if (colonIndex != -1) {
+                        int quoteStart = errorResponseBody.indexOf("\"", colonIndex);
+                        if (quoteStart != -1) {
+                            int quoteEnd = errorResponseBody.indexOf("\"", quoteStart + 1);
+                            if (quoteEnd != -1) {
+                                String message = errorResponseBody.substring(quoteStart + 1, quoteEnd);
+                                
+                                // code 필드도 추출 시도
+                                int codeStart = errorResponseBody.indexOf("\"code\"");
+                                if (codeStart != -1) {
+                                    int codeColonIndex = errorResponseBody.indexOf(":", codeStart);
+                                    if (codeColonIndex != -1) {
+                                        int codeQuoteStart = errorResponseBody.indexOf("\"", codeColonIndex);
+                                        if (codeQuoteStart != -1) {
+                                            int codeQuoteEnd = errorResponseBody.indexOf("\"", codeQuoteStart + 1);
+                                            if (codeQuoteEnd != -1) {
+                                                String code = errorResponseBody.substring(codeQuoteStart + 1, codeQuoteEnd);
+                                                return String.format("code=%s, message=%s", code, message);
+                                            }
+                                        }
+                                    }
+                                }
+                                return message;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("에러 응답 파싱 실패: {}", errorResponseBody, e);
+        }
+        
+        return errorResponseBody;
     }
 }

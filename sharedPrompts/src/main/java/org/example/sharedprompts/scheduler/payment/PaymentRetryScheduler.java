@@ -6,6 +6,8 @@ import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.config.RetryProperties;
+import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
+import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.facade.PaymentRetryFacade;
 import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 결제 재시도 스케줄러
@@ -51,8 +54,9 @@ public class PaymentRetryScheduler {
     public void retryFailedPayments() {
         log.info("PaymentRetryScheduler started");
 
-        // nextRetryAt 기반으로 재시도 가능한 결제 조회
+        // nextRetryAt 기반으로 재시도 가능한 결제 조회 (PENDING 상태만)
         List<Payment> pendingPayments = paymentRepository.findRetryablePayments(
+                PaymentStatus.PENDING,
                 retryProperties.getMaxAttempts(),
                 LocalDateTime.now()
         );
@@ -62,12 +66,33 @@ public class PaymentRetryScheduler {
             return;
         }
 
-        log.info("재시도할 결제 수: {}", pendingPayments.size());
+        // KakaoPay 결제는 재시도 대상에서 제외
+        // KakaoPay는 pgToken이 필요한데, 재시도 시에는 이 값을 얻을 수 없음
+        List<Payment> retryablePayments = pendingPayments.stream()
+                .filter(payment -> {
+                    if (payment.getPaymentMethod() == PaymentMethod.KAKAO_PAY) {
+                        log.warn("KakaoPay 결제는 재시도 대상에서 제외됩니다: paymentId={}, retryCount={}. " +
+                                "KakaoPay는 pgToken이 필요한데, 재시도 시에는 이 값을 얻을 수 없습니다.",
+                                payment.getId(), payment.getRetryCount());
+                        return false;
+                    }
+                    return true;
+                })
+                .collect(Collectors.toList());
+
+        if (retryablePayments.isEmpty()) {
+            log.debug("재시도할 결제가 없습니다 (KakaoPay 제외 후).");
+            return;
+        }
+
+        log.info("재시도할 결제 수: {} (전체: {}, KakaoPay 제외: {})",
+                retryablePayments.size(), pendingPayments.size(),
+                pendingPayments.size() - retryablePayments.size());
 
         int successCount = 0;
         int failureCount = 0;
 
-        for (Payment payment : pendingPayments) {
+        for (Payment payment : retryablePayments) {
             try {
                 processPaymentRetry(payment);
                 successCount++;
