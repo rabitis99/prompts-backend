@@ -27,7 +27,6 @@ import java.math.BigDecimal;
  * - client: 외부 API 호출 (분리된 클라이언트들)
  * - mapper: 상태 매핑
  * - policy: 금액 검증/변환, 환불 정책
- * - webhook: 서명 검증과 payload 파싱
  *
  * <p>Null 안전성: 모든 public API는 Null 반환 금지
  */

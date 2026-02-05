@@ -35,6 +35,15 @@ public interface AdminPaymentService {
     Page<PaymentResponseDto> getAllPaymentHistory(Pageable pageable);
 
     /**
+     * 사용자별 결제 내역 조회 (관리자용)
+     * 
+     * @param userId 사용자 ID
+     * @param pageable 페이징 정보
+     * @return 사용자 결제 내역
+     */
+    Page<PaymentResponseDto> getPaymentHistory(Long userId, Pageable pageable);
+
+    /**
      * 결제 취소 (관리자용 - 소유권 검증 없음)
      * 
      * @param paymentId 결제 ID

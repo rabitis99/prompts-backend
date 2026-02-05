@@ -85,6 +85,13 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Page<PaymentResponseDto> getPaymentHistory(Long userId, Pageable pageable) {
+        return paymentRepository.findByUserIdWithFetchJoin(userId, pageable)
+                .map(PaymentResponseDto::from);
+    }
+
+    @Override
     @Transactional
     public PaymentResponseDto cancelPayment(Long paymentId, PaymentCancelRequestDto request, Long adminId) {
         Payment payment = paymentRepository.findById(paymentId)

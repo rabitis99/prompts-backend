@@ -46,13 +46,14 @@ public class KakaoCancelApiClient {
             String tid,
             String reason,
             long totalAmount,
-            long taxFreeAmount
+            long taxFreeAmount,
+            String idempotencyKey
     ) {
         validateRequired(tid, "tid");
         validateRequired(reason, "reason");
 
         try {
-            ResponseEntity<Map<String, Object>> response = executeRequest(tid, totalAmount, taxFreeAmount);
+            ResponseEntity<Map<String, Object>> response = executeRequest(tid, totalAmount, taxFreeAmount, idempotencyKey);
             return parseCancelResponse(tid, response);
         } catch (RestClientException e) {
             throw errorHandler.handleCancelError(e, tid);
@@ -62,7 +63,8 @@ public class KakaoCancelApiClient {
     public KakaoRefundResponse refund(
             String tid,
             long amount,
-            String reason
+            String reason,
+            String idempotencyKey
     ) {
         validateRequest(tid, reason, amount);
 
@@ -75,7 +77,7 @@ public class KakaoCancelApiClient {
                     amount
             );
 
-            ResponseEntity<Map<String, Object>> response = executeRequest(tid, amount, cancelTaxFreeAmount);
+            ResponseEntity<Map<String, Object>> response = executeRequest(tid, amount, cancelTaxFreeAmount, idempotencyKey);
             return parseRefundResponse(tid, amount, response);
         } catch (RestClientException e) {
             throw errorHandler.handleRefundError(e, tid, amount);
@@ -91,10 +93,13 @@ public class KakaoCancelApiClient {
         }
     }
 
-    private ResponseEntity<Map<String, Object>> executeRequest(String tid, long cancelAmount, long cancelTaxFreeAmount) {
+    private ResponseEntity<Map<String, Object>> executeRequest(String tid, long cancelAmount, long cancelTaxFreeAmount, String idempotencyKey) {
         Map<String, Object> body = createCancelRequestBody(tid, cancelAmount, cancelTaxFreeAmount);
 
         HttpHeaders headers = headersProvider.createJsonHeaders();
+        if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
+            headers.set("Idempotency-Key", idempotencyKey);
+        }
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
         ResponseEntity<Map<String, Object>> response = restTemplate.exchange(

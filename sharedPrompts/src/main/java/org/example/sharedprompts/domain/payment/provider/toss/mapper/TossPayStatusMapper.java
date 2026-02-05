@@ -31,7 +31,7 @@ public class TossPayStatusMapper {
             case "READY" -> PaymentStatus.READY;
             case "IN_PROGRESS" -> PaymentStatus.IN_PROGRESS;
             case "WAITING_FOR_DEPOSIT" -> PaymentStatus.WAITING_FOR_DEPOSIT;
-            default -> PaymentStatus.PENDING;
+            default -> PaymentStatus.UNKNOWN;
         };
     }
 }

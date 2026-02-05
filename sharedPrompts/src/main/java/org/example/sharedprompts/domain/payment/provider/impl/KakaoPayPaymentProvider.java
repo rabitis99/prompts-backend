@@ -152,7 +152,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             BigDecimal originalAmount = amountPolicy.fromKakaoAmount(totalAmount);
             BigDecimal originalTaxFreeAmount = amountPolicy.fromKakaoAmount(taxFreeAmount);
 
-            var response = kakaoCancelApiClient.cancel(externalPaymentId, reason, totalAmount, taxFreeAmount);
+            var response = kakaoCancelApiClient.cancel(externalPaymentId, reason, totalAmount, taxFreeAmount, idempotencyKey);
             
             log.info("KakaoPay 결제 취소 성공: tid={}, originalAmount={}, taxFreeAmount={}", 
                     externalPaymentId, originalAmount, originalTaxFreeAmount);
@@ -175,7 +175,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
     public RefundResult refundPayment(String externalPaymentId, BigDecimal amount, String reason, String idempotencyKey) {
         try {
             long kakaoAmount = amountPolicy.toKakaoAmount(amount);
-            var response = kakaoCancelApiClient.refund(externalPaymentId, kakaoAmount, reason);
+            var response = kakaoCancelApiClient.refund(externalPaymentId, kakaoAmount, reason, idempotencyKey);
             
             BigDecimal refundedAmount = amountPolicy.fromKakaoAmount(response.refundedAmount());
             PaymentStatus refundStatus = refundPolicy.determineStatus(refundedAmount, amount);

@@ -38,7 +38,6 @@ import java.util.function.Supplier;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class PaymentTransactionBoundary {
 
     private final DistributedLockService distributedLockService;

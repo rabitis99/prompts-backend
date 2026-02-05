@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.payment.enums.UserTier;
-import org.example.sharedprompts.domain.payment.service.core.PaymentService;
 import org.example.sharedprompts.domain.payment.service.admin.AdminPaymentService;
 import org.example.sharedprompts.domain.payment.service.user.UserTierService;
 import org.example.sharedprompts.dto.payment.request.PaymentCancelRequestDto;
@@ -33,7 +32,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AdminPaymentController {
 
-    private final PaymentService paymentService;
     private final AdminPaymentService adminPaymentService;
     private final UserTierService userTierService;
 
@@ -61,7 +59,7 @@ public class AdminPaymentController {
     ) {
         // 사용자 존재 여부 검증은 서비스 레이어에서 처리
         PageResponse<PaymentResponseDto> response = PageResponse.of(
-                paymentService.getPaymentHistory(userId, pageable)
+                adminPaymentService.getPaymentHistory(userId, pageable)
         );
         return CustomResponseHelper.ok(response);
     }
