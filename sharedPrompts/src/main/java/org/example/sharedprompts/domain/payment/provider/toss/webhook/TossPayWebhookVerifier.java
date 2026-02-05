@@ -27,10 +27,6 @@ public class TossPayWebhookVerifier {
 
     /**
      * Webhook 서명 검증
-     * 
-     * @param payload Webhook 페이로드 (필수)
-     * @param signature 서명 (필수)
-     * @return 검증 성공 여부
      */
     public boolean verify(String payload, String signature) {
         if (payload == null || payload.isEmpty()) {

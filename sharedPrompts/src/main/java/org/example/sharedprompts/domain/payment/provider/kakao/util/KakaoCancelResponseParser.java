@@ -4,6 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoCancelResponse;
 import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoRefundResponse;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -21,7 +24,8 @@ public class KakaoCancelResponseParser {
     private final KakaoPayJsonConverter jsonConverter;
 
     public KakaoCancelResponse parseCancel(String tid, Map<String, Object> body) {
-        log.info("KakaoPay cancel success: tid={}", tid);
+        validateErrorResponse(tid, body);
+        log.info("KakaoPay cancel success: tid={}", SensitiveDataMasker.maskPaymentKey(tid));
         return new KakaoCancelResponse(
                 responseParser.parseCanceledAt(body),
                 jsonConverter.convertToJson(body)
@@ -29,13 +33,39 @@ public class KakaoCancelResponseParser {
     }
 
     public KakaoRefundResponse parseRefund(String tid, long requestedAmount, Map<String, Object> body) {
+        validateErrorResponse(tid, body);
         long refundedAmount = extractRefundedAmount(Objects.requireNonNull(body), requestedAmount);
-        log.info("KakaoPay refund success: tid={}, amount={}", tid, refundedAmount);
+        log.info("KakaoPay refund success: tid={}, amount={}", 
+                SensitiveDataMasker.maskPaymentKey(tid), refundedAmount);
         return new KakaoRefundResponse(
                 refundedAmount,
                 responseParser.parseCanceledAt(body),
                 jsonConverter.convertToJson(body)
         );
+    }
+
+    private void validateErrorResponse(String tid, Map<String, Object> body) {
+        Object errorCodeObj = body.get("code");
+        Object errorMsgObj = body.get("msg");
+        Object errorObj = body.get("error");
+
+        String errorCode = errorCodeObj != null ? errorCodeObj.toString() : null;
+        String errorMsg = errorMsgObj != null ? errorMsgObj.toString() : null;
+        String error = errorObj != null ? errorObj.toString() : null;
+
+        if (errorCode != null || errorMsg != null || error != null) {
+            String responseBodyJson = jsonConverter.convertToJson(body);
+            log.error(
+                    "KakaoPay cancel/refund 에러 응답: tid={}, code={}, msg={}, error={}",
+                    SensitiveDataMasker.maskPaymentKey(tid), errorCode, 
+                    SensitiveDataMasker.maskSensitiveData(errorMsg), 
+                    SensitiveDataMasker.maskSensitiveData(error)
+            );
+            throw new ApiException(
+                    ErrorCode.PAYMENT_PROVIDER_ERROR,
+                    "KakaoPay cancel/refund 에러 응답: " + responseBodyJson
+            );
+        }
     }
 
     @SuppressWarnings("unchecked")

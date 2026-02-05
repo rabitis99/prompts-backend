@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
-import org.example.sharedprompts.domain.payment.provider.webhook.PaymentWebhookHandler;
 import org.example.sharedprompts.domain.payment.provider.webhook.WebhookEvent;
 import org.example.sharedprompts.domain.payment.provider.kakao.mapper.KakaoPayStatusMapper;
 import org.springframework.stereotype.Component;
@@ -35,11 +34,15 @@ public class KakaoPayWebhookParser {
                 throw new RuntimeException("KakaoPay Webhook payload가 비어있습니다");
             }
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> data = (Map<String, Object>) body.get("data");
-            if (data == null) {
+            Object dataObj = body.get("data");
+            if (dataObj == null) {
                 throw new RuntimeException("KakaoPay Webhook payload에 data가 없습니다");
             }
+            if (!(dataObj instanceof Map)) {
+                throw new RuntimeException("KakaoPay Webhook payload의 data 형식이 올바르지 않습니다");
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = (Map<String, Object>) dataObj;
 
             String eventType = (String) body.get("event");
             if (eventType == null || eventType.isEmpty()) {

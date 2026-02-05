@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.provider.webhook.PaymentWebhookHandler;
 import org.example.sharedprompts.domain.payment.provider.webhook.WebhookEvent;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -52,10 +53,12 @@ public class TossPayWebhookHandler implements PaymentWebhookHandler {
         try {
             WebhookEvent event = webhookParser.parse(payload);
             log.debug("TossPay Webhook 파싱 성공: eventType={}, externalPaymentId={}",
-                    event.eventType(), event.externalPaymentId());
+                    event.eventType(), 
+                    event.externalPaymentId() != null ? SensitiveDataMasker.maskPaymentKey(event.externalPaymentId()) : null);
             return event;
         } catch (Exception e) {
-            log.error("TossPay Webhook 파싱 실패: error={}", e.getMessage(), e);
+            log.error("TossPay Webhook 파싱 실패: error={}", 
+                    SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
             throw new RuntimeException("TossPay Webhook 파싱 실패: " + e.getMessage(), e);
         }
     }

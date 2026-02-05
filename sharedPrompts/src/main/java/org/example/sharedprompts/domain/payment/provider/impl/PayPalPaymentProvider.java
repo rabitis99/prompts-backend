@@ -16,6 +16,9 @@ import org.example.sharedprompts.domain.payment.provider.paypal.client.PaypalVoi
 import org.example.sharedprompts.domain.payment.provider.paypal.mapper.PayPalStatusMapper;
 import org.example.sharedprompts.domain.payment.provider.paypal.policy.PayPalAmountPolicy;
 import org.example.sharedprompts.domain.payment.provider.paypal.policy.PayPalRefundPolicy;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -63,7 +66,8 @@ public class PayPalPaymentProvider implements PaymentProvider {
             BigDecimal amount,
             String currency,
             String itemName,
-            String userId
+            String userId,
+            String idempotencyKey
     ) {
         validateRequired(orderId, "orderId");
         validateRequired(amount, "amount");
@@ -71,17 +75,19 @@ public class PayPalPaymentProvider implements PaymentProvider {
 
         try {
             BigDecimal validatedAmount = amountPolicy.validate(amount);
-            var response = paypalCreateOrderApiClient.createOrder(orderId, validatedAmount, currency, itemName);
+            var response = paypalCreateOrderApiClient.createOrder(orderId, validatedAmount, currency, itemName, idempotencyKey);
 
-            log.info("PayPal 주문 생성 성공: orderId={}, paypalOrderId={}", orderId, response.orderId());
+            log.info("PayPal 주문 생성 성공: orderId={}, paypalOrderId={}", 
+                    orderId, SensitiveDataMasker.maskPaymentKey(response.orderId()));
             return PrepareResult.success(
                     response.orderId(),
                     response.approveUrl(),
                     response.metadata()
             );
         } catch (Exception e) {
-            log.error("PayPal 주문 생성 실패: orderId={}, error={}", orderId, e.getMessage(), e);
-            throw new RuntimeException("PayPal 주문 생성 실패: " + e.getMessage(), e);
+            log.error("PayPal 주문 생성 실패: orderId={}, error={}", 
+                    orderId, SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "PayPal 주문 생성 실패: " + e.getMessage(), e);
         }
     }
 
@@ -105,7 +111,8 @@ public class PayPalPaymentProvider implements PaymentProvider {
             var response = paypalCaptureApiClient.capture(paymentKey, idempotencyKey);
             PaymentStatus status = statusMapper.map(response.status());
 
-            log.info("PayPal 결제 승인 성공: orderId={}, status={}", paymentKey, status);
+            log.info("PayPal 결제 승인 성공: orderId={}, status={}", 
+                    SensitiveDataMasker.maskPaymentKey(paymentKey), status);
             return PaymentResult.builder()
                     .externalPaymentId(paymentKey)
                     .status(status)
@@ -116,7 +123,9 @@ public class PayPalPaymentProvider implements PaymentProvider {
                     .metadata(response.metadata())
                     .build();
         } catch (Exception e) {
-            log.error("PayPal 결제 승인 실패: orderId={}, error={}", paymentKey, e.getMessage(), e);
+            log.error("PayPal 결제 승인 실패: orderId={}, error={}", 
+                    SensitiveDataMasker.maskPaymentKey(paymentKey), 
+                    SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
             return PaymentResult.builder()
                     .externalPaymentId(paymentKey)
                     .status(PaymentStatus.FAILED)
@@ -136,7 +145,8 @@ public class PayPalPaymentProvider implements PaymentProvider {
             var response = paypalStatusApiClient.getOrderStatus(externalPaymentId);
             PaymentStatus status = statusMapper.map(response.status());
 
-            log.debug("PayPal 결제 상태 조회 성공: orderId={}, status={}", externalPaymentId, status);
+            log.debug("PayPal 결제 상태 조회 성공: orderId={}, status={}", 
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), status);
             return PaymentResult.builder()
                     .externalPaymentId(externalPaymentId)
                     .status(status)
@@ -147,7 +157,9 @@ public class PayPalPaymentProvider implements PaymentProvider {
                     .metadata(response.metadata())
                     .build();
         } catch (Exception e) {
-            log.error("PayPal 결제 상태 조회 실패: orderId={}, error={}", externalPaymentId, e.getMessage(), e);
+            log.error("PayPal 결제 상태 조회 실패: orderId={}, error={}", 
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), 
+                    SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
             return PaymentResult.builder()
                     .externalPaymentId(externalPaymentId)
                     .status(PaymentStatus.FAILED)
@@ -158,23 +170,6 @@ public class PayPalPaymentProvider implements PaymentProvider {
 
     /**
      * 결제 취소
-     *
-     * <p>PayPal 주문 생명주기에 따른 취소 처리:
-     * <ul>
-     *   <li><strong>CREATED/APPROVED</strong>: 미인증/미캡처 상태 → API 호출 없이 시스템에서 취소 처리</li>
-     *   <li><strong>Authorization 존재</strong>: 인증되었으나 미캡처 → void 처리 (Authorization 취소)</li>
-     *   <li><strong>Capture 존재</strong>: 이미 캡처된 결제 → 취소 불가, 환불(refund) 사용 필요</li>
-     * </ul>
-     *
-     * <p><strong>주의사항:</strong>
-     * 이미 Capture된 결제는 취소가 아닌 환불만 가능합니다.
-     * 호출자는 이미 Capture된 경우를 사전에 확인하고 refundPayment를 호출해야 합니다.
-     *
-     * @param externalPaymentId 외부 결제 ID (PayPal orderId)
-     * @param reason 취소 사유
-     * @param idempotencyKey 멱등성 키
-     * @return CancelResult 취소 결과
-     * @throws RuntimeException 이미 Capture된 결제는 취소 불가 (환불 사용 필요)
      */
     @Override
     public CancelResult cancelPayment(String externalPaymentId, String reason, String idempotencyKey) {
@@ -188,7 +183,8 @@ public class PayPalPaymentProvider implements PaymentProvider {
 
             // CREATED 또는 APPROVED 상태 (미인증/미캡처): API 호출 없이 시스템에서 취소 처리
             if ("CREATED".equals(orderStatus) || "APPROVED".equals(orderStatus)) {
-                log.info("PayPal 주문 취소 (미캡처 상태): externalPaymentId={}, status={}", externalPaymentId, orderStatus);
+                log.info("PayPal 주문 취소 (미캡처 상태): externalPaymentId={}, status={}", 
+                        SensitiveDataMasker.maskPaymentKey(externalPaymentId), orderStatus);
 
                 return CancelResult.builder()
                         .externalPaymentId(externalPaymentId)
@@ -203,7 +199,8 @@ public class PayPalPaymentProvider implements PaymentProvider {
             if (orderDetails.authorizationId() != null) {
                 var voidResponse = paypalVoidApiClient.voidAuthorization(orderDetails.authorizationId(), idempotencyKey);
 
-                log.info("PayPal Authorization void 성공: externalPaymentId={}", externalPaymentId);
+                log.info("PayPal Authorization void 성공: externalPaymentId={}", 
+                        SensitiveDataMasker.maskPaymentKey(externalPaymentId));
                 return CancelResult.builder()
                         .externalPaymentId(externalPaymentId)
                         .status(PaymentStatus.CANCELED)
@@ -215,7 +212,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
 
             // Capture가 존재하는 경우: 이미 캡처된 결제는 취소가 아닌 환불 처리 필요
             if (orderDetails.captureId() != null) {
-                throw new RuntimeException(
+                throw new ApiException(ErrorCode.PAYMENT_CANCEL_FAILED,
                         "PayPal 결제 취소 실패: 이미 캡처된 결제는 취소할 수 없습니다. 환불(refund)을 사용해주세요. " +
                         "externalPaymentId=" + externalPaymentId + ", captureId=" + orderDetails.captureId());
             }
@@ -223,7 +220,9 @@ public class PayPalPaymentProvider implements PaymentProvider {
             // 그 외의 경우: 주문 상태만 반환
             log.warn("PayPal 주문 취소 (상태 확인): externalPaymentId={}, status={}, " +
                     "authorizationId={}, captureId={}",
-                    externalPaymentId, orderStatus, orderDetails.authorizationId(), orderDetails.captureId());
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), orderStatus, 
+                    orderDetails.authorizationId() != null ? SensitiveDataMasker.maskPaymentKey(orderDetails.authorizationId()) : null,
+                    orderDetails.captureId() != null ? SensitiveDataMasker.maskPaymentKey(orderDetails.captureId()) : null);
 
             return CancelResult.builder()
                     .externalPaymentId(externalPaymentId)
@@ -234,8 +233,10 @@ public class PayPalPaymentProvider implements PaymentProvider {
                     .build();
 
         } catch (Exception e) {
-            log.error("PayPal 결제 취소 실패: externalPaymentId={}, error={}", externalPaymentId, e.getMessage(), e);
-            throw new RuntimeException("PayPal 결제 취소 실패: " + e.getMessage(), e);
+            log.error("PayPal 결제 취소 실패: externalPaymentId={}, error={}", 
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), 
+                    SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
+            throw new ApiException(ErrorCode.PAYMENT_CANCEL_FAILED, "PayPal 결제 취소 실패: " + e.getMessage(), e);
         }
     }
 
@@ -252,14 +253,16 @@ public class PayPalPaymentProvider implements PaymentProvider {
             var orderDetails = paypalStatusApiClient.getOrderDetails(externalPaymentId);
             String captureId = orderDetails.captureId();
             if (captureId == null || captureId.isEmpty()) {
-                throw new RuntimeException("PayPal 환불 실패: 캡처된 결제가 없습니다. externalPaymentId=" + externalPaymentId);
+                throw new ApiException(ErrorCode.PAYMENT_REFUND_FAILED,
+                        "PayPal 환불 실패: 캡처된 결제가 없습니다. externalPaymentId=" + externalPaymentId);
             }
             String currency = orderDetails.currency();
 
             var response = paypalRefundApiClient.refund(captureId, validatedAmount, currency, reason, idempotencyKey);
             PaymentStatus refundStatus = refundPolicy.determineStatus(response.refundedAmount(), validatedAmount, response.status());
 
-            log.info("PayPal 결제 환불 성공: externalPaymentId={}, refundedAmount={}", externalPaymentId, response.refundedAmount());
+            log.info("PayPal 결제 환불 성공: externalPaymentId={}, refundedAmount={}", 
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), response.refundedAmount());
             return RefundResult.builder()
                     .externalPaymentId(externalPaymentId)
                     .status(refundStatus)
@@ -269,8 +272,10 @@ public class PayPalPaymentProvider implements PaymentProvider {
                     .metadata(response.metadata())
                     .build();
         } catch (Exception e) {
-            log.error("PayPal 결제 환불 실패: externalPaymentId={}, amount={}, error={}", externalPaymentId, amount, e.getMessage(), e);
-            throw new RuntimeException("PayPal 결제 환불 실패: " + e.getMessage(), e);
+            log.error("PayPal 결제 환불 실패: externalPaymentId={}, amount={}, error={}", 
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), amount, 
+                    SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
+            throw new ApiException(ErrorCode.PAYMENT_REFUND_FAILED, "PayPal 결제 환불 실패: " + e.getMessage(), e);
         }
     }
 

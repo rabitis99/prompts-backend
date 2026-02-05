@@ -35,7 +35,11 @@ public class KakaoPayHeadersProvider {
             authValue = secret;
         } else if (secret.startsWith("SECRET_KEY")) {
             // "SECRET_KEY"만 있고 공백이 없는 경우 처리
-            authValue = "SECRET_KEY " + secret.substring("SECRET_KEY".length()).trim();
+            String keyPart = secret.substring("SECRET_KEY".length()).trim();
+            if (keyPart.isEmpty()) {
+                throw new IllegalStateException("KakaoPay secret이 올바르지 않습니다. 'SECRET_KEY' 접두사 뒤에 실제 키 값이 필요합니다.");
+            }
+            authValue = "SECRET_KEY " + keyPart;
         } else {
             authValue = "SECRET_KEY " + secret;
         }
@@ -53,6 +57,17 @@ public class KakaoPayHeadersProvider {
     public HttpHeaders createJsonHeaders() {
         HttpHeaders headers = createHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+        return headers;
+    }
+
+    /**
+     * JSON 헤더 생성 (idempotencyKey 포함)
+     */
+    public HttpHeaders createJsonHeaders(String idempotencyKey) {
+        HttpHeaders headers = createJsonHeaders();
+        if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
+            headers.set("Idempotency-Key", idempotencyKey);
+        }
         return headers;
     }
 }

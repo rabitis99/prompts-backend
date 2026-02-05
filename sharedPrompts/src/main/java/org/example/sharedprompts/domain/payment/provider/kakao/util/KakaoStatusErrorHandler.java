@@ -22,7 +22,7 @@ public class KakaoStatusErrorHandler {
 
         log.error(
                 "KakaoPay status HTTP 오류: tid={}, status={}, body={}",
-                tid, e.getStatusCode(), masked
+                SensitiveDataMasker.maskPaymentKey(tid), e.getStatusCode(), masked
         );
 
         if (e.getStatusCode() == HttpStatus.FORBIDDEN) {
@@ -33,7 +33,9 @@ public class KakaoStatusErrorHandler {
     }
 
     public RuntimeException handleRestClientError(RestClientException e, String tid) {
-        log.error("KakaoPay status failed: tid={}, message={}", tid, e.getMessage());
+        log.error("KakaoPay status failed: tid={}, message={}", 
+                SensitiveDataMasker.maskPaymentKey(tid), 
+                SensitiveDataMasker.maskSensitiveData(e.getMessage()));
         return new RuntimeException("KakaoPay 결제 상태 조회 실패", e);
     }
 }

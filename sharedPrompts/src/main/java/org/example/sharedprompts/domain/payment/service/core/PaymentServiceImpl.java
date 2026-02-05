@@ -69,6 +69,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final DistributedLockService distributedLockService;
     private final PaymentTransactionBoundary transactionBoundary;
     private final CompensationQueue compensationQueue;
+    private final IdempotencyService idempotencyService;
 
     public PaymentServiceImpl(
             PaymentRepository paymentRepository,
@@ -84,7 +85,8 @@ public class PaymentServiceImpl implements PaymentService {
             PaymentValidator paymentValidator,
             DistributedLockService distributedLockService,
             PaymentTransactionBoundary transactionBoundary,
-            CompensationQueue compensationQueue) {
+            CompensationQueue compensationQueue,
+            IdempotencyService idempotencyService) {
         this.paymentRepository = paymentRepository;
         this.userRepository = userRepository;
         this.validationService = validationService;
@@ -99,6 +101,7 @@ public class PaymentServiceImpl implements PaymentService {
         this.distributedLockService = distributedLockService;
         this.transactionBoundary = transactionBoundary;
         this.compensationQueue = compensationQueue;
+        this.idempotencyService = idempotencyService;
     }
 
     @Override
@@ -141,12 +144,17 @@ public class PaymentServiceImpl implements PaymentService {
                         // 상품명 추출 (metadata에서 가져오거나 기본값 사용)
                         String productName = extractProductName(request.getMetadata());
                         
+                        // 멱등성 키 생성
+                        String idempotencyKey = idempotencyService.generateForPayment(payment);
+                        payment.updateIdempotencyKey(idempotencyKey);
+                        
                         var prepareResult = provider.preparePayment(
                                 String.valueOf(payment.getId()),
                                 actualAmount,
                                 request.getCurrency(),
                                 productName,
-                                String.valueOf(userId)
+                                String.valueOf(userId),
+                                idempotencyKey
                         );
                         
                         if (prepareResult.required() && prepareResult.redirectUrl() != null) {

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.provider.toss.dto.TossCancelResponse;
 import org.example.sharedprompts.domain.payment.provider.toss.dto.TossRefundResponse;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -20,7 +21,8 @@ public class TossCancelResponseParser {
     private final TossPayJsonConverter jsonConverter;
 
     public TossCancelResponse parseCancel(String paymentKey, Map<String, Object> body) {
-        log.info("TossPay 결제 취소 성공: paymentKey={}", paymentKey);
+        log.info("TossPay 결제 취소 성공: paymentKey={}", 
+                SensitiveDataMasker.maskPaymentKey(paymentKey));
         return new TossCancelResponse(
                 responseParser.parseCanceledAt(body),
                 jsonConverter.convertToJson(body)
@@ -31,7 +33,7 @@ public class TossCancelResponseParser {
         long actualRefundedAmount = responseParser.parseCanceledAmount(body, requestedAmount);
         log.info(
                 "TossPay 결제 환불 성공: paymentKey={}, requestedAmount={}, actualRefundedAmount={}",
-                paymentKey, requestedAmount, actualRefundedAmount
+                SensitiveDataMasker.maskPaymentKey(paymentKey), requestedAmount, actualRefundedAmount
         );
         return new TossRefundResponse(
                 actualRefundedAmount,

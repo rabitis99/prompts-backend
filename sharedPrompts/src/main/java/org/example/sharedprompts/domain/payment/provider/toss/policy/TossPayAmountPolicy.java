@@ -14,10 +14,6 @@ public class TossPayAmountPolicy {
 
     /**
      * BigDecimal을 TossPay 금액(long, 원 단위)으로 변환
-     * 
-     * @param amount 결제 금액 (필수)
-     * @return TossPay 금액 (원 단위)
-     * @throws IllegalArgumentException amount가 null이거나 소수점이 있을 때
      */
     public long toTossAmount(BigDecimal amount) {
         if (amount == null) {
@@ -34,10 +30,6 @@ public class TossPayAmountPolicy {
 
     /**
      * TossPay 금액(long, 원 단위)을 BigDecimal로 변환
-     * 
-     * @param amount TossPay 금액 (원 단위, 필수)
-     * @return BigDecimal 금액
-     * @throws IllegalArgumentException amount가 0 이하일 때
      */
     public BigDecimal fromTossAmount(long amount) {
         if (amount <= 0) {

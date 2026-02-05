@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.payment.provider.toss.dto.TossConfirmRes
 import org.example.sharedprompts.domain.payment.provider.toss.util.TossConfirmErrorHandler;
 import org.example.sharedprompts.domain.payment.provider.toss.util.TossConfirmResponseParser;
 import org.example.sharedprompts.domain.payment.provider.toss.util.TossPayHeadersProvider;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.ParameterizedTypeReference;
@@ -36,18 +37,20 @@ public class TossConfirmApiClient {
     private final TossConfirmResponseParser responseParser;
     private final TossConfirmErrorHandler errorHandler;
 
-    public TossConfirmResponse confirm(String paymentKey, String orderId, long amount) {
+    public TossConfirmResponse confirm(String paymentKey, String orderId, long amount, String idempotencyKey) {
         validateRequest(paymentKey, orderId, amount);
 
         try {
-            ResponseEntity<Map<String, Object>> response = executeRequest(paymentKey, orderId, amount);
+            ResponseEntity<Map<String, Object>> response = executeRequest(paymentKey, orderId, amount, idempotencyKey);
             return parseResponse(paymentKey, response);
         } catch (HttpServerErrorException e) {
             throw errorHandler.handleHttpServerError(e, paymentKey, orderId);
         } catch (HttpClientErrorException e) {
             throw errorHandler.handleHttpClientError(e, paymentKey, orderId);
         } catch (RestClientException e) {
-            log.error("TossPay 결제 승인 API 호출 실패: paymentKey={}, orderId={}, error={}", paymentKey, orderId, e.getMessage(), e);
+            log.error("TossPay 결제 승인 API 호출 실패: paymentKey={}, orderId={}, error={}", 
+                    SensitiveDataMasker.maskPaymentKey(paymentKey), orderId, 
+                    SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
             throw new RuntimeException("TossPay 결제 승인 실패: " + e.getMessage(), e);
         }
     }
@@ -64,8 +67,8 @@ public class TossConfirmApiClient {
         }
     }
 
-    private ResponseEntity<Map<String, Object>> executeRequest(String paymentKey, String orderId, long amount) {
-        HttpHeaders headers = headersProvider.createJsonHeaders();
+    private ResponseEntity<Map<String, Object>> executeRequest(String paymentKey, String orderId, long amount, String idempotencyKey) {
+        HttpHeaders headers = headersProvider.createJsonHeaders(idempotencyKey);
         Map<String, Object> requestBody = createRequestBody(paymentKey, orderId, amount);
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 

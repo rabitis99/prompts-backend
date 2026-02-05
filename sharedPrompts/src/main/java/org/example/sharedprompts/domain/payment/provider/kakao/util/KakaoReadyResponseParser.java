@@ -3,6 +3,9 @@ package org.example.sharedprompts.domain.payment.provider.kakao.util;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoReadyResponse;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -21,7 +24,8 @@ public class KakaoReadyResponseParser {
         String tid = getRequiredString(body, "tid");
         String redirectUrl = getRequiredString(body, "next_redirect_pc_url");
 
-        log.info("KakaoPay ready success: tid={}, orderId={}", tid, orderId);
+        log.info("KakaoPay ready success: tid={}, orderId={}", 
+                SensitiveDataMasker.maskPaymentKey(tid), orderId);
 
         return new KakaoReadyResponse(
                 tid,
@@ -33,7 +37,10 @@ public class KakaoReadyResponseParser {
     private String getRequiredString(Map<String, Object> body, String fieldName) {
         Object value = body.get(fieldName);
         if (value == null || value.toString().isBlank()) {
-            throw new RuntimeException("KakaoPay ready 응답에 " + fieldName + "이 없습니다");
+            throw new ApiException(
+                    ErrorCode.PAYMENT_PROVIDER_RESPONSE_INVALID,
+                    "KakaoPay ready 응답에 " + fieldName + "이 없습니다"
+            );
         }
         return value.toString();
     }

@@ -7,6 +7,8 @@ import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoReadyRes
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoReadyErrorHandler;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoReadyResponseParser;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -44,12 +46,13 @@ public class KakaoReadyApiClient {
             String orderId,
             String userId,
             long amount,
-            String itemName
+            String itemName,
+            String idempotencyKey
     ) {
         validateRequest(orderId, userId, itemName, amount);
 
         try {
-            ResponseEntity<Map<String, Object>> response = executeRequest(orderId, userId, amount, itemName);
+            ResponseEntity<Map<String, Object>> response = executeRequest(orderId, userId, amount, itemName, idempotencyKey);
             return parseResponse(orderId, response);
         } catch (HttpClientErrorException e) {
             throw errorHandler.handleHttpClientError(e, orderId);
@@ -68,11 +71,11 @@ public class KakaoReadyApiClient {
         }
     }
 
-    private ResponseEntity<Map<String, Object>> executeRequest(String orderId, String userId, long amount, String itemName) {
+    private ResponseEntity<Map<String, Object>> executeRequest(String orderId, String userId, long amount, String itemName, String idempotencyKey) {
         Map<String, Object> body = createReadyRequestBody(orderId, userId, amount, itemName);
 
         HttpEntity<Map<String, Object>> request =
-                new HttpEntity<>(body, headersProvider.createJsonHeaders());
+                new HttpEntity<>(body, headersProvider.createJsonHeaders(idempotencyKey));
 
         return restTemplate.exchange(
                 KAKAO_PAY_API_URL + READY_ENDPOINT,
@@ -84,7 +87,8 @@ public class KakaoReadyApiClient {
 
     private KakaoReadyResponse parseResponse(String orderId, ResponseEntity<Map<String, Object>> response) {
         if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-            throw new RuntimeException("KakaoPay ready API failed: status=" + response.getStatusCode());
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR,
+                    "KakaoPay ready API failed: status=" + response.getStatusCode());
         }
         return responseParser.parse(orderId, response.getBody());
     }
@@ -134,7 +138,7 @@ public class KakaoReadyApiClient {
     private String maskUserId(String userId) {
         try {
             return SensitiveDataMasker.maskUserId(Long.parseLong(userId));
-        } catch (Exception e) {
+        } catch (NumberFormatException e) {
             return SensitiveDataMasker.maskString(userId, 0, Math.max(2, userId.length() - 2));
         }
     }

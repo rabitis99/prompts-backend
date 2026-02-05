@@ -28,7 +28,8 @@ public class KakaoReadyErrorHandler {
     }
 
     public RuntimeException handleRestClientError(RestClientException e, String orderId) {
-        log.error("KakaoPay ready failed: orderId={}, message={}", orderId, e.getMessage());
+        log.error("KakaoPay ready failed: orderId={}, message={}", 
+                orderId, SensitiveDataMasker.maskSensitiveData(e.getMessage()));
         return new RuntimeException("KakaoPay 결제 준비 실패", e);
     }
 }

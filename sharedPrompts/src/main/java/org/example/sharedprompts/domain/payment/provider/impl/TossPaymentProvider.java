@@ -15,6 +15,9 @@ import org.example.sharedprompts.domain.payment.provider.toss.mapper.TossPayStat
 import org.example.sharedprompts.domain.payment.provider.toss.policy.TossPayAmountPolicy;
 import org.example.sharedprompts.domain.payment.provider.toss.policy.TossPayRefundPolicy;
 import org.example.sharedprompts.domain.payment.provider.toss.exception.DuplicateOrderIdException;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -70,10 +73,11 @@ public class TossPaymentProvider implements PaymentProvider {
 
         try {
             long tossAmount = amountPolicy.toTossAmount(amount);
-            var response = tossConfirmApiClient.confirm(paymentKey, orderId, tossAmount);
+            var response = tossConfirmApiClient.confirm(paymentKey, orderId, tossAmount, idempotencyKey);
             PaymentStatus status = statusMapper.map(response.status());
 
-            log.info("TossPay 결제 승인 성공: paymentKey={}, orderId={}, status={}", paymentKey, orderId, status);
+            log.info("TossPay 결제 승인 성공: paymentKey={}, orderId={}, status={}", 
+                    SensitiveDataMasker.maskPaymentKey(paymentKey), orderId, status);
             return PaymentResult.builder()
                     .externalPaymentId(response.paymentKey())
                     .status(status)
@@ -85,10 +89,13 @@ public class TossPaymentProvider implements PaymentProvider {
                     .build();
         } catch (DuplicateOrderIdException e) {
             // S021 오류는 상위로 전파하여 특별 처리
-            log.warn("TossPay 중복 주문번호 오류: paymentKey={}, orderId={}", paymentKey, orderId);
+            log.warn("TossPay 중복 주문번호 오류: paymentKey={}, orderId={}", 
+                    SensitiveDataMasker.maskPaymentKey(paymentKey), orderId);
             throw e;
         } catch (Exception e) {
-            log.error("TossPay 결제 승인 실패: paymentKey={}, orderId={}, error={}", paymentKey, orderId, e.getMessage(), e);
+            log.error("TossPay 결제 승인 실패: paymentKey={}, orderId={}, error={}", 
+                    SensitiveDataMasker.maskPaymentKey(paymentKey), orderId, 
+                    SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
             return PaymentResult.builder()
                     .externalPaymentId(paymentKey)
                     .status(PaymentStatus.FAILED)
@@ -108,7 +115,8 @@ public class TossPaymentProvider implements PaymentProvider {
             var response = tossStatusApiClient.status(externalPaymentId);
             PaymentStatus status = statusMapper.map(response.status());
 
-            log.debug("TossPay 결제 상태 조회 성공: paymentKey={}, status={}", externalPaymentId, status);
+            log.debug("TossPay 결제 상태 조회 성공: paymentKey={}, status={}", 
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), status);
             return PaymentResult.builder()
                     .externalPaymentId(externalPaymentId)
                     .status(status)
@@ -119,7 +127,9 @@ public class TossPaymentProvider implements PaymentProvider {
                     .metadata(response.metadata())
                     .build();
         } catch (Exception e) {
-            log.error("TossPay 결제 상태 조회 실패: paymentKey={}, error={}", externalPaymentId, e.getMessage(), e);
+            log.error("TossPay 결제 상태 조회 실패: paymentKey={}, error={}", 
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), 
+                    SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
             return PaymentResult.builder()
                     .externalPaymentId(externalPaymentId)
                     .status(PaymentStatus.FAILED)
@@ -134,9 +144,10 @@ public class TossPaymentProvider implements PaymentProvider {
         validateRequired(reason, "reason");
 
         try {
-            var response = tossCancelApiClient.cancel(externalPaymentId, reason);
+            var response = tossCancelApiClient.cancel(externalPaymentId, reason, idempotencyKey);
 
-            log.info("TossPay 결제 취소 성공: paymentKey={}", externalPaymentId);
+            log.info("TossPay 결제 취소 성공: paymentKey={}", 
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId));
             return CancelResult.builder()
                     .externalPaymentId(externalPaymentId)
                     .status(PaymentStatus.CANCELED)
@@ -145,8 +156,10 @@ public class TossPaymentProvider implements PaymentProvider {
                     .metadata(response.metadata())
                     .build();
         } catch (Exception e) {
-            log.error("TossPay 결제 취소 실패: paymentKey={}, error={}", externalPaymentId, e.getMessage(), e);
-            throw new RuntimeException("TossPay 결제 취소 실패: " + e.getMessage(), e);
+            log.error("TossPay 결제 취소 실패: paymentKey={}, error={}", 
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), 
+                    SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
+            throw new ApiException(ErrorCode.PAYMENT_CANCEL_FAILED, "TossPay 결제 취소 실패: " + e.getMessage(), e);
         }
     }
 
@@ -158,12 +171,13 @@ public class TossPaymentProvider implements PaymentProvider {
 
         try {
             long tossAmount = amountPolicy.toTossAmount(amount);
-            var response = tossCancelApiClient.refund(externalPaymentId, tossAmount, reason);
+            var response = tossCancelApiClient.refund(externalPaymentId, tossAmount, reason, idempotencyKey);
 
             BigDecimal refundedAmount = amountPolicy.fromTossAmount(response.refundedAmount());
             PaymentStatus refundStatus = refundPolicy.determineStatus(refundedAmount, amount);
 
-            log.info("TossPay 결제 환불 성공: paymentKey={}, refundedAmount={}", externalPaymentId, refundedAmount);
+            log.info("TossPay 결제 환불 성공: paymentKey={}, refundedAmount={}", 
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), refundedAmount);
             return RefundResult.builder()
                     .externalPaymentId(externalPaymentId)
                     .status(refundStatus)
@@ -173,8 +187,10 @@ public class TossPaymentProvider implements PaymentProvider {
                     .metadata(response.metadata())
                     .build();
         } catch (Exception e) {
-            log.error("TossPay 결제 환불 실패: paymentKey={}, amount={}, error={}", externalPaymentId, amount, e.getMessage(), e);
-            throw new RuntimeException("TossPay 결제 환불 실패: " + e.getMessage(), e);
+            log.error("TossPay 결제 환불 실패: paymentKey={}, amount={}, error={}", 
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), amount, 
+                    SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
+            throw new ApiException(ErrorCode.PAYMENT_REFUND_FAILED, "TossPay 결제 환불 실패: " + e.getMessage(), e);
         }
     }
 

@@ -51,10 +51,7 @@ public class ImmediateRetryStrategy implements RetryStrategy {
         }
 
         // RuntimeException인 경우 메시지 기반 판단
-        String message = exception.getMessage() != null ? exception.getMessage().toLowerCase() : "";
-        return message.contains("timeout") || message.contains("connection") ||
-                message.contains("network") || message.contains("unavailable") ||
-                message.contains("temporary") || message.contains("retry");
+        return isRetryableByMessage(exception.getMessage());
     }
 
     @Override
@@ -70,11 +67,6 @@ public class ImmediateRetryStrategy implements RetryStrategy {
 
     /**
      * 재시도 가능한 오류인지 확인
-     *
-     * <p>향후 개선: ErrorCode에 isRetryable() 메서드를 추가하여 재시도 가능 여부를 명시적으로 관리하는 것을 권장합니다.
-     *
-     * @param e ApiException
-     * @return 재시도 가능 여부
      */
     private boolean isRetryableError(ApiException e) {
         // ErrorCode 기반 판단 (향후 개선)
@@ -83,18 +75,20 @@ public class ImmediateRetryStrategy implements RetryStrategy {
         // }
 
         // Fallback: 메시지 기반 판단
-        String message = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+        return isRetryableByMessage(e.getMessage());
+    }
 
-        // 네트워크 오류, 타임아웃 등은 재시도 가능
-        if (message.contains("timeout") || message.contains("connection") ||
-                message.contains("network") || message.contains("unavailable") ||
-                message.contains("temporary") || message.contains("retry")) {
-            return true;
+    /**
+     * 메시지 기반 재시도 가능 여부 판단
+     */
+    private boolean isRetryableByMessage(String message) {
+        if (message == null) {
+            return false;
         }
-
-        // 특정 에러 코드는 재시도 불가
-        // 비즈니스 로직 오류는 재시도 불가
-        return false;
+        String lowerMessage = message.toLowerCase();
+        return lowerMessage.contains("timeout") || lowerMessage.contains("connection") ||
+                lowerMessage.contains("network") || lowerMessage.contains("unavailable") ||
+                lowerMessage.contains("temporary") || lowerMessage.contains("retry");
     }
 }
 

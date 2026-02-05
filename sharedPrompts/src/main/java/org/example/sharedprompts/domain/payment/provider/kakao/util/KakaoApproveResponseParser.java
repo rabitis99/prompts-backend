@@ -3,6 +3,9 @@ package org.example.sharedprompts.domain.payment.provider.kakao.util;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoApproveResponse;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -32,22 +35,32 @@ public class KakaoApproveResponseParser {
     }
 
     private void validateErrorResponse(String tid, String orderId, Map<String, Object> body) {
-        String errorCode = (String) body.get("code");
-        String errorMsg = (String) body.get("msg");
-        String error = (String) body.get("error");
+        Object errorCodeObj = body.get("code");
+        Object errorMsgObj = body.get("msg");
+        Object errorObj = body.get("error");
+
+        String errorCode = errorCodeObj != null ? errorCodeObj.toString() : null;
+        String errorMsg = errorMsgObj != null ? errorMsgObj.toString() : null;
+        String error = errorObj != null ? errorObj.toString() : null;
 
         if (errorCode != null || errorMsg != null || error != null) {
             String responseBodyJson = jsonConverter.convertToJson(body);
             log.error(
                     "KakaoPay approve 에러 응답: tid={}, orderId={}, code={}, msg={}, error={}",
-                    tid, orderId, errorCode, errorMsg, error
+                    SensitiveDataMasker.maskPaymentKey(tid), orderId, errorCode, 
+                    SensitiveDataMasker.maskSensitiveData(errorMsg), 
+                    SensitiveDataMasker.maskSensitiveData(error)
             );
-            throw new RuntimeException("KakaoPay approve 에러 응답: " + responseBodyJson);
+            throw new ApiException(
+                    ErrorCode.PAYMENT_PROVIDER_ERROR,
+                    "KakaoPay approve 에러 응답: " + responseBodyJson
+            );
         }
     }
 
     private String extractStatus(String tid, String orderId, Map<String, Object> body) {
-        String status = (String) body.get("status");
+        Object statusObj = body.get("status");
+        String status = statusObj != null ? statusObj.toString() : null;
         if (status != null && !status.isEmpty()) {
             return status;
         }
@@ -57,7 +70,7 @@ public class KakaoApproveResponseParser {
         if (approvedAt != null) {
             log.warn(
                     "KakaoPay approve 응답에 status가 없어 approved_at 기준으로 성공 처리: tid={}, orderId={}",
-                    tid, orderId
+                    SensitiveDataMasker.maskPaymentKey(tid), orderId
             );
             return DEFAULT_SUCCESS_STATUS;
         }
@@ -66,9 +79,12 @@ public class KakaoApproveResponseParser {
         String responseBodyJson = jsonConverter.convertToJson(body);
         log.error(
                 "KakaoPay approve 응답에 status/approved_at 모두 없음: tid={}, orderId={}",
-                tid, orderId
+                SensitiveDataMasker.maskPaymentKey(tid), orderId
         );
-        throw new RuntimeException("KakaoPay approve 응답 형식 오류: " + responseBodyJson);
+        throw new ApiException(
+                ErrorCode.PAYMENT_PROVIDER_RESPONSE_INVALID,
+                "KakaoPay approve 응답 형식 오류: " + responseBodyJson
+        );
     }
 }
 

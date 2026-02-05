@@ -45,4 +45,15 @@ public class TossPayHeadersProvider {
         headers.setContentType(MediaType.APPLICATION_JSON);
         return headers;
     }
+
+    /**
+     * JSON 요청용 헤더 생성 (idempotencyKey 포함)
+     */
+    public HttpHeaders createJsonHeaders(String idempotencyKey) {
+        HttpHeaders headers = createJsonHeaders();
+        if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
+            headers.set("Idempotency-Key", idempotencyKey);
+        }
+        return headers;
+    }
 }

@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.payment.provider.toss.dto.TossStatusResp
 import org.example.sharedprompts.domain.payment.provider.toss.util.TossPayHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.toss.util.TossStatusErrorHandler;
 import org.example.sharedprompts.domain.payment.provider.toss.util.TossStatusResponseParser;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.ParameterizedTypeReference;
@@ -50,7 +51,9 @@ public class TossStatusApiClient {
         } catch (HttpServerErrorException e) {
             throw errorHandler.handleHttpServerError(e, paymentKey);
         } catch (RestClientException e) {
-            log.error("TossPay 결제 상태 조회 API 호출 실패: paymentKey={}, error={}", paymentKey, e.getMessage(), e);
+            log.error("TossPay 결제 상태 조회 API 호출 실패: paymentKey={}, error={}", 
+                    SensitiveDataMasker.maskPaymentKey(paymentKey), 
+                    SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
             throw new RuntimeException("TossPay 결제 상태 조회 실패: " + e.getMessage(), e);
         }
     }

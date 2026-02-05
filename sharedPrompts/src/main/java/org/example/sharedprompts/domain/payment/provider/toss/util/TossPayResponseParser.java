@@ -47,10 +47,6 @@ public class TossPayResponseParser {
 
     /**
      * 취소 금액 파싱
-     *
-     * <p>cancels 배열의 마지막 요소를 가장 최근 취소로 간주한다.
-     * 금액은 중요하지만 Toss 응답 구조 변경 가능성을 고려해
-     * 파싱 실패 시 요청 금액으로 fallback 한다.
      */
     public long parseCanceledAmount(Map<String, Object> body, long requestedAmount) {
         try {

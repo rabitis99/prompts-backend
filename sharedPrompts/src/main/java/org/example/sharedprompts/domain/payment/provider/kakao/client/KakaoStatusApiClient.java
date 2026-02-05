@@ -7,6 +7,9 @@ import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoStatusRe
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoStatusErrorHandler;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoStatusResponseParser;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.ParameterizedTypeReference;
@@ -65,11 +68,15 @@ public class KakaoStatusApiClient {
 
     private KakaoStatusResponse parseResponse(String tid, ResponseEntity<Map<String, Object>> response) {
         if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-            throw new RuntimeException("KakaoPay status API failed: status=" + response.getStatusCode());
+            throw new ApiException(
+                    ErrorCode.PAYMENT_PROVIDER_ERROR,
+                    "KakaoPay status API failed: status=" + response.getStatusCode()
+            );
         }
 
         KakaoStatusResponse result = responseParser.parse(response.getBody());
-        log.debug("KakaoPay status success: tid={}, status={}", tid, result.status());
+        log.debug("KakaoPay status success: tid={}, status={}", 
+                SensitiveDataMasker.maskPaymentKey(tid), result.status());
         return result;
     }
 

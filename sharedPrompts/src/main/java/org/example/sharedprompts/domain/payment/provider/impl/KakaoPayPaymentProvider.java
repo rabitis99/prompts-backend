@@ -15,6 +15,9 @@ import org.example.sharedprompts.domain.payment.provider.kakao.client.KakaoStatu
 import org.example.sharedprompts.domain.payment.provider.kakao.mapper.KakaoPayStatusMapper;
 import org.example.sharedprompts.domain.payment.provider.kakao.policy.KakaoPayAmountPolicy;
 import org.example.sharedprompts.domain.payment.provider.kakao.policy.KakaoPayRefundPolicy;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -53,23 +56,26 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             BigDecimal amount,
             String currency,
             String itemName,
-            String userId
+            String userId,
+            String idempotencyKey
     ) {
         validateKrwCurrency(currency);
 
         try {
             long kakaoAmount = amountPolicy.toKakaoAmount(amount);
-            var readyResponse = kakaoReadyApiClient.ready(orderId, userId, kakaoAmount, itemName);
+            var readyResponse = kakaoReadyApiClient.ready(orderId, userId, kakaoAmount, itemName, idempotencyKey);
             
-            log.info("KakaoPay 결제 준비 성공: tid={}, orderId={}", readyResponse.tid(), orderId);
+            log.info("KakaoPay 결제 준비 성공: tid={}, orderId={}", 
+                    SensitiveDataMasker.maskPaymentKey(readyResponse.tid()), orderId);
             return PrepareResult.success(
                     readyResponse.tid(),
                     readyResponse.redirectUrl(),
                     readyResponse.metadata()
             );
         } catch (Exception e) {
-            log.error("KakaoPay 결제 준비 실패: orderId={}, error={}", orderId, e.getMessage(), e);
-            throw new RuntimeException("KakaoPay 결제 준비 실패: " + e.getMessage(), e);
+            log.error("KakaoPay 결제 준비 실패: orderId={}, error={}", 
+                    orderId, SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "KakaoPay 결제 준비 실패: " + e.getMessage(), e);
         }
     }
 
@@ -91,10 +97,11 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
         }
 
         try {
-            var response = kakaoApproveApiClient.approve(paymentKey, orderId, userId, pgToken);
+            var response = kakaoApproveApiClient.approve(paymentKey, orderId, userId, pgToken, idempotencyKey);
             PaymentStatus status = statusMapper.map(response.status());
 
-            log.info("KakaoPay 결제 승인 성공: tid={}, orderId={}, status={}", paymentKey, orderId, status);
+            log.info("KakaoPay 결제 승인 성공: tid={}, orderId={}, status={}", 
+                    SensitiveDataMasker.maskPaymentKey(paymentKey), orderId, status);
             return PaymentResult.builder()
                     .externalPaymentId(paymentKey)
                     .orderId(orderId)
@@ -105,7 +112,9 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
                     .approvedAt(response.approvedAt())
                     .build();
         } catch (Exception e) {
-            log.error("KakaoPay 결제 승인 실패: tid={}, orderId={}, error={}", paymentKey, orderId, e.getMessage(), e);
+            log.error("KakaoPay 결제 승인 실패: tid={}, orderId={}, error={}", 
+                    SensitiveDataMasker.maskPaymentKey(paymentKey), orderId, 
+                    SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
             return PaymentResult.builder()
                     .externalPaymentId(paymentKey)
                     .orderId(orderId)
@@ -124,7 +133,8 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             PaymentStatus status = statusMapper.map(response.status());
             BigDecimal amount = amountPolicy.fromKakaoAmount(response.amount());
 
-            log.debug("KakaoPay 결제 상태 조회 성공: tid={}, status={}", externalPaymentId, status);
+            log.debug("KakaoPay 결제 상태 조회 성공: tid={}, status={}", 
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), status);
             return PaymentResult.builder()
                     .externalPaymentId(externalPaymentId)
                     .orderId(response.orderId())
@@ -134,7 +144,9 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
                     .metadata(response.metadata())
                     .build();
         } catch (Exception e) {
-            log.error("KakaoPay 결제 상태 조회 실패: tid={}, error={}", externalPaymentId, e.getMessage(), e);
+            log.error("KakaoPay 결제 상태 조회 실패: tid={}, error={}", 
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), 
+                    SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
             return PaymentResult.builder()
                     .externalPaymentId(externalPaymentId)
                     .status(PaymentStatus.FAILED)
@@ -155,7 +167,7 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             var response = kakaoCancelApiClient.cancel(externalPaymentId, reason, totalAmount, taxFreeAmount, idempotencyKey);
             
             log.info("KakaoPay 결제 취소 성공: tid={}, originalAmount={}, taxFreeAmount={}", 
-                    externalPaymentId, originalAmount, originalTaxFreeAmount);
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), originalAmount, originalTaxFreeAmount);
             return CancelResult.builder()
                     .externalPaymentId(externalPaymentId)
                     .status(PaymentStatus.CANCELED)
@@ -166,8 +178,10 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
                     .taxFreeAmount(originalTaxFreeAmount)
                     .build();
         } catch (Exception e) {
-            log.error("KakaoPay 결제 취소 실패: tid={}, error={}", externalPaymentId, e.getMessage(), e);
-            throw new RuntimeException("KakaoPay 결제 취소 실패: " + e.getMessage(), e);
+            log.error("KakaoPay 결제 취소 실패: tid={}, error={}", 
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), 
+                    SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
+            throw new ApiException(ErrorCode.PAYMENT_CANCEL_FAILED, "KakaoPay 결제 취소 실패: " + e.getMessage(), e);
         }
     }
 
@@ -180,7 +194,8 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
             BigDecimal refundedAmount = amountPolicy.fromKakaoAmount(response.refundedAmount());
             PaymentStatus refundStatus = refundPolicy.determineStatus(refundedAmount, amount);
 
-            log.info("KakaoPay 결제 환불 성공: tid={}, refundedAmount={}", externalPaymentId, refundedAmount);
+            log.info("KakaoPay 결제 환불 성공: tid={}, refundedAmount={}", 
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), refundedAmount);
             return RefundResult.builder()
                     .externalPaymentId(externalPaymentId)
                     .status(refundStatus)
@@ -190,8 +205,10 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
                     .metadata(response.metadata())
                     .build();
         } catch (Exception e) {
-            log.error("KakaoPay 결제 환불 실패: tid={}, amount={}, error={}", externalPaymentId, amount, e.getMessage(), e);
-            throw new RuntimeException("KakaoPay 결제 환불 실패: " + e.getMessage(), e);
+            log.error("KakaoPay 결제 환불 실패: tid={}, amount={}, error={}", 
+                    SensitiveDataMasker.maskPaymentKey(externalPaymentId), amount, 
+                    SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
+            throw new ApiException(ErrorCode.PAYMENT_REFUND_FAILED, "KakaoPay 결제 환불 실패: " + e.getMessage(), e);
         }
     }
 

@@ -91,19 +91,34 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
                 .map(PaymentResponseDto::from);
     }
 
+    /**
+     * 관리자용 결제 취소 처리
+     *
+     * <p><strong>동시성 보호:</strong>
+     * 분산 락을 사용하여 동일 Payment에 대한 동시 취소 요청을 직렬화합니다.
+     * 이를 통해 전액 취소 시 동시성 문제를 방지합니다.
+     *
+     * <p><strong>트랜잭션 순서:</strong>
+     * 락 획득 → 트랜잭션 시작 → 작업 수행 → 트랜잭션 커밋 → 락 해제
+     * 이를 통해 락이 해제된 후 트랜잭션이 커밋되기 전에 다른 스레드가 락을 획득하는 문제를 방지합니다.
+     */
     @Override
-    @Transactional
     public PaymentResponseDto cancelPayment(Long paymentId, PaymentCancelRequestDto request, Long adminId) {
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":state";
 
-        // 관리자는 소유권 검증 없이 취소 가능
-        validationService.validateCancelableStatus(payment);
-
+        // 취소 실행 트랜잭션
         Payment canceledPayment;
         try {
-            // PaymentExecutionService를 통한 취소 실행
-            canceledPayment = executionService.executeCancel(payment, request.getReasonOrDefault());
+            canceledPayment = transactionBoundary.executeWithLockAndTransaction(lockKey, () -> {
+                Payment payment = paymentRepository.findById(paymentId)
+                        .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+
+                // 관리자는 소유권 검증 없이 취소 가능
+                validationService.validateCancelableStatus(payment);
+
+                // PaymentExecutionService를 통한 취소 실행
+                return executionService.executeCancel(payment, request.getReasonOrDefault());
+            });
         } catch (Exception e) {
             // 일관된 예외 처리: ApiException으로 래핑하여 throw
             log.error("관리자 결제 취소 실패: paymentId={}, adminId={}, error={}", paymentId, adminId, e.getMessage(), e);

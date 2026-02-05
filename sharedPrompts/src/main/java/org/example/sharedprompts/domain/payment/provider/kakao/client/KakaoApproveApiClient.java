@@ -38,11 +38,11 @@ public class KakaoApproveApiClient {
     private final KakaoApproveResponseParser responseParser;
     private final KakaoApproveErrorHandler errorHandler;
 
-    public KakaoApproveResponse approve(String tid, String orderId, String userId, String pgToken) {
+    public KakaoApproveResponse approve(String tid, String orderId, String userId, String pgToken, String idempotencyKey) {
         validateRequest(tid, orderId, userId, pgToken);
 
         try {
-            ResponseEntity<Map<String, Object>> response = executeRequest(tid, orderId, userId, pgToken);
+            ResponseEntity<Map<String, Object>> response = executeRequest(tid, orderId, userId, pgToken, idempotencyKey);
             return parseResponse(tid, orderId, response);
         } catch (HttpClientErrorException e) {
             throw errorHandler.handleHttpClientError(e, tid, orderId);
@@ -58,8 +58,8 @@ public class KakaoApproveApiClient {
         validateRequired(pgToken, "pgToken");
     }
 
-    private ResponseEntity<Map<String, Object>> executeRequest(String tid, String orderId, String userId, String pgToken) {
-        HttpHeaders headers = headersProvider.createJsonHeaders();
+    private ResponseEntity<Map<String, Object>> executeRequest(String tid, String orderId, String userId, String pgToken, String idempotencyKey) {
+        HttpHeaders headers = headersProvider.createJsonHeaders(idempotencyKey);
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("cid", properties.getCid());

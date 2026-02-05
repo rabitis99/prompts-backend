@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.payment.provider.toss.util;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 
@@ -14,7 +15,8 @@ import org.springframework.web.client.RestClientException;
 public class TossCancelErrorHandler {
 
     public RuntimeException handleRestClientError(RestClientException e, String paymentKey) {
-        log.error("TossPay 취소/환불 API 호출 실패: paymentKey={}", paymentKey, e);
+        log.error("TossPay 취소/환불 API 호출 실패: paymentKey={}", 
+                SensitiveDataMasker.maskPaymentKey(paymentKey), e);
         return new RuntimeException("TossPay 취소/환불 실패", e);
     }
 }

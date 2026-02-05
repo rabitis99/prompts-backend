@@ -173,10 +173,6 @@ public class SensitiveDataMasker {
     /**
      * 일반 문자열 마스킹
      * 
-     * @param str 마스킹할 문자열
-     * @param visibleStart 표시할 시작 위치
-     * @param visibleEnd 표시할 끝 위치
-     * @return 마스킹된 문자열
      */
     public static String maskString(String str, int visibleStart, int visibleEnd) {
         if (str == null || str.isEmpty()) {
@@ -302,5 +298,25 @@ public class SensitiveDataMasker {
 
         // 앞 4자리, 뒤 4자리만 표시
         return str.substring(0, 4) + MASK_CHAR.repeat(Math.min(str.length() - 8, 8)) + str.substring(str.length() - 4);
+    }
+
+    /**
+     * 결제 키 마스킹 (paymentKey, tid, externalPaymentId 등)
+     * 예: T12345678901234567890 → T1234***********7890
+     * 예: abc123xyz456 → abc1*****x456
+     */
+    public static String maskPaymentKey(String paymentKey) {
+        if (paymentKey == null || paymentKey.isEmpty()) {
+            return paymentKey;
+        }
+
+        if (paymentKey.length() <= 4) {
+            return MASK_CHAR.repeat(paymentKey.length());
+        }
+
+        // 뒤 4자리만 표시
+        int visibleLength = Math.min(4, paymentKey.length());
+        return MASK_CHAR.repeat(Math.max(1, paymentKey.length() - visibleLength)) + 
+               paymentKey.substring(paymentKey.length() - visibleLength);
     }
 }

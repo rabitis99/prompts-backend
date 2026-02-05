@@ -29,11 +29,6 @@ public class TossPayWebhookParser {
 
     /**
      * Webhook payload 파싱
-     * 
-     * @param payload Webhook 페이로드 (필수)
-     * @return WebhookEvent
-     * @throws IllegalArgumentException payload가 null이거나 비어있을 때
-     * @throws RuntimeException 파싱 실패 시
      */
     public WebhookEvent parse(String payload) {
         if (payload == null || payload.isEmpty()) {

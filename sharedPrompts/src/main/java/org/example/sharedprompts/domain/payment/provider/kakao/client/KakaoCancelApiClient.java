@@ -51,6 +51,9 @@ public class KakaoCancelApiClient {
     ) {
         validateRequired(tid, "tid");
         validateRequired(reason, "reason");
+        if (totalAmount <= 0) {
+            throw new IllegalArgumentException("취소 금액은 0보다 커야 합니다: totalAmount=" + totalAmount);
+        }
 
         try {
             ResponseEntity<Map<String, Object>> response = executeRequest(tid, totalAmount, taxFreeAmount, idempotencyKey);

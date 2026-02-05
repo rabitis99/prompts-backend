@@ -40,22 +40,22 @@ public class TossCancelApiClient {
     private final TossCancelResponseParser responseParser;
     private final TossCancelErrorHandler errorHandler;
 
-    public TossCancelResponse cancel(String paymentKey, String reason) {
+    public TossCancelResponse cancel(String paymentKey, String reason, String idempotencyKey) {
         validateRequest(paymentKey, reason);
 
         try {
-            ResponseEntity<Map<String, Object>> response = executeRequest(paymentKey, createCancelBody(reason));
+            ResponseEntity<Map<String, Object>> response = executeRequest(paymentKey, createCancelBody(reason), idempotencyKey);
             return parseCancelResponse(paymentKey, response);
         } catch (RestClientException e) {
             throw errorHandler.handleRestClientError(e, paymentKey);
         }
     }
 
-    public TossRefundResponse refund(String paymentKey, long amount, String reason) {
+    public TossRefundResponse refund(String paymentKey, long amount, String reason, String idempotencyKey) {
         validateRequest(paymentKey, reason, amount);
 
         try {
-            ResponseEntity<Map<String, Object>> response = executeRequest(paymentKey, createRefundBody(reason, amount));
+            ResponseEntity<Map<String, Object>> response = executeRequest(paymentKey, createRefundBody(reason, amount), idempotencyKey);
             return parseRefundResponse(paymentKey, amount, response);
         } catch (RestClientException e) {
             throw errorHandler.handleRestClientError(e, paymentKey);
@@ -74,9 +74,9 @@ public class TossCancelApiClient {
         }
     }
 
-    private ResponseEntity<Map<String, Object>> executeRequest(String paymentKey, Map<String, Object> requestBody) {
+    private ResponseEntity<Map<String, Object>> executeRequest(String paymentKey, Map<String, Object> requestBody, String idempotencyKey) {
         HttpEntity<Map<String, Object>> request =
-                new HttpEntity<>(requestBody, headersProvider.createJsonHeaders());
+                new HttpEntity<>(requestBody, headersProvider.createJsonHeaders(idempotencyKey));
 
         ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                 properties.getBaseUrl() + String.format(CANCEL_PATH, paymentKey),

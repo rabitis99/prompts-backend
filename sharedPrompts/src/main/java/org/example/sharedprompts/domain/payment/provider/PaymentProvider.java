@@ -24,7 +24,8 @@ public interface PaymentProvider {
             BigDecimal amount,
             String currency,
             String itemName,
-            String userId
+            String userId,
+            String idempotencyKey
     ) {
         return PrepareResult.notRequired();
     }
