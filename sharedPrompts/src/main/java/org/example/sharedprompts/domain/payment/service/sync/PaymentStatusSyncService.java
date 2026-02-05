@@ -86,8 +86,8 @@ public class PaymentStatusSyncService {
         
         switch (latestStatus) {
             case SUCCESS:
-                // PENDING -> SUCCESS 전이만 처리
-                if (currentStatus == PaymentStatus.PENDING) {
+                // 대기 상태들 -> SUCCESS 전이 처리
+                if (isPendingStatus(currentStatus)) {
                     payment.approve(result.getExternalPaymentId());
                     log.info("외부 결제사 상태 동기화: paymentId={}, {} -> {}", 
                             payment.getId(), currentStatus, latestStatus);
@@ -98,8 +98,10 @@ public class PaymentStatusSyncService {
                 break;
                 
             case FAILED:
-                // PENDING -> FAILED 전이만 처리
-                if (currentStatus == PaymentStatus.PENDING) {
+            case ABORTED:
+            case EXPIRED:
+                // 대기 상태들 -> 실패 상태 전이 처리
+                if (isPendingStatus(currentStatus)) {
                     payment.fail(result.getFailureReason() != null ? result.getFailureReason() : "외부 결제사에서 결제 실패로 확인됨");
                     log.info("외부 결제사 상태 동기화: paymentId={}, {} -> {}", 
                             payment.getId(), currentStatus, latestStatus);
@@ -110,9 +112,23 @@ public class PaymentStatusSyncService {
                 break;
                 
             case CANCELED:
-                // SUCCESS, PENDING -> CANCELED 전이 처리
-                if (currentStatus == PaymentStatus.SUCCESS || currentStatus == PaymentStatus.PENDING) {
+                // SUCCESS, 대기 상태들 -> CANCELED 전이 처리
+                if (currentStatus == PaymentStatus.SUCCESS || isPendingStatus(currentStatus)) {
                     payment.cancel();
+                    log.info("외부 결제사 상태 동기화: paymentId={}, {} -> {}", 
+                            payment.getId(), currentStatus, latestStatus);
+                } else {
+                    log.warn("상태 전이 조건 불일치로 스킵: paymentId={}, 현재 상태={}, 외부 상태={}", 
+                            payment.getId(), currentStatus, latestStatus);
+                }
+                break;
+                
+            case READY:
+            case IN_PROGRESS:
+            case WAITING_FOR_DEPOSIT:
+                // 대기 상태 간 전이는 상태만 업데이트
+                if (isPendingStatus(currentStatus)) {
+                    payment.updateStatus(latestStatus);
                     log.info("외부 결제사 상태 동기화: paymentId={}, {} -> {}", 
                             payment.getId(), currentStatus, latestStatus);
                 } else {
@@ -134,6 +150,16 @@ public class PaymentStatusSyncService {
                 log.warn("알 수 없는 결제 상태: paymentId={}, 상태={}", payment.getId(), latestStatus);
                 break;
         }
+    }
+
+    /**
+     * 대기 상태인지 확인합니다.
+     */
+    private boolean isPendingStatus(PaymentStatus status) {
+        return status == PaymentStatus.PENDING
+                || status == PaymentStatus.READY
+                || status == PaymentStatus.IN_PROGRESS
+                || status == PaymentStatus.WAITING_FOR_DEPOSIT;
     }
 }
 

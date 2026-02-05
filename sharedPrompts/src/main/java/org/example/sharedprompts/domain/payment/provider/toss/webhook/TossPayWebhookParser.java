@@ -5,7 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
-import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
+import org.example.sharedprompts.domain.payment.provider.webhook.PaymentWebhookHandler;
+import org.example.sharedprompts.domain.payment.provider.webhook.WebhookEvent;
 import org.example.sharedprompts.domain.payment.provider.toss.mapper.TossPayStatusMapper;
 import org.springframework.stereotype.Component;
 
@@ -34,7 +35,7 @@ public class TossPayWebhookParser {
      * @throws IllegalArgumentException payload가 null이거나 비어있을 때
      * @throws RuntimeException 파싱 실패 시
      */
-    public PaymentProvider.WebhookEvent parse(String payload) {
+    public WebhookEvent parse(String payload) {
         if (payload == null || payload.isEmpty()) {
             throw new IllegalArgumentException("TossPay Webhook payload는 필수입니다");
         }
@@ -77,7 +78,7 @@ public class TossPayWebhookParser {
                     .metadata(objectMapper.writeValueAsString(data))
                     .build();
 
-            return new PaymentProvider.WebhookEvent(eventType, paymentKey, orderId, paymentResult);
+            return new WebhookEvent(eventType, paymentKey, orderId, paymentResult);
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             log.error("TossPay Webhook JSON 파싱 실패: error={}", e.getMessage(), e);
             throw new RuntimeException("TossPay Webhook JSON 파싱 실패: " + e.getMessage(), e);

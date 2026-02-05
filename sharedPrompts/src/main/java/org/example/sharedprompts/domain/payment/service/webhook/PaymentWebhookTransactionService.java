@@ -5,7 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
-import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
+import org.example.sharedprompts.domain.payment.provider.webhook.PaymentWebhookHandler;
+import org.example.sharedprompts.domain.payment.provider.webhook.WebhookEvent;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.payment.validator.PaymentValidator;
 import org.example.sharedprompts.global.exception.ApiException;
@@ -36,7 +37,7 @@ public class PaymentWebhookTransactionService {
      * <p>Redis 작업은 이 트랜잭션과 독립적으로 수행됨
      */
     @Transactional
-    public Payment processPaymentInTransaction(Payment payment, PaymentProvider.WebhookEvent event) {
+    public Payment processPaymentInTransaction(Payment payment, WebhookEvent event) {
         // Double-check: 트랜잭션 시작 후 다시 상태 확인 (동시성 처리)
         Payment freshPayment = paymentRepository.findById(payment.getId())
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));

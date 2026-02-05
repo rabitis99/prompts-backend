@@ -5,7 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
-import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
+import org.example.sharedprompts.domain.payment.provider.webhook.PaymentWebhookHandler;
+import org.example.sharedprompts.domain.payment.provider.webhook.WebhookEvent;
 import org.example.sharedprompts.domain.payment.provider.kakao.mapper.KakaoPayStatusMapper;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +23,7 @@ public class KakaoPayWebhookParser {
     private final ObjectMapper objectMapper;
     private final KakaoPayStatusMapper statusMapper;
 
-    public PaymentProvider.WebhookEvent parse(String payload) {
+    public WebhookEvent parse(String payload) {
         if (payload == null || payload.isEmpty()) {
             throw new IllegalArgumentException("KakaoPay Webhook payload는 필수입니다");
         }
@@ -65,7 +66,7 @@ public class KakaoPayWebhookParser {
                     .metadata(objectMapper.writeValueAsString(data))
                     .build();
 
-            return new PaymentProvider.WebhookEvent(eventType, tid, orderId, result);
+            return new WebhookEvent(eventType, tid, orderId, result);
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             log.error("KakaoPay Webhook JSON 파싱 실패: error={}", e.getMessage(), e);
             throw new RuntimeException("KakaoPay Webhook JSON 파싱 실패: " + e.getMessage(), e);

@@ -5,12 +5,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.properties.KakaoPayProperties;
 import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoReadyResponse;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayHeadersProvider;
-import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayJsonConverter;
+import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoReadyErrorHandler;
+import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoReadyResponseParser;
 import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -34,7 +37,8 @@ public class KakaoReadyApiClient {
     @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final KakaoPayHeadersProvider headersProvider;
-    private final KakaoPayJsonConverter jsonConverter;
+    private final KakaoReadyResponseParser responseParser;
+    private final KakaoReadyErrorHandler errorHandler;
 
     public KakaoReadyResponse ready(
             String orderId,
@@ -42,6 +46,19 @@ public class KakaoReadyApiClient {
             long amount,
             String itemName
     ) {
+        validateRequest(orderId, userId, itemName, amount);
+
+        try {
+            ResponseEntity<Map<String, Object>> response = executeRequest(orderId, userId, amount, itemName);
+            return parseResponse(orderId, response);
+        } catch (HttpClientErrorException e) {
+            throw errorHandler.handleHttpClientError(e, orderId);
+        } catch (RestClientException e) {
+            throw errorHandler.handleRestClientError(e, orderId);
+        }
+    }
+
+    private void validateRequest(String orderId, String userId, String itemName, long amount) {
         validateRequired(orderId, "orderId");
         validateRequired(userId, "userId");
         validateRequired(itemName, "itemName");
@@ -49,52 +66,27 @@ public class KakaoReadyApiClient {
         if (amount <= 0) {
             throw new IllegalArgumentException("결제 금액은 0보다 커야 합니다: amount=" + amount);
         }
+    }
 
-        try {
-            Map<String, Object> body = createReadyRequestBody(orderId, userId, amount, itemName);
+    private ResponseEntity<Map<String, Object>> executeRequest(String orderId, String userId, long amount, String itemName) {
+        Map<String, Object> body = createReadyRequestBody(orderId, userId, amount, itemName);
 
-            HttpEntity<Map<String, Object>> request =
-                    new HttpEntity<>(body, headersProvider.createJsonHeaders());
+        HttpEntity<Map<String, Object>> request =
+                new HttpEntity<>(body, headersProvider.createJsonHeaders());
 
-            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    KAKAO_PAY_API_URL + READY_ENDPOINT,
-                    HttpMethod.POST,
-                    request,
-                    new org.springframework.core.ParameterizedTypeReference<>() {}
-            );
+        return restTemplate.exchange(
+                KAKAO_PAY_API_URL + READY_ENDPOINT,
+                HttpMethod.POST,
+                request,
+                new ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+    }
 
-            if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-                throw new RuntimeException("KakaoPay ready API failed: status=" + response.getStatusCode());
-            }
-
-            Map<String, Object> responseBody = response.getBody();
-            String tid = (String) responseBody.get("tid");
-            String redirectUrl = (String) responseBody.get("next_redirect_pc_url");
-
-            if (!hasText(tid) || !hasText(redirectUrl)) {
-                throw new RuntimeException("KakaoPay ready 응답 필수 값 누락");
-            }
-
-            log.info("KakaoPay ready success: tid={}, orderId={}", tid, orderId);
-
-            return new KakaoReadyResponse(
-                    tid,
-                    redirectUrl,
-                    jsonConverter.convertToJson(responseBody)
-            );
-        } catch (org.springframework.web.client.HttpClientErrorException e) {
-            String masked = SensitiveDataMasker.maskSensitiveData(e.getResponseBodyAsString());
-            log.error("KakaoPay ready failed: orderId={}, status={}, error={}",
-                    orderId, e.getStatusCode(), masked);
-
-            if (e.getStatusCode() == HttpStatus.FORBIDDEN) {
-                throw new RuntimeException("KakaoPay 인증 실패 (403). 설정값을 확인하세요.", e);
-            }
-            throw new RuntimeException("KakaoPay 결제 준비 실패", e);
-        } catch (RestClientException e) {
-            log.error("KakaoPay ready failed: orderId={}, message={}", orderId, e.getMessage());
-            throw new RuntimeException("KakaoPay 결제 준비 실패", e);
+    private KakaoReadyResponse parseResponse(String orderId, ResponseEntity<Map<String, Object>> response) {
+        if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
+            throw new RuntimeException("KakaoPay ready API failed: status=" + response.getStatusCode());
         }
+        return responseParser.parse(orderId, response.getBody());
     }
 
     /* =========================

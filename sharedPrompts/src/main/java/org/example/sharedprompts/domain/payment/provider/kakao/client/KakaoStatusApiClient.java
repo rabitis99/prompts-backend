@@ -5,9 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.properties.KakaoPayProperties;
 import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoStatusResponse;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayHeadersProvider;
-import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayJsonConverter;
+import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoStatusErrorHandler;
+import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoStatusResponseParser;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
@@ -32,39 +34,41 @@ public class KakaoStatusApiClient {
     @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final KakaoPayHeadersProvider headersProvider;
-    private final KakaoPayJsonConverter jsonConverter;
+    private final KakaoStatusResponseParser responseParser;
+    private final KakaoStatusErrorHandler errorHandler;
 
     public KakaoStatusResponse status(String tid) {
         validateRequired(tid, "tid");
 
         try {
-            HttpEntity<Map<String, Object>> request =
-                    new HttpEntity<>(createStatusRequestBody(tid), headersProvider.createJsonHeaders());
-
-            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    KAKAO_PAY_API_URL + STATUS_ENDPOINT,
-                    HttpMethod.POST,
-                    request,
-                    new org.springframework.core.ParameterizedTypeReference<>() {}
-            );
-
-            if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-                throw new RuntimeException("KakaoPay status API failed: status=" + response.getStatusCode());
-            }
-
-            KakaoStatusResponse result = parseResponse(response.getBody());
-
-            log.debug("KakaoPay status success: tid={}, status={}", tid, result.status());
-            return result;
+            ResponseEntity<Map<String, Object>> response = executeRequest(tid);
+            return parseResponse(tid, response);
         } catch (RestClientException e) {
-            log.error("KakaoPay status failed: tid={}, message={}", tid, e.getMessage());
-            throw new RuntimeException("KakaoPay 결제 상태 조회 실패", e);
+            throw errorHandler.handleRestClientError(e, tid);
         }
     }
 
-    /* =========================
-       Internal helpers
-     ========================= */
+    private ResponseEntity<Map<String, Object>> executeRequest(String tid) {
+        HttpEntity<Map<String, Object>> request =
+                new HttpEntity<>(createStatusRequestBody(tid), headersProvider.createJsonHeaders());
+
+        return restTemplate.exchange(
+                KAKAO_PAY_API_URL + STATUS_ENDPOINT,
+                HttpMethod.POST,
+                request,
+                new ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+    }
+
+    private KakaoStatusResponse parseResponse(String tid, ResponseEntity<Map<String, Object>> response) {
+        if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
+            throw new RuntimeException("KakaoPay status API failed: status=" + response.getStatusCode());
+        }
+
+        KakaoStatusResponse result = responseParser.parse(response.getBody());
+        log.debug("KakaoPay status success: tid={}, status={}", tid, result.status());
+        return result;
+    }
 
     private Map<String, Object> createStatusRequestBody(String tid) {
         validateRequired(properties.getCid(), "cid");
@@ -73,44 +77,6 @@ public class KakaoStatusApiClient {
         body.put("cid", properties.getCid());
         body.put("tid", tid);
         return body;
-    }
-
-    private KakaoStatusResponse parseResponse(Map<String, Object> body) {
-        String status = requireText(body.get("status"), "status");
-        String orderId = requireText(body.get("partner_order_id"), "partner_order_id");
-
-        @SuppressWarnings("unchecked")
-        Map<String, Object> amountMap = (Map<String, Object>) body.get("amount");
-        if (amountMap == null) {
-            throw new RuntimeException("KakaoPay status 응답에 amount가 없습니다");
-        }
-
-        long totalAmount = parseLong(amountMap.get("total"), "amount.total");
-        long taxFreeAmount = amountMap.get("tax_free") != null
-                ? parseLong(amountMap.get("tax_free"), "amount.tax_free")
-                : 0L;
-
-        return new KakaoStatusResponse(
-                status,
-                orderId,
-                totalAmount,
-                taxFreeAmount,
-                jsonConverter.convertToJson(body)
-        );
-    }
-
-    private long parseLong(Object value, String fieldName) {
-        if (value == null) {
-            throw new RuntimeException("KakaoPay status 응답에 " + fieldName + "이 없습니다");
-        }
-        return Long.parseLong(value.toString());
-    }
-
-    private String requireText(Object value, String fieldName) {
-        if (value == null || value.toString().isBlank()) {
-            throw new RuntimeException("KakaoPay status 응답에 " + fieldName + "이 없습니다");
-        }
-        return value.toString();
     }
 
     private void validateRequired(String value, String fieldName) {

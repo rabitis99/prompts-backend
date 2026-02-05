@@ -15,8 +15,6 @@ import org.example.sharedprompts.domain.payment.provider.kakao.client.KakaoStatu
 import org.example.sharedprompts.domain.payment.provider.kakao.mapper.KakaoPayStatusMapper;
 import org.example.sharedprompts.domain.payment.provider.kakao.policy.KakaoPayAmountPolicy;
 import org.example.sharedprompts.domain.payment.provider.kakao.policy.KakaoPayRefundPolicy;
-import org.example.sharedprompts.domain.payment.provider.kakao.webhook.KakaoPayWebhookParser;
-import org.example.sharedprompts.domain.payment.provider.kakao.webhook.KakaoPayWebhookVerifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -38,17 +36,10 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
     private final KakaoPayAmountPolicy amountPolicy;
     private final KakaoPayRefundPolicy refundPolicy;
     private final KakaoPayStatusMapper statusMapper;
-    private final KakaoPayWebhookVerifier webhookVerifier;
-    private final KakaoPayWebhookParser webhookParser;
 
     @Override
     public PaymentMethod getPaymentMethod() {
         return PaymentMethod.KAKAO_PAY;
-    }
-
-    @Override
-    public boolean supportsIdempotency() {
-        return false;
     }
 
     @Override
@@ -201,24 +192,6 @@ public class KakaoPayPaymentProvider implements PaymentProvider {
         } catch (Exception e) {
             log.error("KakaoPay 결제 환불 실패: tid={}, amount={}, error={}", externalPaymentId, amount, e.getMessage(), e);
             throw new RuntimeException("KakaoPay 결제 환불 실패: " + e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public boolean verifyWebhookSignature(String payload, String signature) {
-        if (payload == null || payload.isEmpty() || signature == null || signature.isEmpty()) {
-            return false;
-        }
-        return webhookVerifier.verify(payload, signature);
-    }
-
-    @Override
-    public WebhookEvent parseWebhook(String payload) {
-        try {
-            return webhookParser.parse(payload);
-        } catch (Exception e) {
-            log.error("KakaoPay Webhook 파싱 실패: error={}", e.getMessage(), e);
-            throw new RuntimeException("KakaoPay Webhook 파싱 실패: " + e.getMessage(), e);
         }
     }
 

@@ -24,7 +24,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, CustomP
      * OptimisticLock 충돌을 줄이기 위해 PESSIMISTIC_WRITE 락으로 조회합니다.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT p FROM Payment p WHERE p.id = :id")
+    @Query("SELECT p FROM Payment p LEFT JOIN FETCH p.user WHERE p.id = :id")
     Optional<Payment> findByIdForUpdate(@Param("id") Long id);
 
     /**
@@ -76,7 +76,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, CustomP
      * @param expirationTime 만료 기준 시간 (createdAt + expirationMinutes)
      * @return 만료된 PENDING 결제 목록
      */
-    @Query("SELECT p FROM Payment p WHERE p.status = :status AND p.createdAt <= :expirationTime AND p.usedPointAmount > 0 ORDER BY p.createdAt ASC")
+    @Query("SELECT p FROM Payment p LEFT JOIN FETCH p.user WHERE p.status = :status AND p.createdAt <= :expirationTime AND p.usedPointAmount > 0 ORDER BY p.createdAt ASC")
     List<Payment> findExpiredPendingPayments(@Param("status") PaymentStatus status, @Param("expirationTime") LocalDateTime expirationTime);
 }
 

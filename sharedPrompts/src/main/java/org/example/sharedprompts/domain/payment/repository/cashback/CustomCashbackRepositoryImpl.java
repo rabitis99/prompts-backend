@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.example.sharedprompts.domain.payment.QCashback.cashback;
+import static org.example.sharedprompts.domain.payment.QPayment.payment;
 import static org.example.sharedprompts.domain.user.QUser.user;
 
 @RequiredArgsConstructor
@@ -48,10 +49,11 @@ public class CustomCashbackRepositoryImpl implements CustomCashbackRepository {
             return new PageImpl<>(List.of(), pageable, total);
         }
 
-        // 3) fetch join으로 데이터 조회 (user 포함)
+        // 3) fetch join으로 데이터 조회 (user, payment 포함)
         List<Cashback> fetchedCashbacks = queryFactory
                 .selectFrom(cashback)
                 .leftJoin(cashback.user, user).fetchJoin()
+                .leftJoin(cashback.payment, payment).fetchJoin()
                 .where(cashback.id.in(ids))
                 .fetch();
 
@@ -102,10 +104,11 @@ public class CustomCashbackRepositoryImpl implements CustomCashbackRepository {
             return new PageImpl<>(List.of(), pageable, total);
         }
 
-        // 3) fetch join으로 데이터 조회 (user 포함)
+        // 3) fetch join으로 데이터 조회 (user, payment 포함)
         List<Cashback> fetchedCashbacks = queryFactory
                 .selectFrom(cashback)
                 .leftJoin(cashback.user, user).fetchJoin()
+                .leftJoin(cashback.payment, payment).fetchJoin()
                 .where(cashback.id.in(ids))
                 .fetch();
 
@@ -150,10 +153,11 @@ public class CustomCashbackRepositoryImpl implements CustomCashbackRepository {
             return new PageImpl<>(List.of(), pageable, total);
         }
 
-        // 3) fetch join으로 데이터 조회 (user 포함)
+        // 3) fetch join으로 데이터 조회 (user, payment 포함)
         List<Cashback> fetchedCashbacks = queryFactory
                 .selectFrom(cashback)
                 .leftJoin(cashback.user, user).fetchJoin()
+                .leftJoin(cashback.payment, payment).fetchJoin()
                 .where(cashback.id.in(ids))
                 .fetch();
 

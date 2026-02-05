@@ -5,11 +5,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.properties.KakaoPayProperties;
 import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoCancelResponse;
 import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoRefundResponse;
+import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoCancelErrorHandler;
+import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoCancelResponseParser;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayHeadersProvider;
-import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayJsonConverter;
-import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayResponseParser;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -20,7 +21,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * KakaoPay 결제 취소 / 환불 API Client
@@ -38,13 +38,9 @@ public class KakaoCancelApiClient {
     @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final KakaoPayHeadersProvider headersProvider;
-    private final KakaoPayJsonConverter jsonConverter;
-    private final KakaoPayResponseParser responseParser;
+    private final KakaoCancelResponseParser responseParser;
+    private final KakaoCancelErrorHandler errorHandler;
     private final KakaoStatusApiClient kakaoStatusApiClient;
-
-    /* =========================
-       Public APIs
-     ========================= */
 
     public KakaoCancelResponse cancel(
             String tid,
@@ -56,21 +52,10 @@ public class KakaoCancelApiClient {
         validateRequired(reason, "reason");
 
         try {
-            Map<String, Object> body =
-                    createCancelRequestBody(tid, totalAmount, taxFreeAmount);
-
-            ResponseEntity<Map<String, Object>> response = callCancelApi(body);
-
-            Map<String, Object> responseBody = response.getBody();
-            log.info("KakaoPay cancel success: tid={}", tid);
-
-            return new KakaoCancelResponse(
-                    responseParser.parseCanceledAt(responseBody),
-                    jsonConverter.convertToJson(responseBody)
-            );
+            ResponseEntity<Map<String, Object>> response = executeRequest(tid, totalAmount, taxFreeAmount);
+            return parseCancelResponse(tid, response);
         } catch (RestClientException e) {
-            log.error("KakaoPay cancel failed: tid={}, message={}", tid, e.getMessage());
-            throw new RuntimeException("KakaoPay 결제 취소 실패", e);
+            throw errorHandler.handleCancelError(e, tid);
         }
     }
 
@@ -79,12 +64,7 @@ public class KakaoCancelApiClient {
             long amount,
             String reason
     ) {
-        validateRequired(tid, "tid");
-        validateRequired(reason, "reason");
-
-        if (amount <= 0) {
-            throw new IllegalArgumentException("환불 금액은 0보다 커야 합니다: amount=" + amount);
-        }
+        validateRequest(tid, reason, amount);
 
         try {
             var status = kakaoStatusApiClient.status(tid);
@@ -95,33 +75,25 @@ public class KakaoCancelApiClient {
                     amount
             );
 
-            Map<String, Object> body =
-                    createCancelRequestBody(tid, amount, cancelTaxFreeAmount);
-
-            ResponseEntity<Map<String, Object>> response = callCancelApi(body);
-
-            Map<String, Object> responseBody = response.getBody();
-            long refundedAmount = extractRefundedAmount(Objects.requireNonNull(responseBody), amount);
-
-            log.info("KakaoPay refund success: tid={}, amount={}", tid, refundedAmount);
-
-            return new KakaoRefundResponse(
-                    refundedAmount,
-                    responseParser.parseCanceledAt(responseBody),
-                    jsonConverter.convertToJson(responseBody)
-            );
+            ResponseEntity<Map<String, Object>> response = executeRequest(tid, amount, cancelTaxFreeAmount);
+            return parseRefundResponse(tid, amount, response);
         } catch (RestClientException e) {
-            log.error("KakaoPay refund failed: tid={}, amount={}, message={}",
-                    tid, amount, e.getMessage());
-            throw new RuntimeException("KakaoPay 결제 환불 실패", e);
+            throw errorHandler.handleRefundError(e, tid, amount);
         }
     }
 
-    /* =========================
-       Internal helpers
-     ========================= */
+    private void validateRequest(String tid, String reason, long amount) {
+        validateRequired(tid, "tid");
+        validateRequired(reason, "reason");
 
-    private ResponseEntity<Map<String, Object>> callCancelApi(Map<String, Object> body) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("환불 금액은 0보다 커야 합니다: amount=" + amount);
+        }
+    }
+
+    private ResponseEntity<Map<String, Object>> executeRequest(String tid, long cancelAmount, long cancelTaxFreeAmount) {
+        Map<String, Object> body = createCancelRequestBody(tid, cancelAmount, cancelTaxFreeAmount);
+
         HttpHeaders headers = headersProvider.createJsonHeaders();
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
@@ -129,7 +101,7 @@ public class KakaoCancelApiClient {
                 KAKAO_PAY_API_URL + CANCEL_ENDPOINT,
                 HttpMethod.POST,
                 request,
-                new org.springframework.core.ParameterizedTypeReference<>() {}
+                new ParameterizedTypeReference<Map<String, Object>>() {}
         );
 
         if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
@@ -137,6 +109,14 @@ public class KakaoCancelApiClient {
         }
 
         return response;
+    }
+
+    private KakaoCancelResponse parseCancelResponse(String tid, ResponseEntity<Map<String, Object>> response) {
+        return responseParser.parseCancel(tid, response.getBody());
+    }
+
+    private KakaoRefundResponse parseRefundResponse(String tid, long requestedAmount, ResponseEntity<Map<String, Object>> response) {
+        return responseParser.parseRefund(tid, requestedAmount, response.getBody());
     }
 
     private Map<String, Object> createCancelRequestBody(
@@ -165,17 +145,6 @@ public class KakaoCancelApiClient {
                 .multiply(BigDecimal.valueOf(refundAmount))
                 .divide(BigDecimal.valueOf(originalAmount), 0, RoundingMode.HALF_UP)
                 .longValue();
-    }
-
-    @SuppressWarnings("unchecked")
-    private long extractRefundedAmount(Map<String, Object> body, long fallbackAmount) {
-        Map<String, Object> canceledAmount =
-                (Map<String, Object>) body.get("canceled_amount");
-
-        if (canceledAmount != null && canceledAmount.get("total") != null) {
-            return Long.parseLong(canceledAmount.get("total").toString());
-        }
-        return fallbackAmount;
     }
 
     private void validateRequired(String value, String fieldName) {
