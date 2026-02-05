@@ -15,11 +15,11 @@ import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
 import org.example.sharedprompts.domain.payment.provider.PaymentProviderFactory;
 import org.example.sharedprompts.domain.payment.provider.toss.exception.DuplicateOrderIdException;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
+import org.example.sharedprompts.domain.payment.service.idempotency.IdempotencyService;
 import org.example.sharedprompts.domain.payment.validator.PaymentValidator;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -43,6 +43,7 @@ public class PaymentExecutionService {
     private final PaymentValidator paymentValidator;
     private final PaymentRepository paymentRepository;
     private final RetryProperties retryProperties;
+    private final IdempotencyService idempotencyService;
 
     // Self-injection for calling @Transactional(propagation = REQUIRES_NEW) methods
     @Autowired
@@ -106,7 +107,7 @@ public class PaymentExecutionService {
         // 같은 트랜잭션에서 저장합니다.
         // 분산 락과 pessimistic lock으로 이미 동시성 문제가 해결되었으므로
         // 같은 트랜잭션에서 저장해도 안전합니다.
-        String idempotencyKey = generateIdempotencyKey(payment);
+        String idempotencyKey = idempotencyService.generateForPayment(payment);
         payment.updateIdempotencyKey(idempotencyKey);
 
         // Provider 선택 및 결제 승인 호출
@@ -280,7 +281,7 @@ public class PaymentExecutionService {
     
     /**
      * 결제 취소 실행
-     *
+
      * @return 저장된 Payment 엔티티
      * @throws ApiException 취소 실패 시
      */
@@ -290,7 +291,7 @@ public class PaymentExecutionService {
             throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "외부 결제 ID가 없습니다.");
         }
 
-        String idempotencyKey = generateIdempotencyKey(payment, "cancel");
+        String idempotencyKey = idempotencyService.generateForCancel(payment);
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
 
         CancelResult result = provider.cancelPayment(payment.getExternalPaymentId(), reason, idempotencyKey);
@@ -311,16 +312,6 @@ public class PaymentExecutionService {
     
     /**
      * 결제 환불 실행
-     *
-     * <p><strong>부분 환불 멱등성 (2026-02-04 개선):</strong>
-     * 부분 환불 시 현재 환불 누적 금액(refundedAmount)을 멱등성 키에 포함하여
-     * 동일 Payment에 대한 여러 번의 부분 환불 요청을 구분합니다.
-     *
-     * <p><strong>동시성 보호 (2026-02-04 개선):</strong>
-     * 멱등성 키를 외부 API 호출 전에 별도 트랜잭션(REQUIRES_NEW)으로 먼저 저장하여
-     * 동시 요청 시 동일한 키가 생성되는 경쟁 조건을 방지합니다.
-     * executePayment()와 동일한 패턴을 따릅니다.
-     *
      * @return 저장된 Payment 엔티티
      * @throws ApiException 환불 실패 시
      */
@@ -330,12 +321,7 @@ public class PaymentExecutionService {
             throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "외부 결제 ID가 없습니다.");
         }
 
-        // 부분 환불 구분을 위해 환불 전용 멱등성 키 생성 및 저장
-        // 동시성 보호: 분산 락으로 이미 동시 요청이 직렬화되었으므로
-        // 같은 트랜잭션에서 저장해도 안전합니다.
-        // 별도 트랜잭션(REQUIRES_NEW)을 사용하면 lock timeout이 발생할 수 있으므로
-        // 같은 트랜잭션에서 저장합니다.
-        String idempotencyKey = generateRefundIdempotencyKey(payment);
+        String idempotencyKey = idempotencyService.generateForRefund(payment);
         payment.updateIdempotencyKey(idempotencyKey);
 
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
@@ -350,96 +336,6 @@ public class PaymentExecutionService {
         BigDecimal actualRefundedAmount = result.getRefundedAmount() != null ? result.getRefundedAmount() : refundAmount;
         payment.refund(actualRefundedAmount);
         return paymentRepository.save(payment);
-    }
-    
-    /**
-     * 멱등성 키 생성
-     *
-     * <p>결정론적 키 생성: 동일한 Payment에 대해 항상 같은 키 반환
-     * - 기존에 저장된 idempotencyKey가 있으면 재사용
-     * - 없으면 paymentMethod:paymentId 형식으로 생성
-     */
-    private String generateIdempotencyKey(Payment payment) {
-        if (payment.getIdempotencyKey() != null) {
-            return payment.getIdempotencyKey();
-        }
-        return String.format("%s:%s",
-                payment.getPaymentMethod().name(),
-                payment.getId());
-    }
-
-    /**
-     * 멱등성 키 생성 (액션 포함)
-     *
-     * <p>취소/환불 등 특정 액션에 대한 결정론적 키 생성
-     */
-    private String generateIdempotencyKey(Payment payment, String action) {
-        return String.format("%s:%s:%s",
-                payment.getPaymentMethod().name(),
-                payment.getId(),
-                action);
-    }
-
-    /**
-     * 멱등성 키 생성 (환불 전용 - 부분 환불 구분)
-     *
-     * <p><strong>부분 환불 지원 (2026-02-04 개선):</strong>
-     * 동일 Payment에 대해 여러 번의 부분 환불을 구분하기 위해
-     * 현재까지의 환불 누적 금액(refundedAmount)을 키에 포함합니다.
-     *
-     * <p><strong>예시:</strong>
-     * <ul>
-     *   <li>첫 번째 부분 환불: TOSS:123:refund:0</li>
-     *   <li>두 번째 부분 환불: TOSS:123:refund:5000</li>
-     *   <li>세 번째 부분 환불: TOSS:123:refund:10000</li>
-     * </ul>
-     *
-     * <p><strong>주의:</strong>
-     * 결제사에서 멱등성을 지원하지 않는 경우 (예: 카카오페이),
-     * 이 키는 애플리케이션 레벨에서의 중복 방지 용도로만 사용됩니다.
-     *
-     * @param payment Payment 엔티티
-     * @return 환불 멱등성 키
-     */
-    private String generateRefundIdempotencyKey(Payment payment) {
-        // refundedAmount를 포함하여 각 부분 환불 요청을 구분
-        // refundedAmount가 같은 상태에서 재시도하면 같은 키가 생성되어 멱등성 보장
-        // null 방어: DB에서 로드 시 null일 수 있으므로 기본값 사용
-        BigDecimal refundedAmount = payment.getRefundedAmount() != null
-                ? payment.getRefundedAmount()
-                : BigDecimal.ZERO;
-        return String.format("%s:%s:refund:%s",
-                payment.getPaymentMethod().name(),
-                payment.getId(),
-                refundedAmount.stripTrailingZeros().toPlainString());
-    }
-
-    /**
-     * 멱등성 키를 별도 트랜잭션으로 저장
-     *
-     * <p><strong>주의:</strong>
-     * 이 메서드는 현재 사용되지 않습니다. pessimistic lock이 걸린 트랜잭션 내에서
-     * REQUIRES_NEW를 사용하면 lock timeout이 발생할 수 있습니다.
-     *
-     * <p>대신 같은 트랜잭션에서 직접 idempotencyKey를 업데이트하세요:
-     * <pre>{@code
-     * payment.updateIdempotencyKey(idempotencyKey);
-     * }</pre>
-     *
-     * <p>분산 락과 pessimistic lock으로 이미 동시성 문제가 해결되었으므로
-     * 같은 트랜잭션에서 저장해도 안전합니다.
-     *
-     * @deprecated pessimistic lock이 걸린 트랜잭션에서는 사용하지 마세요.
-     *             같은 트랜잭션에서 직접 업데이트하세요.
-     */
-    @Deprecated
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void saveIdempotencyKeyInNewTransaction(Long paymentId, String idempotencyKey) {
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
-        payment.updateIdempotencyKey(idempotencyKey);
-        paymentRepository.save(payment);
-        log.debug("멱등성 키 저장 완료 (별도 트랜잭션): paymentId={}, idempotencyKey={}", paymentId, idempotencyKey);
     }
 }
 

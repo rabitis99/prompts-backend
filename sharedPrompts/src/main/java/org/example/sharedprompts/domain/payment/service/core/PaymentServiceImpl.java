@@ -13,9 +13,11 @@ import org.example.sharedprompts.domain.payment.repository.payment.PaymentReposi
 import org.example.sharedprompts.domain.payment.service.facade.AmountProcessingResult;
 import org.example.sharedprompts.domain.payment.service.facade.PaymentAmountFacade;
 import org.example.sharedprompts.domain.payment.service.execution.PaymentExecutionService;
+import org.example.sharedprompts.domain.payment.service.idempotency.IdempotencyService;
 import org.example.sharedprompts.domain.payment.service.lock.DistributedLockService;
 import org.example.sharedprompts.domain.payment.service.postprocess.PaymentPostProcessService;
 import org.example.sharedprompts.domain.payment.service.sync.PaymentStatusSyncService;
+import org.example.sharedprompts.domain.payment.service.transaction.PaymentTransactionBoundary;
 import org.example.sharedprompts.domain.payment.service.validation.PaymentValidationService;
 import org.example.sharedprompts.domain.payment.validator.PaymentValidator;
 import org.example.sharedprompts.domain.user.User;
@@ -35,9 +37,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.math.BigDecimal;
@@ -65,12 +64,8 @@ public class PaymentServiceImpl implements PaymentService {
     private final ObjectMapper objectMapper;
     private final PaymentValidator paymentValidator;
     private final DistributedLockService distributedLockService;
-    private final TransactionTemplate transactionTemplate;
+    private final PaymentTransactionBoundary transactionBoundary;
 
-    /**
-     * REQUIRES_NEW 전파로 설정된 TransactionTemplate을 생성합니다.
-     * 상위 트랜잭션과 독립적으로 실행되어 락 획득 → 트랜잭션 시작 순서를 보장합니다.
-     */
     public PaymentServiceImpl(
             PaymentRepository paymentRepository,
             UserRepository userRepository,
@@ -84,7 +79,7 @@ public class PaymentServiceImpl implements PaymentService {
             ObjectMapper objectMapper,
             PaymentValidator paymentValidator,
             DistributedLockService distributedLockService,
-            PlatformTransactionManager transactionManager) {
+            PaymentTransactionBoundary transactionBoundary) {
         this.paymentRepository = paymentRepository;
         this.userRepository = userRepository;
         this.validationService = validationService;
@@ -97,8 +92,7 @@ public class PaymentServiceImpl implements PaymentService {
         this.objectMapper = objectMapper;
         this.paymentValidator = paymentValidator;
         this.distributedLockService = distributedLockService;
-        this.transactionTemplate = new TransactionTemplate(transactionManager);
-        this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        this.transactionBoundary = transactionBoundary;
     }
 
     @Override
@@ -204,29 +198,32 @@ public class PaymentServiceImpl implements PaymentService {
         validationService.validatePaymentOwnership(payment, userId);
         validationService.validateCancelableStatus(payment);
 
+        Payment canceledPayment;
         try {
-            PaymentStatus oldStatus = payment.getStatus();
-
             // PaymentExecutionService를 통한 취소 실행
-            payment = executionService.executeCancel(payment, request.getReasonOrDefault());
-
-            try {
-                postProcessService.processPaymentCancel(payment, userId, request.getReasonOrDefault(), oldStatus);
-            } catch (Exception postProcessException) {
-                // 후처리 실패는 로깅만 수행 (취소는 성공했으므로 예외를 던지지 않음)
-                // TODO: 보상 트랜잭션 큐에 추가하여 나중에 재시도하거나 관리자 알림 필요
-                // 포인트 복구 실패 시 별도 보상 처리 프로세스 필요
-                log.error("결제 취소 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
-                        payment.getId(), userId, postProcessException.getMessage(), postProcessException);
-            }
-
+            canceledPayment = executionService.executeCancel(payment, request.getReasonOrDefault());
         } catch (Exception e) {
             // 일관된 예외 처리: ApiException으로 래핑하여 throw
             log.error("결제 취소 실패: paymentId={}, userId={}, error={}", request.getPaymentId(), userId, e.getMessage(), e);
             throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 취소 실패: " + e.getMessage());
         }
 
-        return PaymentResponseDto.from(payment);
+        // 후처리 트랜잭션 (별도)
+        try {
+            postProcessService.processPaymentCancelAfterCommit(
+                    canceledPayment.getId(),
+                    userId,
+                    request.getReasonOrDefault()
+            );
+        } catch (Exception postProcessException) {
+            // 후처리 실패는 로깅만 수행 (취소는 성공했으므로 예외를 던지지 않음)
+            // TODO: 보상 트랜잭션 큐에 추가하여 나중에 재시도하거나 관리자 알림 필요
+            // 포인트 복구 실패 시 별도 보상 처리 프로세스 필요
+            log.error("결제 취소 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
+                    canceledPayment.getId(), userId, postProcessException.getMessage(), postProcessException);
+        }
+
+        return PaymentResponseDto.from(canceledPayment);
     }
 
     /**
@@ -245,54 +242,44 @@ public class PaymentServiceImpl implements PaymentService {
         Long paymentId = request.getPaymentIdAsLong();
         String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":state";
 
-        return distributedLockService.executeWithLock(lockKey, () -> {
-            // 락 내에서 트랜잭션 실행
-            return transactionTemplate.execute(status -> {
-                Payment payment = paymentRepository.findById(paymentId)
-                        .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        // 환불 실행 트랜잭션
+        Payment refundedPayment = transactionBoundary.executeWithLockAndTransaction(lockKey, () -> {
+            Payment payment = paymentRepository.findById(paymentId)
+                    .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
-                validationService.validatePaymentOwnership(payment, userId);
-                validationService.validateRefundableStatus(payment);
-                BigDecimal refundAmount = validationService.validateRefundAmount(request.getAmount(), payment);
+            validationService.validatePaymentOwnership(payment, userId);
+            validationService.validateRefundableStatus(payment);
+            BigDecimal refundAmount = validationService.validateRefundAmount(request.getAmount(), payment);
 
-                try {
-                    PaymentStatus oldStatus = payment.getStatus();
-
-                    // PaymentExecutionService를 통한 환불 실행
-                    payment = executionService.executeRefund(payment, refundAmount, request.getReasonOrDefault());
-
-                    BigDecimal refundPointAmount = amountFacade.calculateRefundPointAmount(
-                            payment.getUsedPointAmount(),
-                            payment.getAmount(),
-                            refundAmount
-                    );
-
-                    try {
-                        postProcessService.processPaymentRefund(
-                                payment,
-                                userId,
-                                refundAmount,
-                                refundPointAmount,
-                                request.getReasonOrDefault(),
-                                oldStatus
-                        );
-                    } catch (Exception postProcessException) {
-                        // 후처리 실패는 로깅만 수행 (환불은 성공했으므로 예외를 던지지 않음)
-                        // TODO: 보상 트랜잭션 큐에 추가하여 나중에 재시도하거나 관리자 알림 필요
-                        // 포인트 복구 실패 시 별도 보상 처리 프로세스 필요
-                        log.error("결제 환불 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
-                                payment.getId(), userId, postProcessException.getMessage(), postProcessException);
-                    }
-
-                } catch (Exception e) {
-                    // 일관된 예외 처리: ApiException으로 래핑하여 throw
-                    log.error("결제 환불 실패: paymentId={}, userId={}, error={}", paymentId, userId, e.getMessage(), e);
-                    throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 환불 실패: " + e.getMessage());
-                }
-
-                return PaymentResponseDto.from(payment);
-            });
+            // PaymentExecutionService를 통한 환불 실행
+            return executionService.executeRefund(payment, refundAmount, request.getReasonOrDefault());
         });
+
+        // 후처리 트랜잭션 (별도)
+        BigDecimal refundAmount = validationService.validateRefundAmount(request.getAmount(), refundedPayment);
+        BigDecimal refundPointAmount = amountFacade.calculateRefundPointAmount(
+                refundedPayment.getUsedPointAmount(),
+                refundedPayment.getAmount(),
+                refundAmount
+        );
+
+        try {
+            postProcessService.processPaymentRefundAfterCommit(
+                    refundedPayment.getId(),
+                    userId,
+                    refundAmount,
+                    refundPointAmount,
+                    request.getReasonOrDefault()
+            );
+        } catch (Exception postProcessException) {
+            // 후처리 실패는 로깅만 수행 (환불은 성공했으므로 예외를 던지지 않음)
+            // TODO: 보상 트랜잭션 큐에 추가하여 나중에 재시도하거나 관리자 알림 필요
+            // 포인트 복구 실패 시 별도 보상 처리 프로세스 필요
+            log.error("결제 환불 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
+                    refundedPayment.getId(), userId, postProcessException.getMessage(), postProcessException);
+        }
+
+        return PaymentResponseDto.from(refundedPayment);
     }
 
     @Override
@@ -313,7 +300,7 @@ public class PaymentServiceImpl implements PaymentService {
         boolean[] paymentSucceededHolder = new boolean[1];
 
         try {
-            PaymentConfirmResponse response = distributedLockService.executeWithLock(lockKey, () -> transactionTemplate.execute(txStatus -> {
+            PaymentConfirmResponse response = transactionBoundary.executeWithLockAndTransaction(lockKey, () -> {
                 long startTime = System.currentTimeMillis();
 
                 Payment payment = paymentRepository.findByIdForUpdate(paymentId)
@@ -406,7 +393,7 @@ public class PaymentServiceImpl implements PaymentService {
                 PaymentConfirmResponse confirmResponse = toConfirmResponse(payment, request);
                 paymentSucceededHolder[0] = true;
                 return confirmResponse;
-            }));
+            });
             
             // 락이 완전히 해제된 후 포인트 적립 처리
             // 트랜잭션이 커밋되고 락이 해제된 후 별도 트랜잭션에서 포인트 적립을 처리합니다.
