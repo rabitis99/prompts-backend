@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.properties.TossPayProperties;
 import org.example.sharedprompts.domain.payment.provider.toss.dto.TossStatusResponse;
 import org.example.sharedprompts.domain.payment.provider.toss.util.TossPayHeadersProvider;
+import org.example.sharedprompts.domain.payment.provider.toss.util.TossStatusErrorHandler;
+import org.example.sharedprompts.domain.payment.provider.toss.util.TossStatusResponseParser;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.ParameterizedTypeReference;

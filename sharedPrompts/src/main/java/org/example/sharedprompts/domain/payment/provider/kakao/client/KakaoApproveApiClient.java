@@ -80,7 +80,7 @@ public class KakaoApproveApiClient {
 
     private KakaoApproveResponse parseResponse(String tid, String orderId, ResponseEntity<Map<String, Object>> response) {
         if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-            throw new RuntimeException("KakaoPay approve 응답이 비정상입니다: status=" + response.getStatusCode());
+            throw errorHandler.handleUnexpectedResponse(response.getStatusCode(), tid, orderId);
         }
         return responseParser.parse(tid, orderId, response.getBody());
     }

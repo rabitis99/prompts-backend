@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -43,6 +44,8 @@ public class KakaoStatusApiClient {
         try {
             ResponseEntity<Map<String, Object>> response = executeRequest(tid);
             return parseResponse(tid, response);
+        } catch (HttpClientErrorException e) {
+            throw errorHandler.handleHttpClientError(e, tid);
         } catch (RestClientException e) {
             throw errorHandler.handleRestClientError(e, tid);
         }

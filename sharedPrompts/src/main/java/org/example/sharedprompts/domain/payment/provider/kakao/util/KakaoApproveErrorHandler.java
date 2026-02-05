@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
@@ -40,6 +41,14 @@ public class KakaoApproveErrorHandler {
                 tid, orderId, e
         );
         return new RuntimeException("KakaoPay 결제 승인 통신 실패", e);
+    }
+
+    public RuntimeException handleUnexpectedResponse(HttpStatusCode status, String tid, String orderId) {
+        log.error(
+                "KakaoPay approve 응답이 비정상입니다: tid={}, orderId={}, status={}",
+                tid, orderId, status
+        );
+        return new RuntimeException("KakaoPay approve 응답이 비정상입니다: status=" + status);
     }
 }
 
