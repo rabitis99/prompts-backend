@@ -11,7 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.example.sharedprompts.domain.payment.QUserTierHistory.userTierHistory;
+
+import static org.example.sharedprompts.domain.payment.domain.entity.QUserTierHistory.userTierHistory;
 import static org.example.sharedprompts.domain.user.QUser.user;
 
 @RequiredArgsConstructor
