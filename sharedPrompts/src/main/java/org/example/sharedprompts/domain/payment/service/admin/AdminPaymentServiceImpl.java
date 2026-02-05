@@ -5,6 +5,9 @@ import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.payment.service.facade.PaymentAmountFacade;
 import org.example.sharedprompts.domain.payment.service.execution.PaymentExecutionService;
+import org.example.sharedprompts.domain.payment.service.compensation.CompensationQueue;
+import org.example.sharedprompts.domain.payment.service.compensation.CompensationTask;
+import org.example.sharedprompts.domain.payment.service.compensation.CompensationTaskType;
 import org.example.sharedprompts.domain.payment.service.lock.DistributedLockService;
 import org.example.sharedprompts.domain.payment.service.postprocess.PaymentPostProcessService;
 import org.example.sharedprompts.domain.payment.service.sync.PaymentStatusSyncService;
@@ -45,6 +48,7 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
     private final PaymentStatusSyncService statusSyncService;
     private final DistributedLockService distributedLockService;
     private final PaymentTransactionBoundary transactionBoundary;
+    private final CompensationQueue compensationQueue;
 
     public AdminPaymentServiceImpl(
             PaymentRepository paymentRepository,
@@ -54,7 +58,8 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
             PaymentPostProcessService postProcessService,
             PaymentStatusSyncService statusSyncService,
             DistributedLockService distributedLockService,
-            PaymentTransactionBoundary transactionBoundary) {
+            PaymentTransactionBoundary transactionBoundary,
+            CompensationQueue compensationQueue) {
         this.paymentRepository = paymentRepository;
         this.validationService = validationService;
         this.amountFacade = amountFacade;
@@ -63,6 +68,7 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
         this.statusSyncService = statusSyncService;
         this.distributedLockService = distributedLockService;
         this.transactionBoundary = transactionBoundary;
+        this.compensationQueue = compensationQueue;
     }
 
     @Override
@@ -105,9 +111,20 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
                     request.getReasonOrDefault()
             );
         } catch (Exception postProcessException) {
-            // 후처리 실패는 로깅만 수행 (취소는 성공했으므로 예외를 던지지 않음)
+            // 후처리 실패는 보상 트랜잭션 큐에 추가하여 나중에 재시도
             log.error("관리자 결제 취소 성공 후 후처리 실패: paymentId={}, adminId={}, error={}",
                     paymentId, adminId, postProcessException.getMessage(), postProcessException);
+            
+            CompensationTask task = new CompensationTask(
+                    CompensationTaskType.POINT_RECOVERY_CANCEL,
+                    canceledPayment.getId(),
+                    canceledPayment.getUser().getId(),
+                    canceledPayment.getUsedPointAmount(),
+                    null,
+                    postProcessException.getMessage(),
+                    null
+            );
+            compensationQueue.enqueue(task);
         }
 
         return PaymentResponseDto.from(canceledPayment);
@@ -158,9 +175,20 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
                     request.getReasonOrDefault()
             );
         } catch (Exception postProcessException) {
-            // 후처리 실패는 로깅만 수행 (환불은 성공했으므로 예외를 던지지 않음)
+            // 후처리 실패는 보상 트랜잭션 큐에 추가하여 나중에 재시도
             log.error("관리자 결제 환불 성공 후 후처리 실패: paymentId={}, adminId={}, error={}",
                     paymentId, adminId, postProcessException.getMessage(), postProcessException);
+            
+            CompensationTask task = new CompensationTask(
+                    CompensationTaskType.POINT_RECOVERY_REFUND,
+                    refundedPayment.getId(),
+                    refundedPayment.getUser().getId(),
+                    refundPointAmount,
+                    null,
+                    postProcessException.getMessage(),
+                    null
+            );
+            compensationQueue.enqueue(task);
         }
 
         return PaymentResponseDto.from(refundedPayment);

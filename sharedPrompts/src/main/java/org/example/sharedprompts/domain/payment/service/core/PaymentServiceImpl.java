@@ -13,6 +13,9 @@ import org.example.sharedprompts.domain.payment.repository.payment.PaymentReposi
 import org.example.sharedprompts.domain.payment.service.facade.AmountProcessingResult;
 import org.example.sharedprompts.domain.payment.service.facade.PaymentAmountFacade;
 import org.example.sharedprompts.domain.payment.service.execution.PaymentExecutionService;
+import org.example.sharedprompts.domain.payment.service.compensation.CompensationQueue;
+import org.example.sharedprompts.domain.payment.service.compensation.CompensationTask;
+import org.example.sharedprompts.domain.payment.service.compensation.CompensationTaskType;
 import org.example.sharedprompts.domain.payment.service.idempotency.IdempotencyService;
 import org.example.sharedprompts.domain.payment.service.lock.DistributedLockService;
 import org.example.sharedprompts.domain.payment.service.postprocess.PaymentPostProcessService;
@@ -65,6 +68,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentValidator paymentValidator;
     private final DistributedLockService distributedLockService;
     private final PaymentTransactionBoundary transactionBoundary;
+    private final CompensationQueue compensationQueue;
 
     public PaymentServiceImpl(
             PaymentRepository paymentRepository,
@@ -79,7 +83,8 @@ public class PaymentServiceImpl implements PaymentService {
             ObjectMapper objectMapper,
             PaymentValidator paymentValidator,
             DistributedLockService distributedLockService,
-            PaymentTransactionBoundary transactionBoundary) {
+            PaymentTransactionBoundary transactionBoundary,
+            CompensationQueue compensationQueue) {
         this.paymentRepository = paymentRepository;
         this.userRepository = userRepository;
         this.validationService = validationService;
@@ -93,6 +98,7 @@ public class PaymentServiceImpl implements PaymentService {
         this.paymentValidator = paymentValidator;
         this.distributedLockService = distributedLockService;
         this.transactionBoundary = transactionBoundary;
+        this.compensationQueue = compensationQueue;
     }
 
     @Override
@@ -216,11 +222,20 @@ public class PaymentServiceImpl implements PaymentService {
                     request.getReasonOrDefault()
             );
         } catch (Exception postProcessException) {
-            // 후처리 실패는 로깅만 수행 (취소는 성공했으므로 예외를 던지지 않음)
-            // TODO: 보상 트랜잭션 큐에 추가하여 나중에 재시도하거나 관리자 알림 필요
-            // 포인트 복구 실패 시 별도 보상 처리 프로세스 필요
+            // 후처리 실패는 보상 트랜잭션 큐에 추가하여 나중에 재시도
             log.error("결제 취소 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
                     canceledPayment.getId(), userId, postProcessException.getMessage(), postProcessException);
+            
+            CompensationTask task = new CompensationTask(
+                    CompensationTaskType.POINT_RECOVERY_CANCEL,
+                    canceledPayment.getId(),
+                    userId,
+                    canceledPayment.getUsedPointAmount(),
+                    null,
+                    postProcessException.getMessage(),
+                    null
+            );
+            compensationQueue.enqueue(task);
         }
 
         return PaymentResponseDto.from(canceledPayment);
@@ -272,11 +287,20 @@ public class PaymentServiceImpl implements PaymentService {
                     request.getReasonOrDefault()
             );
         } catch (Exception postProcessException) {
-            // 후처리 실패는 로깅만 수행 (환불은 성공했으므로 예외를 던지지 않음)
-            // TODO: 보상 트랜잭션 큐에 추가하여 나중에 재시도하거나 관리자 알림 필요
-            // 포인트 복구 실패 시 별도 보상 처리 프로세스 필요
+            // 후처리 실패는 보상 트랜잭션 큐에 추가하여 나중에 재시도
             log.error("결제 환불 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
                     refundedPayment.getId(), userId, postProcessException.getMessage(), postProcessException);
+            
+            CompensationTask task = new CompensationTask(
+                    CompensationTaskType.POINT_RECOVERY_REFUND,
+                    refundedPayment.getId(),
+                    userId,
+                    refundPointAmount,
+                    null,
+                    postProcessException.getMessage(),
+                    null
+            );
+            compensationQueue.enqueue(task);
         }
 
         return PaymentResponseDto.from(refundedPayment);
@@ -418,9 +442,21 @@ public class PaymentServiceImpl implements PaymentService {
                                 processingTimeHolder[0]
                         );
                     } catch (Exception postProcessException) {
-                        // 후처리 실패는 로깅만 수행 (결제는 성공했으므로 예외를 던지지 않음)
+                        // 후처리 실패는 보상 트랜잭션 큐에 추가하여 나중에 재시도
                         log.error("결제 승인 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
                                 paymentId, userId, postProcessException.getMessage(), postProcessException);
+                        
+                        // 포인트/캐시백 적립 실패는 보상 큐에 추가
+                        CompensationTask task = new CompensationTask(
+                                CompensationTaskType.POINT_ACCRUAL,
+                                paymentId,
+                                userId,
+                                actualAmount,
+                                null,
+                                postProcessException.getMessage(),
+                                null
+                        );
+                        compensationQueue.enqueue(task);
                     }
                 }
             }
