@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.payment.enums.UserTier;
 import org.example.sharedprompts.domain.payment.service.core.PaymentService;
+import org.example.sharedprompts.domain.payment.service.admin.AdminPaymentService;
 import org.example.sharedprompts.domain.payment.service.user.UserTierService;
 import org.example.sharedprompts.dto.payment.request.PaymentCancelRequestDto;
 import org.example.sharedprompts.dto.payment.request.PaymentRefundRequestDto;
@@ -33,6 +34,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminPaymentController {
 
     private final PaymentService paymentService;
+    private final AdminPaymentService adminPaymentService;
     private final UserTierService userTierService;
 
     /**
@@ -44,7 +46,7 @@ public class AdminPaymentController {
             @PathVariable Long paymentId
     ) {
         // 관리자는 모든 결제 상태 조회 가능 (소유권 검증 없음)
-        PaymentStatusResponseDto response = paymentService.checkPaymentStatusForAdmin(paymentId);
+        PaymentStatusResponseDto response = adminPaymentService.checkPaymentStatus(paymentId);
         return CustomResponseHelper.ok(response);
     }
 
@@ -73,7 +75,7 @@ public class AdminPaymentController {
             @PageableDefault(size = 20) Pageable pageable
     ) {
         PageResponse<PaymentResponseDto> response = PageResponse.of(
-                paymentService.getAllPaymentHistory(pageable)
+                adminPaymentService.getAllPaymentHistory(pageable)
         );
         return CustomResponseHelper.ok(response);
     }
@@ -95,7 +97,7 @@ public class AdminPaymentController {
                 .build();
         
         // 관리자는 모든 결제 취소 가능 (소유권 검증 없음)
-        PaymentResponseDto response = paymentService.cancelPaymentForAdmin(paymentId, cancelRequest, authUser.getId());
+        PaymentResponseDto response = adminPaymentService.cancelPayment(paymentId, cancelRequest, authUser.getId());
         return CustomResponseHelper.ok(response);
     }
 
@@ -117,7 +119,7 @@ public class AdminPaymentController {
                 .build();
         
         // 관리자는 모든 결제 환불 가능 (소유권 검증 없음)
-        PaymentResponseDto response = paymentService.refundPaymentForAdmin(paymentId, refundRequest, authUser.getId());
+        PaymentResponseDto response = adminPaymentService.refundPayment(paymentId, refundRequest, authUser.getId());
         return CustomResponseHelper.ok(response);
     }
 
