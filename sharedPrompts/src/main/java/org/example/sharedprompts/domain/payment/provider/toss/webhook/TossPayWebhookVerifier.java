@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.payment.provider.toss.webhook;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.TossPayProperties;
+import org.example.sharedprompts.domain.payment.properties.TossPayProperties;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;
@@ -27,10 +27,6 @@ public class TossPayWebhookVerifier {
 
     /**
      * Webhook 서명 검증
-     * 
-     * @param payload Webhook 페이로드 (필수)
-     * @param signature 서명 (필수)
-     * @return 검증 성공 여부
      */
     public boolean verify(String payload, String signature) {
         if (payload == null || payload.isEmpty()) {
@@ -43,7 +39,7 @@ public class TossPayWebhookVerifier {
         }
 
         try {
-            String secret = properties.getSecret();
+            String secret = properties.getSecretKey();
             if (secret == null || secret.isEmpty()) {
                 log.warn("TossPay Webhook secret이 설정되지 않았습니다");
                 return false;

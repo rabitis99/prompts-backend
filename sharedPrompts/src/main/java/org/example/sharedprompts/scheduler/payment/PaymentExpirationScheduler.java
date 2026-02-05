@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.payment.Payment;
-import org.example.sharedprompts.domain.payment.config.PaymentExpirationProperties;
+import org.example.sharedprompts.domain.payment.properties.PaymentExpirationProperties;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.enums.PointType;
 import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
@@ -139,6 +139,3 @@ public class PaymentExpirationScheduler {
                 paymentId, userId, payment.getStatus());
     }
 }
-
-
-

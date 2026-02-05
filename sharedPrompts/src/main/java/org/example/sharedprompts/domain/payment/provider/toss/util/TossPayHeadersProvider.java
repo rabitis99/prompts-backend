@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.payment.provider.toss.util;
 
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.domain.payment.config.TossPayProperties;
+import org.example.sharedprompts.domain.payment.properties.TossPayProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -27,7 +27,7 @@ public class TossPayHeadersProvider {
      */
     public HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
-        String secret = properties.getSecret();
+        String secret = properties.getSecretKey();
         if (secret == null || secret.isEmpty()) {
             throw new IllegalStateException("TossPay secret이 설정되지 않았습니다");
         }
@@ -43,6 +43,17 @@ public class TossPayHeadersProvider {
     public HttpHeaders createJsonHeaders() {
         HttpHeaders headers = createHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+        return headers;
+    }
+
+    /**
+     * JSON 요청용 헤더 생성 (idempotencyKey 포함)
+     */
+    public HttpHeaders createJsonHeaders(String idempotencyKey) {
+        HttpHeaders headers = createJsonHeaders();
+        if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
+            headers.set("Idempotency-Key", idempotencyKey);
+        }
         return headers;
     }
 }

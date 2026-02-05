@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.payment.provider.paypal.util;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.PaypalProperties;
+import org.example.sharedprompts.domain.payment.properties.PaypalProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;

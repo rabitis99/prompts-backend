@@ -2,11 +2,12 @@ package org.example.sharedprompts.domain.payment.provider.paypal.client;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.PaypalProperties;
+import org.example.sharedprompts.domain.payment.properties.PaypalProperties;
 import org.example.sharedprompts.domain.payment.provider.paypal.dto.PaypalCreateOrderResponse;
 import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalJsonConverter;
 import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalResponseParser;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
@@ -47,17 +48,18 @@ public class PaypalCreateOrderApiClient {
      * @param amount 결제 금액 (필수)
      * @param currency 통화 코드 (필수)
      * @param itemName 상품명 (선택)
+     * @param idempotencyKey 멱등성 키 (선택)
      * @return CreateOrderResponse
      * @throws IllegalArgumentException 필수 필드 누락 시
      * @throws RuntimeException API 호출 실패 시
      */
-    public PaypalCreateOrderResponse createOrder(String orderId, BigDecimal amount, String currency, String itemName) {
+    public PaypalCreateOrderResponse createOrder(String orderId, BigDecimal amount, String currency, String itemName, String idempotencyKey) {
         validateRequired(orderId, "orderId");
         validateRequired(amount, "amount");
         validateRequired(currency, "currency");
 
         try {
-            HttpHeaders headers = headersProvider.createJsonHeaders();
+            HttpHeaders headers = headersProvider.createJsonHeaders(idempotencyKey);
 
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("intent", "CAPTURE");
@@ -101,7 +103,8 @@ public class PaypalCreateOrderApiClient {
 
                 String approveUrl = responseParser.extractApproveUrl(body);
 
-                log.info("PayPal 주문 생성 성공: orderId={}, paypalOrderId={}", orderId, paypalOrderId);
+                log.info("PayPal 주문 생성 성공: orderId={}, paypalOrderId={}", 
+                        orderId, SensitiveDataMasker.maskPaymentKey(paypalOrderId));
                 return new PaypalCreateOrderResponse(
                         paypalOrderId,
                         approveUrl,
@@ -111,7 +114,8 @@ public class PaypalCreateOrderApiClient {
 
             throw new RuntimeException("PayPal 주문 생성 실패: status=" + response.getStatusCode());
         } catch (RestClientException e) {
-            log.error("PayPal 주문 생성 API 호출 실패: orderId={}, error={}", orderId, e.getMessage(), e);
+            log.error("PayPal 주문 생성 API 호출 실패: orderId={}, error={}", 
+                    orderId, SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
             throw new RuntimeException("PayPal 주문 생성 실패: " + e.getMessage(), e);
         }
     }

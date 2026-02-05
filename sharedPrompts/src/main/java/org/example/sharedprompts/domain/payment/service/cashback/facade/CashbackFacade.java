@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.payment.service.cashback.facade;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Cashback;
-import org.example.sharedprompts.domain.payment.config.RewardProperties;
+import org.example.sharedprompts.domain.payment.properties.RewardProperties;
 import org.example.sharedprompts.domain.payment.repository.cashback.CashbackRepository;
 import org.example.sharedprompts.domain.payment.service.cashback.amount.CashbackAmountService;
 import org.example.sharedprompts.domain.payment.service.cashback.execution.CashbackExecutionService;

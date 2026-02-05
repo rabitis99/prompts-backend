@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.example.sharedprompts.domain.payment.QPoint.point;
+import static org.example.sharedprompts.domain.payment.QPayment.payment;
 import static org.example.sharedprompts.domain.user.QUser.user;
 
 @RequiredArgsConstructor
@@ -22,6 +23,7 @@ public class CustomPointRepositoryImpl implements CustomPointRepository {
     /**
      * 2-step 페이징 + fetchJoin
      * 포인트 내역 조회 시 N+1 문제 해결
+     * payment는 nullable이므로 leftJoin 사용
      */
     @Override
     public Page<Point> findByUserIdWithFetchJoin(Long userId, Pageable pageable) {
@@ -48,10 +50,11 @@ public class CustomPointRepositoryImpl implements CustomPointRepository {
             return new PageImpl<>(List.of(), pageable, total);
         }
 
-        // 3) fetch join으로 데이터 조회 (user 포함)
+        // 3) fetch join으로 데이터 조회 (user, payment 포함)
         List<Point> fetchedPoints = queryFactory
                 .selectFrom(point)
                 .leftJoin(point.user, user).fetchJoin()
+                .leftJoin(point.payment, payment).fetchJoin()
                 .where(point.id.in(ids))
                 .fetch();
 
@@ -102,10 +105,11 @@ public class CustomPointRepositoryImpl implements CustomPointRepository {
             return new PageImpl<>(List.of(), pageable, total);
         }
 
-        // 3) fetch join으로 데이터 조회 (user 포함)
+        // 3) fetch join으로 데이터 조회 (user, payment 포함)
         List<Point> fetchedPoints = queryFactory
                 .selectFrom(point)
                 .leftJoin(point.user, user).fetchJoin()
+                .leftJoin(point.payment, payment).fetchJoin()
                 .where(point.id.in(ids))
                 .fetch();
 
@@ -150,10 +154,11 @@ public class CustomPointRepositoryImpl implements CustomPointRepository {
             return new PageImpl<>(List.of(), pageable, total);
         }
 
-        // 3) fetch join으로 데이터 조회 (user 포함)
+        // 3) fetch join으로 데이터 조회 (user, payment 포함)
         List<Point> fetchedPoints = queryFactory
                 .selectFrom(point)
                 .leftJoin(point.user, user).fetchJoin()
+                .leftJoin(point.payment, payment).fetchJoin()
                 .where(point.id.in(ids))
                 .fetch();
 

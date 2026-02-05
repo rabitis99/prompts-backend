@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.payment.service.point;
 import lombok.extern.slf4j.Slf4j;
 
 import org.example.sharedprompts.domain.payment.Point;
-import org.example.sharedprompts.domain.payment.config.RewardProperties;
+import org.example.sharedprompts.domain.payment.properties.RewardProperties;
 import org.example.sharedprompts.domain.payment.enums.PointType;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.payment.repository.point.PointRepository;

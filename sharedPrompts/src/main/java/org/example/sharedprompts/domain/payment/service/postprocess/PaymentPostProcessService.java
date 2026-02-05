@@ -121,6 +121,25 @@ public class PaymentPostProcessService {
     }
 
     /**
+     * 결제 취소 후처리 (트랜잭션 밖에서 호출)
+     * @param paymentId 결제 ID
+     * @param userId 사용자 ID
+     * @param reason 취소 사유
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public void processPaymentCancelAfterCommit(Long paymentId, Long userId, String reason) {
+        // Payment 엔티티 재조회 (트랜잭션 밖에서 호출되므로)
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        
+        PaymentStatus oldStatus = payment.getStatus() != PaymentStatus.CANCELED 
+                ? PaymentStatus.SUCCESS 
+                : PaymentStatus.CANCELED;
+        
+        processPaymentCancel(payment, userId, reason, oldStatus);
+    }
+
+    /**
      * 결제 취소 후처리
      *
      * <p>포인트 환불 시 addPointsDirectly를 사용하여 사용했던 포인트를 그대로 복구합니다.
@@ -155,6 +174,28 @@ public class PaymentPostProcessService {
 
         // 결제 취소 이벤트 발행
         eventPublisher.publishPaymentCanceled(payment.getId(), userId, reason);
+    }
+
+    /**
+     * 결제 환불 후처리 (트랜잭션 밖에서 호출)
+     * @param paymentId 결제 ID
+     * @param userId 사용자 ID
+     * @param refundAmount 환불 금액
+     * @param refundPointAmount 환불할 포인트 금액
+     * @param reason 환불 사유
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public void processPaymentRefundAfterCommit(Long paymentId, Long userId, BigDecimal refundAmount,
+                                               BigDecimal refundPointAmount, String reason) {
+        // Payment 엔티티 재조회 (트랜잭션 밖에서 호출되므로)
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        
+        PaymentStatus oldStatus = payment.getStatus() != PaymentStatus.REFUNDED 
+                ? PaymentStatus.SUCCESS 
+                : PaymentStatus.REFUNDED;
+        
+        processPaymentRefund(payment, userId, refundAmount, refundPointAmount, reason, oldStatus);
     }
 
     /**

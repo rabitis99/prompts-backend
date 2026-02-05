@@ -26,11 +26,12 @@ public class TossPayStatusMapper {
             case "DONE" -> PaymentStatus.SUCCESS;
             case "CANCELED" -> PaymentStatus.CANCELED;
             case "PARTIAL_CANCELED" -> PaymentStatus.PARTIALLY_REFUNDED;
-            case "ABORTED", "EXPIRED" -> PaymentStatus.FAILED;
-            case "READY" -> PaymentStatus.PENDING;
-            case "IN_PROGRESS" -> PaymentStatus.PENDING;
-            case "WAITING_FOR_DEPOSIT" -> PaymentStatus.PENDING;
-            default -> PaymentStatus.PENDING;
+            case "ABORTED" -> PaymentStatus.ABORTED;
+            case "EXPIRED" -> PaymentStatus.EXPIRED;
+            case "READY" -> PaymentStatus.READY;
+            case "IN_PROGRESS" -> PaymentStatus.IN_PROGRESS;
+            case "WAITING_FOR_DEPOSIT" -> PaymentStatus.WAITING_FOR_DEPOSIT;
+            default -> PaymentStatus.UNKNOWN;
         };
     }
 }

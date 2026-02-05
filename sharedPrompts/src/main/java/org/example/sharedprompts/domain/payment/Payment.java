@@ -116,6 +116,14 @@ public class Payment extends BaseEntity {
     }
 
     /**
+     * 결제 상태를 업데이트합니다.
+     * 외부 결제사 상태 동기화 시 사용됩니다.
+     */
+    public void updateStatus(PaymentStatus status) {
+        this.status = status;
+    }
+
+    /**
      * 결제 승인 처리 (성공)
      */
     public void approve(String externalPaymentId) {

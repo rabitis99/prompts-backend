@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
-import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
+import org.example.sharedprompts.domain.payment.provider.webhook.WebhookEvent;
 import org.example.sharedprompts.domain.payment.provider.kakao.mapper.KakaoPayStatusMapper;
 import org.springframework.stereotype.Component;
 
@@ -13,10 +13,6 @@ import java.util.Map;
 
 /**
  * KakaoPay Webhook Parser
- * 
- * <p>단일 책임: Webhook payload 파싱만 담당
- * - 상태 변경 없음
- * - Null 안전성 보장
  */
 @Slf4j
 @Component
@@ -26,15 +22,7 @@ public class KakaoPayWebhookParser {
     private final ObjectMapper objectMapper;
     private final KakaoPayStatusMapper statusMapper;
 
-    /**
-     * Webhook payload 파싱
-     * 
-     * @param payload Webhook 페이로드 (필수)
-     * @return WebhookEvent
-     * @throws IllegalArgumentException payload가 null이거나 비어있을 때
-     * @throws RuntimeException 파싱 실패 시
-     */
-    public PaymentProvider.WebhookEvent parse(String payload) {
+    public WebhookEvent parse(String payload) {
         if (payload == null || payload.isEmpty()) {
             throw new IllegalArgumentException("KakaoPay Webhook payload는 필수입니다");
         }
@@ -46,11 +34,15 @@ public class KakaoPayWebhookParser {
                 throw new RuntimeException("KakaoPay Webhook payload가 비어있습니다");
             }
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> data = (Map<String, Object>) body.get("data");
-            if (data == null) {
+            Object dataObj = body.get("data");
+            if (dataObj == null) {
                 throw new RuntimeException("KakaoPay Webhook payload에 data가 없습니다");
             }
+            if (!(dataObj instanceof Map)) {
+                throw new RuntimeException("KakaoPay Webhook payload의 data 형식이 올바르지 않습니다");
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = (Map<String, Object>) dataObj;
 
             String eventType = (String) body.get("event");
             if (eventType == null || eventType.isEmpty()) {
@@ -77,7 +69,7 @@ public class KakaoPayWebhookParser {
                     .metadata(objectMapper.writeValueAsString(data))
                     .build();
 
-            return new PaymentProvider.WebhookEvent(eventType, tid, orderId, result);
+            return new WebhookEvent(eventType, tid, orderId, result);
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             log.error("KakaoPay Webhook JSON 파싱 실패: error={}", e.getMessage(), e);
             throw new RuntimeException("KakaoPay Webhook JSON 파싱 실패: " + e.getMessage(), e);

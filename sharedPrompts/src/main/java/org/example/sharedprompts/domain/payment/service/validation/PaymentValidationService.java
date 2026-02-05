@@ -5,9 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.enums.UserTier;
-import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
-import org.example.sharedprompts.domain.payment.metrics.PaymentMetrics;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
+import org.example.sharedprompts.domain.payment.service.rule.PaymentLimitRule;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
@@ -30,22 +29,14 @@ import java.time.LocalDateTime;
 public class PaymentValidationService {
 
     private final PaymentRepository paymentRepository;
-    private final PaymentLoggingService loggingService;
-    private final PaymentMetrics paymentMetrics;
+    private final PaymentLimitRule paymentLimitRule;
 
     /**
      * 일일 결제 제한 체크
      */
     public void validateDailyLimit(Long userId, UserTier tier) {
         long todayPaymentCount = paymentRepository.countTodaySuccessfulPayments(userId, PaymentStatus.SUCCESS);
-        
-        loggingService.logDailyLimitCheck(userId, tier.name(), todayPaymentCount, tier.getDailyLimit());
-        
-        if (todayPaymentCount >= tier.getDailyLimit()) {
-            loggingService.logDailyLimitExceeded(userId, tier.name(), todayPaymentCount, tier.getDailyLimit());
-            paymentMetrics.recordDailyLimitExceeded(userId, tier.name());
-            throw new ApiException(ErrorCode.PAYMENT_DAILY_LIMIT_EXCEEDED);
-        }
+        paymentLimitRule.validateDailyLimit(userId, tier, todayPaymentCount);
     }
 
     /**
@@ -117,12 +108,18 @@ public class PaymentValidationService {
             case PENDING -> targetStatus == PaymentStatus.SUCCESS
                     || targetStatus == PaymentStatus.FAILED
                     || targetStatus == PaymentStatus.CANCELED;
+            case READY -> false;
+            case IN_PROGRESS -> false;
+            case WAITING_FOR_DEPOSIT -> false;
             case SUCCESS -> targetStatus == PaymentStatus.CANCELED
                     || targetStatus == PaymentStatus.REFUNDED
                     || targetStatus == PaymentStatus.PARTIALLY_REFUNDED;
             case PARTIALLY_REFUNDED -> targetStatus == PaymentStatus.REFUNDED
                     || targetStatus == PaymentStatus.PARTIALLY_REFUNDED;
+            case ABORTED -> false;
+            case EXPIRED -> false;
             case FAILED, CANCELED, REFUNDED -> false; // 최종 상태에서는 전이 불가
+            case UNKNOWN -> false;
         };
     }
 

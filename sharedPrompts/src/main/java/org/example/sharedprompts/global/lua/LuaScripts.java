@@ -61,24 +61,8 @@ public class LuaScripts {
         if ttl and ttl > 0 then
             if isNewKey or hasNoTtl then
                 -- 새 키이거나 TTL이 없는 키: TTL 설정
-                -- EXPIRE 명령을 최대 3번까지 시도하여 확실히 TTL 설정
-                local expireSuccess = false
-                for i = 1, 3 do
-                    local expireResult = redis.call('EXPIRE', key, ttl)
-                    if expireResult == 1 then
-                        expireSuccess = true
-                        break
-                    end
-                end
-                
-                -- TTL 조회하여 확인
+                redis.call('EXPIRE', key, ttl)
                 remainingTtl = redis.call('TTL', key)
-                
-                -- EXPIRE가 성공했는데도 TTL이 -1이면 강제로 PEXPIRE 시도 (밀리초 단위)
-                if remainingTtl == -1 and expireSuccess then
-                    redis.call('PEXPIRE', key, ttl * 1000)
-                    remainingTtl = redis.call('TTL', key)
-                end
             else
                 -- 키가 이미 있고 TTL이 있는 경우: TTL을 변경하지 않고 현재 TTL 조회
                 remainingTtl = redis.call('TTL', key)

@@ -5,7 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
-import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
+import org.example.sharedprompts.domain.payment.provider.webhook.PaymentWebhookHandler;
+import org.example.sharedprompts.domain.payment.provider.webhook.WebhookEvent;
 import org.example.sharedprompts.domain.payment.provider.paypal.mapper.PayPalStatusMapper;
 import org.springframework.stereotype.Component;
 
@@ -34,7 +35,7 @@ public class PayPalWebhookParser {
      * @throws IllegalArgumentException payload가 null이거나 비어있을 때
      * @throws RuntimeException 파싱 실패 시
      */
-    public PaymentProvider.WebhookEvent parse(String payload) {
+    public WebhookEvent parse(String payload) {
         if (payload == null || payload.isEmpty()) {
             throw new IllegalArgumentException("PayPal Webhook payload는 필수입니다");
         }
@@ -76,7 +77,7 @@ public class PayPalWebhookParser {
 
             // orderId가 null이면 externalPaymentId를 사용 (fallback)
             String orderIdForEvent = orderId != null ? orderId : externalPaymentId;
-            return new PaymentProvider.WebhookEvent(eventType, externalPaymentId, orderIdForEvent, paymentResult);
+            return new WebhookEvent(eventType, externalPaymentId, orderIdForEvent, paymentResult);
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             log.error("PayPal Webhook JSON 파싱 실패: error={}", e.getMessage(), e);
             throw new RuntimeException("PayPal Webhook JSON 파싱 실패: " + e.getMessage(), e);

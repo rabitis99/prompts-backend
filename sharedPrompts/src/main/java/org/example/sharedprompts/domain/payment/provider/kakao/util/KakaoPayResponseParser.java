@@ -21,9 +21,6 @@ public class KakaoPayResponseParser {
 
     /**
      * 승인 시간 파싱
-     * 
-     * @param body 응답 본문
-     * @return LocalDateTime (파싱 실패 시 현재 시간)
      */
     public LocalDateTime parseApprovedAt(Map<String, Object> body) {
         return parseDateTime(body, "approved_at", "승인");
@@ -31,9 +28,6 @@ public class KakaoPayResponseParser {
 
     /**
      * 취소 시간 파싱
-     * 
-     * @param body 응답 본문
-     * @return LocalDateTime (파싱 실패 시 현재 시간)
      */
     public LocalDateTime parseCanceledAt(Map<String, Object> body) {
         return parseDateTime(body, "canceled_at", "취소");
@@ -41,11 +35,6 @@ public class KakaoPayResponseParser {
 
     /**
      * 공통 날짜/시간 파싱 헬퍼 메서드
-     * 
-     * @param body 응답 본문
-     * @param fieldName 필드명
-     * @param fieldDescription 필드 설명 (로깅용)
-     * @return LocalDateTime (파싱 실패 시 현재 시간)
      */
     private LocalDateTime parseDateTime(Map<String, Object> body, String fieldName, String fieldDescription) {
         try {

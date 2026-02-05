@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.sharedprompts.domain.payment.ExchangeRate;
-import org.example.sharedprompts.domain.payment.config.ExchangeRateProperties;
+import org.example.sharedprompts.domain.payment.properties.ExchangeRateProperties;
 import org.example.sharedprompts.domain.payment.repository.exchange.ExchangeRateRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.ContextRefreshedEvent;

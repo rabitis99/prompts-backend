@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.payment.provider.paypal.dto.PaypalOrderS
 import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalJsonConverter;
 import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalResponseParser;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
@@ -78,7 +79,8 @@ public class PaypalStatusApiClient {
 
             throw new RuntimeException("PayPal 주문 상태 조회 실패: status=" + response.getStatusCode());
         } catch (RestClientException e) {
-            log.error("PayPal 주문 상태 조회 API 호출 실패: orderId={}, error={}", orderId, e.getMessage(), e);
+            log.error("PayPal 주문 상태 조회 API 호출 실패: orderId={}, error={}", 
+                    orderId, SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
             throw new RuntimeException("PayPal 주문 상태 조회 실패: " + e.getMessage(), e);
         }
     }
@@ -122,7 +124,8 @@ public class PaypalStatusApiClient {
 
             throw new RuntimeException("PayPal 주문 정보 조회 실패: orderId=" + orderId);
         } catch (RestClientException e) {
-            log.error("PayPal 주문 정보 조회 API 호출 실패: orderId={}, error={}", orderId, e.getMessage(), e);
+            log.error("PayPal 주문 정보 조회 API 호출 실패: orderId={}, error={}", 
+                    orderId, SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
             throw new RuntimeException("PayPal 주문 정보 조회 실패: " + e.getMessage(), e);
         }
     }

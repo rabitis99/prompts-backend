@@ -15,11 +15,6 @@ public class TossPayRefundPolicy {
 
     /**
      * TossPay 환불 상태 결정
-     * 
-     * @param refundedAmount 실제 환불된 금액 (필수)
-     * @param originalAmount 원 결제 금액 (필수)
-     * @return PaymentStatus
-     * @throws IllegalArgumentException 필수 필드가 null일 때
      */
     public PaymentStatus determineStatus(BigDecimal refundedAmount, BigDecimal originalAmount) {
         if (refundedAmount == null) {
