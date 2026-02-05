@@ -26,4 +26,3 @@ public class DuplicateOrderIdException extends RuntimeException {
         return orderId;
     }
 }
-

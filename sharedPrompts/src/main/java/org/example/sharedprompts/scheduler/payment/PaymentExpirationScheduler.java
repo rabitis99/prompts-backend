@@ -139,6 +139,3 @@ public class PaymentExpirationScheduler {
                 paymentId, userId, payment.getStatus());
     }
 }
-
-
-
