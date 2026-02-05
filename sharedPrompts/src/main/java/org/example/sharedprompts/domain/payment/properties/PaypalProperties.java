@@ -35,7 +35,3 @@ public class PaypalProperties {
     @NotBlank(message = "PayPal cancel URL은 필수입니다 (payment.paypal.cancel-url)")
     private String cancelUrl;
 }
-
-
-
-
