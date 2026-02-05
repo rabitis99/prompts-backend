@@ -71,32 +71,11 @@ public class PaymentPostProcessService {
 
         // 로깅
         loggingService.logPaymentApprovalSuccess(payment, payment.getExternalPaymentId(), processingTime);
-        loggingService.logPaymentStatusChange(payment, PaymentStatus.PENDING, PaymentStatus.SUCCESS);
+        PaymentStatus oldStatus = payment.getStatus() != PaymentStatus.SUCCESS ? PaymentStatus.PENDING : payment.getStatus();
+        loggingService.logPaymentStatusChange(payment, oldStatus, PaymentStatus.SUCCESS);
 
-        // 사용된 포인트 금액 계산
-        BigDecimal usedPointAmount = originalAmount.subtract(actualPaymentAmount);
-
-        // 포인트 적립 (정책에 따른 기준 금액 결정)
-        BigDecimal pointBasisAmount = pointAccrualPolicy.determineBasisAmount(
-                originalAmount, actualPaymentAmount, usedPointAmount);
-        pointService.accumulatePoints(userId, payment.getId(), pointBasisAmount);
-
-        // 캐시백 적립 (정책에 따른 기준 금액 결정)
-        BigDecimal cashbackBasisAmount = cashbackAccrualPolicy.determineBasisAmount(
-                originalAmount, actualPaymentAmount, usedPointAmount);
-        cashbackService.accumulateCashback(userId, payment.getId(), cashbackBasisAmount);
-
-        log.debug("리워드 적립 완료: paymentId={}, pointPolicy={}, pointBasis={}, cashbackPolicy={}, cashbackBasis={}",
-                payment.getId(),
-                pointAccrualPolicy.getPolicyName(), pointBasisAmount,
-                cashbackAccrualPolicy.getPolicyName(), cashbackBasisAmount);
-
-        // 메트릭 기록
-        paymentMetrics.recordPaymentSuccess(payment.getPaymentMethod().name(), processingTime);
-        paymentMetrics.recordPaymentAmount(payment.getPaymentMethod().name(), originalAmount.doubleValue());
-
-        // 결제 성공 이벤트 발행
-        eventPublisher.publishPaymentSucceeded(payment.getId(), userId, payment.getPaymentMethod().name());
+        // 공통 후처리 로직 실행
+        executeSuccessPostProcessing(payment, userId, actualPaymentAmount, originalAmount, processingTime);
     }
 
     /**
@@ -252,6 +231,16 @@ public class PaymentPostProcessService {
             return;
         }
 
+        // 공통 후처리 로직 실행
+        executeSuccessPostProcessing(payment, userId, actualPaymentAmount, originalAmount, processingTime);
+    }
+
+    /**
+     * 결제 성공 후처리 공통 로직
+     * 포인트/캐시백 적립, 메트릭 기록, 이벤트 발행을 수행합니다.
+     */
+    private void executeSuccessPostProcessing(Payment payment, Long userId, 
+            BigDecimal actualPaymentAmount, BigDecimal originalAmount, long processingTime) {
         // 사용된 포인트 금액 계산
         BigDecimal usedPointAmount = originalAmount.subtract(actualPaymentAmount);
 

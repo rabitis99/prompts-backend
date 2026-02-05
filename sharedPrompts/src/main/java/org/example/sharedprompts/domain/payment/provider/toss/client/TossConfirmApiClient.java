@@ -16,6 +16,8 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.example.sharedprompts.domain.payment.provider.toss.exception.DuplicateOrderIdException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -39,6 +41,7 @@ public class TossConfirmApiClient {
     private final TossPayHeadersProvider headersProvider;
     private final TossPayJsonConverter jsonConverter;
     private final TossPayResponseParser responseParser;
+    private final ObjectMapper objectMapper;
 
     /**
      * 결제 승인 요청
@@ -182,40 +185,14 @@ public class TossConfirmApiClient {
         }
         
         try {
-            // 간단한 JSON 파싱: "code"와 "message" 필드 추출
-            // 예: {"code":"FORBIDDEN_REQUEST","message":"허용되지 않은 요청입니다."}
-            if (errorResponseBody.contains("\"code\"") || errorResponseBody.contains("\"message\"")) {
-                // message 필드 추출 시도
-                int messageStart = errorResponseBody.indexOf("\"message\"");
-                if (messageStart != -1) {
-                    int colonIndex = errorResponseBody.indexOf(":", messageStart);
-                    if (colonIndex != -1) {
-                        int quoteStart = errorResponseBody.indexOf("\"", colonIndex);
-                        if (quoteStart != -1) {
-                            int quoteEnd = errorResponseBody.indexOf("\"", quoteStart + 1);
-                            if (quoteEnd != -1) {
-                                String message = errorResponseBody.substring(quoteStart + 1, quoteEnd);
-                                
-                                // code 필드도 추출 시도
-                                int codeStart = errorResponseBody.indexOf("\"code\"");
-                                if (codeStart != -1) {
-                                    int codeColonIndex = errorResponseBody.indexOf(":", codeStart);
-                                    if (codeColonIndex != -1) {
-                                        int codeQuoteStart = errorResponseBody.indexOf("\"", codeColonIndex);
-                                        if (codeQuoteStart != -1) {
-                                            int codeQuoteEnd = errorResponseBody.indexOf("\"", codeQuoteStart + 1);
-                                            if (codeQuoteEnd != -1) {
-                                                String code = errorResponseBody.substring(codeQuoteStart + 1, codeQuoteEnd);
-                                                return String.format("code=%s, message=%s", code, message);
-                                            }
-                                        }
-                                    }
-                                }
-                                return message;
-                            }
-                        }
-                    }
-                }
+            JsonNode root = objectMapper.readTree(errorResponseBody);
+            String code = root.path("code").asText(null);
+            String message = root.path("message").asText(null);
+            
+            if (code != null && message != null) {
+                return String.format("code=%s, message=%s", code, message);
+            } else if (message != null) {
+                return message;
             }
         } catch (Exception e) {
             log.debug("에러 응답 파싱 실패: {}", errorResponseBody, e);

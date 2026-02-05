@@ -126,7 +126,6 @@ public class PaymentWebhookFacade {
             java.util.Map<String, String> headers,
             PaymentMethod paymentMethod
     ) {
-
         boolean verified = false;
         if (headers != null && !headers.isEmpty()) {
             verified = provider.verifyWebhookSignature(payload, headers);

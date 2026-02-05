@@ -82,8 +82,16 @@ public class PayPalWebhookVerifier {
             String transmissionSig = normalized.get("paypal-transmission-sig");
 
             if (transmissionId == null || transmissionSig == null) {
-                log.warn("PayPal Webhook 서명 검증에 필요한 헤더가 누락되었습니다");
+                log.warn("PayPal Webhook 서명 검증에 필요한 헤더가 누락되었습니다: transmissionId={}, transmissionSig={}",
+                        transmissionId != null, transmissionSig != null);
                 return false;
+            }
+            
+            // cert_url, auth_algo, transmission_time도 필수일 수 있으므로 검증
+            if (certUrl == null || authAlgo == null || transmissionTime == null) {
+                log.warn("PayPal Webhook 서명 검증에 필요한 추가 헤더가 누락되었습니다: certUrl={}, authAlgo={}, transmissionTime={}",
+                        certUrl != null, authAlgo != null, transmissionTime != null);
+                // API 호출 시 실패할 수 있지만, 일부 환경에서는 선택적일 수 있으므로 경고만 로깅
             }
 
             // PayPal verify-webhook-signature API 호출

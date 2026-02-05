@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.payment.config.KakaoPayProperties;
 import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoReadyResponse;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayJsonConverter;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
@@ -76,8 +77,10 @@ public class KakaoReadyApiClient {
             requestBody.put("cancel_url", properties.getCancelUrl());
             requestBody.put("fail_url", properties.getFailUrl());
 
+            // userId 마스킹 처리 (PII 보호)
+            String maskedUserId = userId != null ? maskUserIdString(userId) : null;
             log.debug("KakaoPay 결제 준비 요청: cid={}, orderId={}, userId={}, amount={}, itemName={}, approvalUrl={}",
-                    properties.getCid(), orderId, userId, amount, itemName, requestBody.get("approval_url"));
+                    properties.getCid(), orderId, maskedUserId, amount, itemName, requestBody.get("approval_url"));
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
@@ -106,10 +109,11 @@ public class KakaoReadyApiClient {
 
             throw new RuntimeException("KakaoPay 결제 준비 실패: status=" + response.getStatusCode());
         } catch (org.springframework.web.client.HttpClientErrorException e) {
-            // 403 에러에 대한 상세 정보 로깅
+            // 403 에러에 대한 상세 정보 로깅 (민감 정보 마스킹)
             String errorDetails = e.getResponseBodyAsString();
+            String maskedErrorDetails = errorDetails != null ? SensitiveDataMasker.maskSensitiveData(errorDetails) : null;
             log.error("KakaoPay 결제 준비 API 호출 실패: orderId={}, status={}, error={}", 
-                    orderId, e.getStatusCode(), errorDetails, e);
+                    orderId, e.getStatusCode(), maskedErrorDetails, e);
             
             // 403 에러인 경우 더 명확한 에러 메시지 제공
             if (e.getStatusCode() == org.springframework.http.HttpStatus.FORBIDDEN) {
@@ -120,7 +124,7 @@ public class KakaoReadyApiClient {
                 log.error("4. CID({})가 올바른지 확인", properties.getCid());
                 throw new RuntimeException(
                     String.format("KakaoPay 인증 실패 (403): %s. PAYMENT_KAKAO_SECRET 환경변수와 KakaoPay 개발자 콘솔 설정을 확인하세요.", 
-                        errorDetails != null ? errorDetails : e.getMessage()), e);
+                        maskedErrorDetails != null ? maskedErrorDetails : e.getMessage()), e);
             }
             throw new RuntimeException("KakaoPay 결제 준비 실패: " + e.getMessage(), e);
         } catch (RestClientException e) {
@@ -132,6 +136,23 @@ public class KakaoReadyApiClient {
     private void validateRequired(String value, String fieldName) {
         if (value == null || value.isEmpty()) {
             throw new IllegalArgumentException(fieldName + "은(는) 필수입니다");
+        }
+    }
+
+    /**
+     * String 타입 userId를 마스킹 처리
+     * Long 타입으로 변환 가능한 경우 maskUserId 사용, 그렇지 않으면 maskString 사용
+     */
+    private String maskUserIdString(String userId) {
+        if (userId == null || userId.isEmpty()) {
+            return userId;
+        }
+        try {
+            Long userIdLong = Long.parseLong(userId);
+            return SensitiveDataMasker.maskUserId(userIdLong);
+        } catch (NumberFormatException e) {
+            // 숫자가 아닌 경우 일반 문자열 마스킹 사용
+            return SensitiveDataMasker.maskString(userId, 0, Math.max(2, userId.length() - 2));
         }
     }
 

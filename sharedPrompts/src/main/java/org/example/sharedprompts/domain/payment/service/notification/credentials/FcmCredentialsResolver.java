@@ -27,6 +27,8 @@ public class FcmCredentialsResolver {
 
         // 2. application.yml 설정
         String credentialsPath = props.getCredentialsPath();
+        // Note: '#'으로 시작하는 값은 주석 처리된 설정으로 간주하여 무시합니다.
+        // YAML 파서가 주석을 문자열로 전달하는 경우를 방어합니다.
         if (credentialsPath != null && 
                 !credentialsPath.isBlank() &&
                 !credentialsPath.trim().startsWith("#")) {  // 주석 제외

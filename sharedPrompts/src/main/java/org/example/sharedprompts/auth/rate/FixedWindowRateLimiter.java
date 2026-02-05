@@ -94,29 +94,21 @@ public class FixedWindowRateLimiter implements RateLimiter {
     }
 
     private List<Long> executeIncrementWithTtl(String key, long windowSeconds) {
-        // 스크립트 실행 전 Redis 상태 확인
-        Long ttlBefore = redisTemplate.getExpire(key);
-        Boolean existsBefore = redisTemplate.hasKey(key);
-        
         List<Long> result = redisTemplate.execute(
                 INCREMENT_WITH_TTL_SCRIPT,
                 Collections.singletonList(key),
                 String.valueOf(windowSeconds)
         );
         
-        // 스크립트 실행 후 Redis 상태 확인
-        Long ttlAfter = redisTemplate.getExpire(key);
-        
         // 디버깅: TTL이 -1인 경우 상세 로그 출력
         if (result != null && result.size() >= 2) {
             long currentCount = result.get(0);
             long ttl = result.get(1);
             if (ttl == -1) {
-                // TTL이 -1인 경우는 키가 존재하지만 TTL이 설정되지 않은 상태
-                log.error("[Rate Limit TTL Issue] Key: {}, Count: {}, TTL: -1, WindowSeconds: {}. " +
-                        "Before: exists={}, ttl={}. After: ttl={}. " +
-                        "This key exists but has no TTL. The script should have set TTL.", 
-                        key, currentCount, windowSeconds, existsBefore, ttlBefore, ttlAfter);
+                // TTL이 -1인 경우 추가 정보 수집 (문제 발생 시에만)
+                Long ttlAfter = redisTemplate.getExpire(key);
+                log.error("[Rate Limit TTL Issue] Key: {}, Count: {}, TTL: -1, WindowSeconds: {}, ActualTTL: {}",
+                        key, currentCount, windowSeconds, ttlAfter);
             } else {
                 log.debug("[Rate Limit] Key: {}, Count: {}, TTL: {}s", key, currentCount, ttl);
             }

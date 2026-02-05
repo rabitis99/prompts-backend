@@ -33,7 +33,8 @@ public class PaymentLoggingService {
         MDC.put(PAYMENT_ID_KEY, String.valueOf(paymentId));
         MDC.put(USER_ID_KEY, String.valueOf(userId));
         
-        log.info("결제 트레이싱 시작: traceId={}, paymentId={}, userId={}", traceId, paymentId, userId);
+        log.info("결제 트레이싱 시작: traceId={}, paymentId={}, userId={}", 
+                traceId, paymentId, SensitiveDataMasker.maskUserId(userId));
         return traceId;
     }
 
@@ -129,7 +130,7 @@ public class PaymentLoggingService {
         log.info("결제 환불: paymentId={}, refundAmount={}, reason={}, refundedAmount={}, refundableAmount={}",
                 payment.getId(),
                 refundAmount,
-                reason,
+                reason != null ? SensitiveDataMasker.maskSensitiveData(reason) : null,
                 payment.getRefundedAmount(),
                 payment.getRefundableAmount());
     }
@@ -139,7 +140,7 @@ public class PaymentLoggingService {
      */
     public void logDailyLimitCheck(Long userId, String tier, long todayCount, int limit) {
         log.debug("일일 결제 제한 체크: userId={}, tier={}, todayCount={}, limit={}",
-                userId,
+                SensitiveDataMasker.maskUserId(userId),
                 tier,
                 todayCount,
                 limit);
@@ -150,7 +151,7 @@ public class PaymentLoggingService {
      */
     public void logDailyLimitExceeded(Long userId, String tier, long todayCount, int limit) {
         log.warn("일일 결제 제한 초과: userId={}, tier={}, todayCount={}, limit={}",
-                userId,
+                SensitiveDataMasker.maskUserId(userId),
                 tier,
                 todayCount,
                 limit);

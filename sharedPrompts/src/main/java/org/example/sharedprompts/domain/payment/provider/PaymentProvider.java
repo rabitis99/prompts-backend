@@ -172,13 +172,28 @@ public interface PaymentProvider {
      * <p>PayPal처럼 서명 검증에 여러 HTTP 헤더가 필요한 Provider를 지원하기 위한 확장 포인트입니다.
      * 기본 구현은 기존 시그니처 기반 메서드로 위임합니다.
      *
+     * <p><strong>주의:</strong> HTTP 헤더는 대소문자를 구분하지 않지만, Java Map 조회는 대소문자를 구분합니다.
+     * 기본 구현에서는 헤더 키를 소문자로 정규화하여 조회합니다.
+     *
      * @param payload Webhook 페이로드
      * @param headers Webhook 요청 헤더 (소문자/원본 키 혼재 가능)
      * @return 검증 성공 여부
      */
     default boolean verifyWebhookSignature(String payload, java.util.Map<String, String> headers) {
         // 기존 인터페이스와의 호환: signature 헤더만 사용하는 Provider는 그대로 동작
-        String signature = headers != null ? headers.getOrDefault("signature", null) : null;
+        if (headers == null || headers.isEmpty()) {
+            return verifyWebhookSignature(payload, (String) null);
+        }
+        
+        // HTTP 헤더는 대소문자를 구분하지 않으므로 소문자로 정규화하여 조회
+        String signature = null;
+        for (java.util.Map.Entry<String, String> entry : headers.entrySet()) {
+            if (entry.getKey() != null && entry.getKey().equalsIgnoreCase("signature")) {
+                signature = entry.getValue();
+                break;
+            }
+        }
+        
         return verifyWebhookSignature(payload, signature);
     }
     

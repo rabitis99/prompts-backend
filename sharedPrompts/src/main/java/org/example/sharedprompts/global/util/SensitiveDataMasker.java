@@ -10,6 +10,10 @@ import java.util.regex.Pattern;
  */
 public class SensitiveDataMasker {
 
+    private SensitiveDataMasker() {
+        // 유틸리티 클래스는 인스턴스화 방지
+    }
+
     private static final String MASK_CHAR = "*";
 
     // 이메일 패턴
@@ -70,8 +74,12 @@ public class SensitiveDataMasker {
         }
 
         // 중간 부분 마스킹
-        int visibleStart = Math.min(3, digits.length() / 3);
-        int visibleEnd = digits.length() - 4;
+        int visibleStart = Math.min(3, digits.length() / 4);
+        int visibleEnd = Math.max(visibleStart + 1, digits.length() - 4);
+        // 최소 절반 이상 마스킹 보장
+        if (visibleEnd - visibleStart < digits.length() / 2) {
+            visibleEnd = visibleStart + (digits.length() / 2);
+        }
 
         StringBuilder masked = new StringBuilder();
         int digitIndex = 0;
@@ -262,9 +270,9 @@ public class SensitiveDataMasker {
             return token;
         }
 
-        // "Bearer " 접두사 처리
-        if (token.startsWith("Bearer ") || token.startsWith("bearer ")) {
-            String prefix = token.substring(0, 7);
+        // "Bearer " 접두사 처리 (대소문자 무시)
+        if (token.length() > 7 && token.substring(0, 7).equalsIgnoreCase("Bearer ")) {
+            String prefix = token.substring(0, 7);  // 원본 대소문자 유지
             String tokenValue = token.substring(7);
             if (tokenValue.length() <= 6) {
                 return prefix + MASK_CHAR.repeat(Math.min(tokenValue.length(), 6));

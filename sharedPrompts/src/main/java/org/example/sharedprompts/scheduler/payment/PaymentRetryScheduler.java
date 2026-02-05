@@ -68,16 +68,16 @@ public class PaymentRetryScheduler {
 
         // KakaoPay 결제는 재시도 대상에서 제외
         // KakaoPay는 pgToken이 필요한데, 재시도 시에는 이 값을 얻을 수 없음
+        long kakaoPayExcludedCount = pendingPayments.stream()
+                .filter(payment -> payment.getPaymentMethod() == PaymentMethod.KAKAO_PAY)
+                .count();
+        
+        if (kakaoPayExcludedCount > 0) {
+            log.warn("KakaoPay 결제 {}건이 재시도 대상에서 제외됩니다. (pgToken 미확보)", kakaoPayExcludedCount);
+        }
+        
         List<Payment> retryablePayments = pendingPayments.stream()
-                .filter(payment -> {
-                    if (payment.getPaymentMethod() == PaymentMethod.KAKAO_PAY) {
-                        log.warn("KakaoPay 결제는 재시도 대상에서 제외됩니다: paymentId={}, retryCount={}. " +
-                                "KakaoPay는 pgToken이 필요한데, 재시도 시에는 이 값을 얻을 수 없습니다.",
-                                payment.getId(), payment.getRetryCount());
-                        return false;
-                    }
-                    return true;
-                })
+                .filter(payment -> payment.getPaymentMethod() != PaymentMethod.KAKAO_PAY)
                 .collect(Collectors.toList());
 
         if (retryablePayments.isEmpty()) {

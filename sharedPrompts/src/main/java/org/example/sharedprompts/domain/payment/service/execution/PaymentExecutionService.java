@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.config.RetryProperties;
+import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.model.CancelResult;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
@@ -126,9 +127,21 @@ public class PaymentExecutionService {
         }
 
         try {
+            // Toss Payments의 경우 프론트엔드에서 받은 tossOrderId 사용 (있으면)
+            // 프론트엔드에서 주는 번호를 그대로 신뢰하여 사용
+            String orderIdForProvider = String.valueOf(payment.getId());
+            if (payment.getPaymentMethod() == PaymentMethod.TOSS && additionalParams != null) {
+                String tossOrderId = additionalParams.get("tossOrderId");
+                if (tossOrderId != null && !tossOrderId.isEmpty()) {
+                    orderIdForProvider = tossOrderId;
+                    log.debug("Toss Payments orderId를 프론트엔드에서 받은 값으로 사용: tossOrderId={}, paymentId={}", 
+                            tossOrderId, payment.getId());
+                }
+            }
+            
             PaymentResult result = provider.confirmPayment(
                     payment.getExternalPaymentId(),
-                    String.valueOf(payment.getId()),
+                    orderIdForProvider,
                     actualAmount,
                     payment.getCurrency(),
                     idempotencyKey,
@@ -228,11 +241,7 @@ public class PaymentExecutionService {
             throw e;
         } catch (RuntimeException e) {
             // RuntimeException을 ApiException으로 변환
-            // DuplicateOrderIdException은 위에서 처리되므로 여기서는 다른 RuntimeException만 처리
-            if (e.getCause() instanceof DuplicateOrderIdException) {
-                // 중첩된 DuplicateOrderIdException 처리
-                throw new RuntimeException(e.getCause());
-            }
+            // DuplicateOrderIdException은 위에서 이미 처리되므로 여기서는 다른 RuntimeException만 처리
             
             String errorMessage = e.getMessage() != null ? e.getMessage() : "알 수 없는 오류";
             log.error("결제 실행 중 예외 발생: paymentId={}, error={}", payment.getId(), errorMessage, e);
@@ -245,8 +254,16 @@ public class PaymentExecutionService {
      *
      * <p>일시적인 네트워크 오류, 타임아웃 등은 즉시 재시도 대상
      * 비즈니스 로직 오류(잔액 부족, 카드 한도 초과 등)는 즉시 재시도 불가
+     * 
+     * <p>향후 개선: ErrorCode에 isRetryable() 메서드를 추가하여 재시도 가능 여부를 명시적으로 관리하는 것을 권장합니다.
      */
     private boolean isRetryableError(ApiException e) {
+        // ErrorCode 기반 판단 (향후 개선)
+        // if (e.getErrorCode() != null && e.getErrorCode().isRetryable()) {
+        //     return true;
+        // }
+        
+        // Fallback: 메시지 기반 판단
         String message = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
 
         // 네트워크 오류, 타임아웃 등은 재시도 가능

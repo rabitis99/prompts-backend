@@ -36,7 +36,15 @@ public class KakaoPayHeadersProvider {
         // KakaoPay 신규 Open API 인증 헤더
         // - Authorization: SECRET_KEY {secret}
         // 환경변수에 이미 "SECRET_KEY " prefix를 포함해서 넣는 경우를 방어
-        String authValue = secret.startsWith("SECRET_KEY ") ? secret : "SECRET_KEY " + secret;
+        String authValue;
+        if (secret.startsWith("SECRET_KEY ")) {
+            authValue = secret;
+        } else if (secret.startsWith("SECRET_KEY")) {
+            // "SECRET_KEY"만 있고 공백이 없는 경우 처리
+            authValue = "SECRET_KEY " + secret.substring("SECRET_KEY".length()).trim();
+        } else {
+            authValue = "SECRET_KEY " + secret;
+        }
         headers.set(HttpHeaders.AUTHORIZATION, authValue);
         headers.setAccept(java.util.List.of(MediaType.APPLICATION_JSON));
 

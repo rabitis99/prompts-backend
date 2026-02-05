@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoApproveR
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayJsonConverter;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayResponseParser;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
@@ -30,6 +31,7 @@ public class KakaoApproveApiClient {
 
     private static final String KAKAO_PAY_API_URL = "https://open-api.kakaopay.com/online/v1/payment";
     private static final String APPROVE_ENDPOINT = "/approve";
+    private static final String DEFAULT_SUCCESS_STATUS = "SUCCESS_PAYMENT";
 
     private final KakaoPayProperties properties;
     @Qualifier("paymentRestTemplate")
@@ -99,7 +101,7 @@ public class KakaoApproveApiClient {
                     Object approvedAt = body.get("approved_at");
                     if (approvedAt != null) {
                         // 성공 응답이지만 status 필드가 없는 경우, 기본값으로 SUCCESS_PAYMENT 설정
-                        status = "SUCCESS_PAYMENT";
+                        status = DEFAULT_SUCCESS_STATUS;
                         log.debug("KakaoPay approve 응답에 status가 없지만 approved_at이 있어 성공으로 간주: tid={}, orderId={}", 
                                 tid, orderId);
                     } else {
@@ -122,18 +124,19 @@ public class KakaoApproveApiClient {
 
             throw new RuntimeException("KakaoPay 결제 승인 실패: status=" + response.getStatusCode());
         } catch (org.springframework.web.client.HttpClientErrorException e) {
-            // HTTP 4xx 에러에 대한 상세 정보 로깅
+            // HTTP 4xx 에러에 대한 상세 정보 로깅 (민감 정보 마스킹)
             String errorDetails = e.getResponseBodyAsString();
+            String maskedErrorDetails = errorDetails != null ? SensitiveDataMasker.maskSensitiveData(errorDetails) : null;
             log.error("KakaoPay 결제 승인 API 호출 실패: tid={}, orderId={}, status={}, error={}", 
-                    tid, orderId, e.getStatusCode(), errorDetails, e);
+                    tid, orderId, e.getStatusCode(), maskedErrorDetails, e);
             
             // 403 에러인 경우 더 명확한 에러 메시지 제공
-            if (e.getStatusCode() == org.springframework.http.HttpStatus.FORBIDDEN) {
-                log.error("KakaoPay 403 Forbidden - 가능한 원인:");
-                log.error("1. PAYMENT_KAKAO_SECRET 환경변수가 올바르게 설정되었는지 확인");
-                log.error("2. KakaoPay 개발자 콘솔에서 Secret Key(dev)가 올바른지 확인");
-                log.error("3. IP 화이트리스트 설정이 있는지 확인");
-                log.error("4. CID({})가 올바른지 확인", properties.getCid());
+            if (e.getStatusCode() == HttpStatus.FORBIDDEN) {
+                log.error("KakaoPay 403 Forbidden - tid={}, orderId={}, 가능한 원인: " +
+                        "1) PAYMENT_KAKAO_SECRET 환경변수 확인, " +
+                        "2) Secret Key(dev) 확인, " +
+                        "3) IP 화이트리스트 확인, " +
+                        "4) CID 확인", tid, orderId, properties.getCid());
                 throw new RuntimeException(
                     String.format("KakaoPay 인증 실패 (403): %s. PAYMENT_KAKAO_SECRET 환경변수와 KakaoPay 개발자 콘솔 설정을 확인하세요.", 
                         errorDetails != null ? errorDetails : e.getMessage()), e);

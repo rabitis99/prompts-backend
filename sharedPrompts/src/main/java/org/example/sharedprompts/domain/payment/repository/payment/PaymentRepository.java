@@ -55,6 +55,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, CustomP
      * 
      * <p>SUCCESS, FAILED, CANCELED, REFUNDED 등 최종 상태는 재시도 대상이 아닙니다.
      * <p>MySQL에서는 ASC 정렬 시 NULL 값이 자동으로 맨 앞에 정렬되므로 NULLS FIRST 구문이 필요 없습니다.
+     * 
+     * <p><strong>성능 고려사항:</strong>
+     * 시스템 장애 복구 시나리오에서 대량의 PENDING 결제가 누적되면 메모리 문제가 발생할 수 있습니다.
+     * 호출부(스케줄러)에서 배치 크기를 제한하거나, 쿼리에 LIMIT을 추가하는 것을 권장합니다.
      */
     @Query("SELECT p FROM Payment p WHERE p.status = :status AND p.retryCount < :maxRetry AND (p.nextRetryAt IS NULL OR p.nextRetryAt <= :now) ORDER BY p.nextRetryAt ASC")
     List<Payment> findRetryablePayments(@Param("status") PaymentStatus status, @Param("maxRetry") int maxRetry, @Param("now") LocalDateTime now);
@@ -64,6 +68,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, CustomP
      * - PENDING 상태이고
      * - createdAt이 만료 시간(expirationTime) 이전인 결제
      * - 복구되지 않은 포인트가 있는 결제만 조회 (usedPointAmount > 0)
+     *
+     * <p><strong>성능 고려사항:</strong>
+     * 시스템 장애 복구 시나리오에서 대량의 PENDING 결제가 누적되면 메모리 문제가 발생할 수 있습니다.
+     * 호출부(스케줄러)에서 배치 크기를 제한하거나, 쿼리에 LIMIT을 추가하는 것을 권장합니다.
      *
      * @param expirationTime 만료 기준 시간 (createdAt + expirationMinutes)
      * @return 만료된 PENDING 결제 목록

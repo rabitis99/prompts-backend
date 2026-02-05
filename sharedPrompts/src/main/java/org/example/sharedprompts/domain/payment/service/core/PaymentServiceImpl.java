@@ -41,7 +41,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.math.BigDecimal;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -243,7 +243,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public PaymentResponseDto refundPayment(Long userId, PaymentRefundRequestDto request) {
         Long paymentId = request.getPaymentIdAsLong();
-        String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":refund";
+        String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":state";
 
         return distributedLockService.executeWithLock(lockKey, () -> {
             // 락 내에서 트랜잭션 실행
@@ -345,11 +345,17 @@ public class PaymentServiceImpl implements PaymentService {
                         payment.getUsedPointAmount() != null ? payment.getUsedPointAmount() : BigDecimal.ZERO
                 );
 
-                // 카카오페이의 경우 pgToken을 additionalParams로 전달
-                Map<String, String> additionalParams = Collections.emptyMap();
+                // 결제사별 추가 파라미터 설정
+                Map<String, String> additionalParams = new HashMap<>();
                 if (payment.getPaymentMethod() == PaymentMethod.KAKAO_PAY) {
                     paymentValidator.validateKakaoPayPgToken(request.getPgToken());
-                    additionalParams = Map.of("pgToken", request.getPgToken());
+                    additionalParams.put("pgToken", request.getPgToken());
+                }
+                // Toss Payments의 경우 프론트엔드에서 받은 tossOrderId 전달
+                if (payment.getPaymentMethod() == PaymentMethod.TOSS && request.getTossOrderId() != null && !request.getTossOrderId().isEmpty()) {
+                    additionalParams.put("tossOrderId", request.getTossOrderId());
+                    log.debug("Toss Payments orderId를 프론트엔드에서 받은 값으로 사용: tossOrderId={}, paymentId={}", 
+                            request.getTossOrderId(), paymentId);
                 }
 
                 long calculatedProcessingTime;
@@ -517,7 +523,7 @@ public class PaymentServiceImpl implements PaymentService {
      */
     @Override
     public PaymentResponseDto refundPaymentForAdmin(Long paymentId, PaymentRefundRequestDto request, Long adminId) {
-        String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":refund";
+        String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":state";
 
         return distributedLockService.executeWithLock(lockKey, () -> {
             // 락 내에서 트랜잭션 실행
