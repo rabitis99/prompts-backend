@@ -10,17 +10,31 @@ public class KakaoPayStatusMapper {
 
     public PaymentStatus map(String status) {
         if (status == null) {
+            log.warn("KakaoPay status is null");
             return PaymentStatus.PENDING;
         }
 
         return switch (status) {
-            case "SUCCESS_PAYMENT" -> PaymentStatus.SUCCESS;
-            case "CANCEL_PAYMENT" -> PaymentStatus.CANCELED;
-            case "PART_CANCEL_PAYMENT" -> PaymentStatus.PARTIALLY_REFUNDED;
+            case "READY", "SEND_TMS", "OPEN_PAYMENT" ->
+                    PaymentStatus.PENDING;
+
+            case "SUCCESS_PAYMENT" ->
+                    PaymentStatus.SUCCESS;
+
+            case "CANCEL_PAYMENT" ->
+                    PaymentStatus.CANCELED;
+
+            case "PART_CANCEL_PAYMENT" ->
+                    PaymentStatus.PARTIALLY_REFUNDED;
+
+            case "FAIL_PAYMENT", "ABORTED", "EXPIRED" ->
+                    PaymentStatus.FAILED;
+
             default -> {
-                log.warn("알 수 없는 KakaoPay 상태값: {}", status);
-                yield PaymentStatus.PENDING;
+                log.error("정의되지 않은 KakaoPay 상태값 수신: {}", status);
+                yield PaymentStatus.UNKNOWN;
             }
         };
     }
+
 }

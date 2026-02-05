@@ -14,7 +14,8 @@ public enum PaymentStatus {
     FAILED("실패"),
     CANCELED("취소됨"),
     REFUNDED("환불됨"),
-    PARTIALLY_REFUNDED("부분 환불됨");
+    PARTIALLY_REFUNDED("부분 환불됨"),
+    UNKNOWN("알 수 없는상태");
 
     private final String description;
 

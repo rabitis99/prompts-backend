@@ -9,9 +9,6 @@ import org.springframework.stereotype.Component;
 
 /**
  * KakaoPay 헤더 제공 유틸리티 (신규 API - open-api.kakaopay.com)
- *
- * <p>단일 책임: KakaoPay API 요청 헤더 생성만 담당
- * <p>신규 API는 SECRET_KEY 인증 방식과 JSON Content-Type 사용
  */
 @Slf4j
 @Component
@@ -33,9 +30,6 @@ public class KakaoPayHeadersProvider {
             throw new IllegalStateException("KakaoPay secret이 비어있습니다. 환경변수 PAYMENT_KAKAO_SECRET을 확인하세요.");
         }
 
-        // KakaoPay 신규 Open API 인증 헤더
-        // - Authorization: SECRET_KEY {secret}
-        // 환경변수에 이미 "SECRET_KEY " prefix를 포함해서 넣는 경우를 방어
         String authValue;
         if (secret.startsWith("SECRET_KEY ")) {
             authValue = secret;
