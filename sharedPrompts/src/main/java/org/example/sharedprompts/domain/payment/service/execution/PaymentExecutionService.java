@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.example.sharedprompts.domain.payment.Payment;
-import org.example.sharedprompts.domain.payment.config.RetryProperties;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.model.CancelResult;
@@ -16,6 +15,7 @@ import org.example.sharedprompts.domain.payment.provider.PaymentProviderFactory;
 import org.example.sharedprompts.domain.payment.provider.toss.exception.DuplicateOrderIdException;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.payment.service.idempotency.IdempotencyService;
+import org.example.sharedprompts.domain.payment.service.retry.RetryStrategy;
 import org.example.sharedprompts.domain.payment.validator.PaymentValidator;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
@@ -42,8 +42,8 @@ public class PaymentExecutionService {
     private final PaymentProviderFactory providerFactory;
     private final PaymentValidator paymentValidator;
     private final PaymentRepository paymentRepository;
-    private final RetryProperties retryProperties;
     private final IdempotencyService idempotencyService;
+    private final RetryStrategy immediateRetryStrategy;
 
     // Self-injection for calling @Transactional(propagation = REQUIRES_NEW) methods
     @Autowired
@@ -64,11 +64,6 @@ public class PaymentExecutionService {
 
     /**
      * 결제 실행 (추가 파라미터 포함)
-     *
-     * <p><strong>즉시 재시도 정책 (2026-02-04 추가):</strong>
-     * 일시적인 네트워크 오류 등에 대해 즉시 재시도를 시도합니다.
-     * 즉시 재시도 실패 시 예외를 던져 스케줄러 기반 지연 재시도로 넘어갑니다.
-     *
      * @param payment Payment 엔티티
      * @param actualAmount 실제 결제 금액 (포인트 사용 후)
      * @param additionalParams 결제사별 추가 파라미터 (KakaoPay: pgToken 등)
@@ -222,13 +217,14 @@ public class PaymentExecutionService {
             
         } catch (ApiException e) {
             // 즉시 재시도 가능한 오류인지 확인
-            if (isRetryableError(e) && immediateRetryCount < retryProperties.getImmediateRetryMaxAttempts()) {
+            if (immediateRetryStrategy.shouldRetry(e, immediateRetryCount)) {
                 log.warn("결제 실행 실패, 즉시 재시도 시도: paymentId={}, attempt={}/{}, error={}",
-                        payment.getId(), immediateRetryCount + 1, retryProperties.getImmediateRetryMaxAttempts(), e.getMessage());
+                        payment.getId(), immediateRetryCount + 1, immediateRetryStrategy.getMaxAttempts(), e.getMessage());
 
-                // 짧은 지연 후 재시도
+                // 재시도 전략에 따른 지연 시간 계산
+                long delayMs = immediateRetryStrategy.calculateDelay(immediateRetryCount);
                 try {
-                    Thread.sleep(retryProperties.getImmediateRetryDelayMs());
+                    Thread.sleep(delayMs);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "재시도 중단: " + e.getMessage());
@@ -250,35 +246,6 @@ public class PaymentExecutionService {
         }
     }
 
-    /**
-     * 즉시 재시도 가능한 오류인지 확인
-     *
-     * <p>일시적인 네트워크 오류, 타임아웃 등은 즉시 재시도 대상
-     * 비즈니스 로직 오류(잔액 부족, 카드 한도 초과 등)는 즉시 재시도 불가
-     * 
-     * <p>향후 개선: ErrorCode에 isRetryable() 메서드를 추가하여 재시도 가능 여부를 명시적으로 관리하는 것을 권장합니다.
-     */
-    private boolean isRetryableError(ApiException e) {
-        // ErrorCode 기반 판단 (향후 개선)
-        // if (e.getErrorCode() != null && e.getErrorCode().isRetryable()) {
-        //     return true;
-        // }
-        
-        // Fallback: 메시지 기반 판단
-        String message = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
-
-        // 네트워크 오류, 타임아웃 등은 재시도 가능
-        if (message.contains("timeout") || message.contains("connection") || 
-            message.contains("network") || message.contains("unavailable") ||
-            message.contains("temporary") || message.contains("retry")) {
-            return true;
-        }
-
-        // 특정 에러 코드는 재시도 불가
-        // 비즈니스 로직 오류는 재시도 불가
-        return false;
-    }
-    
     /**
      * 결제 취소 실행
 
