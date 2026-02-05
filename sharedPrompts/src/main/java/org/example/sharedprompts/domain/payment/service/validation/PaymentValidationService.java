@@ -108,12 +108,18 @@ public class PaymentValidationService {
             case PENDING -> targetStatus == PaymentStatus.SUCCESS
                     || targetStatus == PaymentStatus.FAILED
                     || targetStatus == PaymentStatus.CANCELED;
+            case READY -> false;
+            case IN_PROGRESS -> false;
+            case WAITING_FOR_DEPOSIT -> false;
             case SUCCESS -> targetStatus == PaymentStatus.CANCELED
                     || targetStatus == PaymentStatus.REFUNDED
                     || targetStatus == PaymentStatus.PARTIALLY_REFUNDED;
             case PARTIALLY_REFUNDED -> targetStatus == PaymentStatus.REFUNDED
                     || targetStatus == PaymentStatus.PARTIALLY_REFUNDED;
+            case ABORTED -> false;
+            case EXPIRED -> false;
             case FAILED, CANCELED, REFUNDED -> false; // 최종 상태에서는 전이 불가
+            case UNKNOWN -> false;
         };
     }
 
