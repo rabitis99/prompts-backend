@@ -40,20 +40,6 @@ public class PaymentWebhookFacade {
 
     /**
      * Webhook 처리 (메인 진입점)
-     *
-     * <p>처리 흐름:
-     * <ol>
-     *   <li>Webhook 파싱 및 서명 검증</li>
-     *   <li>Redis 락 획득 시도 (실패해도 진행)</li>
-     *   <li>DB에서 Payment 상태 확인 (멱등성)</li>
-     *   <li>트랜잭션 내에서 상태 변경 및 저장</li>
-     *   <li>Redis 처리 완료 마킹</li>
-     * </ol>
-     *
-     * @param paymentMethod 결제 수단
-     * @param payload       Webhook 페이로드
-     * @param signature     서명 (검증용)
-     * @return 처리된 Payment (이미 처리된 경우 기존 Payment 반환)
      */
     public Optional<Payment> handleWebhook(PaymentMethod paymentMethod, String payload, String signature) {
         return handleWebhook(paymentMethod, payload, signature, java.util.Collections.emptyMap());
