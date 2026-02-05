@@ -7,8 +7,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 
-import jakarta.annotation.PostConstruct;
-
 /**
  * KakaoPay 헤더 제공 유틸리티 (신규 API - open-api.kakaopay.com)
  *
@@ -34,7 +32,22 @@ public class KakaoPayHeadersProvider {
         if (secret.isEmpty()) {
             throw new IllegalStateException("KakaoPay secret이 비어있습니다. 환경변수 PAYMENT_KAKAO_SECRET을 확인하세요.");
         }
-        
+
+        // KakaoPay 신규 Open API 인증 헤더
+        // - Authorization: SECRET_KEY {secret}
+        // 환경변수에 이미 "SECRET_KEY " prefix를 포함해서 넣는 경우를 방어
+        String authValue;
+        if (secret.startsWith("SECRET_KEY ")) {
+            authValue = secret;
+        } else if (secret.startsWith("SECRET_KEY")) {
+            // "SECRET_KEY"만 있고 공백이 없는 경우 처리
+            authValue = "SECRET_KEY " + secret.substring("SECRET_KEY".length()).trim();
+        } else {
+            authValue = "SECRET_KEY " + secret;
+        }
+        headers.set(HttpHeaders.AUTHORIZATION, authValue);
+        headers.setAccept(java.util.List.of(MediaType.APPLICATION_JSON));
+
         return headers;
     }
 

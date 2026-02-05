@@ -16,6 +16,7 @@ import org.example.sharedprompts.domain.payment.provider.toss.policy.TossPayAmou
 import org.example.sharedprompts.domain.payment.provider.toss.policy.TossPayRefundPolicy;
 import org.example.sharedprompts.domain.payment.provider.toss.webhook.TossPayWebhookParser;
 import org.example.sharedprompts.domain.payment.provider.toss.webhook.TossPayWebhookVerifier;
+import org.example.sharedprompts.domain.payment.provider.toss.exception.DuplicateOrderIdException;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -78,8 +79,12 @@ public class TossPaymentProvider implements PaymentProvider {
         validateRequired(currency, "currency");
 
         try {
+            // TossPayments는 orderId가 6자리 숫자 형식을 요구합니다
+            // 예: "5" -> "000005", "123" -> "000123"
+            String paddedOrderId = padOrderId(orderId);
+            
             long tossAmount = amountPolicy.toTossAmount(amount);
-            var response = tossConfirmApiClient.confirm(paymentKey, orderId, tossAmount);
+            var response = tossConfirmApiClient.confirm(paymentKey, paddedOrderId, tossAmount);
             PaymentStatus status = statusMapper.map(response.status());
 
             log.info("TossPay 결제 승인 성공: paymentKey={}, orderId={}, status={}", paymentKey, orderId, status);
@@ -92,6 +97,10 @@ public class TossPaymentProvider implements PaymentProvider {
                     .approvedAt(response.approvedAt())
                     .metadata(response.metadata())
                     .build();
+        } catch (DuplicateOrderIdException e) {
+            // S021 오류는 상위로 전파하여 특별 처리
+            log.warn("TossPay 중복 주문번호 오류: paymentKey={}, orderId={}", paymentKey, orderId);
+            throw e;
         } catch (Exception e) {
             log.error("TossPay 결제 승인 실패: paymentKey={}, orderId={}, error={}", paymentKey, orderId, e.getMessage(), e);
             return PaymentResult.builder()
@@ -230,6 +239,49 @@ public class TossPaymentProvider implements PaymentProvider {
         }
         if (value.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException(fieldName + "은(는) 0보다 커야 합니다: " + value);
+        }
+    }
+
+    /**
+     * TossPayments orderId 처리
+     * 
+     * <p>TossPayments는 orderId가 6자 이상 64자 이하, 허용 문자만 사용해야 합니다.
+     * 
+     * <p>처리 규칙:
+     * <ul>
+     *   <li>6자리 이상이면 그대로 반환 (프론트엔드에서 주는 번호를 그대로 신뢰)</li>
+     *   <li>6자리 미만 숫자인 경우 6자리로 패딩: "5" -> "000005", "123" -> "000123"</li>
+     *   <li>숫자가 아닌 경우 원본 그대로 반환 (프론트엔드에서 주는 형식 그대로 사용)</li>
+     * </ul>
+     * 
+     * <p>예시:
+     * <ul>
+     *   <li>"ORDER-123-1704067200000" -> "ORDER-123-1704067200000" (그대로)</li>
+     *   <li>"123" -> "000123" (패딩)</li>
+     *   <li>"1234567" -> "1234567" (그대로)</li>
+     * </ul>
+     * 
+     * @param orderId 원본 orderId (프론트엔드에서 전달한 값)
+     * @return 처리된 orderId
+     */
+    private String padOrderId(String orderId) {
+        if (orderId == null || orderId.isEmpty()) {
+            return orderId;
+        }
+        
+        // 이미 6자리 이상이면 그대로 반환 (프론트엔드에서 주는 번호를 그대로 신뢰)
+        if (orderId.length() >= 6) {
+            return orderId;
+        }
+        
+        // 6자리 미만인 경우 숫자로 변환하여 패딩 시도
+        try {
+            int orderIdInt = Integer.parseInt(orderId);
+            return String.format("%06d", orderIdInt);
+        } catch (NumberFormatException e) {
+            // 숫자가 아닌 경우 원본 그대로 반환 (프론트엔드에서 주는 형식 그대로 사용)
+            log.debug("TossPay orderId가 숫자가 아닙니다: orderId={}, 원본 그대로 사용 (프론트엔드에서 주는 번호를 신뢰)", orderId);
+            return orderId;
         }
     }
 }

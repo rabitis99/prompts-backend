@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
@@ -32,7 +33,8 @@ public class PaymentLoggingService {
         MDC.put(PAYMENT_ID_KEY, String.valueOf(paymentId));
         MDC.put(USER_ID_KEY, String.valueOf(userId));
         
-        log.info("결제 트레이싱 시작: traceId={}, paymentId={}, userId={}", traceId, paymentId, userId);
+        log.info("결제 트레이싱 시작: traceId={}, paymentId={}, userId={}", 
+                traceId, paymentId, SensitiveDataMasker.maskUserId(userId));
         return traceId;
     }
 
@@ -53,7 +55,7 @@ public class PaymentLoggingService {
     public void logPaymentRequest(Payment payment) {
         log.info("결제 요청: paymentId={}, userId={}, amount={}, currency={}, paymentMethod={}, tier={}",
                 payment.getId(),
-                payment.getUser().getId(),
+                SensitiveDataMasker.maskUserId(payment.getUser().getId()),
                 payment.getAmount(),
                 payment.getCurrency(),
                 payment.getPaymentMethod(),
@@ -67,7 +69,9 @@ public class PaymentLoggingService {
         log.info("결제 승인 시도: paymentId={}, provider={}, externalPaymentId={}",
                 payment.getId(),
                 provider,
-                payment.getExternalPaymentId());
+                payment.getExternalPaymentId() != null ? 
+                    SensitiveDataMasker.maskString(payment.getExternalPaymentId(), 0, payment.getExternalPaymentId().length() - 4) : 
+                    null);
     }
 
     /**
@@ -76,7 +80,9 @@ public class PaymentLoggingService {
     public void logPaymentApprovalSuccess(Payment payment, String externalPaymentId, long processingTimeMs) {
         log.info("결제 승인 성공: paymentId={}, externalPaymentId={}, processingTimeMs={}",
                 payment.getId(),
-                externalPaymentId,
+                externalPaymentId != null ? 
+                    SensitiveDataMasker.maskString(externalPaymentId, 0, externalPaymentId.length() - 4) : 
+                    null,
                 processingTimeMs);
     }
 
@@ -86,9 +92,9 @@ public class PaymentLoggingService {
     public void logPaymentApprovalFailure(Payment payment, String reason, Exception e) {
         log.error("결제 승인 실패: paymentId={}, reason={}, retryCount={}, error={}",
                 payment.getId(),
-                reason,
+                reason != null ? SensitiveDataMasker.maskSensitiveData(reason) : null,
                 payment.getRetryCount(),
-                e.getMessage(),
+                e != null && e.getMessage() != null ? SensitiveDataMasker.maskSensitiveData(e.getMessage()) : null,
                 e);
     }
 
@@ -100,7 +106,9 @@ public class PaymentLoggingService {
                 payment.getId(),
                 oldStatus,
                 newStatus,
-                payment.getExternalPaymentId());
+                payment.getExternalPaymentId() != null ? 
+                    SensitiveDataMasker.maskString(payment.getExternalPaymentId(), 0, payment.getExternalPaymentId().length() - 4) : 
+                    null);
     }
 
     /**
@@ -109,8 +117,10 @@ public class PaymentLoggingService {
     public void logPaymentCancel(Payment payment, String reason) {
         log.info("결제 취소: paymentId={}, reason={}, externalPaymentId={}",
                 payment.getId(),
-                reason,
-                payment.getExternalPaymentId());
+                reason != null ? SensitiveDataMasker.maskSensitiveData(reason) : null,
+                payment.getExternalPaymentId() != null ? 
+                    SensitiveDataMasker.maskString(payment.getExternalPaymentId(), 0, payment.getExternalPaymentId().length() - 4) : 
+                    null);
     }
 
     /**
@@ -120,7 +130,7 @@ public class PaymentLoggingService {
         log.info("결제 환불: paymentId={}, refundAmount={}, reason={}, refundedAmount={}, refundableAmount={}",
                 payment.getId(),
                 refundAmount,
-                reason,
+                reason != null ? SensitiveDataMasker.maskSensitiveData(reason) : null,
                 payment.getRefundedAmount(),
                 payment.getRefundableAmount());
     }
@@ -130,7 +140,7 @@ public class PaymentLoggingService {
      */
     public void logDailyLimitCheck(Long userId, String tier, long todayCount, int limit) {
         log.debug("일일 결제 제한 체크: userId={}, tier={}, todayCount={}, limit={}",
-                userId,
+                SensitiveDataMasker.maskUserId(userId),
                 tier,
                 todayCount,
                 limit);
@@ -141,7 +151,7 @@ public class PaymentLoggingService {
      */
     public void logDailyLimitExceeded(Long userId, String tier, long todayCount, int limit) {
         log.warn("일일 결제 제한 초과: userId={}, tier={}, todayCount={}, limit={}",
-                userId,
+                SensitiveDataMasker.maskUserId(userId),
                 tier,
                 todayCount,
                 limit);

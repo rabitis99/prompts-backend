@@ -285,6 +285,8 @@ public class PayPalPaymentProvider implements PaymentProvider {
 
     @Override
     public boolean verifyWebhookSignature(String payload, String signature) {
+        // PayPal은 서명 검증에 여러 헤더(PAYPAL-TRANSMISSION-*)가 필요하므로 headers 기반 메서드 사용을 권장합니다.
+        // 하위 호환을 위해 기존 시그니처 기반 호출도 허용하되, signature를 JSON 형태로 전달해야 합니다.
         if (payload == null || payload.isBlank()) {
             log.warn("PayPal Webhook 검증 실패: payload가 비어있습니다");
             return false;
@@ -295,6 +297,24 @@ public class PayPalPaymentProvider implements PaymentProvider {
         }
 
         boolean verified = webhookVerifier.verify(payload, signature);
+        if (!verified) {
+            log.warn("PayPal Webhook 서명 검증 실패");
+        }
+        return verified;
+    }
+
+    @Override
+    public boolean verifyWebhookSignature(String payload, java.util.Map<String, String> headers) {
+        if (payload == null || payload.isBlank()) {
+            log.warn("PayPal Webhook 검증 실패: payload가 비어있습니다");
+            return false;
+        }
+        if (headers == null || headers.isEmpty()) {
+            log.warn("PayPal Webhook 검증 실패: headers가 비어있습니다");
+            return false;
+        }
+
+        boolean verified = webhookVerifier.verify(payload, headers);
         if (!verified) {
             log.warn("PayPal Webhook 서명 검증 실패");
         }

@@ -36,9 +36,6 @@ public class Payment extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Version
-    private Long version;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -144,10 +141,15 @@ public class Payment extends BaseEntity {
 
     /**
      * 결제 실패 처리
+     *
+     * <p><strong>주의:</strong>
+     * 결제 실패 시 userType과 tier 필드는 변경되지 않습니다.
+     * 이 필드들은 결제 요청 시점의 값을 유지하며, 결제 성공 시에만 업데이트될 수 있습니다.
      */
     public void markFailed(String reason) {
         this.status = PaymentStatus.FAILED;
         this.failureReason = reason;
+        // userType과 tier는 변경하지 않음 (결제 실패 시 등급 상승 방지)
     }
 
     /**
@@ -202,6 +204,40 @@ public class Payment extends BaseEntity {
     public boolean isRetryable(int maxRetry) {
         return this.status == PaymentStatus.PENDING
                 && this.retryCount < maxRetry;
+    }
+
+    /**
+     * 결제 만료 여부 확인
+     *
+     * <p>PENDING 상태의 결제가 설정된 만료 시간(기본 30분)을 초과했는지 확인합니다.
+     *
+     * @param expirationMinutes 만료 시간 (분 단위)
+     * @return 만료 여부
+     */
+    public boolean isExpired(int expirationMinutes) {
+        if (this.status != PaymentStatus.PENDING) {
+            return false; // PENDING이 아니면 만료 대상 아님
+        }
+        LocalDateTime createdAt = getCreatedAt();
+        if (createdAt == null) {
+            return false; // createdAt이 없으면 만료 판단 불가
+        }
+        LocalDateTime expirationTime = createdAt.plus(Duration.ofMinutes(expirationMinutes));
+        return LocalDateTime.now().isAfter(expirationTime);
+    }
+
+    /**
+     * 복구되지 않은 포인트가 있는지 확인
+     *
+     * <p>PENDING 상태의 결제에서 사용한 포인트(usedPointAmount)가 있고,
+     * 아직 복구되지 않았는지 확인합니다.
+     *
+     * @return 복구되지 않은 포인트 존재 여부
+     */
+    public boolean hasUnrecoveredPoints() {
+        return this.status == PaymentStatus.PENDING
+                && this.usedPointAmount != null
+                && this.usedPointAmount.compareTo(BigDecimal.ZERO) > 0;
     }
 
     // ===== 상태 조회 메서드 (검증 제거, 조회만 유지) =====
@@ -281,6 +317,20 @@ public class Payment extends BaseEntity {
     public void updateExchangeRate(BigDecimal exchangeRate, String originalCurrency) {
         this.exchangeRate = exchangeRate;
         this.originalCurrency = originalCurrency;
+    }
+
+    /**
+     * 사용자 타입 및 티어 업데이트 (서비스 레이어에서 호출)
+     *
+     * <p>이 메서드는 서비스 레이어에서 결제 상태 검증 후 호출됩니다.
+     * 엔티티 레이어에서는 단순히 필드만 업데이트하며, 비즈니스 로직 검증은 서비스 레이어에서 수행합니다.
+     *
+     * @param userType 사용자 타입
+     * @param tier 사용자 티어
+     */
+    public void updateUserTypeAndTier(PaymentUserType userType, UserTier tier) {
+        this.userType = userType;
+        this.tier = tier;
     }
 
     /**

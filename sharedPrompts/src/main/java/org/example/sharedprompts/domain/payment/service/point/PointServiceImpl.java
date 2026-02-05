@@ -1,16 +1,13 @@
 package org.example.sharedprompts.domain.payment.service.point;
 
 import lombok.extern.slf4j.Slf4j;
-import net.javacrumbs.shedlock.core.LockConfiguration;
-import net.javacrumbs.shedlock.core.LockProvider;
-import net.javacrumbs.shedlock.core.SimpleLock;
 
-import java.time.Instant;
 import org.example.sharedprompts.domain.payment.Point;
 import org.example.sharedprompts.domain.payment.config.RewardProperties;
 import org.example.sharedprompts.domain.payment.enums.PointType;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.payment.repository.point.PointRepository;
+import org.example.sharedprompts.domain.payment.service.lock.DistributedLockService;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.dto.payment.request.PointUseRequestDto;
@@ -28,22 +25,35 @@ import org.springframework.transaction.TransactionDefinition;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
  * 포인트 서비스 구현체
  *
- * 멀티 서버 환경에서 동시성 문제를 해결하기 위해 ShedLock 분산락을 사용합니다.
+ * <p><strong>동시성 제어 전략:</strong>
+ * <ul>
+ *   <li>포인트 적립 (accumulatePoints, addPointsDirectly): 분산 락 미사용
+ *       <ul>
+ *         <li>멱등성 체크로 중복 적립 방지 (paymentId + userId + PointType 조합)</li>
+ *         <li>데이터베이스 트랜잭션으로 일관성 보장</li>
+ *         <li>락 타임아웃 문제 방지를 위해 락 제거</li>
+ *       </ul>
+ *   </li>
+ *   <li>포인트 사용 (usePoints): ShedLock 분산락 사용
+ *       <ul>
+ *         <li>동시 사용 요청 시 잔액 부족 방지</li>
+ *         <li>잔액 차감의 정확성 보장</li>
+ *       </ul>
+ *   </li>
+ * </ul>
  *
  * <p><strong>알려진 제한사항 - 잔액 관리 방식:</strong>
  * - Point 엔티티의 balance 필드에 누적 잔액 저장 (getLastBalance 사용)
  * - getCurrentBalance는 별도 집계 쿼리 사용
  * - 두 메서드가 다른 방식으로 잔액 계산하여 일시적 불일치 가능성 존재
- * - 분산락으로 동시성 제어하지만, 락 외부에서 getCurrentBalance 호출 시 부정확할 수 있음
+ * - 락 외부에서 getCurrentBalance 호출 시 부정확할 수 있음
  *
  * <p><strong>권장 개선사항:</strong>
  * - balance 필드 제거하고 항상 집계 쿼리로 잔액 계산 (단일 진실 공급원)
@@ -60,10 +70,9 @@ public class PointServiceImpl implements PointService {
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
     /**
-     * LockProvider 주입 (@Primary로 지정된 메인 LockProvider 사용)
-     * fallback이 활성화되어 있으면 fallbackLockProvider를, 없으면 lockProvider를 사용
+     * 분산락 추상화 계층 (테스트/인프라 분리 목적)
      */
-    private final LockProvider lockProvider;
+    private final DistributedLockService distributedLockService;
     private final TransactionTemplate transactionTemplate;
 
     public PointServiceImpl(
@@ -71,13 +80,13 @@ public class PointServiceImpl implements PointService {
             RewardProperties rewardProperties,
             UserRepository userRepository,
             PaymentRepository paymentRepository,
-            LockProvider lockProvider,
+            DistributedLockService distributedLockService,
             PlatformTransactionManager transactionManager) {
         this.pointRepository = pointRepository;
         this.rewardProperties = rewardProperties;
         this.userRepository = userRepository;
         this.paymentRepository = paymentRepository;
-        this.lockProvider = lockProvider;
+        this.distributedLockService = distributedLockService;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         // REQUIRES_NEW 전파로 설정하여 상위 트랜잭션과 독립적으로 실행
         // 락 획득 → 트랜잭션 시작 순서를 보장
@@ -85,12 +94,11 @@ public class PointServiceImpl implements PointService {
     }
 
     private static final String LOCK_PREFIX = "point:lock:";
-    private static final Duration LOCK_AT_MOST_FOR = Duration.ofSeconds(30); // 락 최대 유지 시간
-    private static final Duration LOCK_AT_LEAST_FOR = Duration.ofMillis(100); // 락 최소 유지 시간 (분산 환경에서 너무 빨리 해제되는 것 방지)
 
     // ============ Public Methods ============
 
     @Override
+    @Transactional
     public void accumulatePoints(Long userId, Long paymentId, BigDecimal paymentAmount) {
         // 포인트 적립률 적용
         BigDecimal pointAmount = paymentAmount.multiply(rewardProperties.getPointRate())
@@ -100,22 +108,19 @@ public class PointServiceImpl implements PointService {
             return; // 적립할 포인트가 없으면 종료
         }
 
-        executeWithLock(userId, () -> {
-            doAccumulatePoints(userId, paymentId, pointAmount);
-            return null;
-        });
+        // 분산 락 제거: 멱등성 체크로 중복 적립 방지, 데이터베이스 트랜잭션으로 일관성 보장
+        doAccumulatePoints(userId, paymentId, pointAmount);
     }
 
     @Override
+    @Transactional
     public void addPointsDirectly(Long userId, Long paymentId, BigDecimal pointAmount, PointType type, String description) {
         if (pointAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return; // 적립할 포인트가 없으면 종료
         }
 
-        executeWithLock(userId, () -> {
-            doAddPointsDirectly(userId, paymentId, pointAmount, type, description);
-            return null;
-        });
+        // 분산 락 제거: 멱등성 체크로 중복 적립 방지, 데이터베이스 트랜잭션으로 일관성 보장
+        doAddPointsDirectly(userId, paymentId, pointAmount, type, description);
     }
 
     @Override
@@ -174,28 +179,17 @@ public class PointServiceImpl implements PointService {
      */
     private <T> T executeWithLock(Long userId, Supplier<T> task) {
         String lockName = getLockKey(userId);
-        LockConfiguration lockConfig = new LockConfiguration(
-                Instant.now(),
-                lockName,
-                LOCK_AT_MOST_FOR,
-                LOCK_AT_LEAST_FOR
-        );
-
-        Optional<SimpleLock> lock = lockProvider.lock(lockConfig);
-        if (lock.isEmpty()) {
-            log.warn("Failed to acquire lock for user: {}", userId);
-            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
-        }
-
         try {
-            return transactionTemplate.execute(status -> task.get());
+            // 락 획득 → (REQUIRES_NEW) 트랜잭션 시작 → 작업 수행 → 커밋 → 락 해제
+            return distributedLockService.executeWithLock(lockName, () -> transactionTemplate.execute(status -> task.get()));
+        } catch (DistributedLockService.LockAcquisitionException e) {
+            log.warn("포인트 락 획득 실패: userId={}, lockKey={}", userId, lockName);
+            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Error executing task with lock for user: {}", userId, e);
+            log.error("포인트 락 내 작업 실행 중 오류: userId={}, lockKey={}", userId, lockName, e);
             throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
-        } finally {
-            lock.get().unlock();
         }
     }
 
@@ -217,6 +211,11 @@ public class PointServiceImpl implements PointService {
      *
      * <p>paymentId가 있는 경우 멱등성 체크를 수행하여 중복 적립을 방지합니다.
      * 콜백 재시도 등으로 동일 결제에 대해 여러 번 호출되어도 한 번만 적립됩니다.
+     *
+     * <p><strong>동시성 제어:</strong>
+     * - 분산 락을 사용하지 않음 (락 타임아웃 문제 방지)
+     * - 멱등성 체크로 중복 적립 방지
+     * - 데이터베이스 트랜잭션으로 일관성 보장
      *
      * <p><strong>보안:</strong> 소유자 검증을 멱등성 체크보다 먼저 수행하여
      * 다른 사용자의 paymentId로 멱등성 체크를 우회하는 것을 방지합니다.

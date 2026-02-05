@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Payment;
 import org.example.sharedprompts.domain.payment.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
+import org.example.sharedprompts.domain.payment.enums.PaymentUserType;
+import org.example.sharedprompts.domain.payment.enums.UserTier;
 import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
 import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
 import org.example.sharedprompts.domain.payment.provider.PaymentProviderFactory;
@@ -36,9 +38,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.math.BigDecimal;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -116,7 +119,6 @@ public class PaymentServiceImpl implements PaymentService {
 
             Payment payment = request.toPaymentBuilder(
                     user,
-                    user.getTier(),
                     amountResult.convertedAmount(),
                     amountResult.usedPointAmount()
             ).build();
@@ -241,7 +243,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public PaymentResponseDto refundPayment(Long userId, PaymentRefundRequestDto request) {
         Long paymentId = request.getPaymentIdAsLong();
-        String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":refund";
+        String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":state";
 
         return distributedLockService.executeWithLock(lockKey, () -> {
             // 락 내에서 트랜잭션 실행
@@ -301,90 +303,155 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    @Transactional
     public PaymentConfirmResponse confirmPayment(Long userId, PaymentConfirmRequest request) {
-        long startTime = System.currentTimeMillis();
+        Long paymentId = request.getOrderIdAsLong();
+        // confirm/webhook/cancel/refund 등 Payment 상태 변경은 동일 키로 직렬화해야 충돌이 줄어듭니다.
+        String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":state";
 
-        Payment payment = paymentRepository.findById(request.getOrderIdAsLong())
-                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
-
-        validationService.validatePaymentOwnership(payment, userId);
-
-        // paymentKey 형식 검증
-        paymentValidator.validatePaymentKey(request.getPaymentKey(), payment.getPaymentMethod());
-
-        // 결제사별 paymentKey 처리
-        // - 토스페이먼츠: 클라이언트에서 받은 paymentKey를 externalPaymentId로 설정
-        // - 카카오페이: ready 시 받은 tid가 이미 externalPaymentId에 저장되어 있음
-        if (payment.getPaymentMethod() != PaymentMethod.KAKAO_PAY) {
-            if (request.getPaymentKey() == null || request.getPaymentKey().isEmpty()) {
-                throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "paymentKey",
-                        "비카카오 결제는 paymentKey가 필수입니다");
-            }
-            payment.updateExternalPaymentId(request.getPaymentKey());
-        }
-
-        // 실제 결제 금액 계산 (포인트 사용 후 금액)
-        BigDecimal actualAmount = payment.getAmount().subtract(
-                payment.getUsedPointAmount() != null ? payment.getUsedPointAmount() : BigDecimal.ZERO
-        );
-
-        // 카카오페이의 경우 pgToken을 additionalParams로 전달
-        Map<String, String> additionalParams = Collections.emptyMap();
-        if (payment.getPaymentMethod() == PaymentMethod.KAKAO_PAY) {
-            paymentValidator.validateKakaoPayPgToken(request.getPgToken());
-            additionalParams = Map.of("pgToken", request.getPgToken());
-        }
+        // 포인트 적립을 위한 정보를 저장할 변수 (배열을 사용하여 람다 내부에서 수정 가능하도록)
+        long[] processingTimeHolder = new long[1];
+        boolean[] paymentSucceededHolder = new boolean[1];
 
         try {
-            // PaymentExecutionService를 통한 결제 실행
-            payment = executionService.executePayment(payment, actualAmount, additionalParams);
+            PaymentConfirmResponse response = distributedLockService.executeWithLock(lockKey, () -> transactionTemplate.execute(txStatus -> {
+                long startTime = System.currentTimeMillis();
 
-            long processingTime = System.currentTimeMillis() - startTime;
+                Payment payment = paymentRepository.findByIdForUpdate(paymentId)
+                        .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
-            try {
-                postProcessService.processPaymentSuccess(
-                        payment,
-                        userId,
-                        actualAmount,
-                        payment.getAmount(),
-                        processingTime
+                validationService.validatePaymentOwnership(payment, userId);
+
+                // 이미 SUCCESS면 멱등 응답 (중복 confirm 호출 대비)
+                if (payment.getStatus() == PaymentStatus.SUCCESS) {
+                    return toConfirmResponse(payment, request);
+                }
+
+                // paymentKey 형식 검증
+                paymentValidator.validatePaymentKey(request.getPaymentKey(), payment.getPaymentMethod());
+
+                // 결제사별 paymentKey 처리
+                // - 토스페이먼츠: 클라이언트에서 받은 paymentKey를 externalPaymentId로 설정
+                // - 카카오페이: ready 시 받은 tid가 이미 externalPaymentId에 저장되어 있음
+                if (payment.getPaymentMethod() != PaymentMethod.KAKAO_PAY) {
+                    if (request.getPaymentKey() == null || request.getPaymentKey().isEmpty()) {
+                        throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "paymentKey",
+                                "비카카오 결제는 paymentKey가 필수입니다");
+                    }
+                    payment.updateExternalPaymentId(request.getPaymentKey());
+                }
+
+                // 실제 결제 금액 계산 (포인트 사용 후 금액)
+                BigDecimal calculatedActualAmount = payment.getAmount().subtract(
+                        payment.getUsedPointAmount() != null ? payment.getUsedPointAmount() : BigDecimal.ZERO
                 );
-            } catch (Exception postProcessException) {
-                // 후처리 실패는 로깅만 수행 (결제는 성공했으므로 예외를 던지지 않음)
-                // TODO: 보상 트랜잭션 큐에 추가하여 나중에 재시도하거나 관리자 알림 필요
-                // 포인트/캐시백 적립 실패 시 별도 보상 처리 프로세스 필요
-                log.error("결제 승인 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
-                        payment.getId(), userId, postProcessException.getMessage(), postProcessException);
+
+                // 결제사별 추가 파라미터 설정
+                Map<String, String> additionalParams = new HashMap<>();
+                if (payment.getPaymentMethod() == PaymentMethod.KAKAO_PAY) {
+                    paymentValidator.validateKakaoPayPgToken(request.getPgToken());
+                    additionalParams.put("pgToken", request.getPgToken());
+                }
+                // Toss Payments의 경우 프론트엔드에서 받은 tossOrderId 전달
+                if (payment.getPaymentMethod() == PaymentMethod.TOSS && request.getTossOrderId() != null && !request.getTossOrderId().isEmpty()) {
+                    additionalParams.put("tossOrderId", request.getTossOrderId());
+                    log.debug("Toss Payments orderId를 프론트엔드에서 받은 값으로 사용: tossOrderId={}, paymentId={}", 
+                            request.getTossOrderId(), paymentId);
+                }
+
+                long calculatedProcessingTime;
+                try {
+                    // PaymentExecutionService를 통한 결제 실행
+                    payment = executionService.executePayment(payment, calculatedActualAmount, additionalParams);
+
+                    calculatedProcessingTime = System.currentTimeMillis() - startTime;
+                    processingTimeHolder[0] = calculatedProcessingTime;
+
+                    // 로깅만 트랜잭션 내에서 수행 (빠른 커밋을 위해)
+                    loggingService.logPaymentApprovalSuccess(payment, payment.getExternalPaymentId(), calculatedProcessingTime);
+                    loggingService.logPaymentStatusChange(payment, PaymentStatus.PENDING, PaymentStatus.SUCCESS);
+
+                } catch (ObjectOptimisticLockingFailureException optimisticLockException) {
+                    // 트랜잭션 본문 내에서 발생한 낙관락 충돌은 여기서 처리 가능
+                    log.info("confirmPayment 낙관적 락 충돌(트랜잭션 본문), 최신 Payment 재조회: paymentId={}", paymentId);
+                    Payment fresh = paymentRepository.findById(paymentId)
+                            .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+                    if (fresh.getStatus() == PaymentStatus.SUCCESS) {
+                        return toConfirmResponse(fresh, request);
+                    }
+                    throw optimisticLockException;
+
+                } catch (Exception e) {
+                    calculatedProcessingTime = System.currentTimeMillis() - startTime;
+                    payment.fail("결제 승인 실패: " + e.getMessage());
+                    payment = paymentRepository.save(payment);
+
+                    try {
+                        postProcessService.processPaymentFailure(
+                                payment,
+                                userId,
+                                e.getMessage(),
+                                e,
+                                calculatedProcessingTime
+                        );
+                    } catch (Exception postProcessException) {
+                        // 후처리 실패는 로깅만 수행
+                        log.error("결제 실패 후처리 중 오류 발생: paymentId={}, userId={}, error={}",
+                                payment.getId(), userId, postProcessException.getMessage(), postProcessException);
+                    }
+
+                    log.error("결제 승인 실패: paymentId={}, userId={}, error={}", payment.getId(), userId, e.getMessage(), e);
+                    throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 승인 실패: " + e.getMessage());
+                }
+
+                PaymentConfirmResponse confirmResponse = toConfirmResponse(payment, request);
+                paymentSucceededHolder[0] = true;
+                return confirmResponse;
+            }));
+            
+            // 락이 완전히 해제된 후 포인트 적립 처리
+            // 트랜잭션이 커밋되고 락이 해제된 후 별도 트랜잭션에서 포인트 적립을 처리합니다.
+            // 이를 통해 락 타임아웃 문제를 방지합니다.
+            if (paymentSucceededHolder[0]) {
+                // Payment 엔티티를 다시 조회하여 최신 정보를 가져옵니다.
+                Payment committedPayment = paymentRepository.findById(paymentId)
+                        .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+                
+                if (committedPayment.getStatus() == PaymentStatus.SUCCESS) {
+                    BigDecimal actualAmount = committedPayment.getAmount().subtract(
+                            committedPayment.getUsedPointAmount() != null ? committedPayment.getUsedPointAmount() : BigDecimal.ZERO
+                    );
+                    BigDecimal originalAmount = committedPayment.getAmount();
+                    
+                    try {
+                        postProcessService.processPaymentSuccessAfterCommit(
+                                paymentId,
+                                userId,
+                                actualAmount,
+                                originalAmount,
+                                processingTimeHolder[0]
+                        );
+                    } catch (Exception postProcessException) {
+                        // 후처리 실패는 로깅만 수행 (결제는 성공했으므로 예외를 던지지 않음)
+                        log.error("결제 승인 성공 후 후처리 실패: paymentId={}, userId={}, error={}",
+                                paymentId, userId, postProcessException.getMessage(), postProcessException);
+                    }
+                }
             }
-
-        } catch (Exception e) {
-            long processingTime = System.currentTimeMillis() - startTime;
-            payment.fail("결제 승인 실패: " + e.getMessage());
-            payment = paymentRepository.save(payment);
-
-            try {
-                postProcessService.processPaymentFailure(
-                        payment,
-                        userId,
-                        e.getMessage(),
-                        e,
-                        processingTime
-                );
-            } catch (Exception postProcessException) {
-                // 후처리 실패는 로깅만 수행
-                // TODO: 보상 트랜잭션 큐에 추가하여 나중에 재시도하거나 관리자 알림 필요
-                // 현재는 로깅만 수행하여 결제 실패 자체는 사용자에게 전달
-                log.error("결제 실패 후처리 중 오류 발생: paymentId={}, userId={}, error={}",
-                        payment.getId(), userId, postProcessException.getMessage(), postProcessException);
+            
+            return response;
+        } catch (ObjectOptimisticLockingFailureException optimisticLockException) {
+            // 커밋/flush 시점에 발생한 낙관락 충돌은 transactionTemplate.execute 바깥에서만 잡을 수 있음
+            log.info("confirmPayment 낙관적 락 충돌(커밋 시점), 최신 Payment 재조회: paymentId={}", paymentId);
+            Payment fresh = paymentRepository.findById(paymentId)
+                    .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+            if (fresh.getStatus() == PaymentStatus.SUCCESS) {
+                return toConfirmResponse(fresh, request);
             }
-
-            // 일관된 예외 처리: ApiException으로 래핑하여 throw
-            // 후처리 실패는 별도로 처리하되, 결제 실패 자체는 사용자에게 전달
-            log.error("결제 승인 실패: paymentId={}, userId={}, error={}", payment.getId(), userId, e.getMessage(), e);
-            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 승인 실패: " + e.getMessage());
+            throw optimisticLockException;
         }
+    }
 
+    private PaymentConfirmResponse toConfirmResponse(Payment payment, PaymentConfirmRequest request) {
         PaymentConfirmResponse response = new PaymentConfirmResponse();
         response.setPaymentKey(payment.getExternalPaymentId());
         response.setOrderId(request.getOrderId());
@@ -394,7 +461,6 @@ public class PaymentServiceImpl implements PaymentService {
             response.setApprovedAt(payment.getApprovedAt().atZone(java.time.ZoneId.systemDefault()).toOffsetDateTime());
         }
         response.setMethod(payment.getPaymentMethod().name());
-
         return response;
     }
 
@@ -457,7 +523,7 @@ public class PaymentServiceImpl implements PaymentService {
      */
     @Override
     public PaymentResponseDto refundPaymentForAdmin(Long paymentId, PaymentRefundRequestDto request, Long adminId) {
-        String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":refund";
+        String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":state";
 
         return distributedLockService.executeWithLock(lockKey, () -> {
             // 락 내에서 트랜잭션 실행
@@ -579,6 +645,37 @@ public class PaymentServiceImpl implements PaymentService {
                 return "{}";
             }
         }
+    }
+
+    /**
+     * 결제의 사용자 타입 및 티어 업데이트
+     *
+     * <p><strong>주의:</strong>
+     * 결제가 SUCCESS 상태일 때만 userType과 tier를 업데이트할 수 있습니다.
+     * 결제 실패 시 등급 상승을 방지하기 위한 보호 메커니즘입니다.
+     *
+     * @param paymentId 결제 ID
+     * @param userType 사용자 타입
+     * @param tier 사용자 티어
+     * @throws ApiException 결제 상태가 SUCCESS가 아닐 때
+     */
+    @Transactional
+    public void updatePaymentUserTypeAndTier(Long paymentId, PaymentUserType userType, UserTier tier) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        // 결제 상태 검증: SUCCESS 상태일 때만 업데이트 가능
+        if (payment.getStatus() != PaymentStatus.SUCCESS) {
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE,
+                    String.format("결제 상태가 SUCCESS가 아니면 userType과 tier를 업데이트할 수 없습니다. 현재 상태: %s", payment.getStatus()));
+        }
+
+        // 엔티티의 메서드를 통해 업데이트 (검증은 서비스 레이어에서 수행)
+        payment.updateUserTypeAndTier(userType, tier);
+        paymentRepository.save(payment);
+
+        log.info("결제 userType 및 tier 업데이트 완료: paymentId={}, userType={}, tier={}", 
+                paymentId, userType, tier);
     }
 
 }

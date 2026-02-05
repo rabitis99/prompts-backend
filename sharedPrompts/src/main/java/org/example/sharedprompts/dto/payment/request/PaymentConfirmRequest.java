@@ -43,6 +43,18 @@ public class PaymentConfirmRequest {
      */
     @JsonProperty("pg_token")
     private String pgToken;
+    
+    /**
+     * Toss Payments 위젯에서 사용한 orderId
+     * 
+     * <p>Toss Payments 결제 승인 시 선택적으로 사용됩니다.
+     * - 프론트엔드에서 Toss 위젯에 전달한 orderId를 그대로 전달
+     * - 예: "ORDER-123-1704067200000"
+     * - 없으면 백엔드에서 payment.getId()를 사용 (기존 동작)
+     * - 프론트엔드에서 주는 번호를 그대로 신뢰하여 Toss Payments API에 전달
+     */
+    @JsonProperty("toss_order_id")
+    private String tossOrderId;
 
     public PaymentConfirmRequest(String orderId, long amount, String paymentKey) {
         this.orderId = orderId;
