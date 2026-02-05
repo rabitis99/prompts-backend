@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.payment.provider.kakao.webhook;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.WebhookProperties;
+import org.example.sharedprompts.domain.payment.properties.WebhookProperties;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;

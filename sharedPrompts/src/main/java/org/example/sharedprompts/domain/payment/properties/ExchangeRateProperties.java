@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.payment.config;
+package org.example.sharedprompts.domain.payment.properties;
 
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;

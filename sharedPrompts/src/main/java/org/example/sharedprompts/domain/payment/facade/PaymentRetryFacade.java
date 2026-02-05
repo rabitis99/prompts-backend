@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.payment.facade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.Payment;
-import org.example.sharedprompts.domain.payment.config.RetryProperties;
+import org.example.sharedprompts.domain.payment.properties.RetryProperties;
 import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
 import org.example.sharedprompts.domain.payment.model.PaymentResult;
 import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;

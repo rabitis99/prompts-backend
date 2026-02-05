@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.payment.provider.paypal.client;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.PaypalProperties;
+import org.example.sharedprompts.domain.payment.properties.PaypalProperties;
 import org.example.sharedprompts.domain.payment.provider.paypal.dto.PaypalCreateOrderResponse;
 import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalJsonConverter;

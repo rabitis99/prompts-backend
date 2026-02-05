@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.payment.provider.toss.webhook;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.TossPayProperties;
+import org.example.sharedprompts.domain.payment.properties.TossPayProperties;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;

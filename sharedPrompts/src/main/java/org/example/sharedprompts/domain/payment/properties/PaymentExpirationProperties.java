@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.payment.config;
+package org.example.sharedprompts.domain.payment.properties;
 
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,10 +11,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class PaymentExpirationProperties {
 
-    /**
-     * PENDING 상태 결제의 만료 시간 (분 단위)
-     * 기본값: 30분
-     */
     private final int expirationMinutes;
 
     public PaymentExpirationProperties(

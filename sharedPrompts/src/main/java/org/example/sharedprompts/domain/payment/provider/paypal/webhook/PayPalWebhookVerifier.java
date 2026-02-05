@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.payment.provider.paypal.webhook;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.PaypalProperties;
+import org.example.sharedprompts.domain.payment.properties.PaypalProperties;
 import org.example.sharedprompts.domain.payment.provider.paypal.util.PayPalHeadersProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;

@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.payment.config;
+package org.example.sharedprompts.domain.payment.properties;
 
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
@@ -6,12 +6,6 @@ import org.springframework.stereotype.Component;
 
 /**
  * 재시도 설정 Properties (Immutable)
- *
- * <p><strong>재시도 정책:</strong>
- * <ul>
- *   <li><strong>즉시 재시도:</strong> 일시적인 네트워크 오류 등에 대해 즉시 재시도 (짧은 횟수)</li>
- *   <li><strong>지연 재시도:</strong> 스케줄러 기반 지수 백오프 재시도 (긴 간격)</li>
- * </ul>
  */
 @Getter
 @Component

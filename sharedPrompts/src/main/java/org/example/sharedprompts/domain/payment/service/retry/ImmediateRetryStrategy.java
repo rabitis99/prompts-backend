@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.payment.service.retry;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.RetryProperties;
+import org.example.sharedprompts.domain.payment.properties.RetryProperties;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.springframework.stereotype.Component;
 

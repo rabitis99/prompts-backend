@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.payment.service.notification.credential
 import com.google.auth.oauth2.GoogleCredentials;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.FcmProperties;
+import org.example.sharedprompts.domain.payment.properties.FcmProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 

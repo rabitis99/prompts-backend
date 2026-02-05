@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.payment.provider.toss.client;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.TossPayProperties;
+import org.example.sharedprompts.domain.payment.properties.TossPayProperties;
 import org.example.sharedprompts.domain.payment.provider.toss.dto.TossConfirmResponse;
 import org.example.sharedprompts.domain.payment.provider.toss.util.TossPayHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.toss.util.TossPayJsonConverter;

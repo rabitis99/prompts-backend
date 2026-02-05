@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.payment.provider.toss.util;
 
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.domain.payment.config.TossPayProperties;
+import org.example.sharedprompts.domain.payment.properties.TossPayProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;

@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.payment.provider.kakao.client;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.config.KakaoPayProperties;
+import org.example.sharedprompts.domain.payment.properties.KakaoPayProperties;
 import org.example.sharedprompts.domain.payment.provider.kakao.dto.KakaoStatusResponse;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayHeadersProvider;
 import org.example.sharedprompts.domain.payment.provider.kakao.util.KakaoPayJsonConverter;
