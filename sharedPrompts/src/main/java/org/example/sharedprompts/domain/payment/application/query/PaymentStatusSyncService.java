@@ -1,43 +1,32 @@
-package org.example.sharedprompts.domain.payment.service.sync;
+package org.example.sharedprompts.domain.payment.application.query;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.Payment;
-import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
-import org.example.sharedprompts.domain.payment.model.PaymentResult;
-import org.example.sharedprompts.domain.payment.provider.PaymentProvider;
-import org.example.sharedprompts.domain.payment.provider.PaymentProviderFactory;
-import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
-import org.example.sharedprompts.domain.payment.service.validation.PaymentValidationService;
+import org.example.sharedprompts.domain.payment.domain.entity.Payment;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
+import org.example.sharedprompts.domain.payment.application.dto.response.PaymentResult;
+import org.example.sharedprompts.domain.payment.infrastructure.external.provider.PaymentProvider;
+import org.example.sharedprompts.domain.payment.infrastructure.external.provider.PaymentProviderFactory;
+import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PaymentJpaAdapter;
+import org.example.sharedprompts.domain.payment.application.command.PaymentValidationService;
 import org.example.sharedprompts.dto.payment.response.PaymentStatusResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 결제 상태 동기화 서비스
- * 
- * <p>단일 책임: 외부 API 상태 조회 및 DB 상태 동기화만 담당
- * - 외부 Provider에서 결제 상태 조회
- * - PaymentResult 기반 상태 동기화
- * - Payment 도메인 메서드를 통한 상태 변경
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PaymentStatusSyncService {
 
     private final PaymentProviderFactory providerFactory;
-    private final PaymentRepository paymentRepository;
+    private final PaymentJpaAdapter paymentJpaAdapter;
     private final PaymentValidationService validationService;
 
-    /**
-     * 사용자용 결제 상태 동기화
-     */
     @Transactional
     public PaymentStatusResponseDto syncPaymentStatus(Long paymentId, Long userId) {
-        Payment payment = paymentRepository.findById(paymentId)
+        Payment payment = paymentJpaAdapter.findById(paymentId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
         validationService.validatePaymentOwnership(payment, userId);
@@ -45,48 +34,35 @@ public class PaymentStatusSyncService {
         return doSyncPaymentStatus(payment);
     }
 
-    /**
-     * 관리자용 결제 상태 동기화
-     */
     @Transactional
     public PaymentStatusResponseDto syncPaymentStatusForAdmin(Long paymentId) {
-        Payment payment = paymentRepository.findById(paymentId)
+        Payment payment = paymentJpaAdapter.findById(paymentId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
         return doSyncPaymentStatus(payment);
     }
 
-    /**
-     * 공통 상태 동기화 로직
-     */
     private PaymentStatusResponseDto doSyncPaymentStatus(Payment payment) {
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
         PaymentResult result = provider.getPaymentStatus(payment.getExternalPaymentId());
 
         if (payment.getStatus() != result.getStatus()) {
             syncPaymentStatusFromResult(payment, result);
-            paymentRepository.save(payment);
+            paymentJpaAdapter.save(payment);
         }
 
         return PaymentStatusResponseDto.from(payment);
     }
 
-    /**
-     * PaymentResult를 기반으로 Payment 상태 동기화
-     * 도메인 중심 상태 변경 (Payment.markSuccess()/markFailed()/markCanceled() 호출)
-     */
     private void syncPaymentStatusFromResult(Payment payment, PaymentResult result) {
         PaymentStatus currentStatus = payment.getStatus();
         PaymentStatus latestStatus = result.getStatus();
-        
-        // 이미 동일한 상태면 처리하지 않음
         if (currentStatus == latestStatus) {
             return;
         }
         
         switch (latestStatus) {
             case SUCCESS:
-                // 대기 상태들 -> SUCCESS 전이 처리
                 if (currentStatus.isPending()) {
                     payment.approve(result.getExternalPaymentId());
                     log.info("외부 결제사 상태 동기화: paymentId={}, {} -> {}", 
@@ -100,7 +76,6 @@ public class PaymentStatusSyncService {
             case FAILED:
             case ABORTED:
             case EXPIRED:
-                // 대기 상태들 -> 실패 상태 전이 처리
                 if (currentStatus.isPending()) {
                     payment.fail(result.getFailureReason() != null ? result.getFailureReason() : "외부 결제사에서 결제 실패로 확인됨");
                     log.info("외부 결제사 상태 동기화: paymentId={}, {} -> {}", 
@@ -112,7 +87,6 @@ public class PaymentStatusSyncService {
                 break;
                 
             case CANCELED:
-                // SUCCESS, 대기 상태들 -> CANCELED 전이 처리
                 if (currentStatus == PaymentStatus.SUCCESS || currentStatus.isPending()) {
                     payment.cancel();
                     log.info("외부 결제사 상태 동기화: paymentId={}, {} -> {}", 
@@ -126,7 +100,6 @@ public class PaymentStatusSyncService {
             case READY:
             case IN_PROGRESS:
             case WAITING_FOR_DEPOSIT:
-                // 대기 상태 간 전이는 상태만 업데이트
                 if (currentStatus.isPending()) {
                     payment.updateStatus(latestStatus);
                     log.info("외부 결제사 상태 동기화: paymentId={}, {} -> {}", 
@@ -139,9 +112,6 @@ public class PaymentStatusSyncService {
                 
             case REFUNDED:
             case PARTIALLY_REFUNDED:
-                // 환불 상태는 이번 동기화 로직에서 처리하지 않음
-                // PaymentResult에 refundedAmount가 존재하지 않아 도메인 처리 불가능
-                // 환불은 결제 상태 동기화와 다른 책임을 가짐
                 log.warn("환불 상태 동기화는 별도 프로세스에서 처리됨: paymentId={}, 현재 상태={}, 외부 상태={}", 
                         payment.getId(), currentStatus, latestStatus);
                 break;

@@ -1,18 +1,19 @@
-package org.example.sharedprompts.domain.payment.service.postprocess;
+package org.example.sharedprompts.domain.payment.application.command.postprocess;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.payment.Payment;
-import org.example.sharedprompts.domain.payment.enums.PaymentStatus;
-import org.example.sharedprompts.domain.payment.enums.PointType;
-import org.example.sharedprompts.domain.payment.logging.PaymentLoggingService;
-import org.example.sharedprompts.domain.payment.metrics.PaymentMetrics;
+import org.example.sharedprompts.domain.payment.domain.entity.Payment;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
+import org.example.sharedprompts.domain.payment.domain.enums.PointType;
+import org.example.sharedprompts.domain.payment.domain.valueobject.PaymentAmount;
+import org.example.sharedprompts.domain.payment.infrastructure.monitoring.PaymentLoggingService;
+import org.example.sharedprompts.domain.payment.infrastructure.monitoring.PaymentMetrics;
 import org.example.sharedprompts.domain.payment.service.cashback.CashbackService;
-import org.example.sharedprompts.domain.payment.service.event.PaymentEventPublisher;
+import org.example.sharedprompts.domain.payment.infrastructure.messaging.event.PaymentEventPublisher;
 import org.example.sharedprompts.domain.payment.service.point.PointService;
-import org.example.sharedprompts.domain.payment.repository.payment.PaymentRepository;
-import org.example.sharedprompts.domain.payment.service.postprocess.policy.CashbackAccrualPolicy;
-import org.example.sharedprompts.domain.payment.service.postprocess.policy.PointAccrualPolicy;
+import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PaymentJpaAdapter;
+import org.example.sharedprompts.domain.payment.application.command.postprocess.policy.CashbackAccrualPolicy;
+import org.example.sharedprompts.domain.payment.application.command.postprocess.policy.PointAccrualPolicy;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
@@ -20,15 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
-/**
- * 결제 후처리 서비스
- * 
- * <p>단일 책임: 결제 후처리만 담당
- * - 포인트/캐시백 적립
- * - 이벤트 발행
- * - 메트릭 수집
- * - 로깅
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -41,52 +33,25 @@ public class PaymentPostProcessService {
     private final PaymentLoggingService loggingService;
     private final PointAccrualPolicy pointAccrualPolicy;
     private final CashbackAccrualPolicy cashbackAccrualPolicy;
-    private final PaymentRepository paymentRepository;
+    private final PaymentJpaAdapter paymentJpaAdapter;
 
-    /**
-     * 결제 성공 후처리
-     *
-     * <p>포인트/캐시백 적립 기준 금액은 각각의 정책 클래스에서 결정됩니다.
-     * 
-     * <p><strong>결제 상태 검증:</strong>
-     * 결제가 SUCCESS 상태일 때만 포인트/캐시백 적립 및 이벤트 발행을 수행합니다.
-     * 결제 실패 시 등급 상승이 발생하지 않도록 보장합니다.
-     *
-     * @param payment 결제 정보
-     * @param userId 사용자 ID
-     * @param actualPaymentAmount 실제 결제 금액 (포인트 차감 후)
-     * @param originalAmount 원래 주문 금액 (포인트 차감 전)
-     * @param processingTime 처리 시간 (ms)
-     * @see PointAccrualPolicy
-     * @see CashbackAccrualPolicy
-     */
     public void processPaymentSuccess(Payment payment, Long userId, BigDecimal actualPaymentAmount,
                                      BigDecimal originalAmount, long processingTime) {
-        // 결제 상태 검증: SUCCESS 상태일 때만 후처리 수행
         if (payment.getStatus() != PaymentStatus.SUCCESS) {
             log.warn("결제 성공 후처리 스킵: 결제 상태가 SUCCESS가 아님. paymentId={}, status={}", 
                     payment.getId(), payment.getStatus());
             return;
         }
 
-        // 로깅
         loggingService.logPaymentApprovalSuccess(payment, payment.getExternalPaymentId(), processingTime);
         PaymentStatus oldStatus = payment.getStatus() != PaymentStatus.SUCCESS ? PaymentStatus.PENDING : payment.getStatus();
         loggingService.logPaymentStatusChange(payment, oldStatus, PaymentStatus.SUCCESS);
 
-        // 공통 후처리 로직 실행
         executeSuccessPostProcessing(payment, userId, actualPaymentAmount, originalAmount, processingTime);
     }
 
-    /**
-     * 결제 실패 후처리
-     *
-     * <p>결제 요청(requestPayment) 시점에 포인트가 이미 차감되었으므로,
-     * 결제 승인(confirmPayment) 실패 시 포인트를 복구해야 합니다.
-     */
     public void processPaymentFailure(Payment payment, Long userId, String errorMessage,
                                      Exception exception, long processingTime) {
-        // 포인트 복구 처리 (결제 요청 시 차감된 포인트 복구)
         if (payment.getUsedPointAmount() != null && payment.getUsedPointAmount().compareTo(BigDecimal.ZERO) > 0) {
             try {
                 pointService.addPointsDirectly(
@@ -99,19 +64,13 @@ public class PaymentPostProcessService {
                 log.info("결제 실패로 인한 포인트 복구: userId={}, paymentId={}, refundPointAmount={}",
                         userId, payment.getId(), payment.getUsedPointAmount());
             } catch (Exception pointException) {
-                // 포인트 복구 실패 시 로깅하고 계속 진행 (별도 보상 처리 필요)
                 log.error("결제 실패 후 포인트 복구 실패: userId={}, paymentId={}, amount={}, error={}",
                         userId, payment.getId(), payment.getUsedPointAmount(), pointException.getMessage(), pointException);
             }
         }
 
-        // 로깅
         loggingService.logPaymentApprovalFailure(payment, errorMessage, exception);
-
-        // 메트릭 기록
         paymentMetrics.recordPaymentFailure(payment.getPaymentMethod().name(), errorMessage, processingTime);
-
-        // 결제 실패 이벤트 발행
         eventPublisher.publishPaymentFailed(
                 payment.getId(),
                 userId,
@@ -120,16 +79,9 @@ public class PaymentPostProcessService {
         );
     }
 
-    /**
-     * 결제 취소 후처리 (트랜잭션 밖에서 호출)
-     * @param paymentId 결제 ID
-     * @param userId 사용자 ID
-     * @param reason 취소 사유
-     */
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void processPaymentCancelAfterCommit(Long paymentId, Long userId, String reason) {
-        // Payment 엔티티 재조회 (트랜잭션 밖에서 호출되므로)
-        Payment payment = paymentRepository.findById(paymentId)
+        Payment payment = paymentJpaAdapter.findById(paymentId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
         
         PaymentStatus oldStatus = payment.getStatus() != PaymentStatus.CANCELED 
@@ -139,14 +91,7 @@ public class PaymentPostProcessService {
         processPaymentCancel(payment, userId, reason, oldStatus);
     }
 
-    /**
-     * 결제 취소 후처리
-     *
-     * <p>포인트 환불 시 addPointsDirectly를 사용하여 사용했던 포인트를 그대로 복구합니다.
-     * accumulatePoints는 결제 금액에 포인트 적립률을 곱하므로 환불/취소에는 부적합합니다.
-     */
     public void processPaymentCancel(Payment payment, Long userId, String reason, PaymentStatus oldStatus) {
-        // 포인트 환불 처리 (사용했던 포인트 그대로 복구)
         if (payment.getUsedPointAmount() != null && payment.getUsedPointAmount().compareTo(BigDecimal.ZERO) > 0) {
             try {
                 pointService.addPointsDirectly(
@@ -159,36 +104,21 @@ public class PaymentPostProcessService {
                 log.info("결제 취소로 인한 포인트 복구: userId={}, paymentId={}, refundPointAmount={}",
                         userId, payment.getId(), payment.getUsedPointAmount());
             } catch (Exception pointException) {
-                // 포인트 복구 실패 시 로깅하고 계속 진행 (별도 보상 처리 필요)
                 log.error("결제 취소 후 포인트 복구 실패: userId={}, paymentId={}, amount={}, error={}",
                         userId, payment.getId(), payment.getUsedPointAmount(), pointException.getMessage(), pointException);
             }
         }
 
-        // 로깅
         loggingService.logPaymentCancel(payment, reason);
         loggingService.logPaymentStatusChange(payment, oldStatus, PaymentStatus.CANCELED);
-
-        // 메트릭 기록
         paymentMetrics.recordPaymentCancel(payment.getPaymentMethod().name());
-
-        // 결제 취소 이벤트 발행
         eventPublisher.publishPaymentCanceled(payment.getId(), userId, reason);
     }
 
-    /**
-     * 결제 환불 후처리 (트랜잭션 밖에서 호출)
-     * @param paymentId 결제 ID
-     * @param userId 사용자 ID
-     * @param refundAmount 환불 금액
-     * @param refundPointAmount 환불할 포인트 금액
-     * @param reason 환불 사유
-     */
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void processPaymentRefundAfterCommit(Long paymentId, Long userId, BigDecimal refundAmount,
                                                BigDecimal refundPointAmount, String reason) {
-        // Payment 엔티티 재조회 (트랜잭션 밖에서 호출되므로)
-        Payment payment = paymentRepository.findById(paymentId)
+        Payment payment = paymentJpaAdapter.findById(paymentId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
         
         PaymentStatus oldStatus = payment.getStatus() != PaymentStatus.REFUNDED 
@@ -198,15 +128,8 @@ public class PaymentPostProcessService {
         processPaymentRefund(payment, userId, refundAmount, refundPointAmount, reason, oldStatus);
     }
 
-    /**
-     * 결제 환불 후처리
-     *
-     * <p>포인트 환불 시 addPointsDirectly를 사용하여 사용했던 포인트를 그대로 복구합니다.
-     * accumulatePoints는 결제 금액에 포인트 적립률을 곱하므로 환불/취소에는 부적합합니다.
-     */
     public void processPaymentRefund(Payment payment, Long userId, BigDecimal refundAmount,
                                     BigDecimal refundPointAmount, String reason, PaymentStatus oldStatus) {
-        // 포인트 환불 처리 (사용했던 포인트 그대로 복구)
         if (refundPointAmount != null && refundPointAmount.compareTo(BigDecimal.ZERO) > 0) {
             try {
                 pointService.addPointsDirectly(
@@ -219,78 +142,47 @@ public class PaymentPostProcessService {
                 log.info("결제 환불로 인한 포인트 복구: userId={}, paymentId={}, refundPointAmount={}",
                         userId, payment.getId(), refundPointAmount);
             } catch (Exception pointException) {
-                // 포인트 복구 실패 시 로깅하고 계속 진행 (별도 보상 처리 필요)
                 log.error("결제 환불 후 포인트 복구 실패: userId={}, paymentId={}, amount={}, error={}",
                         userId, payment.getId(), refundPointAmount, pointException.getMessage(), pointException);
             }
         }
 
-        // 로깅
         loggingService.logPaymentRefund(payment, refundAmount, reason);
         loggingService.logPaymentStatusChange(payment, oldStatus, payment.getStatus());
-
-        // 메트릭 기록
         paymentMetrics.recordPaymentRefund(payment.getPaymentMethod().name(), refundAmount.doubleValue());
-
-        // 결제 환불 이벤트 발행
         eventPublisher.publishPaymentRefunded(payment.getId(), userId, reason);
     }
 
-    /**
-     * 결제 성공 후처리 (트랜잭션 밖에서 호출)
-     *
-     * <p><strong>락 충돌 방지:</strong>
-     * 결제 승인 트랜잭션이 커밋된 후 별도 트랜잭션에서 포인트/캐시백 적립을 처리합니다.
-     * 이를 통해 중첩된 트랜잭션과 락의 교착 상태를 방지합니다.
-     *
-     * <p><strong>트랜잭션 순서:</strong>
-     * 1. 결제 승인 트랜잭션 커밋 (Payment 상태 변경)
-     * 2. 분산 락 해제 (payment:lock:state)
-     * 3. 별도 트랜잭션에서 포인트/캐시백 적립 처리
-     * 
-     * <p><strong>결제 상태 검증:</strong>
-     * 결제가 SUCCESS 상태일 때만 포인트/캐시백 적립 및 이벤트 발행을 수행합니다.
-     * 결제 실패 시 등급 상승이 발생하지 않도록 보장합니다.
-     *
-     * @param paymentId 결제 ID
-     * @param userId 사용자 ID
-     * @param actualPaymentAmount 실제 결제 금액 (포인트 차감 후)
-     * @param originalAmount 원래 주문 금액 (포인트 차감 전)
-     * @param processingTime 처리 시간 (ms)
-     */
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void processPaymentSuccessAfterCommit(Long paymentId, Long userId, BigDecimal actualPaymentAmount,
                                                  BigDecimal originalAmount, long processingTime) {
-        // Payment 엔티티 재조회 (트랜잭션 밖에서 호출되므로)
-        Payment payment = paymentRepository.findById(paymentId)
+        Payment payment = paymentJpaAdapter.findById(paymentId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
-
-        // 결제 상태 검증: SUCCESS 상태일 때만 후처리 수행
         if (payment.getStatus() != PaymentStatus.SUCCESS) {
             log.warn("결제 성공 후처리 스킵: 결제 상태가 SUCCESS가 아님. paymentId={}, status={}", 
                     paymentId, payment.getStatus());
             return;
         }
 
-        // 공통 후처리 로직 실행
         executeSuccessPostProcessing(payment, userId, actualPaymentAmount, originalAmount, processingTime);
     }
 
-    /**
-     * 결제 성공 후처리 공통 로직
-     * 포인트/캐시백 적립, 메트릭 기록, 이벤트 발행을 수행합니다.
-     */
     private void executeSuccessPostProcessing(Payment payment, Long userId, 
             BigDecimal actualPaymentAmount, BigDecimal originalAmount, long processingTime) {
-        // 사용된 포인트 금액 계산
-        BigDecimal usedPointAmount = originalAmount.subtract(actualPaymentAmount);
-
-        // 포인트 적립 (정책에 따른 기준 금액 결정)
+        PaymentAmount originalPaymentAmount = PaymentAmount.of(
+            originalAmount,
+            payment.getCurrency()
+        );
+        PaymentAmount actualPaymentAmountVO = PaymentAmount.of(
+            actualPaymentAmount,
+            payment.getCurrency()
+        );
+        
+        PaymentAmount usedPointAmountVO = originalPaymentAmount.subtract(actualPaymentAmountVO);
+        BigDecimal usedPointAmount = usedPointAmountVO.toBigDecimal();
         BigDecimal pointBasisAmount = pointAccrualPolicy.determineBasisAmount(
                 originalAmount, actualPaymentAmount, usedPointAmount);
         pointService.accumulatePoints(userId, payment.getId(), pointBasisAmount);
-
-        // 캐시백 적립 (정책에 따른 기준 금액 결정)
         BigDecimal cashbackBasisAmount = cashbackAccrualPolicy.determineBasisAmount(
                 originalAmount, actualPaymentAmount, usedPointAmount);
         cashbackService.accumulateCashback(userId, payment.getId(), cashbackBasisAmount);
@@ -299,12 +191,8 @@ public class PaymentPostProcessService {
                 payment.getId(),
                 pointAccrualPolicy.getPolicyName(), pointBasisAmount,
                 cashbackAccrualPolicy.getPolicyName(), cashbackBasisAmount);
-
-        // 메트릭 기록
         paymentMetrics.recordPaymentSuccess(payment.getPaymentMethod().name(), processingTime);
         paymentMetrics.recordPaymentAmount(payment.getPaymentMethod().name(), originalAmount.doubleValue());
-
-        // 결제 성공 이벤트 발행
         eventPublisher.publishPaymentSucceeded(payment.getId(), userId, payment.getPaymentMethod().name());
     }
 }
