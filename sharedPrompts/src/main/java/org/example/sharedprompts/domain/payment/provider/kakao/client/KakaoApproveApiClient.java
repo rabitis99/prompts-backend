@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -60,70 +61,72 @@ public class KakaoApproveApiClient {
                     KAKAO_PAY_API_URL + APPROVE_ENDPOINT,
                     HttpMethod.POST,
                     request,
-                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+                    new org.springframework.core.ParameterizedTypeReference<>() {}
             );
 
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                Map<String, Object> body = response.getBody();
-                String status = (String) body.get("status");
-                
-                String errorCode = (String) body.get("code");
-                String errorMsg = (String) body.get("msg");
-                String error = (String) body.get("error");
-                
-                if (errorCode != null || errorMsg != null || error != null) {
-                    String responseBodyJson = jsonConverter.convertToJson(body);
-                    String errorMessage = String.format(
-                            "KakaoPay approve 에러 응답: code=%s, msg=%s, error=%s, responseBody=%s", 
-                            errorCode, errorMsg, error, responseBodyJson);
-                    log.error("KakaoPay approve API 에러: tid={}, orderId={}, {}", tid, orderId, errorMessage);
-                    throw new RuntimeException(errorMessage);
-                }
-                
-                if (status == null || status.isEmpty()) {
-                    Object approvedAt = body.get("approved_at");
-                    if (approvedAt != null) {
-                        status = DEFAULT_SUCCESS_STATUS;
-                        log.debug("KakaoPay approve 응답에 status가 없지만 approved_at이 있어 성공으로 간주: tid={}, orderId={}", 
-                                tid, orderId);
-                    } else {
-                        String responseBodyJson = jsonConverter.convertToJson(body);
-                        log.error("KakaoPay approve 응답에 status와 approved_at이 모두 없습니다: tid={}, orderId={}, responseBody={}", 
-                                tid, orderId, responseBodyJson);
-                        throw new RuntimeException(
-                                String.format("KakaoPay approve 응답에 status와 approved_at이 모두 없습니다. 응답 본문: %s", responseBodyJson));
-                    }
-                }
+            if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
+                throw new RuntimeException("KakaoPay approve 응답이 비정상입니다: status=" + response.getStatusCode());
+            }
 
-                log.info("KakaoPay 결제 승인 성공: tid={}, orderId={}, status={}", tid, orderId, status);
-                return new KakaoApproveResponse(
-                        status,
-                        responseParser.parseApprovedAt(body),
-                        jsonConverter.convertToJson(body)
+            Map<String, Object> body = response.getBody();
+
+            String errorCode = (String) body.get("code");
+            String errorMsg = (String) body.get("msg");
+            String error = (String) body.get("error");
+
+            if (errorCode != null || errorMsg != null || error != null) {
+                String responseBodyJson = jsonConverter.convertToJson(body);
+                log.error(
+                        "KakaoPay approve 에러 응답: tid={}, orderId={}, code={}, msg={}, error={}",
+                        tid, orderId, errorCode, errorMsg, error
                 );
+                throw new RuntimeException("KakaoPay approve 에러 응답: " + responseBodyJson);
             }
 
-            throw new RuntimeException("KakaoPay 결제 승인 실패: status=" + response.getStatusCode());
-        } catch (org.springframework.web.client.HttpClientErrorException e) {
-            String errorDetails = e.getResponseBodyAsString();
-            String maskedErrorDetails = errorDetails != null ? SensitiveDataMasker.maskSensitiveData(errorDetails) : null;
-            log.error("KakaoPay 결제 승인 API 호출 실패: tid={}, orderId={}, status={}, error={}", 
-                    tid, orderId, e.getStatusCode(), maskedErrorDetails, e);
-            
-            if (e.getStatusCode() == HttpStatus.FORBIDDEN) {
-                log.error("KakaoPay 403 Forbidden - tid={}, orderId={}, 가능한 원인: " +
-                        "1) PAYMENT_KAKAO_SECRET 환경변수 확인, " +
-                        "2) Secret Key(dev) 확인, " +
-                        "3) IP 화이트리스트 확인, " +
-                        "4) CID 확인", tid, orderId, properties.getCid());
-                throw new RuntimeException(
-                    String.format("KakaoPay 인증 실패 (403): %s. PAYMENT_KAKAO_SECRET 환경변수와 KakaoPay 개발자 콘솔 설정을 확인하세요.", 
-                        errorDetails != null ? errorDetails : e.getMessage()), e);
+            String status = (String) body.get("status");
+            if (status == null || status.isEmpty()) {
+                Object approvedAt = body.get("approved_at");
+                if (approvedAt != null) {
+                    status = DEFAULT_SUCCESS_STATUS;
+                    log.warn(
+                            "KakaoPay approve 응답에 status가 없어 approved_at 기준으로 성공 처리: tid={}, orderId={}",
+                            tid, orderId
+                    );
+                } else {
+                    String responseBodyJson = jsonConverter.convertToJson(body);
+                    log.error(
+                            "KakaoPay approve 응답에 status/approved_at 모두 없음: tid={}, orderId={}",
+                            tid, orderId
+                    );
+                    throw new RuntimeException("KakaoPay approve 응답 형식 오류: " + responseBodyJson);
+                }
             }
-            throw new RuntimeException("KakaoPay 결제 승인 실패: " + e.getMessage(), e);
+
+            return new KakaoApproveResponse(
+                    status,
+                    responseParser.parseApprovedAt(body),
+                    jsonConverter.convertToJson(body)
+            );
+
+        } catch (HttpClientErrorException e) {
+            String errorDetails = e.getResponseBodyAsString();
+            String masked = errorDetails != null
+                    ? SensitiveDataMasker.maskSensitiveData(errorDetails)
+                    : null;
+
+            log.error(
+                    "KakaoPay approve HTTP 오류: tid={}, orderId={}, status={}, body={}",
+                    tid, orderId, e.getStatusCode(), masked
+            );
+
+            throw new RuntimeException("KakaoPay 결제 승인 HTTP 오류: " + e.getStatusCode(), e);
+
         } catch (RestClientException e) {
-            log.error("KakaoPay 결제 승인 API 호출 실패: tid={}, orderId={}, error={}", tid, orderId, e.getMessage(), e);
-            throw new RuntimeException("KakaoPay 결제 승인 실패: " + e.getMessage(), e);
+            log.error(
+                    "KakaoPay approve 통신 오류: tid={}, orderId={}",
+                    tid, orderId, e
+            );
+            throw new RuntimeException("KakaoPay 결제 승인 통신 실패", e);
         }
     }
 
@@ -133,4 +136,3 @@ public class KakaoApproveApiClient {
         }
     }
 }
-
