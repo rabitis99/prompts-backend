@@ -12,6 +12,7 @@ import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapt
 import org.example.sharedprompts.domain.payment.domain.service.PaymentValidator;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -81,7 +82,24 @@ public class DuplicateOrderIdHandler {
             resultProcessor.markPaymentFailed(payment, "중복 주문번호 오류 및 상태 조회 실패: " + e.getMessage());
         }
 
-        return paymentJpaAdapter.save(payment);
+        try {
+            return paymentJpaAdapter.save(payment);
+        } catch (OptimisticLockingFailureException ex) {
+            // 외부 API 호출 중 다른 곳에서 Payment가 수정된 경우
+            // 최신 상태로 재조회하여 재시도
+            log.warn("낙관적 락 충돌 발생, 최신 상태로 재조회: paymentId={}", payment.getId());
+            Payment freshPayment = paymentJpaAdapter.findById(payment.getId())
+                    .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+            
+            // 이미 성공 상태인 경우 그대로 반환
+            if (freshPayment.getStatus() == PaymentStatus.SUCCESS) {
+                log.info("Payment가 이미 SUCCESS 상태: paymentId={}", payment.getId());
+                return freshPayment;
+            }
+            
+            // 상태가 변경되지 않았으면 재시도
+            return checkPaymentStatusAndUpdate(freshPayment, e, actualAmount);
+        }
     }
 
     /** 여러 문자열 중 가장 먼저 나온 null/빈 문자열이 아닌 값을 반환, 없으면 null */

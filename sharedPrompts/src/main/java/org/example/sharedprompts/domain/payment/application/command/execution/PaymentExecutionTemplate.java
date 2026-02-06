@@ -17,13 +17,19 @@ public class PaymentExecutionTemplate {
     private final PaymentProviderFactory providerFactory;
     private final PaymentJpaAdapter paymentJpaAdapter;
 
-    public <T> Payment executeWithProvider(
+    public <T> T callProvider(
             Payment payment,
-            Function<PaymentProvider, T> providerAction,
-            Consumer<T> resultApplier
+            Function<PaymentProvider, T> providerAction
     ) {
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
-        T result = providerAction.apply(provider);
+        return providerAction.apply(provider);
+    }
+
+    public <T> Payment applyResultAndSave(
+            Payment payment,
+            T result,
+            Consumer<T> resultApplier
+    ) {
         resultApplier.accept(result);
         return paymentJpaAdapter.save(payment);
     }

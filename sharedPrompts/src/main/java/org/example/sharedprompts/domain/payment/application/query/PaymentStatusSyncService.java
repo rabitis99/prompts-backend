@@ -12,6 +12,7 @@ import org.example.sharedprompts.domain.payment.application.command.PaymentValid
 import org.example.sharedprompts.dto.payment.response.PaymentStatusResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,7 +49,25 @@ public class PaymentStatusSyncService {
 
         if (payment.getStatus() != result.getStatus()) {
             syncPaymentStatusFromResult(payment, result);
-            paymentJpaAdapter.save(payment);
+            try {
+                paymentJpaAdapter.save(payment);
+            } catch (OptimisticLockingFailureException e) {
+                // 외부 API 호출 중 다른 곳에서 Payment가 수정된 경우
+                // 최신 상태로 재조회하여 재시도
+                log.warn("낙관적 락 충돌 발생, 최신 상태로 재조회: paymentId={}", payment.getId());
+                Payment freshPayment = paymentJpaAdapter.findById(payment.getId())
+                        .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+                
+                // 상태가 이미 변경되었는지 확인
+                if (freshPayment.getStatus() == result.getStatus()) {
+                    log.info("상태가 이미 동기화됨: paymentId={}, status={}", payment.getId(), freshPayment.getStatus());
+                    return PaymentStatusResponseDto.from(freshPayment);
+                }
+                
+                // 상태가 다르면 재시도
+                syncPaymentStatusFromResult(freshPayment, result);
+                paymentJpaAdapter.save(freshPayment);
+            }
         }
 
         return PaymentStatusResponseDto.from(payment);
