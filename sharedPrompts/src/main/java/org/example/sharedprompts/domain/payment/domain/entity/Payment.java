@@ -6,7 +6,6 @@ import org.example.sharedprompts.global.entity.BaseEntity;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentUserType;
-import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
 import org.example.sharedprompts.domain.user.User;
 
 import java.math.BigDecimal;
@@ -58,10 +57,6 @@ public class Payment extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private PaymentUserType userType;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private UserTier tier;
 
     @Column(length = 200)
     private String externalPaymentId; // 결제사에서 발급한 결제 ID
