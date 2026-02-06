@@ -30,21 +30,17 @@ public class PaymentResultEventPublisher {
             BigDecimal actualAmount,
             String idempotencyKey
     ) {
-        // 이벤트 발행 전에 Payment 상태를 동기적으로 업데이트
         Payment payment = paymentJpaAdapter.findById(paymentId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
         
-        // idempotencyKey 저장
         payment.updateIdempotencyKey(idempotencyKey);
         
-        // Payment 상태 업데이트 및 저장
         Payment savedPayment = executionTemplate.applyResultAndSave(
                 payment,
                 result,
                 (p, r) -> resultProcessor.applyPaymentResult(p, r, actualAmount)
         );
         
-        // 상태 업데이트 후 이벤트 발행 (이벤트 리스너는 추가 검증/후처리만 수행)
         eventPublisher.publishPaymentResultApplied(paymentId, result, actualAmount, idempotencyKey);
         
         return savedPayment;
@@ -52,11 +48,12 @@ public class PaymentResultEventPublisher {
 
     @Transactional
     public Payment publishCancelResult(Long paymentId, CancelResult result) {
+        Payment payment = paymentJpaAdapter.findById(paymentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
         eventPublisher.publishCancelResultApplied(paymentId, result);
         
-        return paymentJpaAdapter.findById(paymentId)
-                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        return payment;
     }
 
     @Transactional
@@ -66,10 +63,12 @@ public class PaymentResultEventPublisher {
             BigDecimal refundAmount,
             String idempotencyKey
     ) {
+        Payment payment = paymentJpaAdapter.findById(paymentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+
         eventPublisher.publishRefundResultApplied(paymentId, result, refundAmount, idempotencyKey);
         
-        return paymentJpaAdapter.findById(paymentId)
-                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        return payment;
     }
 }
 

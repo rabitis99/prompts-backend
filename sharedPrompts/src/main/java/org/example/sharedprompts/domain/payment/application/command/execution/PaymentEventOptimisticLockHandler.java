@@ -9,12 +9,6 @@ import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 
-/**
- * 결제 이벤트 낙관적 락 충돌 처리
- * 
- * OptimisticLockingFailureException 발생 시 상태 재검증하여
- * 이미 처리된 경우 조용히 스킵, 처리되지 않은 경우 예외 재발생
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

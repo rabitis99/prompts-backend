@@ -25,6 +25,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, CustomP
     @Query("SELECT p FROM Payment p LEFT JOIN FETCH p.user WHERE p.id = :id")
     Optional<Payment> findByIdForUpdate(@Param("id") Long id);
 
+    @Query("SELECT p FROM Payment p LEFT JOIN FETCH p.user WHERE p.id = :id")
+    Optional<Payment> findByIdWithFetchJoin(@Param("id") Long id);
+
     /**
      * 외부 결제 ID로 조회
      */

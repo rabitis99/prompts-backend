@@ -35,6 +35,10 @@ public class PaymentJpaAdapter {
         return paymentRepository.findByIdForUpdate(id);
     }
 
+    public Optional<Payment> findByIdWithFetchJoin(Long id) {
+        return paymentRepository.findByIdWithFetchJoin(id);
+    }
+
     public Optional<Payment> findByExternalPaymentId(String externalPaymentId) {
         return paymentRepository.findByExternalPaymentId(externalPaymentId);
     }

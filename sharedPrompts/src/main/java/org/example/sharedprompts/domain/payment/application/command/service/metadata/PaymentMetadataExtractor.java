@@ -15,7 +15,7 @@ public class PaymentMetadataExtractor {
     private final PaymentMetadataParser metadataParser;
 
     public String extractProductName(String metadata) {
-        if (metadata == null || metadata.isEmpty()) {
+        if (metadata == null || metadata.isBlank()) {
             log.debug("메타데이터가 null이거나 비어있어 기본값 반환");
             return PaymentMetadataKeys.getDefaultProductName();
         }
@@ -23,7 +23,7 @@ public class PaymentMetadataExtractor {
         return metadataParser.parseMetadata(metadata)
                 .map(map -> {
                     String productName = extractStringValue(map, PaymentMetadataKeys.PRODUCT_NAME);
-                    if (!productName.isEmpty()) {
+                    if (!productName.isBlank()) {
                         log.debug("메타데이터에서 상품명 추출 성공: productName={}", productName);
                         return productName;
                     }
