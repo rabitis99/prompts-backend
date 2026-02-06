@@ -1,12 +1,11 @@
 package org.example.sharedprompts.domain.payment.service.user.tier;
 
-import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
-@Slf4j
+
 @Component
 public class TierUpgradePolicyImpl implements TierUpgradePolicy {
 
@@ -31,7 +30,7 @@ public class TierUpgradePolicyImpl implements TierUpgradePolicy {
     @Override
     public boolean shouldUpgrade(BigDecimal totalPaymentAmount, UserTier currentTier) {
         UserTier calculatedTier = calculateTier(totalPaymentAmount, currentTier);
-        return calculatedTier.ordinal() > currentTier.ordinal();
+        return calculatedTier.getDailyLimit() > currentTier.getDailyLimit();
     }
 }
 
