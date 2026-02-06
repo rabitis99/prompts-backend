@@ -72,8 +72,9 @@ public class FailedPaymentEventService {
 
     private String getStackTrace(Exception e) {
         StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        e.printStackTrace(pw);
+        try (PrintWriter pw = new PrintWriter(sw)) {
+            e.printStackTrace(pw);
+        }
         String trace = sw.toString();
         return trace.length() > MAX_STACK_TRACE_LENGTH
                 ? trace.substring(0, MAX_STACK_TRACE_LENGTH)

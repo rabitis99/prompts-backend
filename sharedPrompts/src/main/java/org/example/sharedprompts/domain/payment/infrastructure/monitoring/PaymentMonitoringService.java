@@ -62,7 +62,10 @@ public class PaymentMonitoringService {
 
             Optional<Payment> paymentOpt = paymentJpaAdapter.findById(event.paymentId());
             
-            String amount = paymentOpt.map(p -> p.getAmount().toString()).orElse("0");
+            String amount = paymentOpt
+                    .map(Payment::getAmount)
+                    .map(Object::toString)
+                    .orElse("0");
             notificationService.sendPaymentSuccessNotification(
                     event.paymentId(),
                     event.userId(),

@@ -13,6 +13,7 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -30,7 +31,7 @@ public class PaymentResultEventListener {
     private final FailedPaymentEventService failedEventService;
     private final PaymentEventOptimisticLockHandler optimisticLockHandler;
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Retryable(
             maxAttempts = MAX_RETRY_ATTEMPTS,
@@ -39,7 +40,7 @@ public class PaymentResultEventListener {
     )
     public void handlePaymentResultApplied(PaymentEvent.PaymentResultApplied event) {
         try {
-            Payment payment = paymentJpaAdapter.findById(event.paymentId())
+            Payment payment = paymentJpaAdapter.findByIdForUpdate(event.paymentId())
                     .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
             if (!canApplyPaymentResult(payment, event.result())) {
@@ -48,7 +49,6 @@ public class PaymentResultEventListener {
                 return;
             }
 
-            // idempotencyKey 저장 (이벤트 발행 시점의 키를 저장)
             payment.updateIdempotencyKey(event.idempotencyKey());
             
             executionTemplate.applyResultAndSave(
@@ -85,14 +85,14 @@ public class PaymentResultEventListener {
             return false;
         }
         
-        if (result.isFailure() && currentStatus == PaymentStatus.FAILED) {
+        if (!result.isSuccess() && currentStatus == PaymentStatus.FAILED) {
             return false;
         }
         
         return currentStatus.isPending();
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Retryable(
             maxAttempts = MAX_RETRY_ATTEMPTS,
@@ -101,7 +101,7 @@ public class PaymentResultEventListener {
     )
     public void handleCancelResultApplied(PaymentEvent.CancelResultApplied event) {
         try {
-            Payment payment = paymentJpaAdapter.findById(event.paymentId())
+            Payment payment = paymentJpaAdapter.findByIdForUpdate(event.paymentId())
                     .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
             if (payment.getStatus() == PaymentStatus.CANCELED) {
@@ -143,7 +143,7 @@ public class PaymentResultEventListener {
         failedEventService.saveFailedEvent("CancelResultApplied", event.paymentId(), event, e, MAX_RETRY_ATTEMPTS);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Retryable(
             maxAttempts = MAX_RETRY_ATTEMPTS,
@@ -152,7 +152,7 @@ public class PaymentResultEventListener {
     )
     public void handleRefundResultApplied(PaymentEvent.RefundResultApplied event) {
         try {
-            Payment payment = paymentJpaAdapter.findById(event.paymentId())
+            Payment payment = paymentJpaAdapter.findByIdForUpdate(event.paymentId())
                     .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
             if (payment.getStatus() == PaymentStatus.REFUNDED) {
@@ -165,7 +165,6 @@ public class PaymentResultEventListener {
                 return;
             }
 
-            // idempotencyKey 저장 (이벤트 발행 시점의 키를 저장)
             payment.updateIdempotencyKey(event.idempotencyKey());
             
             executionTemplate.applyResultAndSave(

@@ -97,11 +97,7 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
                 return executionService.executeCancel(payment, request.getReasonOrDefault());
             });
         } catch (Exception e) {
-            if (e instanceof ApiException) {
-                throw (ApiException) e;
-            }
-            log.error("관리자 결제 취소 실패: paymentId={}, adminId={}, error={}", paymentId, adminId, e.getMessage(), e);
-            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 취소 실패: " + e.getMessage(), e);
+            throw handleTransactionFailure(e, "관리자 결제 취소 실패", paymentId, adminId);
         }
 
         try {
@@ -143,11 +139,7 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
                 return new RefundExecutionResult(refundedPayment, refundAmount);
             });
         } catch (Exception e) {
-            if (e instanceof ApiException) {
-                throw (ApiException) e;
-            }
-            log.error("관리자 결제 환불 실패: paymentId={}, adminId={}, error={}", paymentId, adminId, e.getMessage(), e);
-            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 환불 실패: " + e.getMessage(), e);
+            throw handleTransactionFailure(e, "관리자 결제 환불 실패", paymentId, adminId);
         }
 
         Payment refundedPayment = result.getRefundedPayment();
@@ -180,5 +172,13 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
         }
 
         return PaymentResponseDto.from(refundedPayment);
+    }
+
+    private RuntimeException handleTransactionFailure(Exception e, String context, Long paymentId, Long actorId) {
+        if (e instanceof ApiException apiEx) {
+            throw apiEx;
+        }
+        log.error("{}: paymentId={}, actorId={}, error={}", context, paymentId, actorId, e.getMessage(), e);
+        throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, context + ": " + e.getMessage(), e);
     }
 }

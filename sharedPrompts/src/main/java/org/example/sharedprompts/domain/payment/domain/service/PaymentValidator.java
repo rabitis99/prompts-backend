@@ -56,23 +56,14 @@ public class PaymentValidator {
     public void validateOrderIdForToss(String expectedOrderId, String actualOrderId) {
         validateOrderIdNotNull(expectedOrderId, actualOrderId);
 
-        // Toss의 경우 "ORDER-{paymentId}-{timestamp}" 형식에서 paymentId 추출
         String extractedExpectedId = extractPaymentIdFromTossOrderId(expectedOrderId);
         String extractedActualId = extractPaymentIdFromTossOrderId(actualOrderId);
 
-        // 추출된 ID가 같거나, 원본이 같으면 통과
-        if (extractedExpectedId != null && extractedActualId != null && extractedExpectedId.equals(extractedActualId)) {
-            return;
+        if (!extractedExpectedId.equals(extractedActualId)) {
+            log.error("주문 ID 불일치: expected={}, actual={}", expectedOrderId, actualOrderId);
+            throw new PaymentDomainException(ErrorCode.PAYMENT_ORDER_ID_MISMATCH, "orderId",
+                String.format("주문 ID가 일치하지 않습니다. 예상: %s, 실제: %s", expectedOrderId, actualOrderId));
         }
-
-        // 원본이 같으면 통과 (일반적인 경우)
-        if (expectedOrderId.equals(actualOrderId)) {
-            return;
-        }
-
-        log.error("주문 ID 불일치: expected={}, actual={}", expectedOrderId, actualOrderId);
-        throw new PaymentDomainException(ErrorCode.PAYMENT_ORDER_ID_MISMATCH, "orderId",
-            String.format("주문 ID가 일치하지 않습니다. 예상: %s, 실제: %s", expectedOrderId, actualOrderId));
     }
 
     private String extractPaymentIdFromTossOrderId(String orderId) {

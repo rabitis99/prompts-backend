@@ -8,14 +8,11 @@ import org.example.sharedprompts.domain.payment.application.command.service.requ
 import org.example.sharedprompts.domain.payment.application.command.service.request.PaymentPreparationHandler;
 import org.example.sharedprompts.domain.payment.application.dto.AmountProcessingResult;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
-import org.example.sharedprompts.domain.payment.domain.enums.PointType;
 import org.example.sharedprompts.domain.payment.infrastructure.monitoring.PaymentLoggingService;
 import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PaymentJpaAdapter;
-import org.example.sharedprompts.domain.payment.service.point.PointService;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.dto.payment.request.PaymentRequestDto;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -31,7 +28,7 @@ public class PaymentRequestService {
     private final PaymentPreparationHandler preparationHandler;
     private final PaymentJpaAdapter paymentJpaAdapter;
     private final PaymentLoggingService loggingService;
-    private final PointService pointService;
+    private final PaymentPointRecoveryService pointRecoveryService;
 
     @Transactional
     public Payment processRequest(Long userId, PaymentRequestDto request, User user) {
@@ -40,15 +37,16 @@ public class PaymentRequestService {
 
         validationService.validateDailyLimit(userId, user.getTier());
 
-        AmountProcessingResult amountResult = amountProcessingService.processPaymentAmount(
-                userId,
-                request.getAmount(),
-                request.getCurrency(),
-                request.getUsePointAmount()
-        );
-
         Payment payment = null;
+        AmountProcessingResult amountResult = null;
         try {
+            amountResult = amountProcessingService.processPaymentAmount(
+                    userId,
+                    request.getAmount(),
+                    request.getCurrency(),
+                    request.getUsePointAmount()
+            );
+
             payment = paymentCreator.createPayment(user, request, amountResult);
 
             // Payment를 먼저 저장하여 ID를 생성
@@ -69,29 +67,16 @@ public class PaymentRequestService {
 
             return payment;
         } catch (Exception e) {
-            BigDecimal usedPointAmount = amountResult.usedPointAmount();
+            BigDecimal usedPointAmount = amountResult != null ? amountResult.usedPointAmount() : null;
             if (usedPointAmount != null && usedPointAmount.compareTo(BigDecimal.ZERO) > 0) {
-                recoverPointsInNewTransaction(userId, payment != null ? payment.getId() : null, usedPointAmount, e);
+                pointRecoveryService.recoverPointsForPaymentFailure(
+                        userId,
+                        payment != null ? payment.getId() : null,
+                        usedPointAmount,
+                        e
+                );
             }
             throw e;
-        }
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    private void recoverPointsInNewTransaction(Long userId, Long paymentId, BigDecimal usedPointAmount, Exception originalException) {
-        try {
-            pointService.addPointsDirectly(
-                    userId,
-                    paymentId,
-                    usedPointAmount,
-                    PointType.PAYMENT_FAILED,
-                    "결제 요청 실패로 인한 포인트 복구"
-            );
-            log.info("결제 요청 실패로 인한 포인트 복구 완료: userId={}, refundPointAmount={}, error={}",
-                    userId, usedPointAmount, originalException.getMessage());
-        } catch (Exception pointException) {
-            log.error("결제 요청 실패 후 포인트 복구 실패: userId={}, amount={}, error={}",
-                    userId, usedPointAmount, pointException.getMessage(), pointException);
         }
     }
 }
