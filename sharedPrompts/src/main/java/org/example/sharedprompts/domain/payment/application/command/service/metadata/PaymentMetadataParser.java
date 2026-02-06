@@ -20,7 +20,7 @@ public class PaymentMetadataParser {
             new TypeReference<Map<String, Object>>() {};
 
     public Optional<Map<String, Object>> parseMetadata(String metadata) {
-        if (metadata == null || metadata.isEmpty()) {
+        if (metadata == null || metadata.isBlank()) {
             return Optional.empty();
         }
 
