@@ -21,6 +21,9 @@ public class PaymentPreparationService {
 
     public PaymentProvider.PrepareResult preparePayment(Payment payment, BigDecimal actualAmount,
                                                        String productName, Long userId) {
+        if (payment == null) {
+            throw new IllegalArgumentException("payment는 필수입니다");
+        }
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
 
         if (!provider.requiresPreparation()) {
