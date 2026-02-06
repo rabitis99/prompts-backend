@@ -42,10 +42,17 @@ public class PaymentRequestService {
 
         Payment payment = paymentCreator.createPayment(user, request, amountResult);
 
-        // 결제 준비를 먼저 처리하고 메타데이터를 포함하여 한 번에 저장
+        // Payment를 먼저 저장하여 ID를 생성
+        payment = paymentJpaAdapter.save(payment);
+
+        // 결제 준비를 처리하고 메타데이터를 업데이트
+        // (idempotencyKey, externalPaymentId, metadata 등이 업데이트될 수 있음)
         payment = preparationHandler.processPreparationIfNeeded(payment, amountResult, userId, request);
 
+        // 결제 준비 과정에서 업데이트된 모든 변경사항 저장
+        // (JPA는 변경사항이 없으면 최적화하므로 성능 문제 없음)
         payment = paymentJpaAdapter.save(payment);
+
         loggingService.logPaymentRequest(payment);
 
         log.info("결제 요청 완료: paymentId={}, userId={}, paymentMethod={}",
