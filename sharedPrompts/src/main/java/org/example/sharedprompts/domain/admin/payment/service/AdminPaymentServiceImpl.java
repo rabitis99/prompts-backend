@@ -106,10 +106,13 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
                 // PaymentExecutionService를 통한 취소 실행
                 return executionService.executeCancel(payment, request.getReasonOrDefault());
             });
+        } catch (ApiException e) {
+            // ApiException은 원래 에러 코드를 유지하며 그대로 전파
+            throw e;
         } catch (Exception e) {
-            // 일관된 예외 처리: ApiException으로 래핑하여 throw
+            // 예상치 못한 예외만 래핑
             log.error("관리자 결제 취소 실패: paymentId={}, adminId={}, error={}", paymentId, adminId, e.getMessage(), e);
-            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 취소 실패: " + e.getMessage());
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 취소 실패: " + e.getMessage(), e);
         }
 
         // 후처리 트랜잭션 (별도)
@@ -148,18 +151,28 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
         String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":state";
 
         // 환불 실행 트랜잭션
-        RefundExecutionResult result = transactionManager.executeWithLockAndTransaction(lockKey, () -> {
-            Payment payment = paymentJpaAdapter.findById(paymentId)
-                    .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        RefundExecutionResult result;
+        try {
+            result = transactionManager.executeWithLockAndTransaction(lockKey, () -> {
+                Payment payment = paymentJpaAdapter.findById(paymentId)
+                        .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
-            // 관리자는 소유권 검증 없이 환불 가능
-            validationService.validateRefundableStatus(payment);
-            BigDecimal refundAmount = validationService.validateRefundAmount(request.getAmount(), payment);
+                // 관리자는 소유권 검증 없이 환불 가능
+                validationService.validateRefundableStatus(payment);
+                BigDecimal refundAmount = validationService.validateRefundAmount(request.getAmount(), payment);
 
-            // PaymentExecutionService를 통한 환불 실행
-            Payment refundedPayment = executionService.executeRefund(payment, refundAmount, request.getReasonOrDefault());
-            return new RefundExecutionResult(refundedPayment, refundAmount);
-        });
+                // PaymentExecutionService를 통한 환불 실행
+                Payment refundedPayment = executionService.executeRefund(payment, refundAmount, request.getReasonOrDefault());
+                return new RefundExecutionResult(refundedPayment, refundAmount);
+            });
+        } catch (ApiException e) {
+            // ApiException은 원래 에러 코드를 유지하며 그대로 전파
+            throw e;
+        } catch (Exception e) {
+            // 예상치 못한 예외만 래핑
+            log.error("관리자 결제 환불 실패: paymentId={}, adminId={}, error={}", paymentId, adminId, e.getMessage(), e);
+            throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 환불 실패: " + e.getMessage(), e);
+        }
 
         // 후처리 트랜잭션 (별도)
         Payment refundedPayment = result.getRefundedPayment();
@@ -199,4 +212,3 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
         return PaymentResponseDto.from(refundedPayment);
     }
 }
-
