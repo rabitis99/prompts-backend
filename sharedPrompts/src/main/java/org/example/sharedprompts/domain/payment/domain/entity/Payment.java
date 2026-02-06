@@ -6,7 +6,6 @@ import org.example.sharedprompts.global.entity.BaseEntity;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentUserType;
-import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
 import org.example.sharedprompts.domain.user.User;
 
 import java.math.BigDecimal;
@@ -59,10 +58,6 @@ public class Payment extends BaseEntity {
     @Column(nullable = false, length = 20)
     private PaymentUserType userType;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private UserTier tier;
-
     @Column(length = 200)
     private String externalPaymentId; // 결제사에서 발급한 결제 ID
 
@@ -108,6 +103,9 @@ public class Payment extends BaseEntity {
     @Column(length = 200)
     private String idempotencyKey; // 멱등성 키 (중복 호출 방지)
 
+    @Version
+    private Long version; // 낙관적 락을 위한 버전 필드
+
     /**
      * 결제 대기 중 상태로 변경
      */
@@ -135,7 +133,9 @@ public class Payment extends BaseEntity {
      */
     public void markSuccess(String externalPaymentId) {
         this.status = PaymentStatus.SUCCESS;
-        this.externalPaymentId = externalPaymentId;
+        if (externalPaymentId != null) {
+            this.externalPaymentId = externalPaymentId;
+        }
         this.approvedAt = LocalDateTime.now();
         this.failureReason = null;
     }
@@ -149,10 +149,6 @@ public class Payment extends BaseEntity {
 
     /**
      * 결제 실패 처리
-     *
-     * <p><strong>주의:</strong>
-     * 결제 실패 시 userType과 tier 필드는 변경되지 않습니다.
-     * 이 필드들은 결제 요청 시점의 값을 유지하며, 결제 성공 시에만 업데이트될 수 있습니다.
      */
     public void markFailed(String reason) {
         this.status = PaymentStatus.FAILED;
@@ -215,62 +211,13 @@ public class Payment extends BaseEntity {
     }
 
     /**
-     * 결제 만료 여부 확인
-     *
-     * <p>PENDING 상태의 결제가 설정된 만료 시간(기본 30분)을 초과했는지 확인합니다.
-     *
-     * @param expirationMinutes 만료 시간 (분 단위)
-     * @return 만료 여부
-     */
-    public boolean isExpired(int expirationMinutes) {
-        if (this.status != PaymentStatus.PENDING) {
-            return false; // PENDING이 아니면 만료 대상 아님
-        }
-        LocalDateTime createdAt = getCreatedAt();
-        if (createdAt == null) {
-            return false; // createdAt이 없으면 만료 판단 불가
-        }
-        LocalDateTime expirationTime = createdAt.plus(Duration.ofMinutes(expirationMinutes));
-        return LocalDateTime.now().isAfter(expirationTime);
-    }
-
-    /**
      * 복구되지 않은 포인트가 있는지 확인
-     *
-     * <p>PENDING 상태의 결제에서 사용한 포인트(usedPointAmount)가 있고,
-     * 아직 복구되지 않았는지 확인합니다.
-     *
-     * @return 복구되지 않은 포인트 존재 여부
      */
     public boolean hasUnrecoveredPoints() {
         return this.status == PaymentStatus.PENDING
                 && this.usedPointAmount != null
                 && this.usedPointAmount.compareTo(BigDecimal.ZERO) > 0;
     }
-
-    // ===== 상태 조회 메서드 (검증 제거, 조회만 유지) =====
-
-    /**
-     * 결제 성공 상태인지 확인
-     *
-     * <p>성공 여부만 조회 (비즈니스 규칙 검증 없음)
-     */
-    public boolean isSuccessful() {
-        return this.status == PaymentStatus.SUCCESS
-                || this.status == PaymentStatus.PARTIALLY_REFUNDED;
-    }
-
-    /**
-     * 최종 상태인지 확인 (더 이상 상태 변경 불가)
-     *
-     * <p>상태 조회만 수행 (검증은 PaymentValidationService에서 담당)
-     */
-    public boolean isFinalState() {
-        return this.status == PaymentStatus.FAILED
-                || this.status == PaymentStatus.CANCELED
-                || this.status == PaymentStatus.REFUNDED;
-    }
-
 
     /**
      * 지수 백오프를 적용하여 다음 재시도 시간 예약
@@ -307,9 +254,6 @@ public class Payment extends BaseEntity {
 
     /**
      * 원본 결제 금액 및 면세 금액 저장 (카카오페이 취소/환불 시 사용)
-     *
-     * @param originalAmount 원본 결제 금액
-     * @param taxFreeAmount 면세 금액
      */
     public void updateOriginalAmounts(BigDecimal originalAmount, BigDecimal taxFreeAmount) {
         this.originalAmount = originalAmount;
@@ -317,39 +261,7 @@ public class Payment extends BaseEntity {
     }
 
     /**
-     * 환율 정보 저장 (requestPayment 시점의 환율)
-     *
-     * @param exchangeRate 환율
-     * @param originalCurrency 원본 통화 코드
-     */
-    public void updateExchangeRate(BigDecimal exchangeRate, String originalCurrency) {
-        this.exchangeRate = exchangeRate;
-        this.originalCurrency = originalCurrency;
-    }
-
-    /**
-     * 사용자 타입 및 티어 업데이트 (서비스 레이어에서 호출)
-     *
-     * <p>이 메서드는 서비스 레이어에서 결제 상태 검증 후 호출됩니다.
-     * 엔티티 레이어에서는 단순히 필드만 업데이트하며, 비즈니스 로직 검증은 서비스 레이어에서 수행합니다.
-     *
-     * @param userType 사용자 타입
-     * @param tier 사용자 티어
-     */
-    public void updateUserTypeAndTier(PaymentUserType userType, UserTier tier) {
-        this.userType = userType;
-        this.tier = tier;
-    }
-
-    /**
      * Webhook 결과 적용
-     *
-     * <p>Webhook에서 받은 PaymentResult를 기반으로 상태 변경
-     *
-     * @param externalPaymentId 외부 결제 ID
-     * @param status 결제 상태
-     * @param approvedAt 승인 시간 (선택)
-     * @param failureReason 실패 사유 (선택, 외부 결제사에서 제공)
      */
     public void applyWebhookResult(String externalPaymentId, PaymentStatus status, LocalDateTime approvedAt, String failureReason) {
         this.externalPaymentId = externalPaymentId;

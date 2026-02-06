@@ -59,7 +59,7 @@ public class PaymentLoggingService {
                 payment.getAmount(),
                 payment.getCurrency(),
                 payment.getPaymentMethod(),
-                payment.getTier());
+                payment.getUser().getTier());
     }
 
     /**

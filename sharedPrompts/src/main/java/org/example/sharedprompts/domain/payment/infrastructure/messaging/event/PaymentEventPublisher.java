@@ -1,8 +1,13 @@
 package org.example.sharedprompts.domain.payment.infrastructure.messaging.event;
 
 import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.domain.payment.application.dto.response.CancelResult;
+import org.example.sharedprompts.domain.payment.application.dto.response.PaymentResult;
+import org.example.sharedprompts.domain.payment.application.dto.response.RefundResult;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
 
 /**
  * 결제 이벤트 발행자
@@ -27,6 +32,31 @@ public class PaymentEventPublisher {
 
     public void publishPaymentRefunded(Long paymentId, Long userId, String reason) {
         eventPublisher.publishEvent(new PaymentEvent.PaymentRefunded(paymentId, userId, reason));
+    }
+
+    public void publishPaymentResultApplied(
+            Long paymentId,
+            PaymentResult result,
+            BigDecimal actualAmount,
+            String idempotencyKey
+    ) {
+        eventPublisher.publishEvent(new PaymentEvent.PaymentResultApplied(paymentId, result, actualAmount, idempotencyKey));
+    }
+
+    public void publishCancelResultApplied(
+            Long paymentId,
+            CancelResult result
+    ) {
+        eventPublisher.publishEvent(new PaymentEvent.CancelResultApplied(paymentId, result));
+    }
+
+    public void publishRefundResultApplied(
+            Long paymentId,
+            RefundResult result,
+            BigDecimal refundAmount,
+            String idempotencyKey
+    ) {
+        eventPublisher.publishEvent(new PaymentEvent.RefundResultApplied(paymentId, result, refundAmount, idempotencyKey));
     }
 }
 

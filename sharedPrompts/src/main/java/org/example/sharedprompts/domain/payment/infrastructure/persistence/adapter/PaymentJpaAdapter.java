@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +33,10 @@ public class PaymentJpaAdapter {
 
     public Optional<Payment> findByIdForUpdate(Long id) {
         return paymentRepository.findByIdForUpdate(id);
+    }
+
+    public Optional<Payment> findByIdWithFetchJoin(Long id) {
+        return paymentRepository.findByIdWithFetchJoin(id);
     }
 
     public Optional<Payment> findByExternalPaymentId(String externalPaymentId) {
@@ -60,6 +65,10 @@ public class PaymentJpaAdapter {
 
     public List<Payment> findExpiredPendingPayments(PaymentStatus status, LocalDateTime expirationTime) {
         return paymentRepository.findExpiredPendingPayments(status, expirationTime);
+    }
+
+    public BigDecimal sumTotalPaymentAmount(Long userId, PaymentStatus status) {
+        return paymentRepository.sumTotalPaymentAmount(userId, status);
     }
 }
 

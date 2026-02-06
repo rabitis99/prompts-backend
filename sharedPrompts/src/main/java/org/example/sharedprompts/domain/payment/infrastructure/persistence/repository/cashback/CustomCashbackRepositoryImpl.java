@@ -11,8 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.example.sharedprompts.domain.payment.QCashback.cashback;
-import static org.example.sharedprompts.domain.payment.QPayment.payment;
+
+import static org.example.sharedprompts.domain.payment.domain.entity.QCashback.cashback;
+import static org.example.sharedprompts.domain.payment.domain.entity.QPayment.payment;
 import static org.example.sharedprompts.domain.user.QUser.user;
 
 @RequiredArgsConstructor

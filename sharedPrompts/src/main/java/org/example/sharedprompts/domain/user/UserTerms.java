@@ -17,6 +17,7 @@ public class UserTerms {
     @Column(nullable = false)
     private boolean privacy;
 
+    @Builder.Default
     @Column(nullable = false)
     private boolean marketing = false;
 

@@ -9,10 +9,14 @@ import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Component
 public class PaymentValidator {
+
+    private static final Pattern TOSS_ORDER_ID_PATTERN = Pattern.compile("^ORDER-(\\d+)-\\d+$");
 
     public void validateAmount(BigDecimal expectedAmount, BigDecimal actualAmount, String orderId) {
         if (expectedAmount == null || actualAmount == null) {
@@ -31,18 +35,48 @@ public class PaymentValidator {
     }
 
     public void validateOrderId(String expectedOrderId, String actualOrderId) {
-        if (expectedOrderId == null || actualOrderId == null) {
-            log.error("주문 ID 검증 실패: 주문 ID가 null입니다. expected={}, actual={}", 
-                    expectedOrderId, actualOrderId);
-            throw new PaymentDomainException(ErrorCode.PAYMENT_PROVIDER_ERROR, "orderId",
-                "주문 ID가 유효하지 않습니다.");
-        }
+        validateOrderIdNotNull(expectedOrderId, actualOrderId);
 
         if (!expectedOrderId.equals(actualOrderId)) {
             log.error("주문 ID 불일치: expected={}, actual={}", expectedOrderId, actualOrderId);
             throw new PaymentDomainException(ErrorCode.PAYMENT_ORDER_ID_MISMATCH, "orderId",
                 String.format("주문 ID가 일치하지 않습니다. 예상: %s, 실제: %s", expectedOrderId, actualOrderId));
         }
+    }
+
+    private void validateOrderIdNotNull(String expectedOrderId, String actualOrderId) {
+        if (expectedOrderId == null || expectedOrderId.isEmpty() || actualOrderId == null || actualOrderId.isEmpty()) {
+            log.error("주문 ID 검증 실패: 주문 ID가 null입니다. expected={}, actual={}", 
+                    expectedOrderId, actualOrderId);
+            throw new PaymentDomainException(ErrorCode.PAYMENT_PROVIDER_ERROR, "orderId",
+                "주문 ID가 유효하지 않습니다.");
+        }
+    }
+
+    public void validateOrderIdForToss(String expectedOrderId, String actualOrderId) {
+        validateOrderIdNotNull(expectedOrderId, actualOrderId);
+
+        String extractedExpectedId = extractPaymentIdFromTossOrderId(expectedOrderId);
+        String extractedActualId = extractPaymentIdFromTossOrderId(actualOrderId);
+
+        if (!extractedExpectedId.equals(extractedActualId)) {
+            log.error("주문 ID 불일치: expected={}, actual={}", expectedOrderId, actualOrderId);
+            throw new PaymentDomainException(ErrorCode.PAYMENT_ORDER_ID_MISMATCH, "orderId",
+                String.format("주문 ID가 일치하지 않습니다. 예상: %s, 실제: %s", expectedOrderId, actualOrderId));
+        }
+    }
+
+    private String extractPaymentIdFromTossOrderId(String orderId) {
+        if (orderId == null || orderId.isEmpty()) {
+            return "";
+        }
+
+        Matcher matcher = TOSS_ORDER_ID_PATTERN.matcher(orderId);
+        if (matcher.matches()) {
+            return matcher.group(1);
+        }
+
+        return orderId;
     }
 
     public void validateCurrency(String expectedCurrency, String actualCurrency) {
@@ -60,9 +94,14 @@ public class PaymentValidator {
         }
     }
 
-    public void validatePaymentResult(Payment payment, PaymentResult result, BigDecimal actualAmount) {
-        validateOrderId(String.valueOf(payment.getId()), result.getOrderId());
-        validateAmount(actualAmount, result.getAmount(), result.getOrderId());
+    public void validatePaymentResult(Payment payment, PaymentResult result, BigDecimal expectedAmount) {
+        // Toss의 경우 orderId 형식을 고려하여 검증
+        if (payment.getPaymentMethod() == PaymentMethod.TOSS) {
+            validateOrderIdForToss(String.valueOf(payment.getId()), result.getOrderId());
+        } else {
+            validateOrderId(String.valueOf(payment.getId()), result.getOrderId());
+        }
+        validateAmount(expectedAmount, result.getAmount(), result.getOrderId());
         validateCurrency(payment.getCurrency(), result.getCurrency());
     }
 

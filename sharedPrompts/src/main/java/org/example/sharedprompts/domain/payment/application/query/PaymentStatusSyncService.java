@@ -12,7 +12,9 @@ import org.example.sharedprompts.domain.payment.application.command.PaymentValid
 import org.example.sharedprompts.dto.payment.response.PaymentStatusResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -31,7 +33,11 @@ public class PaymentStatusSyncService {
 
         validationService.validatePaymentOwnership(payment, userId);
 
-        return doSyncPaymentStatus(payment);
+        try {
+            return doSyncPaymentStatus(payment);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            return handleOptimisticLockFailure(paymentId, e);
+        }
     }
 
     @Transactional
@@ -39,9 +45,14 @@ public class PaymentStatusSyncService {
         Payment payment = paymentJpaAdapter.findById(paymentId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
-        return doSyncPaymentStatus(payment);
+        try {
+            return doSyncPaymentStatus(payment);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            return handleOptimisticLockFailure(paymentId, e);
+        }
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     private PaymentStatusResponseDto doSyncPaymentStatus(Payment payment) {
         PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
         PaymentResult result = provider.getPaymentStatus(payment.getExternalPaymentId());
@@ -52,6 +63,24 @@ public class PaymentStatusSyncService {
         }
 
         return PaymentStatusResponseDto.from(payment);
+    }
+
+    private PaymentStatusResponseDto handleOptimisticLockFailure(Long paymentId, ObjectOptimisticLockingFailureException e) {
+        log.warn("낙관적 락 충돌 발생, 최신 상태로 재조회: paymentId={}", paymentId);
+        Payment freshPayment = paymentJpaAdapter.findById(paymentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        PaymentProvider provider = providerFactory.getProvider(freshPayment.getPaymentMethod());
+        PaymentResult result = provider.getPaymentStatus(freshPayment.getExternalPaymentId());
+
+        if (freshPayment.getStatus() == result.getStatus()) {
+            log.info("상태가 이미 동기화됨: paymentId={}, status={}", paymentId, freshPayment.getStatus());
+            return PaymentStatusResponseDto.from(freshPayment);
+        }
+
+        syncPaymentStatusFromResult(freshPayment, result);
+        paymentJpaAdapter.save(freshPayment);
+        return PaymentStatusResponseDto.from(freshPayment);
     }
 
     private void syncPaymentStatusFromResult(Payment payment, PaymentResult result) {

@@ -89,7 +89,7 @@ public class PaymentResponseDto {
                 .paymentMethod(payment.getPaymentMethod())
                 .status(payment.getStatus())
                 .userType(payment.getUserType())
-                .tier(payment.getTier())
+                .tier(payment.getUser().getTier())
                 .externalPaymentId(payment.getExternalPaymentId())
                 .failureReason(payment.getFailureReason())
                 .retryCount(payment.getRetryCount())
