@@ -25,7 +25,7 @@ public class PaymentExecutionValidator {
     }
 
     public void validateExternalPaymentId(Payment payment) {
-        if (payment.getExternalPaymentId() == null) {
+        if (payment.getExternalPaymentId() == null || payment.getExternalPaymentId().isEmpty()) {
             throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "외부 결제 ID가 없습니다.");
         }
     }
