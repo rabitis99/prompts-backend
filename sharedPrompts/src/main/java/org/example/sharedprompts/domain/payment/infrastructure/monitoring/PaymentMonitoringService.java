@@ -11,11 +11,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
  * 결제 모니터링 서비스
- * 결제 실패 모니터링 및 알림 기능
+ * 결제 실패/성공 모니터링 및 알림 기능
  */
 @Slf4j
 @Service
@@ -27,7 +29,7 @@ public class PaymentMonitoringService {
     private final PaymentMetrics paymentMetrics;
 
     /**
-     * 결제 실패 이벤트 리스너
+     * 결제 실패 이벤트 처리
      */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async
@@ -43,12 +45,17 @@ public class PaymentMonitoringService {
                 event.paymentMethod()
         );
 
-        // 모니터링 메트릭 업데이트
-        paymentMetrics.recordPaymentFailure(event.paymentMethod(), event.reason(), 0);
+        // 실패 duration 계산: createdAt ~ 이벤트 처리 시점
+        long durationMillis = paymentJpaAdapter.findById(event.paymentId())
+                .map(p -> Duration.between(p.getCreatedAt(), LocalDateTime.now()).toMillis())
+                .orElse(0L);
+
+        // 메트릭 기록
+        paymentMetrics.recordPaymentFailure(event.paymentMethod(), event.reason(), durationMillis);
     }
 
     /**
-     * 결제 성공 이벤트 리스너
+     * 결제 성공 이벤트 처리
      */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async
@@ -56,20 +63,23 @@ public class PaymentMonitoringService {
         log.info("결제 성공: paymentId={}, userId={}, paymentMethod={}",
                 event.paymentId(), event.userId(), event.paymentMethod());
 
-        // 알림 발송
         Optional<Payment> paymentOpt = paymentJpaAdapter.findById(event.paymentId());
-        if (paymentOpt.isPresent()) {
-            Payment payment = paymentOpt.get();
+        paymentOpt.ifPresent(payment -> {
+            // 알림 발송
             notificationService.sendPaymentSuccessNotification(
                     event.paymentId(),
                     event.userId(),
                     event.paymentMethod(),
                     payment.getAmount().toString()
             );
-        }
 
-        // 성공 메트릭 업데이트
-        paymentMetrics.recordPaymentSuccess(event.paymentMethod(), 0);
+            // 성공 duration 계산: createdAt ~ approvedAt
+            long durationMillis = payment.getApprovedAt() != null
+                    ? Duration.between(payment.getCreatedAt(), payment.getApprovedAt()).toMillis()
+                    : 0L;
+
+            // 메트릭 기록
+            paymentMetrics.recordPaymentSuccess(event.paymentMethod(), durationMillis);
+        });
     }
 }
-
