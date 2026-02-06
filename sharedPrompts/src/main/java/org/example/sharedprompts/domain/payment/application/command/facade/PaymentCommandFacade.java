@@ -28,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PaymentFacade implements PaymentCommandService {
+public class PaymentCommandFacade implements PaymentCommandService {
 
     private final UserRepository userRepository;
     private final PaymentRequestService requestService;
