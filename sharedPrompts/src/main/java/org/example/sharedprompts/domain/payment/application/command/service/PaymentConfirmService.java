@@ -78,8 +78,15 @@ public class PaymentConfirmService {
         validationService.validatePaymentOwnership(payment, userId);
 
         if (payment.getStatus() == PaymentStatus.SUCCESS) {
-            log.info("결제가 이미 완료됨: paymentId={}, userId={}", paymentId, userId);
-            return new PaymentExecutionResult(payment, 0, true, null, null);
+            long processingTime = System.currentTimeMillis() - startTime;
+            BigDecimal actualAmount = amountProcessingService.calculateActualAmount(
+                    payment.getAmount(),
+                    payment.getUsedPointAmount()
+            );
+            BigDecimal originalAmount = payment.getAmount();
+            log.info("결제가 이미 완료됨: paymentId={}, userId={}, processingTime={}ms", 
+                    paymentId, userId, processingTime);
+            return new PaymentExecutionResult(payment, processingTime, true, actualAmount, originalAmount);
         }
 
         confirmValidator.validateAndPreparePayment(payment, request);
@@ -95,7 +102,8 @@ public class PaymentConfirmService {
         try {
             return executionHandler.executePayment(payment, actualAmount, originalAmount, additionalParams, userId, startTime);
         } catch (ObjectOptimisticLockingFailureException e) {
-            return optimisticLockHandler.handleOptimisticLockInTransaction(paymentId, request, e);
+            return optimisticLockHandler.handleOptimisticLockInTransaction(
+                    paymentId, request, e, startTime, actualAmount, originalAmount);
         }
     }
 }
