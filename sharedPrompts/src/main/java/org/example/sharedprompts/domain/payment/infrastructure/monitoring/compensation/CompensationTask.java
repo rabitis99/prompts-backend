@@ -60,6 +60,9 @@ public record CompensationTask(
         if (userId == null) {
             throw new IllegalArgumentException("userId는 null일 수 없습니다");
         }
+        if (amount == null) {
+            throw new IllegalArgumentException("amount는 null일 수 없습니다");
+        }
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }

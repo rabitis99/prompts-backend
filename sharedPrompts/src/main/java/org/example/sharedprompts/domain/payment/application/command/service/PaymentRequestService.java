@@ -12,8 +12,10 @@ import org.example.sharedprompts.domain.payment.domain.enums.PointType;
 import org.example.sharedprompts.domain.payment.infrastructure.monitoring.PaymentLoggingService;
 import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PaymentJpaAdapter;
 import org.example.sharedprompts.domain.payment.service.point.PointService;
+import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.dto.payment.request.PaymentRequestDto;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -32,7 +34,7 @@ public class PaymentRequestService {
     private final PointService pointService;
 
     @Transactional
-    public Payment processRequest(Long userId, PaymentRequestDto request, org.example.sharedprompts.domain.user.User user) {
+    public Payment processRequest(Long userId, PaymentRequestDto request, User user) {
         log.info("결제 요청 시작: userId={}, paymentMethod={}, amount={}",
                 userId, request.getPaymentMethod(), request.getAmount());
 
@@ -67,26 +69,29 @@ public class PaymentRequestService {
 
             return payment;
         } catch (Exception e) {
-            // 포인트가 사용된 경우 복구 처리
             BigDecimal usedPointAmount = amountResult.usedPointAmount();
             if (usedPointAmount != null && usedPointAmount.compareTo(BigDecimal.ZERO) > 0) {
-                try {
-                    pointService.addPointsDirectly(
-                            userId,
-                            payment != null ? payment.getId() : null,
-                            usedPointAmount,
-                            PointType.PAYMENT_FAILED,
-                            "결제 요청 실패로 인한 포인트 복구"
-                    );
-                    log.info("결제 요청 실패로 인한 포인트 복구 완료: userId={}, refundPointAmount={}, error={}",
-                            userId, usedPointAmount, e.getMessage());
-                } catch (Exception pointException) {
-                    log.error("결제 요청 실패 후 포인트 복구 실패: userId={}, amount={}, error={}",
-                            userId, usedPointAmount, pointException.getMessage(), pointException);
-                    // 포인트 복구 실패는 별도로 처리하지 않고 원래 예외를 다시 던짐
-                }
+                recoverPointsInNewTransaction(userId, payment != null ? payment.getId() : null, usedPointAmount, e);
             }
             throw e;
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    private void recoverPointsInNewTransaction(Long userId, Long paymentId, BigDecimal usedPointAmount, Exception originalException) {
+        try {
+            pointService.addPointsDirectly(
+                    userId,
+                    paymentId,
+                    usedPointAmount,
+                    PointType.PAYMENT_FAILED,
+                    "결제 요청 실패로 인한 포인트 복구"
+            );
+            log.info("결제 요청 실패로 인한 포인트 복구 완료: userId={}, refundPointAmount={}, error={}",
+                    userId, usedPointAmount, originalException.getMessage());
+        } catch (Exception pointException) {
+            log.error("결제 요청 실패 후 포인트 복구 실패: userId={}, amount={}, error={}",
+                    userId, usedPointAmount, pointException.getMessage(), pointException);
         }
     }
 }

@@ -23,16 +23,11 @@ public class CompensationHandler {
 
     public void handlePostProcessFailure(CompensationTaskType taskType, Long paymentId, Long userId,
                                         BigDecimal amount, BigDecimal originalAmount, String errorMessage) {
-        CompensationTask task = new CompensationTask(
-                taskType,
-                paymentId,
-                userId,
-                amount,
-                originalAmount,
-                null,
-                errorMessage,
-                null
-        );
+        log.warn("후처리 실패 보상 작업 생성: taskType={}, paymentId={}, userId={}", taskType, paymentId, userId);
+        
+        CompensationTask task = originalAmount != null
+                ? CompensationTask.withOriginalAmount(taskType, paymentId, userId, amount, originalAmount, errorMessage)
+                : CompensationTask.of(taskType, paymentId, userId, amount, errorMessage);
         compensationQueue.enqueue(task);
     }
 }

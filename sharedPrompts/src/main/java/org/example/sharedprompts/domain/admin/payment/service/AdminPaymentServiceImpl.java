@@ -96,9 +96,10 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
 
                 return executionService.executeCancel(payment, request.getReasonOrDefault());
             });
-        } catch (ApiException e) {
-            throw e;
         } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw (ApiException) e;
+            }
             log.error("관리자 결제 취소 실패: paymentId={}, adminId={}, error={}", paymentId, adminId, e.getMessage(), e);
             throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 취소 실패: " + e.getMessage(), e);
         }
@@ -141,9 +142,10 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
                 Payment refundedPayment = executionService.executeRefund(payment, refundAmount, request.getReasonOrDefault());
                 return new RefundExecutionResult(refundedPayment, refundAmount);
             });
-        } catch (ApiException e) {
-            throw e;
         } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw (ApiException) e;
+            }
             log.error("관리자 결제 환불 실패: paymentId={}, adminId={}, error={}", paymentId, adminId, e.getMessage(), e);
             throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, "결제 환불 실패: " + e.getMessage(), e);
         }

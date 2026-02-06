@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.infrastructure.persistence.entity.FailedPaymentEvent;
 import org.example.sharedprompts.domain.payment.infrastructure.persistence.repository.failed.FailedPaymentEventRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.PrintWriter;
@@ -26,7 +27,7 @@ public class FailedPaymentEventService {
     private final ObjectMapper objectMapper;
     private static final int MAX_STACK_TRACE_LENGTH = 4096;
 
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void saveFailedEvent(String eventType, Long paymentId, Object event, Exception exception, int retryCount) {
         try {
             String eventData = objectMapper.writeValueAsString(event);

@@ -80,12 +80,27 @@ public class UserTierServiceImpl implements UserTierService {
                 .build();
         tierHistoryJpaAdapter.save(history);
 
-        // 사용자 티어 변경
-        // JPA dirty checking으로 트랜잭션 커밋 시 자동 반영되므로 명시적 save 불필요
         user.changeTier(newTier);
+        recalculateDailyLimit(user);
+    }
+
+    private void recalculateDailyLimit(User user) {
+        UserTier currentTier = user.getTier();
+        int dailyLimit = currentTier.getDailyLimit();
+        long todayUsedCount = paymentJpaAdapter.countTodaySuccessfulPayments(user.getId(), PaymentStatus.SUCCESS);
+        int remainingCount = (int) Math.max(0, dailyLimit - todayUsedCount);
         
-        // 티어 변경 후 일일 제한 재계산
-        recalculateDailyLimit(userId);
+        log.info("일일 제한 재계산: userId={}, tier={}, dailyLimit={}, todayUsedCount={}, remainingCount={}", 
+                user.getId(), currentTier.name(), dailyLimit, todayUsedCount, remainingCount);
+        
+        if (todayUsedCount >= dailyLimit) {
+            log.warn("티어 변경 후 일일 제한 초과 상태: userId={}, tier={}, todayUsedCount={}, dailyLimit={}", 
+                    user.getId(), currentTier.name(), todayUsedCount, dailyLimit);
+        } else if (todayUsedCount >= dailyLimit * 0.8) {
+            log.warn("티어 변경 후 일일 제한 근접: userId={}, tier={}, todayUsedCount={}, dailyLimit={}, usageRate={}%", 
+                    user.getId(), currentTier.name(), todayUsedCount, dailyLimit, 
+                    (int) (todayUsedCount * 100.0 / dailyLimit));
+        }
     }
 
     @Override
@@ -93,26 +108,7 @@ public class UserTierServiceImpl implements UserTierService {
     public void recalculateDailyLimit(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
-        
-        UserTier currentTier = user.getTier();
-        int dailyLimit = currentTier.getDailyLimit();
-        long todayUsedCount = paymentJpaAdapter.countTodaySuccessfulPayments(userId, PaymentStatus.SUCCESS);
-        int remainingCount = (int) Math.max(0, dailyLimit - todayUsedCount);
-        
-        // 티어 변경 후 일일 제한 재계산 및 로깅
-        log.info("일일 제한 재계산: userId={}, tier={}, dailyLimit={}, todayUsedCount={}, remainingCount={}", 
-                userId, currentTier.name(), dailyLimit, todayUsedCount, remainingCount);
-        
-        // 새로운 티어의 제한을 이미 초과한 경우 경고
-        if (todayUsedCount >= dailyLimit) {
-            log.warn("티어 변경 후 일일 제한 초과 상태: userId={}, tier={}, todayUsedCount={}, dailyLimit={}", 
-                    userId, currentTier.name(), todayUsedCount, dailyLimit);
-        } else if (todayUsedCount >= dailyLimit * 0.8) {
-            // 제한의 80% 이상 사용 시 경고
-            log.warn("티어 변경 후 일일 제한 근접: userId={}, tier={}, todayUsedCount={}, dailyLimit={}, usageRate={}%", 
-                    userId, currentTier.name(), todayUsedCount, dailyLimit, 
-                    (int) (todayUsedCount * 100.0 / dailyLimit));
-        }
+        recalculateDailyLimit(user);
     }
 
     @Override
@@ -137,7 +133,7 @@ public class UserTierServiceImpl implements UserTierService {
         UserTier currentTier = user.getTier();
 
         UserTier calculatedTier = tierUpgradePolicy.calculateTier(totalPaymentAmount, currentTier);
-        if (calculatedTier.getDailyLimit() > currentTier.getDailyLimit()) {
+        if (calculatedTier.compareTo(currentTier) > 0) {
             log.info("티어 자동 업그레이드: userId={}, currentTier={}, newTier={}, totalPaymentAmount={}",
                     userId, currentTier, calculatedTier, totalPaymentAmount);
 
@@ -151,7 +147,7 @@ public class UserTierServiceImpl implements UserTierService {
             tierHistoryJpaAdapter.save(history);
 
             user.changeTier(calculatedTier);
-            recalculateDailyLimit(userId);
+            recalculateDailyLimit(user);
         }
     }
 }

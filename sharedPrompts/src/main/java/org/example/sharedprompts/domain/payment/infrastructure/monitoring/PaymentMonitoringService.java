@@ -28,56 +28,57 @@ public class PaymentMonitoringService {
     private final PaymentNotificationService notificationService;
     private final PaymentMetrics paymentMetrics;
 
-    /**
-     * 결제 실패 이벤트 처리
-     */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async
     public void handlePaymentFailed(PaymentEvent.PaymentFailed event) {
-        log.warn("결제 실패 감지: paymentId={}, userId={}, reason={}, paymentMethod={}",
-                event.paymentId(), event.userId(), event.reason(), event.paymentMethod());
+        try {
+            log.warn("결제 실패 감지: paymentId={}, userId={}, reason={}, paymentMethod={}",
+                    event.paymentId(), event.userId(), event.reason(), event.paymentMethod());
 
-        // 알림 발송
-        notificationService.sendPaymentFailureNotification(
-                event.paymentId(),
-                event.userId(),
-                event.reason(),
-                event.paymentMethod()
-        );
+            notificationService.sendPaymentFailureNotification(
+                    event.paymentId(),
+                    event.userId(),
+                    event.reason(),
+                    event.paymentMethod()
+            );
 
-        long durationMillis = paymentJpaAdapter.findById(event.paymentId())
-                .map(p -> Math.max(0L, Duration.between(p.getCreatedAt(), LocalDateTime.now()).toMillis()))
-                .orElse(0L);
+            long durationMillis = paymentJpaAdapter.findById(event.paymentId())
+                    .filter(p -> p.getCreatedAt() != null)
+                    .map(p -> Math.max(0L, Duration.between(p.getCreatedAt(), LocalDateTime.now()).toMillis()))
+                    .orElse(0L);
 
-        // 메트릭 기록
-        paymentMetrics.recordPaymentFailure(event.paymentMethod(), event.reason(), durationMillis);
+            paymentMetrics.recordPaymentFailure(event.paymentMethod(), event.reason(), durationMillis);
+        } catch (Exception e) {
+            log.error("결제 실패 이벤트 처리 실패: paymentId={}, userId={}", event.paymentId(), event.userId(), e);
+        }
     }
 
-    /**
-     * 결제 성공 이벤트 처리
-     */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async
     public void handlePaymentSucceeded(PaymentEvent.PaymentSucceeded event) {
-        log.info("결제 성공: paymentId={}, userId={}, paymentMethod={}",
-                event.paymentId(), event.userId(), event.paymentMethod());
+        try {
+            log.info("결제 성공: paymentId={}, userId={}, paymentMethod={}",
+                    event.paymentId(), event.userId(), event.paymentMethod());
 
-        Optional<Payment> paymentOpt = paymentJpaAdapter.findById(event.paymentId());
-        paymentOpt.ifPresent(payment -> {
-            // 알림 발송
+            Optional<Payment> paymentOpt = paymentJpaAdapter.findById(event.paymentId());
+            
+            String amount = paymentOpt.map(p -> p.getAmount().toString()).orElse("0");
             notificationService.sendPaymentSuccessNotification(
                     event.paymentId(),
                     event.userId(),
                     event.paymentMethod(),
-                    payment.getAmount().toString()
+                    amount
             );
 
-            long durationMillis = payment.getApprovedAt() != null
-                    ? Math.max(0L, Duration.between(payment.getCreatedAt(), payment.getApprovedAt()).toMillis())
-                    : 0L;
+            long durationMillis = paymentOpt
+                    .map(p -> p.getApprovedAt() != null
+                            ? Math.max(0L, Duration.between(p.getCreatedAt(), p.getApprovedAt()).toMillis())
+                            : 0L)
+                    .orElse(0L);
 
-            // 메트릭 기록
             paymentMetrics.recordPaymentSuccess(event.paymentMethod(), durationMillis);
-        });
+        } catch (Exception e) {
+            log.error("결제 성공 이벤트 처리 실패: paymentId={}, userId={}", event.paymentId(), event.userId(), e);
+        }
     }
 }

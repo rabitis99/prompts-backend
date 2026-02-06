@@ -9,10 +9,14 @@ import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Component
 public class PaymentValidator {
+
+    private static final Pattern TOSS_ORDER_ID_PATTERN = Pattern.compile("^ORDER-(\\d+)-\\d+$");
 
     public void validateAmount(BigDecimal expectedAmount, BigDecimal actualAmount, String orderId) {
         if (expectedAmount == null || actualAmount == null) {
@@ -41,7 +45,7 @@ public class PaymentValidator {
     }
 
     private void validateOrderIdNotNull(String expectedOrderId, String actualOrderId) {
-        if (expectedOrderId == null || actualOrderId == null) {
+        if (expectedOrderId == null || expectedOrderId.isEmpty() || actualOrderId == null || actualOrderId.isEmpty()) {
             log.error("주문 ID 검증 실패: 주문 ID가 null입니다. expected={}, actual={}", 
                     expectedOrderId, actualOrderId);
             throw new PaymentDomainException(ErrorCode.PAYMENT_PROVIDER_ERROR, "orderId",
@@ -49,10 +53,6 @@ public class PaymentValidator {
         }
     }
 
-    /**
-     * Toss Payments의 orderId 형식을 고려하여 검증
-     * Toss의 경우 "ORDER-{paymentId}-{timestamp}" 형식이므로 paymentId 부분만 추출하여 비교
-     */
     public void validateOrderIdForToss(String expectedOrderId, String actualOrderId) {
         validateOrderIdNotNull(expectedOrderId, actualOrderId);
 
@@ -75,24 +75,16 @@ public class PaymentValidator {
             String.format("주문 ID가 일치하지 않습니다. 예상: %s, 실제: %s", expectedOrderId, actualOrderId));
     }
 
-    /**
-     * Toss Payments의 orderId에서 paymentId를 추출
-     * 형식: "ORDER-{paymentId}-{timestamp}" 또는 단순히 paymentId 문자열
-     */
     private String extractPaymentIdFromTossOrderId(String orderId) {
         if (orderId == null || orderId.isEmpty()) {
             return null;
         }
 
-        // "ORDER-{paymentId}-" 형식인 경우 paymentId 추출
-        if (orderId.startsWith("ORDER-")) {
-            String[] parts = orderId.split("-", 3);
-            if (parts.length >= 2 && !parts[1].isEmpty()) {
-                return parts[1]; // "ORDER-2-1770360255571" -> "2"
-            }
+        Matcher matcher = TOSS_ORDER_ID_PATTERN.matcher(orderId);
+        if (matcher.matches()) {
+            return matcher.group(1);
         }
 
-        // 형식이 맞지 않으면 원본 반환
         return orderId;
     }
 

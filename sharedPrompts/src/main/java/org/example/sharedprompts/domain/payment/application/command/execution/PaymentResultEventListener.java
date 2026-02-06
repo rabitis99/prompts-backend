@@ -13,6 +13,7 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -21,15 +22,18 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class PaymentResultEventListener {
 
+    private static final int MAX_RETRY_ATTEMPTS = 3;
+
     private final PaymentJpaAdapter paymentJpaAdapter;
     private final PaymentResultProcessor resultProcessor;
     private final PaymentExecutionTemplate executionTemplate;
     private final FailedPaymentEventService failedEventService;
     private final PaymentEventOptimisticLockHandler optimisticLockHandler;
 
+    @Transactional
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Retryable(
-            maxAttempts = 3,
+            maxAttempts = MAX_RETRY_ATTEMPTS,
             backoff = @Backoff(delay = 1000, multiplier = 2),
             noRetryFor = {ApiException.class}
     )
@@ -70,8 +74,8 @@ public class PaymentResultEventListener {
 
     @Recover
     public void recoverPaymentResultApplied(Exception e, PaymentEvent.PaymentResultApplied event) {
-        log.error("결제 결과 적용 최종 실패, 실패 이벤트 저장: paymentId={}, attempts=3", event.paymentId(), e);
-        failedEventService.saveFailedEvent("PaymentResultApplied", event.paymentId(), event, e, 3);
+        log.error("결제 결과 적용 최종 실패, 실패 이벤트 저장: paymentId={}, attempts={}", event.paymentId(), MAX_RETRY_ATTEMPTS, e);
+        failedEventService.saveFailedEvent("PaymentResultApplied", event.paymentId(), event, e, MAX_RETRY_ATTEMPTS);
     }
 
     private boolean canApplyPaymentResult(Payment payment, org.example.sharedprompts.domain.payment.application.dto.response.PaymentResult result) {
@@ -88,9 +92,10 @@ public class PaymentResultEventListener {
         return currentStatus.isPending();
     }
 
+    @Transactional
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Retryable(
-            maxAttempts = 3,
+            maxAttempts = MAX_RETRY_ATTEMPTS,
             backoff = @Backoff(delay = 1000, multiplier = 2),
             noRetryFor = {ApiException.class}
     )
@@ -134,13 +139,14 @@ public class PaymentResultEventListener {
 
     @Recover
     public void recoverCancelResultApplied(Exception e, PaymentEvent.CancelResultApplied event) {
-        log.error("취소 결과 적용 최종 실패, 실패 이벤트 저장: paymentId={}, attempts=3", event.paymentId(), e);
-        failedEventService.saveFailedEvent("CancelResultApplied", event.paymentId(), event, e, 3);
+        log.error("취소 결과 적용 최종 실패, 실패 이벤트 저장: paymentId={}, attempts={}", event.paymentId(), MAX_RETRY_ATTEMPTS, e);
+        failedEventService.saveFailedEvent("CancelResultApplied", event.paymentId(), event, e, MAX_RETRY_ATTEMPTS);
     }
 
+    @Transactional
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Retryable(
-            maxAttempts = 3,
+            maxAttempts = MAX_RETRY_ATTEMPTS,
             backoff = @Backoff(delay = 1000, multiplier = 2),
             noRetryFor = {ApiException.class}
     )
@@ -185,8 +191,8 @@ public class PaymentResultEventListener {
 
     @Recover
     public void recoverRefundResultApplied(Exception e, PaymentEvent.RefundResultApplied event) {
-        log.error("환불 결과 적용 최종 실패, 실패 이벤트 저장: paymentId={}, attempts=3", event.paymentId(), e);
-        failedEventService.saveFailedEvent("RefundResultApplied", event.paymentId(), event, e, 3);
+        log.error("환불 결과 적용 최종 실패, 실패 이벤트 저장: paymentId={}, attempts={}", event.paymentId(), MAX_RETRY_ATTEMPTS, e);
+        failedEventService.saveFailedEvent("RefundResultApplied", event.paymentId(), event, e, MAX_RETRY_ATTEMPTS);
     }
 }
 
