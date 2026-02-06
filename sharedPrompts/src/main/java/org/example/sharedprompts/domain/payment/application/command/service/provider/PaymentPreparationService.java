@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.payment.application.command.service.pro
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.domain.payment.application.command.service.metadata.PaymentMetadataKeys;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
 import org.example.sharedprompts.domain.payment.infrastructure.external.provider.PaymentProvider;
 import org.example.sharedprompts.domain.payment.infrastructure.external.provider.PaymentProviderFactory;
@@ -32,7 +33,7 @@ public class PaymentPreparationService {
         payment.updateIdempotencyKey(idempotencyKey);
 
         String safeProductName = productName != null && !productName.isBlank()
-                ? productName : "상품";
+                ? productName : PaymentMetadataKeys.getDefaultProductName();
 
         return provider.preparePayment(
                 Long.toString(payment.getId()),
