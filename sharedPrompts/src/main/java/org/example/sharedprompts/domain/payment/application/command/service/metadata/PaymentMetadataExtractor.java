@@ -39,7 +39,7 @@ public class PaymentMetadataExtractor {
     public Optional<String> extractValue(String metadata, String key) {
         return metadataParser.parseMetadata(metadata)
                 .map(map -> extractStringValue(map, key))
-                .filter(value -> !value.isEmpty());
+                .filter(value -> !value.isBlank());
     }
 
     private String extractStringValue(Map<String, Object> map, String key) {
