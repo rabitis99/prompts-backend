@@ -31,7 +31,10 @@ public class PaymentResultProcessor {
             paymentValidator.validatePaymentResult(payment, result, actualAmount);
             
             if (result.isSuccess()) {
-                markPaymentSuccess(payment, result.getExternalPaymentId());
+                String externalPaymentId = result.getExternalPaymentId() != null
+                        ? result.getExternalPaymentId()
+                        : payment.getExternalPaymentId();
+                markPaymentSuccess(payment, externalPaymentId);
             } else {
                 markPaymentFailed(payment, result.getFailureReason() != null 
                         ? result.getFailureReason() 
