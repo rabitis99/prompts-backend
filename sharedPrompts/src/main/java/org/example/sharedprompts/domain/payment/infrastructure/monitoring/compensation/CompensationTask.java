@@ -30,6 +30,12 @@ public record CompensationTask(
         BigDecimal amount,
         
         /**
+         * 원본 금액 (포인트 적립 시 포인트 기준 금액 계산에 필요)
+         * null 가능 (포인트 복구 등에서는 불필요)
+         */
+        BigDecimal originalAmount,
+        
+        /**
          * 추가 파라미터 (JSON 형태로 저장 가능)
          */
         String metadata,

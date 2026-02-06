@@ -142,9 +142,10 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
                     canceledPayment.getId(),
                     canceledPayment.getUser().getId(),
                     canceledPayment.getUsedPointAmount(),
-                    null,
+                    null, // originalAmount (불필요)
+                    null, // metadata
                     postProcessException.getMessage(),
-                    null
+                    null // createdAt
             );
             compensationQueue.enqueue(task);
         }
@@ -206,9 +207,10 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
                     refundedPayment.getId(),
                     refundedPayment.getUser().getId(),
                     refundPointAmount,
-                    null,
+                    null, // originalAmount (불필요)
+                    null, // metadata
                     postProcessException.getMessage(),
-                    null
+                    null // createdAt
             );
             compensationQueue.enqueue(task);
         }

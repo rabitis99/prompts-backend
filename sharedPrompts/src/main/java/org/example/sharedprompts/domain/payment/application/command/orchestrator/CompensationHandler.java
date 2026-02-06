@@ -18,18 +18,24 @@ public class CompensationHandler {
 
     public void handlePostProcessFailure(CompensationTaskType taskType, Long paymentId, Long userId,
                                         BigDecimal amount, String errorMessage) {
+        handlePostProcessFailure(taskType, paymentId, userId, amount, null, errorMessage);
+    }
+
+    public void handlePostProcessFailure(CompensationTaskType taskType, Long paymentId, Long userId,
+                                        BigDecimal amount, BigDecimal originalAmount, String errorMessage) {
         CompensationTask task = new CompensationTask(
                 taskType,
                 paymentId,
                 userId,
                 amount,
+                originalAmount,
                 null,
                 errorMessage,
                 null
         );
         compensationQueue.enqueue(task);
-        log.warn("보상 큐 등록: taskType={}, paymentId={}, userId={}, amount={}, error={}",
-                taskType, paymentId, userId, amount, errorMessage);
+        log.warn("보상 큐 등록: taskType={}, paymentId={}, userId={}, amount={}, originalAmount={}, error={}",
+                taskType, paymentId, userId, amount, originalAmount, errorMessage);
     }
 }
 

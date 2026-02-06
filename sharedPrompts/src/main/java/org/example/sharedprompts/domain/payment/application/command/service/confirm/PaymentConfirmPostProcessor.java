@@ -44,6 +44,7 @@ public class PaymentConfirmPostProcessor {
                     payment.getId(),
                     userId,
                     actualAmount,
+                    originalAmount,
                     postProcessException.getMessage()
             );
         }
