@@ -31,12 +31,7 @@ public class PaymentValidator {
     }
 
     public void validateOrderId(String expectedOrderId, String actualOrderId) {
-        if (expectedOrderId == null || actualOrderId == null) {
-            log.error("주문 ID 검증 실패: 주문 ID가 null입니다. expected={}, actual={}", 
-                    expectedOrderId, actualOrderId);
-            throw new PaymentDomainException(ErrorCode.PAYMENT_PROVIDER_ERROR, "orderId",
-                "주문 ID가 유효하지 않습니다.");
-        }
+        validateOrderIdNotNull(expectedOrderId, actualOrderId);
 
         if (!expectedOrderId.equals(actualOrderId)) {
             log.error("주문 ID 불일치: expected={}, actual={}", expectedOrderId, actualOrderId);
@@ -45,17 +40,21 @@ public class PaymentValidator {
         }
     }
 
-    /**
-     * Toss Payments의 orderId 형식을 고려하여 검증
-     * Toss의 경우 "ORDER-{paymentId}-{timestamp}" 형식이므로 paymentId 부분만 추출하여 비교
-     */
-    public void validateOrderIdForToss(String expectedOrderId, String actualOrderId) {
+    private void validateOrderIdNotNull(String expectedOrderId, String actualOrderId) {
         if (expectedOrderId == null || actualOrderId == null) {
             log.error("주문 ID 검증 실패: 주문 ID가 null입니다. expected={}, actual={}", 
                     expectedOrderId, actualOrderId);
             throw new PaymentDomainException(ErrorCode.PAYMENT_PROVIDER_ERROR, "orderId",
                 "주문 ID가 유효하지 않습니다.");
         }
+    }
+
+    /**
+     * Toss Payments의 orderId 형식을 고려하여 검증
+     * Toss의 경우 "ORDER-{paymentId}-{timestamp}" 형식이므로 paymentId 부분만 추출하여 비교
+     */
+    public void validateOrderIdForToss(String expectedOrderId, String actualOrderId) {
+        validateOrderIdNotNull(expectedOrderId, actualOrderId);
 
         // Toss의 경우 "ORDER-{paymentId}-{timestamp}" 형식에서 paymentId 추출
         String extractedExpectedId = extractPaymentIdFromTossOrderId(expectedOrderId);
@@ -87,8 +86,8 @@ public class PaymentValidator {
 
         // "ORDER-{paymentId}-" 형식인 경우 paymentId 추출
         if (orderId.startsWith("ORDER-")) {
-            String[] parts = orderId.split("-");
-            if (parts.length >= 2) {
+            String[] parts = orderId.split("-", 3);
+            if (parts.length >= 2 && !parts[1].isEmpty()) {
                 return parts[1]; // "ORDER-2-1770360255571" -> "2"
             }
         }

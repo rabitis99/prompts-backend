@@ -50,7 +50,7 @@ public class PaymentResultEventListener {
             executionTemplate.applyResultAndSave(
                     payment,
                     event.result(),
-                    r -> resultProcessor.applyPaymentResult(payment, r, event.actualAmount())
+                    (p, r) -> resultProcessor.applyPaymentResult(p, r, event.actualAmount())
             );
 
             log.debug("결제 결과 적용 완료: paymentId={}", event.paymentId());
@@ -71,7 +71,7 @@ public class PaymentResultEventListener {
     @Recover
     public void recoverPaymentResultApplied(Exception e, PaymentEvent.PaymentResultApplied event) {
         log.error("결제 결과 적용 최종 실패, 실패 이벤트 저장: paymentId={}, attempts=3", event.paymentId(), e);
-        failedEventService.saveFailedEvent("PaymentResultApplied", event.paymentId(), event, e);
+        failedEventService.saveFailedEvent("PaymentResultApplied", event.paymentId(), event, e, 3);
     }
 
     private boolean canApplyPaymentResult(Payment payment, org.example.sharedprompts.domain.payment.application.dto.response.PaymentResult result) {
@@ -104,7 +104,9 @@ public class PaymentResultEventListener {
                 return;
             }
 
-            if (!payment.getStatus().isRefundable() && payment.getStatus() != PaymentStatus.PENDING) {
+            PaymentStatus status = payment.getStatus();
+            boolean isCancelable = status == PaymentStatus.PENDING || status.isRefundable();
+            if (!isCancelable) {
                 log.warn("취소 결과 적용 불가: paymentId={}, currentStatus={}", event.paymentId(), payment.getStatus());
                 return;
             }
@@ -112,7 +114,7 @@ public class PaymentResultEventListener {
             executionTemplate.applyResultAndSave(
                     payment,
                     event.result(),
-                    r -> resultProcessor.applyCancelResult(payment, r)
+                    (p, r) -> resultProcessor.applyCancelResult(p, r)
             );
 
             log.debug("취소 결과 적용 완료: paymentId={}", event.paymentId());
@@ -133,7 +135,7 @@ public class PaymentResultEventListener {
     @Recover
     public void recoverCancelResultApplied(Exception e, PaymentEvent.CancelResultApplied event) {
         log.error("취소 결과 적용 최종 실패, 실패 이벤트 저장: paymentId={}, attempts=3", event.paymentId(), e);
-        failedEventService.saveFailedEvent("CancelResultApplied", event.paymentId(), event, e);
+        failedEventService.saveFailedEvent("CancelResultApplied", event.paymentId(), event, e, 3);
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -163,7 +165,7 @@ public class PaymentResultEventListener {
             executionTemplate.applyResultAndSave(
                     payment,
                     event.result(),
-                    r -> resultProcessor.applyRefundResult(payment, r, event.refundAmount())
+                    (p, r) -> resultProcessor.applyRefundResult(p, r, event.refundAmount())
             );
 
             log.debug("환불 결과 적용 완료: paymentId={}", event.paymentId());
@@ -184,7 +186,7 @@ public class PaymentResultEventListener {
     @Recover
     public void recoverRefundResultApplied(Exception e, PaymentEvent.RefundResultApplied event) {
         log.error("환불 결과 적용 최종 실패, 실패 이벤트 저장: paymentId={}, attempts=3", event.paymentId(), e);
-        failedEventService.saveFailedEvent("RefundResultApplied", event.paymentId(), event, e);
+        failedEventService.saveFailedEvent("RefundResultApplied", event.paymentId(), event, e, 3);
     }
 }
 

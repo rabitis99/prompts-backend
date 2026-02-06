@@ -24,9 +24,10 @@ public class FailedPaymentEventService {
 
     private final FailedPaymentEventRepository failedEventRepository;
     private final ObjectMapper objectMapper;
+    private static final int MAX_STACK_TRACE_LENGTH = 4096;
 
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
-    public void saveFailedEvent(String eventType, Long paymentId, Object event, Exception exception) {
+    public void saveFailedEvent(String eventType, Long paymentId, Object event, Exception exception, int retryCount) {
         try {
             String eventData = objectMapper.writeValueAsString(event);
             String errorMessage = exception.getMessage();
@@ -38,7 +39,7 @@ public class FailedPaymentEventService {
                     .eventData(eventData)
                     .errorMessage(errorMessage)
                     .stackTrace(stackTrace)
-                    .retryCount(3)
+                    .retryCount(retryCount)
                     .build();
 
             failedEventRepository.save(failedEvent);
@@ -46,13 +47,13 @@ public class FailedPaymentEventService {
                     paymentId, eventType, failedEvent.getId());
         } catch (JsonProcessingException e) {
             log.error("실패 이벤트 직렬화 실패: paymentId={}, eventType={}", paymentId, eventType, e);
-            saveFailedEventWithoutData(eventType, paymentId, exception);
+            saveFailedEventWithoutData(eventType, paymentId, exception, retryCount);
         } catch (Exception e) {
             log.error("실패 이벤트 저장 실패: paymentId={}, eventType={}", paymentId, eventType, e);
         }
     }
 
-    private void saveFailedEventWithoutData(String eventType, Long paymentId, Exception exception) {
+    private void saveFailedEventWithoutData(String eventType, Long paymentId, Exception exception, int retryCount) {
         try {
             FailedPaymentEvent failedEvent = FailedPaymentEvent.builder()
                     .paymentId(paymentId)
@@ -60,7 +61,7 @@ public class FailedPaymentEventService {
                     .eventData(null)
                     .errorMessage(exception.getMessage())
                     .stackTrace(getStackTrace(exception))
-                    .retryCount(3)
+                    .retryCount(retryCount)
                     .build();
             failedEventRepository.save(failedEvent);
         } catch (Exception e) {
@@ -72,7 +73,10 @@ public class FailedPaymentEventService {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         e.printStackTrace(pw);
-        return sw.toString();
+        String trace = sw.toString();
+        return trace.length() > MAX_STACK_TRACE_LENGTH
+                ? trace.substring(0, MAX_STACK_TRACE_LENGTH)
+                : trace;
     }
 }
 

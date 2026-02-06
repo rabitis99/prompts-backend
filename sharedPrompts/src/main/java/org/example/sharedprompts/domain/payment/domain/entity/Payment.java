@@ -133,7 +133,9 @@ public class Payment extends BaseEntity {
      */
     public void markSuccess(String externalPaymentId) {
         this.status = PaymentStatus.SUCCESS;
-        this.externalPaymentId = externalPaymentId;
+        if (externalPaymentId != null) {
+            this.externalPaymentId = externalPaymentId;
+        }
         this.approvedAt = LocalDateTime.now();
         this.failureReason = null;
     }

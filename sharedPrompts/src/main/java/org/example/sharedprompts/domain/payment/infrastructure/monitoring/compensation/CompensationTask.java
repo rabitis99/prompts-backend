@@ -64,5 +64,22 @@ public record CompensationTask(
             createdAt = LocalDateTime.now();
         }
     }
+
+    /**
+     * 기본 보상 작업 생성 (originalAmount, metadata 없음)
+     */
+    public static CompensationTask of(CompensationTaskType taskType, Long paymentId,
+                                       Long userId, BigDecimal amount, String failureReason) {
+        return new CompensationTask(taskType, paymentId, userId, amount, null, null, failureReason, null);
+    }
+
+    /**
+     * originalAmount가 필요한 보상 작업 생성
+     */
+    public static CompensationTask withOriginalAmount(CompensationTaskType taskType, Long paymentId,
+                                                        Long userId, BigDecimal amount,
+                                                        BigDecimal originalAmount, String failureReason) {
+        return new CompensationTask(taskType, paymentId, userId, amount, originalAmount, null, failureReason, null);
+    }
 }
 

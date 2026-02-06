@@ -34,8 +34,6 @@ public class CompensationHandler {
                 null
         );
         compensationQueue.enqueue(task);
-        log.warn("보상 큐 등록: taskType={}, paymentId={}, userId={}, amount={}, originalAmount={}, error={}",
-                taskType, paymentId, userId, amount, originalAmount, errorMessage);
     }
 }
 

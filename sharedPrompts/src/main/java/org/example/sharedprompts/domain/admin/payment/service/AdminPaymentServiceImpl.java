@@ -127,15 +127,12 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
             log.error("관리자 결제 취소 성공 후 후처리 실패: paymentId={}, adminId={}, error={}",
                     paymentId, adminId, postProcessException.getMessage(), postProcessException);
             
-            CompensationTask task = new CompensationTask(
+            CompensationTask task = CompensationTask.of(
                     CompensationTaskType.POINT_RECOVERY_CANCEL,
                     canceledPayment.getId(),
                     canceledPayment.getUser().getId(),
                     canceledPayment.getUsedPointAmount(),
-                    null, // originalAmount (불필요)
-                    null, // metadata
-                    postProcessException.getMessage(),
-                    null // createdAt
+                    postProcessException.getMessage()
             );
             compensationQueue.enqueue(task);
         }
@@ -196,15 +193,12 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
             log.error("관리자 결제 환불 성공 후 후처리 실패: paymentId={}, adminId={}, error={}",
                     paymentId, adminId, postProcessException.getMessage(), postProcessException);
             
-            CompensationTask task = new CompensationTask(
+            CompensationTask task = CompensationTask.of(
                     CompensationTaskType.POINT_RECOVERY_REFUND,
                     refundedPayment.getId(),
                     refundedPayment.getUser().getId(),
                     refundPointAmount,
-                    null, // originalAmount (불필요)
-                    null, // metadata
-                    postProcessException.getMessage(),
-                    null // createdAt
+                    postProcessException.getMessage()
             );
             compensationQueue.enqueue(task);
         }

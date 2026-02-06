@@ -45,9 +45,8 @@ public class PaymentMonitoringService {
                 event.paymentMethod()
         );
 
-        // 실패 duration 계산: createdAt ~ 이벤트 처리 시점
         long durationMillis = paymentJpaAdapter.findById(event.paymentId())
-                .map(p -> Duration.between(p.getCreatedAt(), LocalDateTime.now()).toMillis())
+                .map(p -> Math.max(0L, Duration.between(p.getCreatedAt(), LocalDateTime.now()).toMillis()))
                 .orElse(0L);
 
         // 메트릭 기록
@@ -73,9 +72,8 @@ public class PaymentMonitoringService {
                     payment.getAmount().toString()
             );
 
-            // 성공 duration 계산: createdAt ~ approvedAt
             long durationMillis = payment.getApprovedAt() != null
-                    ? Duration.between(payment.getCreatedAt(), payment.getApprovedAt()).toMillis()
+                    ? Math.max(0L, Duration.between(payment.getCreatedAt(), payment.getApprovedAt()).toMillis())
                     : 0L;
 
             // 메트릭 기록

@@ -18,8 +18,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Table(name = "failed_payment_events", indexes = {
     @Index(name = "idx_failed_events_payment_id", columnList = "payment_id"),
-    @Index(name = "idx_failed_events_processed", columnList = "processed"),
-    @Index(name = "idx_failed_events_created_at", columnList = "created_at")
+    @Index(name = "idx_failed_events_processed_created", columnList = "processed, created_at")
 })
 public class FailedPaymentEvent extends BaseEntity {
 
@@ -50,7 +49,8 @@ public class FailedPaymentEvent extends BaseEntity {
     private LocalDateTime processedAt;
 
     @Column
-    private Integer retryCount;
+    @Builder.Default
+    private Integer retryCount = 0;
 
     public void markProcessed() {
         this.processed = true;

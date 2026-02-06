@@ -17,7 +17,7 @@ public class PaymentConfirmResponseMapper {
         // 이는 조용한 데이터 손실을 방지하고 문제를 명시적으로 드러냅니다
         response.setTotalAmount(payment.getAmount().intValueExact());
         if (payment.getApprovedAt() != null) {
-            response.setApprovedAt(payment.getApprovedAt().atZone(java.time.ZoneId.systemDefault()).toOffsetDateTime());
+            response.setApprovedAt(payment.getApprovedAt().atZone(java.time.ZoneId.of("Asia/Seoul")).toOffsetDateTime());
         }
         response.setMethod(payment.getPaymentMethod().name());
         return response;

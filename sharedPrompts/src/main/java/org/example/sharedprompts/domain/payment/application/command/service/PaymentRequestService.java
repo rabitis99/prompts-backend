@@ -45,12 +45,9 @@ public class PaymentRequestService {
                 request.getUsePointAmount()
         );
 
-        // 포인트 사용 후 결제 실패 시 롤백을 위한 보상 로직
-        // PointService.usePoints()는 REQUIRES_NEW로 독립 트랜잭션을 생성하고 즉시 커밋하므로,
-        // 결제 준비 단계에서 예외 발생 시 포인트는 롤백되지 않습니다.
-        // 따라서 예외 발생 시 포인트를 명시적으로 복구해야 합니다.
+        Payment payment = null;
         try {
-            Payment payment = paymentCreator.createPayment(user, request, amountResult);
+            payment = paymentCreator.createPayment(user, request, amountResult);
 
             // Payment를 먼저 저장하여 ID를 생성
             payment = paymentJpaAdapter.save(payment);
@@ -76,7 +73,7 @@ public class PaymentRequestService {
                 try {
                     pointService.addPointsDirectly(
                             userId,
-                            null, // paymentId는 아직 생성되지 않았거나 저장되지 않았을 수 있음
+                            payment != null ? payment.getId() : null,
                             usedPointAmount,
                             PointType.PAYMENT_FAILED,
                             "결제 요청 실패로 인한 포인트 복구"

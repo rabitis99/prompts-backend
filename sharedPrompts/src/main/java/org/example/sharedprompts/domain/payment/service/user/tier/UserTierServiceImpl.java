@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 /**
  * 사용자 티어 서비스 구현체
@@ -129,12 +130,14 @@ public class UserTierServiceImpl implements UserTierService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
-        BigDecimal totalPaymentAmount = paymentJpaAdapter.sumTotalPaymentAmount(userId, PaymentStatus.SUCCESS);
+        BigDecimal totalPaymentAmount = Optional.ofNullable(
+                paymentJpaAdapter.sumTotalPaymentAmount(userId, PaymentStatus.SUCCESS))
+                .orElse(BigDecimal.ZERO);
         
         UserTier currentTier = user.getTier();
 
-        if (tierUpgradePolicy.shouldUpgrade(totalPaymentAmount, currentTier)) {
-            UserTier calculatedTier = tierUpgradePolicy.calculateTier(totalPaymentAmount, currentTier);
+        UserTier calculatedTier = tierUpgradePolicy.calculateTier(totalPaymentAmount, currentTier);
+        if (calculatedTier.getDailyLimit() > currentTier.getDailyLimit()) {
             log.info("티어 자동 업그레이드: userId={}, currentTier={}, newTier={}, totalPaymentAmount={}",
                     userId, currentTier, calculatedTier, totalPaymentAmount);
 

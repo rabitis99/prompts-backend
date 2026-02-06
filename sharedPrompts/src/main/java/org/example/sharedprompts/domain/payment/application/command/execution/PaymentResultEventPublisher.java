@@ -37,18 +37,17 @@ public class PaymentResultEventPublisher {
         // idempotencyKey 저장
         payment.updateIdempotencyKey(idempotencyKey);
         
-        // Payment 상태 업데이트 및 저장 (람다에서 사용하기 위해 final 변수로 복사)
-        final Payment paymentForLambda = payment;
-        payment = executionTemplate.applyResultAndSave(
+        // Payment 상태 업데이트 및 저장
+        Payment savedPayment = executionTemplate.applyResultAndSave(
                 payment,
                 result,
-                r -> resultProcessor.applyPaymentResult(paymentForLambda, r, actualAmount)
+                (p, r) -> resultProcessor.applyPaymentResult(p, r, actualAmount)
         );
         
         // 상태 업데이트 후 이벤트 발행 (이벤트 리스너는 추가 검증/후처리만 수행)
         eventPublisher.publishPaymentResultApplied(paymentId, result, actualAmount, idempotencyKey);
         
-        return payment;
+        return savedPayment;
     }
 
     @Transactional

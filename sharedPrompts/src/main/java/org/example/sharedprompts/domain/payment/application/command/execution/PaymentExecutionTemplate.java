@@ -7,7 +7,7 @@ import org.example.sharedprompts.domain.payment.infrastructure.external.provider
 import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PaymentJpaAdapter;
 import org.springframework.stereotype.Component;
 
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 @Component
@@ -28,9 +28,9 @@ public class PaymentExecutionTemplate {
     public <T> Payment applyResultAndSave(
             Payment payment,
             T result,
-            Consumer<T> resultApplier
+            BiConsumer<Payment, T> resultApplier
     ) {
-        resultApplier.accept(result);
+        resultApplier.accept(payment, result);
         return paymentJpaAdapter.save(payment);
     }
 }
