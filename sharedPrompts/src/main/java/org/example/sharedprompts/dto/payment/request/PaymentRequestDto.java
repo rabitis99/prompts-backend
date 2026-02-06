@@ -45,6 +45,9 @@ public class PaymentRequestDto {
     @JsonProperty("metadata")
     private String metadata; // 추가 메타데이터 (JSON 형태)
 
+    @NotNull(message = "사용자 유형을 선택해주세요.")
+    @JsonProperty("user_type")
+    private PaymentUserType userType;
     /**
      * Payment 엔티티 빌더 생성
      * 서버에서 사용자의 현재 정보를 사용하여 Payment 엔티티를 생성합니다.
@@ -58,12 +61,7 @@ public class PaymentRequestDto {
                 .status(PaymentStatus.PENDING)
                 .usedPointAmount(usedPointAmount)
                 .metadata(this.metadata)
-                .userType(determineUserType(user))
-                .tier(user.getTier());
-    }
-
-    private PaymentUserType determineUserType(User user) {
-        return PaymentUserType.PERSONAL;
+                .userType(this.userType);
     }
 }
 
