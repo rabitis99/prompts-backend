@@ -66,7 +66,13 @@ public class PaymentAmountProcessingService {
     }
 
     private PaymentAmount createUsePointAmount(BigDecimal usePointAmount) {
-        if (usePointAmount == null || usePointAmount.compareTo(BigDecimal.ZERO) <= 0) {
+        if (usePointAmount == null) {
+            return PaymentAmount.krw(BigDecimal.ZERO);
+        }
+        if (usePointAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("usePointAmount는 0 이상이어야 합니다");
+        }
+        if (usePointAmount.compareTo(BigDecimal.ZERO) == 0) {
             return PaymentAmount.krw(BigDecimal.ZERO);
         }
         return PaymentAmount.krw(usePointAmount);
