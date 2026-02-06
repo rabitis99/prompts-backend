@@ -20,6 +20,8 @@ public class PaymentResultEventPublisher {
 
     private final PaymentJpaAdapter paymentJpaAdapter;
     private final PaymentEventPublisher eventPublisher;
+    private final PaymentResultProcessor resultProcessor;
+    private final PaymentExecutionTemplate executionTemplate;
 
     @Transactional
     public Payment publishPaymentResult(
@@ -28,11 +30,25 @@ public class PaymentResultEventPublisher {
             BigDecimal actualAmount,
             String idempotencyKey
     ) {
+        // 이벤트 발행 전에 Payment 상태를 동기적으로 업데이트
+        Payment payment = paymentJpaAdapter.findById(paymentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        
+        // idempotencyKey 저장
+        payment.updateIdempotencyKey(idempotencyKey);
+        
+        // Payment 상태 업데이트 및 저장 (람다에서 사용하기 위해 final 변수로 복사)
+        final Payment paymentForLambda = payment;
+        payment = executionTemplate.applyResultAndSave(
+                payment,
+                result,
+                r -> resultProcessor.applyPaymentResult(paymentForLambda, r, actualAmount)
+        );
+        
+        // 상태 업데이트 후 이벤트 발행 (이벤트 리스너는 추가 검증/후처리만 수행)
         eventPublisher.publishPaymentResultApplied(paymentId, result, actualAmount, idempotencyKey);
         
-        // 반환값은 조회만 수행 (트랜잭션 내에서 일관성 보장)
-        return paymentJpaAdapter.findById(paymentId)
-                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+        return payment;
     }
 
     @Transactional
