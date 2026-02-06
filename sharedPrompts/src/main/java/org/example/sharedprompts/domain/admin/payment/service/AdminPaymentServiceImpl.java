@@ -11,6 +11,7 @@ import org.example.sharedprompts.domain.payment.infrastructure.monitoring.compen
 import org.example.sharedprompts.domain.payment.infrastructure.transaction.DistributedLockService;
 import org.example.sharedprompts.domain.payment.application.command.postprocess.PaymentPostProcessService;
 import org.example.sharedprompts.domain.payment.application.query.PaymentStatusSyncService;
+import org.example.sharedprompts.domain.payment.application.command.service.refund.RefundExecutionResult;
 import org.example.sharedprompts.domain.payment.infrastructure.transaction.PaymentTransactionManager;
 import org.example.sharedprompts.domain.payment.application.command.PaymentValidationService;
 import org.example.sharedprompts.dto.payment.request.PaymentCancelRequestDto;
@@ -28,12 +29,6 @@ import java.math.BigDecimal;
 
 /**
  * 관리자용 결제 서비스 구현체
- * 
- * <p>관리자 전용 기능을 제공합니다:
- * <ul>
- *   <li>소유권 검증 없이 모든 결제 조회/취소/환불 가능</li>
- *   <li>전체 결제 내역 조회</li>
- * </ul>
  */
 @Slf4j
 @Service
@@ -93,14 +88,6 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
 
     /**
      * 관리자용 결제 취소 처리
-     *
-     * <p><strong>동시성 보호:</strong>
-     * 분산 락을 사용하여 동일 Payment에 대한 동시 취소 요청을 직렬화합니다.
-     * 이를 통해 전액 취소 시 동시성 문제를 방지합니다.
-     *
-     * <p><strong>트랜잭션 순서:</strong>
-     * 락 획득 → 트랜잭션 시작 → 작업 수행 → 트랜잭션 커밋 → 락 해제
-     * 이를 통해 락이 해제된 후 트랜잭션이 커밋되기 전에 다른 스레드가 락을 획득하는 문제를 방지합니다.
      */
     @Override
     public PaymentResponseDto cancelPayment(Long paymentId, PaymentCancelRequestDto request, Long adminId) {
@@ -155,21 +142,13 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
 
     /**
      * 관리자용 결제 환불 처리
-     *
-     * <p><strong>동시성 보호 (2026-02-04 개선):</strong>
-     * 분산 락을 사용하여 동일 Payment에 대한 동시 환불 요청을 직렬화합니다.
-     * 이를 통해 멱등성 키 생성 시 refundedAmount 읽기 경쟁 조건을 방지합니다.
-     *
-     * <p><strong>트랜잭션 순서 (2026-02-04 개선):</strong>
-     * 락 획득 → 트랜잭션 시작 → 작업 수행 → 트랜잭션 커밋 → 락 해제
-     * 이를 통해 락이 해제된 후 트랜잭션이 커밋되기 전에 다른 스레드가 락을 획득하는 문제를 방지합니다.
      */
     @Override
     public PaymentResponseDto refundPayment(Long paymentId, PaymentRefundRequestDto request, Long adminId) {
         String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":state";
 
         // 환불 실행 트랜잭션
-        Payment refundedPayment = transactionManager.executeWithLockAndTransaction(lockKey, () -> {
+        RefundExecutionResult result = transactionManager.executeWithLockAndTransaction(lockKey, () -> {
             Payment payment = paymentJpaAdapter.findById(paymentId)
                     .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
@@ -178,11 +157,13 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
             BigDecimal refundAmount = validationService.validateRefundAmount(request.getAmount(), payment);
 
             // PaymentExecutionService를 통한 환불 실행
-            return executionService.executeRefund(payment, refundAmount, request.getReasonOrDefault());
+            Payment refundedPayment = executionService.executeRefund(payment, refundAmount, request.getReasonOrDefault());
+            return new RefundExecutionResult(refundedPayment, refundAmount);
         });
 
         // 후처리 트랜잭션 (별도)
-        BigDecimal refundAmount = validationService.validateRefundAmount(request.getAmount(), refundedPayment);
+        Payment refundedPayment = result.getRefundedPayment();
+        BigDecimal refundAmount = result.getRefundAmount();
         BigDecimal refundPointAmount = amountCalculator.calculateRefundPointAmount(
                 refundedPayment.getUsedPointAmount(),
                 refundedPayment.getAmount(),
