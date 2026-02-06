@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+import java.math.BigDecimal;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -110,7 +112,10 @@ public class PaymentResultEventListener {
             }
 
             PaymentStatus status = payment.getStatus();
-            boolean isCancelable = status == PaymentStatus.PENDING || status.isRefundable();
+            // 취소 가능한 상태: PENDING 또는 SUCCESS (환불되지 않은 경우)
+            boolean isCancelable = status == PaymentStatus.PENDING 
+                    || (status == PaymentStatus.SUCCESS && (payment.getRefundedAmount() == null 
+                            || payment.getRefundedAmount().compareTo(BigDecimal.ZERO) == 0));
             if (!isCancelable) {
                 log.warn("취소 결과 적용 불가: paymentId={}, currentStatus={}", event.paymentId(), payment.getStatus());
                 return;
@@ -165,6 +170,12 @@ public class PaymentResultEventListener {
                 return;
             }
 
+            if (payment.getIdempotencyKey() != null 
+                    && event.idempotencyKey().equals(payment.getIdempotencyKey())) {
+                log.info("환불 결과 적용 건너뜀 (멱등성 키 일치): paymentId={}", event.paymentId());
+                return;
+            }
+
             payment.updateIdempotencyKey(event.idempotencyKey());
             
             executionTemplate.applyResultAndSave(
@@ -178,6 +189,9 @@ public class PaymentResultEventListener {
             if (optimisticLockHandler.handleOptimisticLockFailure(
                     e, event.paymentId(),
                     payment -> payment.getStatus() == PaymentStatus.REFUNDED
+                            || payment.getStatus() == PaymentStatus.PARTIALLY_REFUNDED
+                            || (payment.getIdempotencyKey() != null 
+                                    && event.idempotencyKey().equals(payment.getIdempotencyKey()))
             )) {
                 return;
             }

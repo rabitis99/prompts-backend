@@ -43,9 +43,9 @@ public class FailedPaymentEventService {
                     .retryCount(retryCount)
                     .build();
 
-            failedEventRepository.save(failedEvent);
+            FailedPaymentEvent savedEvent = failedEventRepository.save(failedEvent);
             log.info("실패 이벤트 저장 완료: paymentId={}, eventType={}, failedEventId={}",
-                    paymentId, eventType, failedEvent.getId());
+                    paymentId, eventType, savedEvent.getId());
         } catch (JsonProcessingException e) {
             log.error("실패 이벤트 직렬화 실패: paymentId={}, eventType={}", paymentId, eventType, e);
             saveFailedEventWithoutData(eventType, paymentId, exception, retryCount);

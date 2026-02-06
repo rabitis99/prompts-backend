@@ -68,7 +68,7 @@ public class PaymentValidator {
 
     private String extractPaymentIdFromTossOrderId(String orderId) {
         if (orderId == null || orderId.isEmpty()) {
-            return null;
+            return "";
         }
 
         Matcher matcher = TOSS_ORDER_ID_PATTERN.matcher(orderId);
@@ -94,14 +94,14 @@ public class PaymentValidator {
         }
     }
 
-    public void validatePaymentResult(Payment payment, PaymentResult result, BigDecimal actualAmount) {
+    public void validatePaymentResult(Payment payment, PaymentResult result, BigDecimal expectedAmount) {
         // Toss의 경우 orderId 형식을 고려하여 검증
         if (payment.getPaymentMethod() == PaymentMethod.TOSS) {
             validateOrderIdForToss(String.valueOf(payment.getId()), result.getOrderId());
         } else {
             validateOrderId(String.valueOf(payment.getId()), result.getOrderId());
         }
-        validateAmount(actualAmount, result.getAmount(), result.getOrderId());
+        validateAmount(expectedAmount, result.getAmount(), result.getOrderId());
         validateCurrency(payment.getCurrency(), result.getCurrency());
     }
 

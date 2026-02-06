@@ -74,9 +74,8 @@ public class PaymentMonitoringService {
             );
 
             long durationMillis = paymentOpt
-                    .map(p -> p.getApprovedAt() != null
-                            ? Math.max(0L, Duration.between(p.getCreatedAt(), p.getApprovedAt()).toMillis())
-                            : 0L)
+                    .filter(p -> p.getCreatedAt() != null && p.getApprovedAt() != null)
+                    .map(p -> Math.max(0L, Duration.between(p.getCreatedAt(), p.getApprovedAt()).toMillis()))
                     .orElse(0L);
 
             paymentMetrics.recordPaymentSuccess(event.paymentMethod(), durationMillis);

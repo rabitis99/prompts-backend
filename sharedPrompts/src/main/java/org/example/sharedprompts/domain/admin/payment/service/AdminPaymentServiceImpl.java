@@ -83,14 +83,14 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
     }
 
     @Override
+    @Transactional
     public PaymentResponseDto cancelPayment(Long paymentId, PaymentCancelRequestDto request, Long adminId) {
         String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":state";
 
         Payment canceledPayment;
         try {
             canceledPayment = transactionManager.executeWithLockAndTransaction(lockKey, () -> {
-                Payment payment = paymentJpaAdapter.findByIdWithFetchJoin(paymentId)
-                        .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+                Payment payment = findPaymentById(paymentId);
 
                 validationService.validateCancelableStatus(payment);
 
@@ -123,14 +123,14 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
     }
 
     @Override
+    @Transactional
     public PaymentResponseDto refundPayment(Long paymentId, PaymentRefundRequestDto request, Long adminId) {
         String lockKey = distributedLockService.createLockKey("payment", paymentId) + ":state";
 
         RefundExecutionResult result;
         try {
             result = transactionManager.executeWithLockAndTransaction(lockKey, () -> {
-                Payment payment = paymentJpaAdapter.findByIdWithFetchJoin(paymentId)
-                        .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
+                Payment payment = findPaymentById(paymentId);
 
                 validationService.validateRefundableStatus(payment);
                 BigDecimal refundAmount = validationService.validateRefundAmount(request.getAmount(), payment);
@@ -176,9 +176,14 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
 
     private RuntimeException handleTransactionFailure(Exception e, String context, Long paymentId, Long actorId) {
         if (e instanceof ApiException apiEx) {
-            throw apiEx;
+            return apiEx;
         }
         log.error("{}: paymentId={}, actorId={}, error={}", context, paymentId, actorId, e.getMessage(), e);
-        throw new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, context + ": " + e.getMessage(), e);
+        return new ApiException(ErrorCode.PAYMENT_PROVIDER_ERROR, context + ": " + e.getMessage(), e);
+    }
+
+    private Payment findPaymentById(Long paymentId) {
+        return paymentJpaAdapter.findByIdWithFetchJoin(paymentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
     }
 }
