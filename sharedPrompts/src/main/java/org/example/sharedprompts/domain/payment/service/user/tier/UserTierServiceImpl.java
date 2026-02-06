@@ -132,9 +132,9 @@ public class UserTierServiceImpl implements UserTierService {
         BigDecimal totalPaymentAmount = paymentJpaAdapter.sumTotalPaymentAmount(userId, PaymentStatus.SUCCESS);
         
         UserTier currentTier = user.getTier();
-        UserTier calculatedTier = tierUpgradePolicy.calculateTier(totalPaymentAmount, currentTier);
 
-        if (calculatedTier.ordinal() > currentTier.ordinal()) {
+        if (tierUpgradePolicy.shouldUpgrade(totalPaymentAmount, currentTier)) {
+            UserTier calculatedTier = tierUpgradePolicy.calculateTier(totalPaymentAmount, currentTier);
             log.info("티어 자동 업그레이드: userId={}, currentTier={}, newTier={}, totalPaymentAmount={}",
                     userId, currentTier, calculatedTier, totalPaymentAmount);
 
