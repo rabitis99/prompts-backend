@@ -7,6 +7,8 @@ import org.example.sharedprompts.dto.payment.response.UserTierHistoryResponseDto
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
+
 /**
  * 사용자 티어 서비스 인터페이스
  */
@@ -40,6 +42,6 @@ public interface UserTierService {
     /**
      * 결제 성공 시 티어 자동 업그레이드
      */
-    void upgradeTierIfEligible(Long userId, java.math.BigDecimal paymentAmount);
+    void upgradeTierIfEligible(Long userId, BigDecimal paymentAmount);
 }
 
