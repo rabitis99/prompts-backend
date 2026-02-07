@@ -1,6 +1,9 @@
 package org.example.sharedprompts.global.util;
 
 public class DurationFormatter {
+
+    private DurationFormatter() {
+    }
     
     public static String formatDowntime(long durationMs) {
         if (durationMs <= 0) {

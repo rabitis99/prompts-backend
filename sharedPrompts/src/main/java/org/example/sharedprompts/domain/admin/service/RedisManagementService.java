@@ -4,12 +4,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.redis.RedisHealthService;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisCallback;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -18,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 public class RedisManagementService {
 
     private final RedisHealthService redisHealthService;
-    private final StringRedisTemplate redisTemplate;
     
     @Value("${redis.restart.command:}")
     private String restartCommand;
@@ -80,15 +79,13 @@ public class RedisManagementService {
         try {
             log.info("Redis 재시작 명령어 실행: {}", restartCommand);
             
-            ProcessBuilder processBuilder;
-            String os = System.getProperty("os.name").toLowerCase();
-            
-            if (os.contains("win")) {
-                processBuilder = new ProcessBuilder("cmd", "/c", restartCommand);
-            } else {
-                processBuilder = new ProcessBuilder("sh", "-c", restartCommand);
+            List<String> commandParts = parseCommand(restartCommand);
+            if (commandParts.isEmpty()) {
+                log.error("Redis 재시작 명령어 파싱 실패: 빈 명령어");
+                return false;
             }
             
+            ProcessBuilder processBuilder = new ProcessBuilder(commandParts);
             processBuilder.redirectErrorStream(true);
             Process process = processBuilder.start();
             
@@ -126,31 +123,46 @@ public class RedisManagementService {
     }
 
     public boolean testRedisConnection() {
-        try {
-            String result = redisTemplate.execute((RedisCallback<String>) connection -> {
-                return connection.ping();
-            });
-            
-            boolean isConnected = "PONG".equals(result);
-            
-            if (isConnected) {
-                log.info("Redis 연결 테스트 성공");
-                redisHealthService.setHealthy(true);
-            } else {
-                log.warn("Redis 연결 테스트 실패: PING 응답이 PONG이 아님");
-                redisHealthService.setHealthy(false);
-            }
-            
-            return isConnected;
-        } catch (Exception e) {
-            log.error("Redis 연결 테스트 중 예외 발생", e);
-            redisHealthService.setHealthy(false);
-            return false;
-        }
+        return redisHealthService.forceHealthCheck();
     }
 
     public boolean performHealthCheck() {
         return redisHealthService.forceHealthCheck();
+    }
+
+    private List<String> parseCommand(String command) {
+        List<String> parts = new ArrayList<>();
+        if (command == null || command.trim().isEmpty()) {
+            return parts;
+        }
+        
+        // 공백으로 분리하되, 따옴표로 감싸진 부분은 보존
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        StringBuilder current = new StringBuilder();
+        
+        for (int i = 0; i < command.length(); i++) {
+            char c = command.charAt(i);
+            
+            if (c == '\'' && !inDoubleQuote) {
+                inSingleQuote = !inSingleQuote;
+            } else if (c == '"' && !inSingleQuote) {
+                inDoubleQuote = !inDoubleQuote;
+            } else if (Character.isWhitespace(c) && !inSingleQuote && !inDoubleQuote) {
+                if (current.length() > 0) {
+                    parts.add(current.toString());
+                    current.setLength(0);
+                }
+            } else {
+                current.append(c);
+            }
+        }
+        
+        if (current.length() > 0) {
+            parts.add(current.toString());
+        }
+        
+        return parts;
     }
 }
 

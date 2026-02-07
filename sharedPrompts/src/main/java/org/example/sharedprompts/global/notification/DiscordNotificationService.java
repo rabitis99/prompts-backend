@@ -65,9 +65,6 @@ public class DiscordNotificationService {
             
             if (response.getStatusCode().is2xxSuccessful()) {
                 log.debug("Discord 웹훅 전송 성공");
-            } else {
-                log.warn("Discord 웹훅 전송 실패: status={}, body={}", 
-                        response.getStatusCode(), response.getBody());
             }
         } catch (Exception e) {
             log.error("Discord 웹훅 전송 중 예외 발생", e);

@@ -174,7 +174,7 @@ public class RedisHealthService {
             adaptiveBackoffMs.set(0);
             downSinceTime.set(0);
         } else {
-            downSinceTime.set(System.currentTimeMillis());
+            downSinceTime.compareAndSet(0, System.currentTimeMillis());
         }
         lastCheckTime.set(System.currentTimeMillis());
     }

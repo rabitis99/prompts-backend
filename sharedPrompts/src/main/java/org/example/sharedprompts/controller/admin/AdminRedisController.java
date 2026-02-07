@@ -24,11 +24,10 @@ public class AdminRedisController {
     @GetMapping("/status")
     public ResponseEntity<CustomResponse<RedisStatusResponseDto>> getRedisStatus() {
         boolean isHealthy = redisManagementService.checkRedisStatus();
-        boolean connectionTest = redisManagementService.testRedisConnection();
         
         RedisStatusResponseDto response = RedisStatusResponseDto.builder()
                 .healthy(isHealthy)
-                .connected(connectionTest)
+                .connected(isHealthy)
                 .build();
         
         return CustomResponseHelper.ok(response);
@@ -41,11 +40,10 @@ public class AdminRedisController {
         log.info("관리자 Redis 재시작 요청: userId={}", authUser.getId());
         
         boolean success = redisManagementService.restartRedis();
-        boolean connectionTest = redisManagementService.testRedisConnection();
         
         RedisStatusResponseDto response = RedisStatusResponseDto.builder()
-                .healthy(success && connectionTest)
-                .connected(connectionTest)
+                .healthy(success)
+                .connected(success)
                 .message(success ? "Redis 재시작 시도가 완료되었습니다." : "Redis 재시작 시도에 실패했습니다.")
                 .build();
         

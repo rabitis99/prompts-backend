@@ -8,17 +8,19 @@ import org.example.sharedprompts.global.util.DurationFormatter;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class RedisNotificationEmbedBuilder {
 
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final ZoneId TIMEZONE = ZoneId.of("Asia/Seoul");
     private static final int ERROR_MESSAGE_MAX_LENGTH = 1000;
     private static final String FOOTER_TEXT = "SharedPrompts Backend";
 
     public static DiscordWebhookPayload buildDownNotification(String errorMessage, long consecutiveFailures) {
-        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMATTER);
+        String timestamp = LocalDateTime.now(TIMEZONE).format(TIMESTAMP_FORMATTER);
         
         DiscordEmbed embed = DiscordEmbed.builder()
                 .title("🚨 Redis 장애 감지")
@@ -59,7 +61,7 @@ public class RedisNotificationEmbedBuilder {
     }
 
     public static DiscordWebhookPayload buildRecoveryNotification(long downtimeDurationMs) {
-        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMATTER);
+        String timestamp = LocalDateTime.now(TIMEZONE).format(TIMESTAMP_FORMATTER);
         String downtimeText = DurationFormatter.formatDowntime(downtimeDurationMs);
         
         DiscordEmbed embed = DiscordEmbed.builder()

@@ -21,7 +21,6 @@ public class RedisHealthCheckScheduler {
     private final AtomicBoolean previousHealthyStatus = new AtomicBoolean(true);
     private final AtomicLong lastNotificationTime = new AtomicLong(0);
     private static final long NOTIFICATION_COOLDOWN_MS = 60_000;
-    private final AtomicLong downSinceTime = new AtomicLong(0);
 
     @Scheduled(
             fixedDelayString = "${redis.health-check.fixed-delay:5000}",
@@ -34,7 +33,6 @@ public class RedisHealthCheckScheduler {
 
             if (!isHealthy) {
                 if (previousHealthy) {
-                    downSinceTime.set(System.currentTimeMillis());
                     sendRedisDownNotification();
                 }
             } else {
@@ -48,7 +46,6 @@ public class RedisHealthCheckScheduler {
             log.error("Redis Health Check 예외 발생", e);
 
             if (previousHealthyStatus.get()) {
-                downSinceTime.set(System.currentTimeMillis());
                 sendRedisDownNotification();
                 previousHealthyStatus.set(false);
             }
@@ -64,7 +61,6 @@ public class RedisHealthCheckScheduler {
         }
 
         try {
-            redisHealthService.reportFailure();
             long consecutiveFailures = redisHealthService.getConsecutiveFailures();
             long failureCount = Math.max(1, consecutiveFailures);
             
@@ -81,11 +77,10 @@ public class RedisHealthCheckScheduler {
 
     private void sendRedisRecoveryNotification() {
         try {
-            long downSince = downSinceTime.get();
+            long downSince = redisHealthService.getDownSinceTime();
             long downtimeDuration = 0;
             if (downSince > 0) {
                 downtimeDuration = System.currentTimeMillis() - downSince;
-                downSinceTime.set(0);
             }
             
             discordNotificationService.sendRedisRecoveryNotification(downtimeDuration);
