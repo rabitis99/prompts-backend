@@ -74,7 +74,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"device_token\": \"device_token_value\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
@@ -101,27 +101,6 @@
               "raw": "{{baseUrl}}/auth/confirm",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "confirm"]
-            }
-          }
-        },
-        {
-          "name": "OAuth 콜백",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/auth/callback?key=oauth_key&state=state_value",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "callback"],
-              "query": [
-                {
-                  "key": "key",
-                  "value": "oauth_key"
-                },
-                {
-                  "key": "state",
-                  "value": "state_value"
-                }
-              ]
             }
           }
         },
@@ -1385,7 +1364,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"paymentId\": \"1\",\n  \"reason\": \"사용자 요청\"\n}"
+              "raw": "{\n  \"payment_id\": \"1\",\n  \"reason\": \"사용자 요청\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/payments/cancel",
@@ -1410,7 +1389,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"paymentId\": \"1\",\n  \"amount\": null,\n  \"reason\": \"사용자 요청\"\n}"
+              "raw": "{\n  \"payment_id\": \"1\",\n  \"amount\": null,\n  \"reason\": \"사용자 요청\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/payments/refund",
@@ -1420,18 +1399,7 @@
           }
         },
         {
-          "name": "사용자 티어 조회",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/payments/users/1/tier",
-              "host": ["{{baseUrl}}"],
-              "path": ["payments", "users", "1", "tier"]
-            }
-          }
-        },
-        {
-          "name": "사용자 티어 정보 조회",
+          "name": "내 티어 조회",
           "request": {
             "method": "GET",
             "header": [
@@ -1441,9 +1409,26 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/payments/users/1/tier-info",
+              "raw": "{{baseUrl}}/payments/me/tier",
               "host": ["{{baseUrl}}"],
-              "path": ["payments", "users", "1", "tier-info"]
+              "path": ["payments", "me", "tier"]
+            }
+          }
+        },
+        {
+          "name": "내 티어 정보 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/me/tier-info",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "me", "tier-info"]
             }
           }
         },
@@ -1465,7 +1450,7 @@
           }
         },
         {
-          "name": "티어 변경 이력 조회",
+          "name": "내 티어 변경 이력 조회",
           "request": {
             "method": "GET",
             "header": [
@@ -1475,9 +1460,34 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/payments/users/1/tier-history",
+              "raw": "{{baseUrl}}/payments/me/tier-history",
               "host": ["{{baseUrl}}"],
-              "path": ["payments", "users", "1", "tier-history"]
+              "path": ["payments", "me", "tier-history"]
+            }
+          }
+        },
+        {
+          "name": "결제 승인",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": \"1\",\n  \"amount\": 10000,\n  \"payment_key\": \"payment_key_value\",\n  \"pg_token\": \"pg_token_value\",\n  \"toss_order_id\": \"toss_order_id_value\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "confirm"]
             }
           }
         }
@@ -2175,6 +2185,188 @@
           "name": "결제 관리",
           "item": [
             {
+              "name": "결제 상태 조회",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments/1/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "payments", "1", "status"]
+                }
+              }
+            },
+            {
+              "name": "사용자 결제 내역 조회",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments/users/1/history?page=0&size=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "payments", "users", "1", "history"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "전체 결제 내역 조회",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments/history?page=0&size=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "payments", "history"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "결제 취소",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"관리자 요청\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments/1/cancel",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "payments", "1", "cancel"]
+                }
+              }
+            },
+            {
+              "name": "결제 환불",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": null,\n  \"reason\": \"관리자 요청\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments/1/refund",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "payments", "1", "refund"]
+                }
+              }
+            },
+            {
+              "name": "사용자 티어 조회",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments/users/1/tier",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "payments", "users", "1", "tier"]
+                }
+              }
+            },
+            {
+              "name": "사용자 티어 정보 조회",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments/users/1/tier-info",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "payments", "users", "1", "tier-info"]
+                }
+              }
+            },
+            {
+              "name": "사용자 티어 변경 이력 조회",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments/users/1/tier-history?page=0&size=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "payments", "users", "1", "tier-history"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
               "name": "사용자 티어 변경",
               "request": {
                 "method": "POST",
@@ -2235,6 +2427,79 @@
                   "raw": "{{baseUrl}}/admin/maintenance/likes/rebuild/status",
                   "host": ["{{baseUrl}}"],
                   "path": ["admin", "maintenance", "likes", "rebuild", "status"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Redis 관리",
+          "item": [
+            {
+              "name": "Redis 상태 조회",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/redis/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "redis", "status"]
+                }
+              }
+            },
+            {
+              "name": "Redis 재시작",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/redis/restart",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "redis", "restart"]
+                }
+              }
+            },
+            {
+              "name": "Redis 연결 테스트",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/redis/test-connection",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "redis", "test-connection"]
+                }
+              }
+            },
+            {
+              "name": "Redis Health Check",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/redis/health-check",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "redis", "health-check"]
                 }
               }
             }

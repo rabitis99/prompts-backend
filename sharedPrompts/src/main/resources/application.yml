@@ -154,6 +154,30 @@ redis:
     enabled: ${REDIS_HEALTH_CHECK_ENABLED:true}
     interval-ms: ${REDIS_HEALTH_CHECK_INTERVAL_MS:5000}
     max-consecutive-failures: ${REDIS_HEALTH_CHECK_MAX_CONSECUTIVE_FAILURES:3}
+  # Redis 재시작 설정
+  restart:
+    # Redis 재시작 기능 활성화 여부 (보안상 기본값: false)
+    enabled: ${REDIS_RESTART_ENABLED:false}
+    # Redis 재시작 명령어
+    # 예시:
+    #   Linux (systemd): systemctl restart redis
+    #   Linux (service): service redis restart
+    #   Windows: net stop redis && net start redis
+    #   Docker: docker restart redis-container
+    command: ${REDIS_RESTART_COMMAND:}
+    # 재시작 명령어 실행 타임아웃 (초)
+    timeout-seconds: ${REDIS_RESTART_TIMEOUT_SECONDS:30}
+
+# =========================
+# Discord 웹훅 알림 설정
+# =========================
+discord:
+  webhook:
+    # Discord 웹훅 URL (선택적)
+    # Discord 채널 설정 > 연동 > 웹후크 > 새 웹후크 만들기에서 URL을 복사하여 설정
+    url: ${DISCORD_WEBHOOK_URL:}
+    # Discord 알림 활성화 여부
+    enabled: ${DISCORD_WEBHOOK_ENABLED:false}
 
 # =========================
 # ShedLock 설정
