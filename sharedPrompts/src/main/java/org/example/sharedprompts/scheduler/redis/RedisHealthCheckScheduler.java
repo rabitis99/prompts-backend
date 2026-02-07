@@ -28,6 +28,7 @@ public class RedisHealthCheckScheduler {
     )
     public void performHealthCheck() {
         try {
+            long currentDownSince = redisHealthService.getDownSinceTime();
             boolean isHealthy = redisHealthService.isRedisHealthy();
             boolean previousHealthy = previousHealthyStatus.get();
 
@@ -37,7 +38,7 @@ public class RedisHealthCheckScheduler {
                 }
             } else {
                 if (!previousHealthy) {
-                    sendRedisRecoveryNotification();
+                    sendRedisRecoveryNotification(currentDownSince);
                 }
             }
 
@@ -75,9 +76,8 @@ public class RedisHealthCheckScheduler {
         }
     }
 
-    private void sendRedisRecoveryNotification() {
+    private void sendRedisRecoveryNotification(long downSince) {
         try {
-            long downSince = redisHealthService.getDownSinceTime();
             long downtimeDuration = 0;
             if (downSince > 0) {
                 downtimeDuration = System.currentTimeMillis() - downSince;

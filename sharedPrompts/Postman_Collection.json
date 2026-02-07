@@ -2431,6 +2431,79 @@
               }
             }
           ]
+        },
+        {
+          "name": "Redis 관리",
+          "item": [
+            {
+              "name": "Redis 상태 조회",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/redis/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "redis", "status"]
+                }
+              }
+            },
+            {
+              "name": "Redis 재시작",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/redis/restart",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "redis", "restart"]
+                }
+              }
+            },
+            {
+              "name": "Redis 연결 테스트",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/redis/test-connection",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "redis", "test-connection"]
+                }
+              }
+            },
+            {
+              "name": "Redis Health Check",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/redis/health-check",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "redis", "health-check"]
+                }
+              }
+            }
+          ]
         }
       ]
     }

@@ -4,12 +4,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.redis.RedisHealthService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -32,17 +34,18 @@ public class RedisManagementService {
         return redisHealthService.getCachedHealthStatus();
     }
 
-    public boolean restartRedis() {
+    @Async
+    public CompletableFuture<Boolean> restartRedis() {
         log.info("Redis 재시작 시도 시작");
         
         if (!restartEnabled) {
             log.warn("Redis 재시작 기능이 비활성화되어 있습니다. redis.restart.enabled=true로 설정하세요.");
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
         
         if (restartCommand == null || restartCommand.trim().isEmpty()) {
             log.warn("Redis 재시작 명령어가 설정되지 않았습니다. redis.restart.command를 설정하세요.");
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
         
         try {
@@ -50,7 +53,7 @@ public class RedisManagementService {
             
             if (!restartSuccess) {
                 log.error("Redis 재시작 명령어 실행 실패");
-                return false;
+                return CompletableFuture.completedFuture(false);
             }
             
             Thread.sleep(3000);
@@ -59,7 +62,7 @@ public class RedisManagementService {
                 boolean isHealthy = redisHealthService.forceHealthCheck();
                 if (isHealthy) {
                     log.info("Redis 재시작 성공: 연결 확인 완료 (시도 횟수: {})", i + 1);
-                    return true;
+                    return CompletableFuture.completedFuture(true);
                 }
                 if (i < 4) {
                     Thread.sleep(2000);
@@ -67,17 +70,17 @@ public class RedisManagementService {
             }
             
             log.warn("Redis 재시작 후 연결 확인 실패");
-            return false;
+            return CompletableFuture.completedFuture(false);
             
         } catch (Exception e) {
             log.error("Redis 재시작 시도 중 예외 발생", e);
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
     }
     
     private boolean executeRestartCommand() {
         try {
-            log.info("Redis 재시작 명령어 실행: {}", restartCommand);
+            log.debug("Redis 재시작 명령어 실행: {}", restartCommand);
             
             List<String> commandParts = parseCommand(restartCommand);
             if (commandParts.isEmpty()) {
@@ -127,7 +130,7 @@ public class RedisManagementService {
     }
 
     public boolean performHealthCheck() {
-        return redisHealthService.forceHealthCheck();
+        return testRedisConnection();
     }
 
     private List<String> parseCommand(String command) {

@@ -39,19 +39,23 @@ public class AdminRedisController {
     ) {
         log.info("관리자 Redis 재시작 요청: userId={}", authUser.getId());
         
-        boolean success = redisManagementService.restartRedis();
-        
+        // 비동기 작업 시작, 즉시 응답 반환
+        redisManagementService.restartRedis();
         RedisStatusResponseDto response = RedisStatusResponseDto.builder()
-                .healthy(success)
-                .connected(success)
-                .message(success ? "Redis 재시작 시도가 완료되었습니다." : "Redis 재시작 시도에 실패했습니다.")
+                .healthy(false)
+                .connected(false)
+                .message("Redis 재시작이 비동기로 시작되었습니다. 상태를 확인하려면 /admin/redis/status를 사용하세요.")
                 .build();
         
         return CustomResponseHelper.ok(response);
     }
 
     @PostMapping("/test-connection")
-    public ResponseEntity<CustomResponse<RedisStatusResponseDto>> testConnection() {
+    public ResponseEntity<CustomResponse<RedisStatusResponseDto>> testConnection(
+            @CurrentUser AuthUser authUser
+    ) {
+        log.info("관리자 Redis 연결 테스트 요청: userId={}", authUser.getId());
+        
         boolean connected = redisManagementService.testRedisConnection();
         
         RedisStatusResponseDto response = RedisStatusResponseDto.builder()
@@ -64,7 +68,11 @@ public class AdminRedisController {
     }
 
     @PostMapping("/health-check")
-    public ResponseEntity<CustomResponse<RedisStatusResponseDto>> performHealthCheck() {
+    public ResponseEntity<CustomResponse<RedisStatusResponseDto>> performHealthCheck(
+            @CurrentUser AuthUser authUser
+    ) {
+        log.info("관리자 Redis Health Check 요청: userId={}", authUser.getId());
+        
         boolean isHealthy = redisManagementService.performHealthCheck();
         
         RedisStatusResponseDto response = RedisStatusResponseDto.builder()

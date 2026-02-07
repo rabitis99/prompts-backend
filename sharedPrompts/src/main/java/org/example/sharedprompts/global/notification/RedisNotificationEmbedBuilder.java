@@ -14,6 +14,10 @@ import java.util.List;
 
 public class RedisNotificationEmbedBuilder {
 
+    private RedisNotificationEmbedBuilder() {
+        // 유틸리티 클래스이므로 인스턴스화 방지
+    }
+
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final ZoneId TIMEZONE = ZoneId.of("Asia/Seoul");
     private static final int ERROR_MESSAGE_MAX_LENGTH = 1000;
