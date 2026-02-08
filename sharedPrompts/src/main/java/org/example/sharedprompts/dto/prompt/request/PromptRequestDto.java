@@ -1,6 +1,8 @@
 package org.example.sharedprompts.dto.prompt.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,6 +13,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.prompt.enums.*;
+import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.enums.action.EtcActionType;
+import org.example.sharedprompts.domain.prompt.enums.role.RoleTypeInterface;
+import org.example.sharedprompts.domain.prompt.enums.role.EtcRoleType;
+import org.example.sharedprompts.domain.prompt.enums.serializer.ActionTypeDeserializer;
+import org.example.sharedprompts.domain.prompt.enums.serializer.ActionTypeSerializer;
+import org.example.sharedprompts.domain.prompt.enums.serializer.RoleTypeDeserializer;
+import org.example.sharedprompts.domain.prompt.enums.serializer.RoleTypeSerializer;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.dto.prompt.validator.ValidInputContent;
 
@@ -50,10 +60,22 @@ public class PromptRequestDto {
     @ValidInputContent
     private String input;                  // rough input
 
-    private ToneType tone;                 // 톤
-    private ExperienceLevel experience;    // 경력/난이도
-    private StyleType style;               // 스타일
-    private LanguageType language;         // 언어
+    @NotNull(message = "작업 유형을 입력해주세요.")
+    @JsonProperty("action_type")
+    @JsonSerialize(using = ActionTypeSerializer.class)
+    @JsonDeserialize(using = ActionTypeDeserializer.class)
+    private ActionTypeInterface actionType;
+    
+    @NotNull(message = "역할 유형을 입력해주세요.")
+    @JsonProperty("role_type")
+    @JsonSerialize(using = RoleTypeSerializer.class)
+    @JsonDeserialize(using = RoleTypeDeserializer.class)
+    private RoleTypeInterface roleType;
+
+    private ToneType tone;
+    private ExperienceLevel experience;
+    private StyleType style;
+    private LanguageType language;
 
     /**
      * 방어적 복사를 적용한 정적 팩토리 메서드.
@@ -66,6 +88,8 @@ public class PromptRequestDto {
             PromptCategory promptCategory,
             List<String> tags,
             String input,
+            ActionTypeInterface actionType,
+            RoleTypeInterface roleType,
             ToneType tone,
             ExperienceLevel experience,
             StyleType style,
@@ -78,6 +102,8 @@ public class PromptRequestDto {
                 .promptCategory(promptCategory)
                 .tags(tags != null ? List.copyOf(tags) : null)
                 .input(input)
+                .actionType(actionType)
+                .roleType(roleType)
                 .tone(tone)
                 .experience(experience)
                 .style(style)
@@ -108,9 +134,15 @@ public class PromptRequestDto {
         StyleType style = this.style != null ? this.style : StyleType.NARRATIVE;
         ExperienceLevel level = this.experience != null ? this.experience : ExperienceLevel.INTERMEDIATE;
         LanguageType language = this.language != null ? this.language : LanguageType.KOREAN;
+        // @NotNull 검증이 적용되는 경우 actionType과 roleType은 null이 될 수 없지만,
+        // 방어적 코딩을 위해 null 체크를 유지합니다 (직렬화/역직렬화 과정 등 검증이 우회될 수 있는 경로 대비)
+        ActionTypeInterface actionType = this.actionType != null ? this.actionType : EtcActionType.GENERAL_CONSULTATION;
+        RoleTypeInterface roleType = this.roleType != null ? this.roleType : EtcRoleType.GENERAL_CONSULTANT;
 
         return InputRequestDto.builder()
                 .input(this.input)
+                .actionType(actionType)
+                .roleType(roleType)
                 .tone(tone)
                 .experience(level)
                 .style(style)
