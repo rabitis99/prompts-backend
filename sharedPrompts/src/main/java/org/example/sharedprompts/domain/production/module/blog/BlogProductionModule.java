@@ -58,6 +58,9 @@ public class BlogProductionModule implements ProductionModule {
             throw new UnsupportedOperationException("TODO: Implement blog content composition logic");
             
         } catch (Exception e) {
+            if (e instanceof UnsupportedOperationException) {
+                throw e;
+            }
             return BlogResult.failure(e.getMessage(), startedAt, Instant.now());
         }
     }

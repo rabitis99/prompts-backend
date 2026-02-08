@@ -13,7 +13,7 @@ public class BlogCommand implements ProductionCommand {
     public BlogCommand(String commandId, String title, List<String> tags) {
         this.commandId = commandId;
         this.title = title;
-        this.tags = tags;
+        this.tags = List.copyOf(tags);
     }
     
     @Override

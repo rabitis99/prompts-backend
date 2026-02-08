@@ -57,6 +57,9 @@ public class TextProductionModule implements ProductionModule {
             throw new UnsupportedOperationException("TODO: Implement text file writing logic");
             
         } catch (Exception e) {
+            if (e instanceof UnsupportedOperationException) {
+                throw e;
+            }
             return TextResult.failure(e.getMessage(), startedAt, Instant.now());
         }
     }

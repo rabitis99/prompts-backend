@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.production.api;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -11,7 +12,7 @@ public class ProductionContext {
     public ProductionContext(Long userId) {
         this.productionId = UUID.randomUUID().toString();
         this.userId = userId;
-        this.attributes = new java.util.HashMap<>();
+        this.attributes = new HashMap<>();
     }
     
     public String getProductionId() { return productionId; }
@@ -21,9 +22,8 @@ public class ProductionContext {
         attributes.put(key, value);
     }
     
-    @SuppressWarnings("unchecked")
     public <T> T getAttribute(String key, Class<T> type) {
-        return (T) attributes.get(key);
+        return type.cast(attributes.get(key));
     }
 }
 
