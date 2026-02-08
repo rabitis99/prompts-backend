@@ -5,9 +5,9 @@ import org.example.sharedprompts.dto.prompt.request.InputRequestDto;
 public abstract class PromptGuidelineBuilder {
 
     public final String build(String basePrompt, InputRequestDto request) {
-        return basePrompt
+        return definePrinciples(request)
                 + "\n\n"
-                + definePrinciples(request)
+                + basePrompt
                 + "\n\n"
                 + defineWorkingStyle(request)
                 + "\n\n"
