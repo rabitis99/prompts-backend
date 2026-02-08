@@ -34,8 +34,8 @@ public class EnglishGuidelineBuilder extends PromptGuidelineBuilder {
            - Prioritize practical, applicable content over theory
            - Provide specific and actionable guidelines
         """.formatted(
-                request.getRoleType().getRoleNameEn(),
-                request.getRoleType().getDescriptionEn(),
+                request.getRoleType().getRoleNameByLang(request.getLanguage()),
+                request.getRoleType().getDescriptionByLang(request.getLanguage()),
                 request.getExperience().getGuidelineEn()
         );
     }
@@ -99,7 +99,7 @@ public class EnglishGuidelineBuilder extends PromptGuidelineBuilder {
         - **Concise Conclusion**: Avoid unnecessary closing phrases or summaries
         - **Direct Expression**: Use direct instructions rather than indirect expressions like "please" or "I would like you to"
         """.formatted(
-                request.getActionType().getDisplayNameEn()
+                request.getActionType().getDisplayNameByLang(request.getLanguage())
         );
     }
 }

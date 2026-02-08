@@ -13,7 +13,7 @@ public class ActionTypeSerializer extends JsonSerializer<ActionTypeInterface> {
         if (value == null) {
             gen.writeNull();
         } else {
-            gen.writeString(((Enum<?>) value).name());
+            gen.writeString(value.name());
         }
     }
 }

@@ -19,7 +19,7 @@ public enum CustomerSupportActionType implements ActionTypeInterface {
     CUSTOMER_FEEDBACK_ANALYSIS("고객 피드백 분석", "Customer Feedback Analysis", "顧客フィードバック分析"),
     SUPPORT_TRAINING("지원 교육", "Support Training", "サポート教育"),
     REMOTE_SUPPORT("원격 지원", "Remote Support", "リモートサポート"),
-    CUSTOMER_SATISFACTION("고객 만족도", "Customer Satisfaction", "顧客満足도"),
+    CUSTOMER_SATISFACTION("고객 만족도", "Customer Satisfaction", "顧客満足度"),
     EMAIL_WRITING("이메일 작성", "Email Writing", "メール作成"),
     BUSINESS_EMAIL("비즈니스 이메일", "Business Email", "ビジネスメール"),
     PERSONAL_EMAIL("개인 이메일", "Personal Email", "個人メール"),

@@ -13,7 +13,7 @@ public class RoleTypeSerializer extends JsonSerializer<RoleTypeInterface> {
         if (value == null) {
             gen.writeNull();
         } else {
-            gen.writeString(((Enum<?>) value).name());
+            gen.writeString(value.name());
         }
     }
 }

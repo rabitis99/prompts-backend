@@ -3,96 +3,42 @@ package org.example.sharedprompts.domain.prompt.enums.serializer;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
-import org.example.sharedprompts.domain.prompt.enums.RoleType;
+import org.example.sharedprompts.domain.prompt.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.enums.role.*;
 
 import java.io.IOException;
+import java.util.List;
 
 public class RoleTypeDeserializer extends JsonDeserializer<RoleTypeInterface> {
+    
+    private static final List<Class<? extends Enum<?>>> ROLE_TYPE_ENUMS = List.of(
+            ProductivityRoleType.class,
+            DevelopmentRoleType.class,
+            AiMlRoleType.class,
+            CybersecurityRoleType.class,
+            MarketingRoleType.class,
+            ContentRoleType.class,
+            CreativeRoleType.class,
+            StudyRoleType.class,
+            EducationRoleType.class,
+            ResearchRoleType.class,
+            BusinessRoleType.class,
+            CustomerSupportRoleType.class,
+            DesignRoleType.class,
+            WritingRoleType.class,
+            EtcRoleType.class,
+            HealthFitnessRoleType.class,
+            SocialRoleType.class
+    );
+    
     @Override
     public RoleTypeInterface deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
         String value = p.getText();
         if (value == null || value.isBlank()) {
             return null;
         }
-
-        try {
-            return RoleType.valueOf(value);
-        } catch (IllegalArgumentException e) {
-            return findInCategoryEnums(value);
-        }
-    }
-
-    private RoleTypeInterface findInCategoryEnums(String value) {
-        try {
-            return ProductivityRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
         
-        try {
-            return DevelopmentRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
-        
-        try {
-            return AiMlRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
-        
-        try {
-            return CybersecurityRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
-        
-        try {
-            return MarketingRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
-        
-        try {
-            return ContentRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
-        
-        try {
-            return CreativeRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
-        
-        try {
-            return StudyRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
-        
-        try {
-            return EducationRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
-        
-        try {
-            return ResearchRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
-        
-        try {
-            return BusinessRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
-        
-        try {
-            return CustomerSupportRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
-        
-        try {
-            return DesignRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
-        
-        try {
-            return WritingRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
-        
-        try {
-            return EtcRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
-        
-        try {
-            return HealthFitnessRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
-        
-        try {
-            return SocialRoleType.valueOf(value);
-        } catch (IllegalArgumentException ignored) {}
-        
-        throw new IllegalArgumentException("Unknown RoleType: " + value);
+        return EnumResolver.resolve(value, ROLE_TYPE_ENUMS);
     }
 }
 

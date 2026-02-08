@@ -3,6 +3,16 @@ package org.example.sharedprompts.domain.prompt.enums.action;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+/**
+ * 소셜/커뮤니티 관련 액션 타입 enum
+ * 
+ * <p>생성자 파라미터 순서 (모든 파라미터는 String 타입):
+ * <ol>
+ *   <li>displayNameKo - 표시 이름 (한국어)</li>
+ *   <li>displayNameEn - 표시 이름 (영어)</li>
+ *   <li>displayNameJa - 표시 이름 (일본어)</li>
+ * </ol>
+ */
 @Getter
 @AllArgsConstructor
 public enum SocialActionType implements ActionTypeInterface {
@@ -22,39 +32,10 @@ public enum SocialActionType implements ActionTypeInterface {
     COLLABORATION("협업", "Collaboration", "協力"),
     PARTNERSHIP_BUILDING("파트너십 구축", "Partnership Building", "パートナーシップ構築"),
     CROSS_CULTURAL_COMMUNICATION("문화 간 소통", "Cross-cultural Communication", "異文化コミュニケーション"),
-    TRAVEL_PLANNING("여행 계획", "Travel Planning", "旅行計画"),
-    EVENT_PLANNING("행사 기획", "Event Planning", "イベント企画"),
-    PARTY_PLANNING("파티 기획", "Party Planning", "パーティー企画"),
-    GIFT_SELECTION("선물 선택", "Gift Selection", "贈り物選び"),
-    DECORATION_IDEAS("장식 아이디어", "Decoration Ideas", "装飾アイデア"),
-    HOME_ORGANIZATION("집 정리", "Home Organization", "家の整理"),
-    CHILD_CARE_TIPS("육아 팁", "Child Care Tips", "子育てのコツ"),
-    EDUCATION_CONSULTATION("교육 상담", "Education Consultation", "教育相談"),
-    RELATIONSHIP_ADVICE("관계 조언", "Relationship Advice", "人間関係のアドバイス"),
-    CONFLICT_RESOLUTION("갈등 해결", "Conflict Resolution", "紛争解決"),
-    DECISION_MAKING("의사결정", "Decision Making", "意思決定"),
-    GOAL_SETTING("목표 설정", "Goal Setting", "目標設定"),
-    HABIT_FORMATION("습관 형성", "Habit Formation", "習慣形成"),
-    MOTIVATION("동기 부여", "Motivation", "モチベーション"),
-    SELF_IMPROVEMENT("자기계발", "Self Improvement", "自己啓発"),
-    STRESS_MANAGEMENT("스트레스 관리", "Stress Management", "ストレス管理"),
-    TIME_OFF_PLANNING("휴가 계획", "Time Off Planning", "休暇計画"),
-    HOBBY_EXPLORATION("취미 탐색", "Hobby Exploration", "趣味探し"),
-    BOOK_RECOMMENDATION("도서 추천", "Book Recommendation", "本の推薦"),
-    MOVIE_RECOMMENDATION("영화 추천", "Movie Recommendation", "映画の推薦"),
-    RESTAURANT_RECOMMENDATION("맛집 추천", "Restaurant Recommendation", "レストラン推薦"),
-    PRODUCT_REVIEW("제품 리뷰", "Product Review", "製品レビュー"),
-    COMPARISON_SHOPPING("상품 비교", "Comparison Shopping", "商品比較"),
-    PRICE_NEGOTIATION("가격 협상", "Price Negotiation", "価格交渉"),
     COMPLAINT_WRITING("불만 접수", "Complaint Writing", "苦情申し立て"),
     FEEDBACK_WRITING("피드백 작성", "Feedback Writing", "フィードバック作成"),
     REVIEW_WRITING("리뷰 작성", "Review Writing", "レビュー作成"),
     TESTIMONIAL_WRITING("추천서 작성", "Testimonial Writing", "推薦文作成"),
-    APPLICATION_WRITING("지원서 작성", "Application Writing", "応募書類作成"),
-    RESUME_WRITING("이력서 작성", "Resume Writing", "履歴書作成"),
-    COVER_LETTER("자기소개서", "Cover Letter", "カバーレター"),
-    INTERVIEW_PREPARATION("면접 준비", "Interview Preparation", "面接準備"),
-    NETWORKING_MESSAGE("네트워킹 메시지", "Networking Message", "ネットワーキングメッセージ"),
     FOLLOW_UP_MESSAGE("후속 메시지", "Follow-up Message", "フォローアップメッセージ"),
     APPOINTMENT_SCHEDULING("약속 잡기", "Appointment Scheduling", "予約調整"),
     REMINDER_MESSAGE("알림 메시지", "Reminder Message", "リマインダーメッセージ"),

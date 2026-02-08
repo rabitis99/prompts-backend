@@ -14,7 +14,9 @@ import lombok.NoArgsConstructor;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.prompt.enums.*;
 import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.enums.action.EtcActionType;
 import org.example.sharedprompts.domain.prompt.enums.role.RoleTypeInterface;
+import org.example.sharedprompts.domain.prompt.enums.role.EtcRoleType;
 import org.example.sharedprompts.domain.prompt.enums.serializer.ActionTypeDeserializer;
 import org.example.sharedprompts.domain.prompt.enums.serializer.ActionTypeSerializer;
 import org.example.sharedprompts.domain.prompt.enums.serializer.RoleTypeDeserializer;
@@ -58,11 +60,13 @@ public class PromptRequestDto {
     @ValidInputContent
     private String input;                  // rough input
 
+    @NotNull(message = "작업 유형을 입력해주세요.")
     @JsonProperty("action_type")
     @JsonSerialize(using = ActionTypeSerializer.class)
     @JsonDeserialize(using = ActionTypeDeserializer.class)
     private ActionTypeInterface actionType;
     
+    @NotNull(message = "역할 유형을 입력해주세요.")
     @JsonProperty("role_type")
     @JsonSerialize(using = RoleTypeSerializer.class)
     @JsonDeserialize(using = RoleTypeDeserializer.class)
@@ -130,11 +134,13 @@ public class PromptRequestDto {
         StyleType style = this.style != null ? this.style : StyleType.NARRATIVE;
         ExperienceLevel level = this.experience != null ? this.experience : ExperienceLevel.INTERMEDIATE;
         LanguageType language = this.language != null ? this.language : LanguageType.KOREAN;
+        ActionTypeInterface actionType = this.actionType != null ? this.actionType : EtcActionType.GENERAL_CONSULTATION;
+        RoleTypeInterface roleType = this.roleType != null ? this.roleType : EtcRoleType.GENERAL_CONSULTANT;
 
         return InputRequestDto.builder()
                 .input(this.input)
-                .actionType(this.actionType)
-                .roleType(this.roleType)
+                .actionType(actionType)
+                .roleType(roleType)
                 .tone(tone)
                 .experience(level)
                 .style(style)

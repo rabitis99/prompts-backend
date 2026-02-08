@@ -10,7 +10,7 @@ public enum HealthFitnessActionType implements ActionTypeInterface {
     NUTRITION_TRACKING("영양 추적", "Nutrition Tracking", "栄養追跡"),
     MEDICAL_RECORD_MANAGEMENT("의료 기록 관리", "Medical Record Management", "医療記録管理"),
     FITNESS_GOAL_SETTING("피트니스 목표 설정", "Fitness Goal Setting", "フィットネス目標設定"),
-    EXERCISE_PLANNING("운동 계획", "Exercise Planning", "運動計画"),
+    EXERCISE_PLANNING("운동 계획 수립", "Exercise Planning", "運動計画"),
     DIET_PLANNING("식단 계획", "Diet Planning", "食事計画"),
     WEIGHT_MANAGEMENT("체중 관리", "Weight Management", "体重管理"),
     CARDIO_TRAINING("유산소 운동", "Cardio Training", "有酸素運動"),
