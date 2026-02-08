@@ -134,6 +134,8 @@ public class PromptRequestDto {
         StyleType style = this.style != null ? this.style : StyleType.NARRATIVE;
         ExperienceLevel level = this.experience != null ? this.experience : ExperienceLevel.INTERMEDIATE;
         LanguageType language = this.language != null ? this.language : LanguageType.KOREAN;
+        // @NotNull 검증이 적용되는 경우 actionType과 roleType은 null이 될 수 없지만,
+        // 방어적 코딩을 위해 null 체크를 유지합니다 (직렬화/역직렬화 과정 등 검증이 우회될 수 있는 경로 대비)
         ActionTypeInterface actionType = this.actionType != null ? this.actionType : EtcActionType.GENERAL_CONSULTATION;
         RoleTypeInterface roleType = this.roleType != null ? this.roleType : EtcRoleType.GENERAL_CONSULTANT;
 

@@ -34,8 +34,8 @@ public class JapaneseGuidelineBuilder extends PromptGuidelineBuilder {
            - 理論よりも実践で適用可能な内容を優先
            - 具体的で実行可能な指針を提供
         """.formatted(
-                request.getRoleType().getRoleNameByLang(request.getLanguage()),
-                request.getRoleType().getDescriptionByLang(request.getLanguage()),
+                request.getRoleType().getRoleNameJa(),
+                request.getRoleType().getDescriptionJa(),
                 request.getExperience().getGuidelineJa()
         );
     }
@@ -99,7 +99,7 @@ public class JapaneseGuidelineBuilder extends PromptGuidelineBuilder {
         - **結びの簡潔性**: 不要な結びの文句や要約を避ける
         - **直接的表現**: 「〜してください」「〜していただきたい」などの間接的表現よりも直接的な指示を使用
         """.formatted(
-                request.getActionType().getDisplayNameByLang(request.getLanguage())
+                request.getActionType().getDisplayNameJa()
         );
     }
 }

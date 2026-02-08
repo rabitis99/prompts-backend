@@ -35,7 +35,9 @@ public class RoleTypeDeserializer extends JsonDeserializer<RoleTypeInterface> {
     public RoleTypeInterface deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
         String value = p.getText();
         if (value == null || value.isBlank()) {
-            return null;
+            // InputRequestDto에는 @NotNull 제약이 없으므로, null/blank 값에 대해 기본값 반환
+            // GuidelineBuilder에서 NPE 방지
+            return EtcRoleType.GENERAL_CONSULTANT;
         }
         
         return EnumResolver.resolve(value, ROLE_TYPE_ENUMS);

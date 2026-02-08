@@ -33,8 +33,8 @@ public class KoreanGuidelineBuilder extends PromptGuidelineBuilder{
            - 이론보다 실전 적용 가능한 내용 우선
            - 구체적이고 실행 가능한 지침 제공
         """.formatted(
-                request.getRoleType().getRoleNameByLang(request.getLanguage()),
-                request.getRoleType().getDescriptionByLang(request.getLanguage()),
+                request.getRoleType().getRoleNameKo(),
+                request.getRoleType().getDescriptionKo(),
                 request.getExperience().getGuidelineKo()
         );
     }
@@ -99,7 +99,7 @@ public class KoreanGuidelineBuilder extends PromptGuidelineBuilder{
         - **마무리 간결**: 불필요한 마무리 문구나 요약 지양
         - **직접적 표현**: "~해주세요", "~하시기 바랍니다" 등 간접적 표현보다 직접적 지시 사용
         """.formatted(
-                request.getActionType().getDisplayNameByLang(request.getLanguage())
+                request.getActionType().getDisplayNameKo()
         );
     }
 }

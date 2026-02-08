@@ -29,6 +29,7 @@ public class ActionTypeDeserializer extends JsonDeserializer<ActionTypeInterface
             ResearchActionType.class,
             BusinessActionType.class,
             CustomerSupportActionType.class,
+            EmailActionType.class,
             DesignActionType.class,
             WritingActionType.class,
             EtcActionType.class,
@@ -45,7 +46,9 @@ public class ActionTypeDeserializer extends JsonDeserializer<ActionTypeInterface
     public ActionTypeInterface deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
         String value = p.getText();
         if (value == null || value.isBlank()) {
-            return null;
+            // InputRequestDto에는 @NotNull 제약이 없으므로, null/blank 값에 대해 기본값 반환
+            // GuidelineBuilder에서 NPE 방지
+            return EtcActionType.GENERAL_CONSULTATION;
         }
         
         return EnumResolver.resolve(value, ACTION_TYPE_ENUMS);
