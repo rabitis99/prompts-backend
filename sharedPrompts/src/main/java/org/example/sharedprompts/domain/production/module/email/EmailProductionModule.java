@@ -1,30 +1,30 @@
-package org.example.sharedprompts.domain.production.module.text;
+package org.example.sharedprompts.domain.production.module.email;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.production.api.DefaultProductionResult;
-import org.example.sharedprompts.domain.production.api.FileArtifact;
 import org.example.sharedprompts.domain.production.api.ProductionArtifact;
 import org.example.sharedprompts.domain.production.api.ProductionCommand;
 import org.example.sharedprompts.domain.production.api.ProductionCommandType;
 import org.example.sharedprompts.domain.production.api.ProductionContext;
 import org.example.sharedprompts.domain.production.api.ProductionModule;
 import org.example.sharedprompts.domain.production.api.ProductionResult;
+import org.example.sharedprompts.domain.production.api.TextArtifact;
 import org.example.sharedprompts.domain.production.exception.CommandValidationException;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
-import org.example.sharedprompts.infra.production.text.TextFileWriter;
+import org.example.sharedprompts.infra.production.email.EmailComposer;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 
 @Component
 @RequiredArgsConstructor
-public class TextProductionModule implements ProductionModule {
+public class EmailProductionModule implements ProductionModule {
     
-    private final TextFileWriter textFileWriter;
+    private final EmailComposer emailComposer;
     
     @Override
     public ProductionCommandType getSupportedCommandType() {
-        return ProductionCommandType.TEXT;
+        return ProductionCommandType.EMAIL;
     }
     
     @Override
@@ -32,9 +32,9 @@ public class TextProductionModule implements ProductionModule {
             ProductionCommand command, 
             ProductionContext context
     ) {
-        if (!(command instanceof TextCommand textCommand)) {
+        if (!(command instanceof EmailCommand emailCommand)) {
             throw new CommandValidationException(
-                "Expected TextCommand, but got: " + command.getClass()
+                "Expected EmailCommand, but got: " + command.getClass()
             );
         }
         
@@ -47,20 +47,19 @@ public class TextProductionModule implements ProductionModule {
                 return DefaultProductionResult.failure("PromptResult not found in context", startedAt, Instant.now());
             }
             
-            String filePath = textFileWriter.write(
+            String emailContent = emailComposer.compose(
+                emailCommand.getSubject(),
                 promptResult.getContent(),
-                textCommand.getFileName(),
-                textCommand.getFormat()
+                emailCommand.getRecipient()
             );
             
             Instant completedAt = Instant.now();
             
-            ProductionArtifact artifact = new FileArtifact(filePath);
+            ProductionArtifact artifact = new TextArtifact(emailContent);
             return DefaultProductionResult.success(artifact, startedAt, completedAt);
             
         } catch (Exception e) {
-            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            return DefaultProductionResult.failure(errorMsg, startedAt, Instant.now());
+            return DefaultProductionResult.failure(e.getMessage(), startedAt, Instant.now());
         }
     }
 }

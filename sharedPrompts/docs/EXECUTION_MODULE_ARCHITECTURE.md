@@ -1,13 +1,62 @@
 # Content Production & Delivery 아키텍처
 
+## ⚠️ 중요 주의사항
+
+### Artifact 타입 구분 (반드시 확인!)
+
+| Artifact 타입 | `getLocation()` 반환값 | 사용 예시 |
+|--------------|----------------------|----------|
+| **TEXT** | **실제 콘텐츠 문자열** (파일 경로 아님) | `String content = artifact.getLocation();` |
+| **FILE** | **파일 경로** | `Path filePath = Paths.get(artifact.getLocation());` |
+| **IMAGE** | **이미지 파일 경로** | `Path imagePath = Paths.get(artifact.getLocation());` |
+
+**⚠️ 주의:** TEXT Artifact의 `getLocation()`은 파일 경로가 아닌 **콘텐츠 자체**를 반환합니다. FILE/IMAGE와 혼동하지 않도록 타입을 먼저 확인하세요!
+
+```java
+// 올바른 사용 예시
+if (artifact.getType() == ArtifactType.TEXT) {
+    String content = artifact.getLocation(); // 콘텐츠 자체
+} else if (artifact.getType() == ArtifactType.FILE) {
+    Path filePath = Paths.get(artifact.getLocation()); // 파일 경로
+}
+```
+
+### Production / Delivery 책임 분리
+
+**Production 계층:**
+- ✅ 콘텐츠 생성만 수행
+- ✅ AI 호출은 **Infra/Adapter 계층의 AI Client를 통해서만** 사용
+- ❌ **ProductionModule에서 AI Client 직접 호출 절대 금지**
+- ❌ Delivery 계층을 절대 알지 못함
+
+**Delivery 계층:**
+- ✅ 콘텐츠 전송/게시/업로드만 수행
+- ✅ ProductionArtifact만 소비
+- ❌ Production 계층을 절대 알지 못함
+
+**Facade 계층:**
+- ✅ Production과 Delivery를 조합하는 유일한 책임
+
+---
+
+## 문서 구조
+
+이 아키텍처 문서는 다음과 같이 구성되어 있습니다:
+
+- **[PRODUCTION_ARCHITECTURE.md](./PRODUCTION_ARCHITECTURE.md)**: Production 계층 상세 설명
+- **[DELIVERY_ARCHITECTURE.md](./DELIVERY_ARCHITECTURE.md)**: Delivery 계층 상세 설명
+- **[AI_INFRASTRUCTURE.md](./AI_INFRASTRUCTURE.md)**: AI Client 및 AWS 배포 전략
+
+---
+
 ## 1. 개요
 
 프로젝트는 Prompt → Production → Delivery 3단계 파이프라인을 가진다.
 
 **핵심 원칙:**
 - **Prompt**: 무엇을 생성할지 결정
-- **Production**: 콘텐츠 산출물 생성 (외부 시스템 통신 절대 금지)
-- **Delivery**: 콘텐츠 외부 전송/게시/배포 (ProductionArtifact를 입력으로 받음)
+- **Production**: 콘텐츠 산출물 생성 (AI 연동 허용, 프롬프트 결과 + 사용자 입력값 사용)
+- **Delivery**: 콘텐츠 외부 전송/게시/배포 (ProductionArtifact를 입력으로 받음, 사용자 입력값 사용)
 
 **책임 분리:**
 - Production은 Delivery를 절대 알지 못함
@@ -33,26 +82,47 @@ org.example.sharedprompts/
 │   │   │   ├── ProductionCoordinator.java
 │   │   │   └── ProductionRegistry.java
 │   │   ├── module/
-│   │   │   ├── email/             # 이메일 작성
-│   │   │   ├── blog/              # 블로그 본문 생성
-│   │   │   ├── text/              # 텍스트 파일 산출
-│   │   │   └── image/             # 이미지 생성
+│   │   │   ├── email/             # 이메일 작성 (AI 연동, 프롬프트 결과 + 사용자 입력값 사용)
+│   │   │   ├── blog/              # 블로그 본문 생성 (AI 연동, 프롬프트 결과 + 사용자 입력값 사용)
+│   │   │   ├── text/              # 텍스트 파일 산출 (AI 연동, 프롬프트 결과 + 사용자 입력값 사용)
+│   │   │   ├── image/             # 이미지 생성 (AI 연동, 프롬프트 결과 + 사용자 입력값 사용)
+│   │   │   └── document/          # 문서 생성 (Excel, Word, HWP - Apache POI 사용)
 │   │   └── exception/
 │   │       ├── ProductionException.java
 │   │       └── CommandValidationException.java
 │   │
 │   └── delivery/                  # 외부 연동 / 배포 전용
-│       ├── github/                # GitHub 연동 (PR, Commit, Issue 등)
-│       ├── notion/                 # Notion 페이지 생성
-│       ├── email-send/             # 이메일 전송
-│       └── blog/                   # 블로그 게시 (Velog, Tistory, Medium 등)
+│       ├── github/                # GitHub 연동 (PR, Commit, Issue 등, 사용자 입력값 사용)
+│       ├── notion/                 # Notion 페이지 생성 (사용자 입력값 사용)
+│       ├── email-send/             # 이메일 전송 (사용자 입력값 사용)
+│       └── blog/                   # 블로그 게시 (Velog, Tistory, Medium 등, 사용자 입력값 사용)
 │
 └── infra/
+    ├── ai/                         # AI Client (Adapter 계층)
+    │   ├── text/                   # 텍스트 생성 AI
+    │   │   ├── TextAiClient.java        # 텍스트 생성 인터페이스
+    │   │   ├── LlamaTextAiClient.java   # LLaMA 구현 (오픈소스)
+    │   │   ├── VicunaTextAiClient.java  # Vicuna 구현 (오픈소스)
+    │   │   ├── BloomTextAiClient.java   # BLOOM 구현 (오픈소스)
+    │   │   ├── FalconTextAiClient.java  # Falcon 구현 (오픈소스)
+    │   │   ├── GeminiTextAiClient.java  # Google Gemini 구현
+    │   │   ├── OpenAiTextClient.java    # OpenAI 구현
+    │   │   └── AnthropicTextClient.java # Anthropic 구현
+    │   └── image/                  # 이미지 생성 AI
+    │       ├── ImageAiClient.java       # 이미지 생성 인터페이스
+    │       ├── StableDiffusionClient.java # Stable Diffusion 구현 (오픈소스)
+    │       ├── DreamShaperClient.java    # DreamShaper 구현 (오픈소스)
+    │       ├── OpenJourneyClient.java    # OpenJourney 구현 (오픈소스)
+    │       ├── WaifuDiffusionClient.java # Waifu Diffusion 구현 (오픈소스)
+    │       ├── DalleImageClient.java     # DALL-E 구현
+    │       └── IdeogramClient.java      # Ideogram 구현 (선택사항)
+    │
     ├── production/                 # Production 구현 상세
-    │   ├── email/EmailComposer.java
-    │   ├── blog/BlogComposer.java
-    │   ├── text/TextFileWriter.java
-    │   └── image/ImageGenerator.java
+    │   ├── email/EmailComposer.java    # AI Client를 주입받아 사용
+    │   ├── blog/BlogComposer.java      # AI Client를 주입받아 사용
+    │   ├── text/TextFileWriter.java    # AI Client를 주입받아 사용
+    │   ├── image/ImageGenerator.java   # AI Client를 주입받아 사용
+    │   └── document/DocumentGenerator.java  # 문서 생성 (Apache POI 사용)
     │
     └── delivery/                   # Delivery 구현 상세
         ├── github/GitHubClient.java
@@ -63,7 +133,7 @@ org.example.sharedprompts/
 
 ---
 
-## 3. 계층별 책임
+## 3. 계층별 책임 요약
 
 ### 3.1 Production 계층 책임
 
@@ -72,12 +142,17 @@ org.example.sharedprompts/
 - 블로그 콘텐츠 생성
 - 텍스트/이미지 산출물 생성
 - ProductionArtifact 반환
+- **프롬프트 결과와 사용자 입력값을 조합하여 콘텐츠 생성 (Compose 역할)**
+- **Infra/Adapter 계층의 AI Client를 통한 콘텐츠 생성 (직접 AI 호출 금지)**
 
 **금지:**
-- 외부 API 호출
-- 네트워크 통신
-- 인증/토큰/계정 정보
+- **AI Client 직접 구현 및 토큰 관리 (Infra/Adapter 계층에서만 관리)**
+- 외부 API 직접 호출 (AI Client를 통한 호출만 허용)
+- 네트워크 통신 직접 수행 (AI Client를 통한 통신만 허용)
+- 인증/토큰/계정 정보 관리
 - 전송, 게시, 업로드 로직
+
+> **상세 내용**: [PRODUCTION_ARCHITECTURE.md](./PRODUCTION_ARCHITECTURE.md) 참조
 
 ### 3.2 Delivery 계층 책임
 
@@ -87,457 +162,112 @@ org.example.sharedprompts/
 - GitHub/Notion 연동
 - 외부 API 호출
 - 인증/토큰/계정 정보 관리
+- **사용자 입력값 수신 및 활용**
 
 **입력:**
 - ProductionArtifact (Production 계층에서 생성된 산출물)
+- **사용자 입력값 (DeliveryContext를 통해 전달)**
+
+> **상세 내용**: [DELIVERY_ARCHITECTURE.md](./DELIVERY_ARCHITECTURE.md) 참조
 
 ---
 
-## 4. Production 공통 인터페이스
+## 4. 연결점 (Facade)
 
-### 4.1 ProductionCommandType
+### 4.1 전체 흐름도
 
-```java
-package org.example.sharedprompts.domain.production.api;
-
-public enum ProductionCommandType {
-    EMAIL, BLOG, TEXT, IMAGE;
-}
+```
+┌─────────────┐
+│   Client    │
+│  (Request)  │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────────────────────────┐
+│     PromptProductionDeliveryFacade │
+│         (Facade 계층)               │
+└──────┬──────────────────────────────┘
+       │
+       ├─► ┌──────────────────┐
+       │   │ PromptCreationFlow│
+       │   │   (Prompt 생성)   │
+       │   └────────┬──────────┘
+       │            │
+       │            ▼
+       │   ┌──────────────────┐
+       │   │ PromptResponseDto│
+       │   └──────────────────┘
+       │
+       ├─► ┌──────────────────────┐
+       │   │ ProductionCoordinator │
+       │   │  (Production 실행)    │
+       │   └──────────┬────────────┘
+       │              │
+       │              ▼
+       │   ┌──────────────────────┐
+       │   │  ProductionModule    │
+       │   │  (Blog/Email/Image 등)│
+       │   └──────────┬─────────────┘
+       │              │
+       │              ▼
+       │   ┌──────────────────────┐
+       │   │  ProductionArtifact  │
+       │   │  (TEXT/FILE/IMAGE)   │
+       │   └──────────────────────┘
+       │
+       └─► ┌──────────────────────┐
+           │  DeliveryRegistry     │
+           │  (Delivery 실행)      │
+           └──────────┬─────────────┘
+                     │
+                     ▼
+           ┌──────────────────────┐
+           │  DeliveryService      │
+           │  (Blog/Email/GitHub 등)│
+           └──────────────────────┘
 ```
 
-### 4.2 ProductionCommand
+### 4.2 시퀀스 다이어그램
 
-```java
-package org.example.sharedprompts.domain.production.api;
-
-public interface ProductionCommand {
-    ProductionCommandType getCommandType();
-    String getCommandId();
-}
+```
+Client → Facade → PromptFlow → ProductionCoordinator → ProductionModule → DeliveryService
+  │        │          │              │                    │                  │
+  │        │          │              │                    │                  │
+  │        │    [Prompt 생성]        │                    │                  │
+  │        │◄─────────┘              │                    │                  │
+  │        │                          │                    │                  │
+  │        │    [Production 실행]     │                    │                  │
+  │        │──────────►               │                    │                  │
+  │        │                          │                    │                  │
+  │        │                    [모듈 선택]                 │                  │
+  │        │                          │──────────►        │                  │
+  │        │                          │                    │                  │
+  │        │                          │         [AI Client 호출]              │
+  │        │                          │                    │──► Infra/AI     │
+  │        │                          │                    │◄───              │
+  │        │                          │                    │                  │
+  │        │                          │         [Artifact 생성]              │
+  │        │                          │◄───────────────────┘                  │
+  │        │                          │                    │                  │
+  │        │    [ProductionResult]     │                    │                  │
+  │        │◄─────────────────────────┘                    │                  │
+  │        │                          │                    │                  │
+  │        │    [Delivery 실행]       │                    │                  │
+  │        │──────────►               │                    │                  │
+  │        │                          │                    │                  │
+  │        │                    [서비스 선택]               │                  │
+  │        │                          │                    │                  │
+  │        │                          │                    │         [전송/게시]
+  │        │                          │                    │                  │──► 외부 API
+  │        │                          │                    │                  │◄───
+  │        │                          │                    │                  │
+  │        │                          │                    │    [DeliveryResult]
+  │        │                          │                    │                  │
+  │        │    [최종 응답]           │                    │                  │
+  │◄───────┘                          │                    │                  │
 ```
 
-### 4.3 ProductionArtifact
-
-**ProductionArtifact는 모든 산출물을 동일하게 다루기 위한 핵심 개념이다.**
-TEXT / FILE / IMAGE 타입은 UI, API, 저장소 계층에서 공통 처리하기 위함이다.
-
-**중요:** TEXT Artifact에서 `getLocation()`은 저장 위치가 아닌 **문자열 콘텐츠 자체**를 의미한다.
-
-```java
-package org.example.sharedprompts.domain.production.api;
-
-public enum ArtifactType {
-    TEXT, FILE, IMAGE;
-}
-
-public interface ProductionArtifact {
-    ArtifactType getType();
-    String getLocation();
-}
-```
-
-### 4.4 ProductionResult
-
-산출 결과를 나타낸다. startedAt / completedAt은 운영 및 디버깅 목적이다.
-
-```java
-package org.example.sharedprompts.domain.production.api;
-
-import java.time.Instant;
-
-public interface ProductionResult {
-    boolean isSuccess();
-    String getErrorMessage();
-    Instant getStartedAt();
-    Instant getCompletedAt();
-    ProductionArtifact getArtifact();
-}
-```
-
-### 4.5 ProductionContext
-
-산출 과정에 필요한 컨텍스트 정보를 담는다.
-attributes는 보조적/임시 확장용이며, 인증/권한/외부 시스템 정보 저장 용도가 아니다.
-
-```java
-package org.example.sharedprompts.domain.production.api;
-
-import java.util.Map;
-import java.util.UUID;
-
-public class ProductionContext {
-    private final String productionId;
-    private final Long userId;
-    private final Map<String, Object> attributes;
-    
-    public ProductionContext(Long userId) {
-        this.productionId = UUID.randomUUID().toString();
-        this.userId = userId;
-        this.attributes = new java.util.HashMap<>();
-    }
-    
-    public String getProductionId() { return productionId; }
-    public Long getUserId() { return userId; }
-    
-    public void setAttribute(String key, Object value) {
-        attributes.put(key, value);
-    }
-    
-    @SuppressWarnings("unchecked")
-    public <T> T getAttribute(String key, Class<T> type) {
-        return (T) attributes.get(key);
-    }
-}
-```
-
-### 4.6 ProductionModule
-
-콘텐츠 산출 모듈 인터페이스. 각 모듈은 산출물 생성을 책임진다.
-
-```java
-package org.example.sharedprompts.domain.production.api;
-
-public interface ProductionModule {
-    ProductionCommandType getSupportedCommandType();
-    ProductionResult produce(ProductionCommand command, ProductionContext context) 
-            throws ProductionException;
-}
-```
-
----
-
-## 5. Production Coordinator
-
-### 5.1 ProductionCoordinator
-
-CommandType enum 기반으로 적절한 모듈에 산출 요청을 라우팅한다.
-
-```java
-package org.example.sharedprompts.domain.production.coordinator;
-
-@Component
-@RequiredArgsConstructor
-public class ProductionCoordinator {
-    
-    private final ProductionRegistry registry;
-    
-    public ProductionResult produce(
-            ProductionCommand command, 
-            ProductionContext context
-    ) {
-        ProductionModule module = registry.findModule(command.getCommandType());
-        
-        if (module == null) {
-            throw new ProductionModuleNotFoundException(command.getCommandType());
-        }
-        
-        return module.produce(command, context);
-    }
-}
-```
-
-### 5.2 ProductionRegistry
-
-```java
-package org.example.sharedprompts.domain.production.coordinator;
-
-@Component
-public class ProductionRegistry {
-    
-    private final Map<ProductionCommandType, ProductionModule> modules = new ConcurrentHashMap<>();
-    
-    public void register(ProductionModule module) {
-        modules.put(module.getSupportedCommandType(), module);
-    }
-    
-    public ProductionModule findModule(ProductionCommandType commandType) {
-        return modules.get(commandType);
-    }
-}
-```
-
----
-
-## 6. Production 모듈 예시
-
-### 6.1 BlogProductionModule
-
-블로그 글 본문 생성. 결과는 TEXT 타입 ProductionArtifact.
-플랫폼(Velog, Tistory 등) 언급 없음.
-
-```java
-package org.example.sharedprompts.domain.production.module.blog;
-
-@Component
-@RequiredArgsConstructor
-public class BlogProductionModule implements ProductionModule {
-    
-    private final BlogComposer blogComposer;
-    
-    @Override
-    public ProductionCommandType getSupportedCommandType() {
-        return ProductionCommandType.BLOG;
-    }
-    
-    @Override
-    public ProductionResult produce(
-            ProductionCommand command, 
-            ProductionContext context
-    ) {
-        if (!(command instanceof BlogCommand blogCommand)) {
-            throw new CommandValidationException(
-                "Expected BlogCommand, but got: " + command.getClass()
-            );
-        }
-        
-        Instant startedAt = Instant.now();
-        
-        try {
-            PromptResponseDto promptResult = context.getAttribute("promptResult", PromptResponseDto.class);
-            
-            String blogContent = blogComposer.compose(
-                blogCommand.getTitle(),
-                promptResult.getContent(),
-                blogCommand.getTags()
-            );
-            
-            Instant completedAt = Instant.now();
-            
-            ProductionArtifact artifact = new TextArtifact(blogContent);
-            return BlogResult.success(artifact, startedAt, completedAt);
-            
-        } catch (Exception e) {
-            return BlogResult.failure(e.getMessage(), startedAt, Instant.now());
-        }
-    }
-}
-```
-
-### 6.2 TextProductionModule
-
-```java
-package org.example.sharedprompts.domain.production.module.text;
-
-@Component
-@RequiredArgsConstructor
-public class TextProductionModule implements ProductionModule {
-    
-    private final TextFileWriter textFileWriter;
-    
-    @Override
-    public ProductionCommandType getSupportedCommandType() {
-        return ProductionCommandType.TEXT;
-    }
-    
-    @Override
-    public ProductionResult produce(
-            ProductionCommand command, 
-            ProductionContext context
-    ) {
-        if (!(command instanceof TextCommand textCommand)) {
-            throw new CommandValidationException(
-                "Expected TextCommand, but got: " + command.getClass()
-            );
-        }
-        
-        Instant startedAt = Instant.now();
-        
-        try {
-            PromptResponseDto promptResult = context.getAttribute("promptResult", PromptResponseDto.class);
-            
-            String filePath = textFileWriter.write(
-                promptResult.getContent(),
-                textCommand.getFileName(),
-                textCommand.getFormat()
-            );
-            
-            Instant completedAt = Instant.now();
-            
-            ProductionArtifact artifact = new FileArtifact(filePath);
-            return TextResult.success(artifact, startedAt, completedAt);
-            
-        } catch (Exception e) {
-            return TextResult.failure(e.getMessage(), startedAt, Instant.now());
-        }
-    }
-}
-```
-
-### 6.3 Artifact 구현 예시
-
-```java
-package org.example.sharedprompts.domain.production.api;
-
-public class TextArtifact implements ProductionArtifact {
-    private final String content;
-    
-    public TextArtifact(String content) {
-        this.content = content;
-    }
-    
-    @Override
-    public ArtifactType getType() {
-        return ArtifactType.TEXT;
-    }
-    
-    @Override
-    public String getLocation() {
-        return content;
-    }
-}
-
-public class FileArtifact implements ProductionArtifact {
-    private final String filePath;
-    
-    public FileArtifact(String filePath) {
-        this.filePath = filePath;
-    }
-    
-    @Override
-    public ArtifactType getType() {
-        return ArtifactType.FILE;
-    }
-    
-    @Override
-    public String getLocation() {
-        return filePath;
-    }
-}
-
-public class ImageArtifact implements ProductionArtifact {
-    private final String imagePath;
-    
-    public ImageArtifact(String imagePath) {
-        this.imagePath = imagePath;
-    }
-    
-    @Override
-    public ArtifactType getType() {
-        return ArtifactType.IMAGE;
-    }
-    
-    @Override
-    public String getLocation() {
-        return imagePath;
-    }
-}
-```
-
----
-
-## 7. Delivery 계층
-
-### 7.1 Delivery 인터페이스
-
-```java
-package org.example.sharedprompts.domain.delivery.api;
-
-import org.example.sharedprompts.domain.production.api.ProductionArtifact;
-
-public enum DeliveryType {
-    EMAIL, BLOG, GITHUB, NOTION;
-}
-
-public interface DeliveryService {
-    DeliveryType getSupportedDeliveryType();
-    DeliveryResult deliver(ProductionArtifact artifact, DeliveryContext context) 
-            throws DeliveryException;
-}
-```
-
-### 7.2 DeliveryRegistry
-
-```java
-package org.example.sharedprompts.domain.delivery.coordinator;
-
-@Component
-public class DeliveryRegistry {
-    
-    private final Map<DeliveryType, DeliveryService> services = new ConcurrentHashMap<>();
-    
-    public void register(DeliveryService service) {
-        services.put(service.getSupportedDeliveryType(), service);
-    }
-    
-    public DeliveryService find(DeliveryType deliveryType) {
-        return services.get(deliveryType);
-    }
-}
-```
-
-### 7.3 Delivery 모듈 예시
-
-#### BlogDeliveryService
-
-Production에서 생성된 TEXT Artifact를 받아 실제 블로그 플랫폼에 게시.
-플랫폼별 구현은 delivery 하위에서만 관리.
-
-```java
-package org.example.sharedprompts.domain.delivery.blog;
-
-@Component
-@RequiredArgsConstructor
-public class BlogDeliveryService implements DeliveryService {
-    
-    private final BlogPublisher blogPublisher;
-    
-    @Override
-    public DeliveryType getSupportedDeliveryType() {
-        return DeliveryType.BLOG;
-    }
-    
-    @Override
-    public DeliveryResult deliver(
-            ProductionArtifact artifact, 
-            DeliveryContext context
-    ) {
-        if (artifact.getType() != ArtifactType.TEXT) {
-            throw new DeliveryException("Blog delivery requires TEXT artifact");
-        }
-        
-        String blogContent = artifact.getLocation();
-        String platform = context.getPlatform();
-        
-        return blogPublisher.publish(blogContent, platform, context);
-    }
-}
-```
-
-#### EmailDeliveryService
-
-```java
-package org.example.sharedprompts.domain.delivery.email;
-
-@Component
-@RequiredArgsConstructor
-public class EmailDeliveryService implements DeliveryService {
-    
-    private final EmailSender emailSender;
-    
-    @Override
-    public DeliveryType getSupportedDeliveryType() {
-        return DeliveryType.EMAIL;
-    }
-    
-    @Override
-    public DeliveryResult deliver(
-            ProductionArtifact artifact, 
-            DeliveryContext context
-    ) {
-        if (artifact.getType() != ArtifactType.TEXT) {
-            throw new DeliveryException("Email delivery requires TEXT artifact");
-        }
-        
-        String emailContent = artifact.getLocation();
-        
-        return emailSender.send(emailContent, context);
-    }
-}
-```
-
----
-
-## 8. 연결점 (Facade)
+### 4.3 코드 구현
 
 ```java
 package org.example.sharedprompts.domain.prompt.facade;
@@ -561,6 +291,8 @@ public class PromptProductionDeliveryFacade {
         
         ProductionContext productionContext = new ProductionContext(userId);
         productionContext.setAttribute("promptResult", promptResult);
+        // 사용자 입력값을 ProductionContext에 설정
+        productionContext.setAttribute("userInput", request.getUserInput());
         
         ProductionResult productionResult = productionCoordinator.produce(
             productionCommand, 
@@ -597,117 +329,63 @@ public class PromptProductionDeliveryFacade {
 
 ---
 
-## 9. 모듈 등록
-
-```java
-package org.example.sharedprompts.domain.production.config;
-
-@Configuration
-public class ProductionModuleConfig {
-    
-    @Bean
-    public ProductionRegistry productionRegistry(
-            EmailProductionModule emailModule,
-            BlogProductionModule blogModule,
-            TextProductionModule textModule,
-            ImageProductionModule imageModule
-    ) {
-        ProductionRegistry registry = new ProductionRegistry();
-        registry.register(emailModule);
-        registry.register(blogModule);
-        registry.register(textModule);
-        registry.register(imageModule);
-        return registry;
-    }
-}
-```
-
----
-
-## 10. 실패 정책
-
-**검증 실패 / 잘못된 요청 → Exception**
-- CommandValidationException
-- ProductionModuleNotFoundException
-- DeliveryException
-- DeliveryServiceNotFoundException
-
-**콘텐츠 생성 실패 → Result.failure**
-- 파일 시스템 오류
-- 콘텐츠 생성 실패
-
-### Exception 계층
-
-```java
-package org.example.sharedprompts.domain.production.exception;
-
-public class ProductionException extends RuntimeException {
-    public ProductionException(String message) {
-        super(message);
-    }
-}
-
-public class ProductionModuleNotFoundException extends ProductionException {
-    public ProductionModuleNotFoundException(ProductionCommandType commandType) {
-        super("Production module not found for type: " + commandType);
-    }
-}
-
-public class CommandValidationException extends ProductionException {
-    public CommandValidationException(String message) {
-        super(message);
-    }
-}
-
-package org.example.sharedprompts.domain.delivery.exception;
-
-public class DeliveryException extends RuntimeException {
-    public DeliveryException(String message) {
-        super(message);
-    }
-}
-
-public class DeliveryServiceNotFoundException extends DeliveryException {
-    public DeliveryServiceNotFoundException(DeliveryType deliveryType) {
-        super("Delivery service not found for type: " + deliveryType);
-    }
-}
-```
-
----
-
-## 11. 모듈별 책임 요약
-
-### Production 계층
-
-| 모듈 | 산출물 타입 | 산출물 |
-|------|------------|--------|
-| EmailProductionModule | TEXT | 이메일 본문 문자열 |
-| BlogProductionModule | TEXT | 블로그 콘텐츠 문자열 |
-| TextProductionModule | FILE | 텍스트 파일 경로 (TXT/MD) |
-| ImageProductionModule | IMAGE | 이미지 파일 경로 (PNG/JPG) |
-
-### Delivery 계층
-
-| 모듈 | 입력 | 책임 |
-|------|------|------|
-| EmailDeliveryService | TEXT Artifact | 이메일 전송 |
-| BlogDeliveryService | TEXT Artifact | 블로그 게시 (Velog, Tistory, Medium 등) |
-| GitHubDeliveryService | FILE/IMAGE Artifact | GitHub 연동 (PR, Commit, Issue 등) |
-| NotionDeliveryService | TEXT/FILE Artifact | Notion 페이지 생성 |
-
----
-
-## 12. 요약
+## 5. 요약
 
 **핵심 설계 원칙:**
 1. Prompt → Production → Delivery 3단계 파이프라인
 2. Production은 Delivery를 절대 알지 못함
 3. Delivery는 ProductionArtifact만 소비
 4. Application/Facade 계층이 둘을 조합
-5. Production은 외부 시스템 통신 절대 금지
-6. 검증 실패 → Exception, 생성 실패 → Result.failure
+5. **AI Client는 Infra/Adapter 계층에서만 관리 (토큰 노출 최소화, 테스트 용이성)**
+6. **ProductionModule은 단순히 "compose" 역할만 수행 (AI Client 직접 호출 금지)**
+7. Production은 프롬프트 결과와 사용자 입력값을 조합하여 콘텐츠 생성
+8. Delivery는 타입 안전한 설정 객체를 통해 전송/게시/배포 수행
+9. **Artifact 타입별 getLocation() 의미 구분 필수 (TEXT는 콘텐츠, FILE/IMAGE는 경로)**
+10. 검증 실패 → Exception, 생성 실패 → Result.failure
+
+**AI Client 설계 원칙:**
+- 텍스트 생성과 이미지 생성을 별도 인터페이스로 분리
+- 각 AI 제공자별로 독립적인 구현 클래스 작성
+- 필요 시 AI 제공자 교체 가능 (의존성 주입으로 변경)
+- CircuitBreaker 패턴으로 장애 대응
+- 별도 스레드 풀 사용으로 Tomcat 스레드 보호
+
+**AWS 클라우드 환경 배포 원칙:**
+- **하이브리드 구성 권장**: 오픈소스 모델(비용 절감) + 클라우드 API(고품질)
+- **인프라 선택**: ECS/Fargate(애플리케이션), ECS/Fargate 또는 SageMaker(AI 모델)
+- **네트워크 보안**: Private Subnet 배치, Security Group 최소 권한 원칙
+- **설정 관리**: AWS Systems Manager Parameter Store 활용
+- **모니터링**: CloudWatch Metrics 및 Logs 통합
+- **비용 최적화**: Auto Scaling, Spot Instance(개발), Reserved Instance(프로덕션)
+- **Fallback 전략**: 클라우드 API 실패 시 오픈소스 모델로 자동 전환
+
+> **상세 내용**: [AI_INFRASTRUCTURE.md](./AI_INFRASTRUCTURE.md) 참조
 
 **설계 기준:**
 "콘텐츠를 만든다"와 "콘텐츠를 보낸다"는 다른 문제다.
 만든 것은 production, 보낸 것은 delivery다.
+
+---
+
+## 관련 문서
+
+- **[PRODUCTION_ARCHITECTURE.md](./PRODUCTION_ARCHITECTURE.md)**: Production 계층 상세 설명
+  - **Production 계층 책임**: 허용/금지 사항, 설계 원칙
+  - **Production 공통 인터페이스**: ProductionCommand, ProductionArtifact, ProductionResult, ProductionContext, ProductionModule
+  - **Production Coordinator**: ProductionCoordinator, ProductionRegistry (모듈 라우팅 및 등록)
+  - **Production 모듈 예시**: BlogProductionModule, TextProductionModule, EmailProductionModule, ImageProductionModule, DocumentProductionModule
+  - **Artifact 구현**: TextArtifact, FileArtifact, ImageArtifact (타입별 getLocation() 의미 구분)
+  - **모듈 등록**: ProductionModuleConfig를 통한 모듈 등록
+  - **실패 정책**: 검증 실패(Exception) vs 생성 실패(Result.failure) 구분
+
+- **[DELIVERY_ARCHITECTURE.md](./DELIVERY_ARCHITECTURE.md)**: Delivery 계층 상세 설명
+  - Delivery 인터페이스
+  - DeliveryContext 및 플랫폼별 설정
+  - Delivery 모듈 예시
+  - 실패 정책
+
+- **[AI_INFRASTRUCTURE.md](./AI_INFRASTRUCTURE.md)**: AI Client 및 인프라 배포 전략
+  - AI Client 인터페이스 및 구현
+  - AI 모델별 특징 및 권장 사용처
+  - AWS 클라우드 환경 배포 시나리오
+  - 비용 최적화 및 모니터링 전략

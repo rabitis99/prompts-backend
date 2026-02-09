@@ -1,0 +1,17 @@
+.git
+.gitignore
+README.md
+HELP.md
+.gradle
+build
+bin
+.idea
+*.iml
+*.log
+.env
+.env.local
+.env.*.local
+node_modules
+.DS_Store
+Thumbs.db
+

@@ -1,0 +1,126 @@
+x-module-common: &module-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  environment: &module-env
+    SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+    SERVER_PORT: 8080
+    SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+    SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+    SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+    REDIS_HOST: redis
+    REDIS_PORT: 6379
+    RABBITMQ_HOST: rabbitmq
+    RABBITMQ_PORT: 5672
+    RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+    RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+    # TODO: 최소 권한 원칙 적용 - 각 모듈에 실제 필요한 AI API 키만 전달하도록 개선 권장
+    # 예: blog-module, email-module은 텍스트 생성이 필요하므로 SPRING_AI_OPENAI_API_KEY만
+    #     image-module은 이미지 생성이 필요하므로 해당 이미지 생성 API 키만
+    SPRING_AI_OPENAI_API_KEY: ${SPRING_AI_OPENAI_API_KEY}
+    GOOGLE_GEMINI_API_KEY: ${GOOGLE_GEMINI_API_KEY}
+    GOOGLE_GEMINI_MODEL: ${GOOGLE_GEMINI_MODEL}
+    GOOGLE_GEMINI_BASE_URL: ${GOOGLE_GEMINI_BASE_URL}
+  networks:
+    - sharedprompts_network
+  depends_on:
+    redis:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/actuator/health || exit 1"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+    start_period: 60s
+
+services:
+  # ⚠️ 스케일링 참고: container_name을 제거하여 --scale 사용 가능
+  # 스케일링 시 포트 충돌을 피하려면 ports 매핑을 제거하고 리버스 프록시를 사용하세요
+  blog-module:
+    <<: *module-common
+    ports:
+      - "${BLOG_MODULE_PORT:-8081}:8080"
+    environment:
+      <<: *module-env
+      ACTIVE_MODULES: blog
+
+  email-module:
+    <<: *module-common
+    ports:
+      - "${EMAIL_MODULE_PORT:-8082}:8080"
+    environment:
+      <<: *module-env
+      ACTIVE_MODULES: email
+
+  text-module:
+    <<: *module-common
+    ports:
+      - "${TEXT_MODULE_PORT:-8083}:8080"
+    environment:
+      <<: *module-env
+      ACTIVE_MODULES: text
+
+  image-module:
+    <<: *module-common
+    ports:
+      - "${IMAGE_MODULE_PORT:-8084}:8080"
+    environment:
+      <<: *module-env
+      ACTIVE_MODULES: image
+
+  document-module:
+    <<: *module-common
+    ports:
+      - "${DOCUMENT_MODULE_PORT:-8085}:8080"
+    environment:
+      <<: *module-env
+      ACTIVE_MODULES: document
+
+  redis:
+    image: redis:7.4.6
+    container_name: sharedprompts_redis
+    command: redis-server --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - sharedprompts_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: sharedprompts_rabbitmq
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - sharedprompts_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  sharedprompts_network:
+    driver: bridge
+

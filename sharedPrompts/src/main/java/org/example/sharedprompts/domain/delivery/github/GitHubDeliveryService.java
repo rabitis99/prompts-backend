@@ -1,11 +1,11 @@
-package org.example.sharedprompts.domain.delivery.blog;
+package org.example.sharedprompts.domain.delivery.github;
 
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.domain.delivery.api.BlogPublisher;
 import org.example.sharedprompts.domain.delivery.api.DeliveryContext;
 import org.example.sharedprompts.domain.delivery.api.DeliveryResult;
 import org.example.sharedprompts.domain.delivery.api.DeliveryService;
 import org.example.sharedprompts.domain.delivery.api.DeliveryType;
+import org.example.sharedprompts.domain.delivery.api.GitHubClient;
 import org.example.sharedprompts.domain.delivery.exception.DeliveryException;
 import org.example.sharedprompts.domain.production.api.ArtifactType;
 import org.example.sharedprompts.domain.production.api.ProductionArtifact;
@@ -13,13 +13,13 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class BlogDeliveryService implements DeliveryService {
+public class GitHubDeliveryService implements DeliveryService {
     
-    private final BlogPublisher blogPublisher;
+    private final GitHubClient gitHubClient;
     
     @Override
     public DeliveryType getSupportedDeliveryType() {
-        return DeliveryType.BLOG;
+        return DeliveryType.GITHUB;
     }
     
     @Override
@@ -27,18 +27,19 @@ public class BlogDeliveryService implements DeliveryService {
             ProductionArtifact artifact, 
             DeliveryContext context
     ) {
-        if (artifact.getType() != ArtifactType.TEXT) {
-            throw new DeliveryException("Blog delivery requires TEXT artifact");
+        // GitHub는 FILE 또는 IMAGE Artifact를 지원
+        if (artifact.getType() != ArtifactType.FILE && artifact.getType() != ArtifactType.IMAGE) {
+            throw new DeliveryException("GitHub delivery requires FILE or IMAGE artifact");
         }
         
-        String blogContent = artifact.getLocation();
-        String platform = context.getPlatform();
+        String filePath = artifact.getLocation();
+        String action = context.getAttribute("action", String.class); // "pr", "commit", "issue" 등
         
-        if (platform == null || platform.isBlank()) {
-            throw new DeliveryException("Blog delivery requires a platform to be specified");
+        if (action == null) {
+            action = "commit"; // 기본값
         }
         
-        return blogPublisher.publish(blogContent, platform, context);
+        return gitHubClient.upload(filePath, action, context);
     }
 }
 

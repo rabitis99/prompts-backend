@@ -22,8 +22,19 @@ public class ProductionContext {
         attributes.put(key, value);
     }
     
+    @SuppressWarnings("unchecked")
     public <T> T getAttribute(String key, Class<T> type) {
-        return type.cast(attributes.get(key));
+        Object value = attributes.get(key);
+        if (value == null) {
+            return null;
+        }
+        if (!type.isInstance(value)) {
+            throw new ClassCastException(
+                String.format("Attribute '%s' is not of type %s, but %s", 
+                    key, type.getName(), value.getClass().getName())
+            );
+        }
+        return (T) value;
     }
 }
 

@@ -1,8 +1,9 @@
-package org.example.sharedprompts.domain.production.module.text;
+package org.example.sharedprompts.domain.production.module.image;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.production.api.DefaultProductionResult;
-import org.example.sharedprompts.domain.production.api.FileArtifact;
+import org.example.sharedprompts.domain.production.api.ImageArtifact;
 import org.example.sharedprompts.domain.production.api.ProductionArtifact;
 import org.example.sharedprompts.domain.production.api.ProductionCommand;
 import org.example.sharedprompts.domain.production.api.ProductionCommandType;
@@ -10,21 +11,21 @@ import org.example.sharedprompts.domain.production.api.ProductionContext;
 import org.example.sharedprompts.domain.production.api.ProductionModule;
 import org.example.sharedprompts.domain.production.api.ProductionResult;
 import org.example.sharedprompts.domain.production.exception.CommandValidationException;
-import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
-import org.example.sharedprompts.infra.production.text.TextFileWriter;
+import org.example.sharedprompts.infra.production.image.ImageGenerator;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
-public class TextProductionModule implements ProductionModule {
+public class ImageProductionModule implements ProductionModule {
     
-    private final TextFileWriter textFileWriter;
+    private final ImageGenerator imageGenerator;
     
     @Override
     public ProductionCommandType getSupportedCommandType() {
-        return ProductionCommandType.TEXT;
+        return ProductionCommandType.IMAGE;
     }
     
     @Override
@@ -32,35 +33,34 @@ public class TextProductionModule implements ProductionModule {
             ProductionCommand command, 
             ProductionContext context
     ) {
-        if (!(command instanceof TextCommand textCommand)) {
+        if (!(command instanceof ImageCommand imageCommand)) {
             throw new CommandValidationException(
-                "Expected TextCommand, but got: " + command.getClass()
+                "Expected ImageCommand, but got: " + command.getClass()
             );
         }
         
         Instant startedAt = Instant.now();
         
         try {
-            PromptResponseDto promptResult = context.getAttribute("promptResult", PromptResponseDto.class);
-            
-            if (promptResult == null) {
-                return DefaultProductionResult.failure("PromptResult not found in context", startedAt, Instant.now());
-            }
-            
-            String filePath = textFileWriter.write(
-                promptResult.getContent(),
-                textCommand.getFileName(),
-                textCommand.getFormat()
+            String imagePath = imageGenerator.generate(
+                imageCommand.getPrompt(),
+                imageCommand.getWidth(),
+                imageCommand.getHeight()
             );
             
             Instant completedAt = Instant.now();
             
-            ProductionArtifact artifact = new FileArtifact(filePath);
+            ProductionArtifact artifact = new ImageArtifact(imagePath);
             return DefaultProductionResult.success(artifact, startedAt, completedAt);
             
         } catch (Exception e) {
-            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            return DefaultProductionResult.failure(errorMsg, startedAt, Instant.now());
+            // 보안: 프롬프트 전문 대신 길이만 로깅하여 민감 정보 노출 방지
+            int promptLength = imageCommand.getPrompt() != null ? imageCommand.getPrompt().length() : 0;
+            log.error("Image generation failed: promptLength={}", promptLength, e);
+            return DefaultProductionResult.failure(
+                e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName(),
+                startedAt, Instant.now()
+            );
         }
     }
 }
