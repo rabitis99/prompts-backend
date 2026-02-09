@@ -1,6 +1,7 @@
 package org.example.sharedprompts.infra.production.email;
 
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.HtmlUtils;
 
 /**
  * 이메일 콘텐츠를 구성하는 컴포저.
@@ -49,11 +50,7 @@ public class EmailComposer {
         if (text == null) {
             return "";
         }
-        return text.replace("&", "&amp;")
-                  .replace("<", "&lt;")
-                  .replace(">", "&gt;")
-                  .replace("\"", "&quot;")
-                  .replace("'", "&#39;");
+        return HtmlUtils.htmlEscape(text);
     }
 }
 

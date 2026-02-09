@@ -39,9 +39,10 @@ x-module-common: &module-common
     start_period: 60s
 
 services:
+  # ⚠️ 스케일링 참고: container_name을 제거하여 --scale 사용 가능
+  # 스케일링 시 포트 충돌을 피하려면 ports 매핑을 제거하고 리버스 프록시를 사용하세요
   blog-module:
     <<: *module-common
-    container_name: sharedprompts_blog_module
     ports:
       - "${BLOG_MODULE_PORT:-8081}:8080"
     environment:
@@ -50,7 +51,6 @@ services:
 
   email-module:
     <<: *module-common
-    container_name: sharedprompts_email_module
     ports:
       - "${EMAIL_MODULE_PORT:-8082}:8080"
     environment:
@@ -59,7 +59,6 @@ services:
 
   text-module:
     <<: *module-common
-    container_name: sharedprompts_text_module
     ports:
       - "${TEXT_MODULE_PORT:-8083}:8080"
     environment:
@@ -68,7 +67,6 @@ services:
 
   image-module:
     <<: *module-common
-    container_name: sharedprompts_image_module
     ports:
       - "${IMAGE_MODULE_PORT:-8084}:8080"
     environment:
@@ -77,7 +75,6 @@ services:
 
   document-module:
     <<: *module-common
-    container_name: sharedprompts_document_module
     ports:
       - "${DOCUMENT_MODULE_PORT:-8085}:8080"
     environment:

@@ -55,7 +55,19 @@ public class DocumentProductionModule implements ProductionModule {
             // 2. DocumentGenerator를 사용하여 Apache POI로 문서 포맷팅 (DOCX/XLSX)
             // 3. DocumentStorage를 사용하여 파일 저장
             // 현재는 존재하지 않는 파일 경로만 반환합니다.
-            String filePath = String.format("output/document/%s.%s", documentCommand.getFileName(), documentCommand.getFormat());
+            
+            // Path traversal 방지: fileName과 format에 경로 조작 시퀀스가 포함되지 않도록 검증
+            String fileName = documentCommand.getFileName();
+            String format = documentCommand.getFormat();
+            if (fileName == null || format == null) {
+                return DefaultProductionResult.failure("File name and format must not be null", startedAt, Instant.now());
+            }
+            if (fileName.contains("..") || fileName.contains("/") || fileName.contains("\\") ||
+                format.contains("..") || format.contains("/") || format.contains("\\")) {
+                return DefaultProductionResult.failure("Invalid file name or format: path traversal detected", startedAt, Instant.now());
+            }
+            
+            String filePath = String.format("output/document/%s.%s", fileName, format);
             
             Instant completedAt = Instant.now();
             
@@ -63,7 +75,8 @@ public class DocumentProductionModule implements ProductionModule {
             return DefaultProductionResult.success(artifact, startedAt, completedAt);
             
         } catch (Exception e) {
-            return DefaultProductionResult.failure(e.getMessage(), startedAt, Instant.now());
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return DefaultProductionResult.failure(errorMsg, startedAt, Instant.now());
         }
     }
 }

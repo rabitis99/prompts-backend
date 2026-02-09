@@ -23,6 +23,9 @@ public class NotionClientImpl implements NotionClient {
         if (content == null) {
             throw new IllegalArgumentException("content must not be null");
         }
+        if (context == null) {
+            throw new IllegalArgumentException("context must not be null");
+        }
         
         log.info("Notion 페이지 생성 시도: userId={}, pageTitle={}, parentPageId={}, contentLength={}", 
                 context.getUserId(), pageTitle, parentPageId, content.length());

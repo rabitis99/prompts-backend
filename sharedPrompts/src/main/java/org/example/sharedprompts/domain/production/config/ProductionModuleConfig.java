@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.production.config;
 
+import org.example.sharedprompts.domain.production.api.ProductionModule;
 import org.example.sharedprompts.domain.production.coordinator.ProductionRegistry;
 import org.example.sharedprompts.domain.production.module.blog.BlogProductionModule;
 import org.example.sharedprompts.domain.production.module.email.EmailProductionModule;
@@ -36,9 +37,9 @@ public class ProductionModuleConfig {
         List<String> activeModuleList = Arrays.stream(activeModules.split(","))
                 .map(String::trim)
                 .toList();
-        List<org.example.sharedprompts.domain.production.api.ProductionModule> modules = new ArrayList<>();
+        List<ProductionModule> modules = new ArrayList<>();
         
-        Map<String, org.example.sharedprompts.domain.production.api.ProductionModule> moduleMap = Map.of(
+        Map<String, ProductionModule> moduleMap = Map.of(
             "blog", blogModule,
             "email", emailModule,
             "text", textModule,
@@ -47,7 +48,7 @@ public class ProductionModuleConfig {
         );
         
         activeModuleList.forEach(name -> {
-            org.example.sharedprompts.domain.production.api.ProductionModule module = moduleMap.get(name);
+            ProductionModule module = moduleMap.get(name);
             if (module != null) {
                 modules.add(module);
             }

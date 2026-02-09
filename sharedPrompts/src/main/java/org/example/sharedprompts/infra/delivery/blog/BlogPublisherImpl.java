@@ -23,6 +23,9 @@ public class BlogPublisherImpl implements BlogPublisher {
         if (blogContent == null) {
             throw new IllegalArgumentException("blogContent must not be null");
         }
+        if (context == null) {
+            throw new IllegalArgumentException("context must not be null");
+        }
         
         log.info("블로그 게시 시도: platform={}, userId={}, contentLength={}", 
                 platform, context.getUserId(), blogContent.length());

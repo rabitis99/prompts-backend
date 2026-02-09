@@ -25,6 +25,9 @@ public class GitHubClientImpl implements GitHubClient {
         String branch = context.getAttribute("branch", String.class);
         String commitMessage = context.getAttribute("commitMessage", String.class);
         
+        // TODO: 실제 GitHub API 연동 구현 시 null 검증 필요
+        // repository, branch, commitMessage 등 필수 속성에 대한 null 체크 및 검증 로직 추가
+        
         log.info("GitHub 업로드 시도: userId={}, repository={}, branch={}, action={}, filePath={}", 
                 context.getUserId(), repository, branch, action, filePath);
         

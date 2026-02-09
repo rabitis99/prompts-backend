@@ -54,7 +54,9 @@ public class ImageProductionModule implements ProductionModule {
             return DefaultProductionResult.success(artifact, startedAt, completedAt);
             
         } catch (Exception e) {
-            log.error("Image generation failed for prompt: {}", imageCommand.getPrompt(), e);
+            // 보안: 프롬프트 전문 대신 길이만 로깅하여 민감 정보 노출 방지
+            int promptLength = imageCommand.getPrompt() != null ? imageCommand.getPrompt().length() : 0;
+            log.error("Image generation failed: promptLength={}", promptLength, e);
             return DefaultProductionResult.failure(
                 e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName(),
                 startedAt, Instant.now()

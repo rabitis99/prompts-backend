@@ -33,6 +33,7 @@ public class BlogComposer {
             blogContent.append("---\n\n");
             blogContent.append("**Tags:** ");
             String tagString = tags.stream()
+                    .filter(tag -> tag != null && !tag.isBlank())
                     .map(tag -> "#" + tag)
                     .collect(Collectors.joining(" "));
             blogContent.append(tagString).append("\n");

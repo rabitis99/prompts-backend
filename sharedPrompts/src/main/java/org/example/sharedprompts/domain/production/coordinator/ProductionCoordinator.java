@@ -8,6 +8,8 @@ import org.example.sharedprompts.domain.production.api.ProductionResult;
 import org.example.sharedprompts.domain.production.entity.ProductionArtifactEntity;
 import org.example.sharedprompts.domain.production.exception.ProductionModuleNotFoundException;
 import org.example.sharedprompts.domain.production.repository.ProductionArtifactRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -16,6 +18,8 @@ import java.time.Instant;
 
 @Component
 public class ProductionCoordinator {
+    
+    private static final Logger log = LoggerFactory.getLogger(ProductionCoordinator.class);
     
     private final ProductionRegistry registry;
     private final ProductionArtifactRepository artifactRepository;
@@ -58,6 +62,9 @@ public class ProductionCoordinator {
             });
         } catch (Exception e) {
             // 아티팩트 저장 실패는 로깅만 하고 원래 결과는 반환
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            log.warn("아티팩트 저장 실패 - productionId: {}, error: {}", 
+                    context.getProductionId(), errorMsg, e);
         }
         
         return result;

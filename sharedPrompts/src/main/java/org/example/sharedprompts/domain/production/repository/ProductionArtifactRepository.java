@@ -38,5 +38,14 @@ public interface ProductionArtifactRepository extends JpaRepository<ProductionAr
     long countByUserId(Long userId);
     
     long countByUserIdAndCommandType(Long userId, ProductionCommandType commandType);
+    
+    long countByUserIdAndArtifactType(Long userId, ArtifactType artifactType);
+    
+    // ⚠️ 인덱스 권장사항:
+    // 데이터 증가 시 쿼리 성능 저하를 방지하기 위해 다음 인덱스 추가를 권장합니다:
+    // - (userId, createdAt DESC) 복합 인덱스
+    // - (userId, commandType, createdAt DESC) 복합 인덱스
+    // - (userId, artifactType, createdAt DESC) 복합 인덱스
+    // 엔티티 클래스에 @Index 어노테이션을 추가하거나 DDL에서 직접 생성하세요.
 }
 
