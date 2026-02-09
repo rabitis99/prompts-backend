@@ -1,7 +1,7 @@
 package org.example.sharedprompts.module.domain.production.module.text;
 
-import org.example.sharedprompts.module.domain.production.api.ProductionCommand;
-import org.example.sharedprompts.module.domain.production.api.ProductionCommandType;
+import org.example.sharedprompts.module.domain.production.api.command.ProductionCommand;
+import org.example.sharedprompts.module.domain.production.api.command.ProductionCommandType;
 
 public class TextCommand implements ProductionCommand {
     private final String commandId;

@@ -2,8 +2,8 @@ package org.example.sharedprompts.module.domain.production.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.example.sharedprompts.module.domain.production.api.ArtifactType;
-import org.example.sharedprompts.module.domain.production.api.ProductionCommandType;
+import org.example.sharedprompts.module.domain.production.api.artifact.ArtifactType;
+import org.example.sharedprompts.module.domain.production.api.command.ProductionCommandType;
 import org.example.sharedprompts.global.entity.BaseEntity;
 
 import java.time.Instant;

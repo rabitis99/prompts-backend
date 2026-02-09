@@ -267,7 +267,70 @@ Client → Facade → PromptFlow → ProductionCoordinator → ProductionModule 
   │◄───────┘                          │                    │                  │
 ```
 
-### 4.3 코드 구현
+### 4.3 사용자 제어 API 설계
+
+**⚠️ 중요: 자동 실행 금지**
+- Production과 Delivery는 사용자가 명시적으로 요청해야 함
+- 각 단계를 독립적으로 실행할 수 있는 API 제공
+- 사용자가 결과를 확인한 후 다음 단계를 결정할 수 있어야 함
+
+**API 엔드포인트:**
+
+1. **프롬프트 생성** (기존)
+   ```
+   POST /prompts
+   → PromptResponseDto 반환
+   ```
+
+2. **Production 실행** (새로 추가 필요)
+   ```
+   POST /prompts/{promptId}/production
+   Request Body: ProductionRequestDto {
+       commandType: EMAIL | BLOG | TEXT | IMAGE | DOCUMENT
+       command: BlogCommand | EmailCommand | ... (타입별 커맨드)
+       userInput: UserInputDto (선택적, 프롬프트 생성 시 입력값 재사용 또는 추가 입력)
+   }
+   → ProductionResult 반환
+   ```
+
+3. **Delivery 실행** (새로 추가 필요)
+   ```
+   POST /production/{productionId}/delivery
+   Request Body: DeliveryRequestDto {
+       deliveryType: BLOG | EMAIL | GITHUB | NOTION
+       context: BlogDeliveryContext | EmailDeliveryContext | ... (타입별 컨텍스트)
+   }
+   → DeliveryResult 반환
+   ```
+
+4. **한 번에 실행** (선택적, 편의용)
+   ```
+   POST /prompts/{promptId}/production-and-delivery
+   Request Body: ProductionAndDeliveryRequestDto {
+       productionCommand: ProductionCommand
+       deliveryContext: DeliveryContext
+   }
+   → PromptProductionDeliveryResponse 반환
+   ```
+
+**워크플로우 예시:**
+
+```
+사용자 시나리오 1: 단계별 실행
+1. POST /prompts → 프롬프트 생성
+2. 사용자가 프롬프트 결과 확인
+3. POST /prompts/{promptId}/production → Production 실행
+4. 사용자가 Production 결과 확인
+5. POST /production/{productionId}/delivery → Delivery 실행
+
+사용자 시나리오 2: 한 번에 실행 (편의용)
+1. POST /prompts → 프롬프트 생성
+2. POST /prompts/{promptId}/production-and-delivery → Production + Delivery 한 번에 실행
+```
+
+### 4.4 코드 구현
+
+#### 4.4.1 Facade 메서드 분리
 
 ```java
 package org.example.sharedprompts.domain.prompt.facade;
@@ -279,8 +342,61 @@ public class PromptProductionDeliveryFacade {
     private final PromptCreationFlow promptCreationFlow;
     private final ProductionCoordinator productionCoordinator;
     private final DeliveryRegistry deliveryRegistry;
+    private final PromptService promptService; // 프롬프트 조회용
     
-    @Transactional
+    /**
+     * 프롬프트 생성만 수행
+     */
+    public PromptResponseDto createPrompt(PromptRequestDto request, Long userId) {
+        return promptCreationFlow.create(request, userId);
+    }
+    
+    /**
+     * 특정 프롬프트로 Production 실행
+     */
+    public ProductionResult executeProduction(
+            Long promptId,
+            Long userId,
+            ProductionCommand productionCommand,
+            UserInputDto userInput // 선택적
+    ) {
+        PromptResponseDto promptResult = promptService.getPromptDetail(promptId, userId);
+        
+        ProductionContext productionContext = new ProductionContext(userId);
+        productionContext.setAttribute("promptResult", promptResult);
+        if (userInput != null) {
+            productionContext.setAttribute("userInput", userInput);
+        }
+        
+        return productionCoordinator.produce(productionCommand, productionContext);
+    }
+    
+    /**
+     * 특정 Production 결과로 Delivery 실행
+     */
+    public DeliveryResult executeDelivery(
+            Long productionId,
+            DeliveryContext deliveryContext
+    ) {
+        // Production 결과 조회 (ProductionArtifact 포함)
+        ProductionResult productionResult = getProductionResult(productionId);
+        
+        if (!productionResult.isSuccess() || productionResult.getArtifact() == null) {
+            throw new IllegalStateException("Production이 성공하지 않았거나 Artifact가 없습니다.");
+        }
+        
+        DeliveryService deliveryService = deliveryRegistry.find(deliveryContext.getDeliveryType());
+        
+        if (deliveryService == null) {
+            throw new DeliveryServiceNotFoundException(deliveryContext.getDeliveryType());
+        }
+        
+        return deliveryService.deliver(productionResult.getArtifact(), deliveryContext);
+    }
+    
+    /**
+     * 한 번에 실행 (선택적, 편의용)
+     */
     public PromptProductionDeliveryResponse createProduceAndDeliver(
             PromptRequestDto request, 
             Long userId,
@@ -291,7 +407,6 @@ public class PromptProductionDeliveryFacade {
         
         ProductionContext productionContext = new ProductionContext(userId);
         productionContext.setAttribute("promptResult", promptResult);
-        // 사용자 입력값을 ProductionContext에 설정
         productionContext.setAttribute("userInput", request.getUserInput());
         
         ProductionResult productionResult = productionCoordinator.produce(
@@ -324,6 +439,123 @@ public class PromptProductionDeliveryFacade {
             deliveryResult
         );
     }
+    
+    private ProductionResult getProductionResult(Long productionId) {
+        // Production 결과 조회 로직 (Repository 또는 별도 Service)
+        // TODO: 구현 필요
+        throw new UnsupportedOperationException("구현 필요");
+    }
+}
+```
+
+#### 4.4.2 Controller 구현
+
+```java
+package org.example.sharedprompts.controller.prompt;
+
+@RestController
+@RequestMapping("/prompts")
+@RequiredArgsConstructor
+public class PromptController {
+    
+    private final PromptFacade promptFacade;
+    private final PromptProductionDeliveryFacade productionDeliveryFacade;
+    
+    // 기존: 프롬프트 생성
+    @PostMapping
+    public WebAsyncTask<ResponseEntity<CustomResponse<PromptResponseDto>>> createPrompt(
+            @Valid @RequestBody PromptRequestDto request,
+            @CurrentUser AuthUser authUser
+    ) {
+        return promptFacade.createPromptAsyncWeb(request, authUser.getId());
+    }
+    
+    // 새로 추가: Production 실행
+    @PostMapping("/{promptId}/production")
+    public ResponseEntity<CustomResponse<ProductionResult>> executeProduction(
+            @PathVariable Long promptId,
+            @Valid @RequestBody ProductionRequestDto request,
+            @CurrentUser AuthUser authUser
+    ) {
+        ProductionResult result = productionDeliveryFacade.executeProduction(
+            promptId,
+            authUser.getId(),
+            request.toProductionCommand(),
+            request.getUserInput()
+        );
+        return CustomResponseHelper.ok(result);
+    }
+    
+    // 새로 추가: Production + Delivery 한 번에 실행 (선택적)
+    @PostMapping("/{promptId}/production-and-delivery")
+    public ResponseEntity<CustomResponse<PromptProductionDeliveryResponse>> executeProductionAndDelivery(
+            @PathVariable Long promptId,
+            @Valid @RequestBody ProductionAndDeliveryRequestDto request,
+            @CurrentUser AuthUser authUser
+    ) {
+        // 프롬프트 조회 후 Production + Delivery 실행
+        PromptResponseDto promptResult = promptFacade.getPromptDetail(promptId, authUser.getId());
+        
+        ProductionContext productionContext = new ProductionContext(authUser.getId());
+        productionContext.setAttribute("promptResult", promptResult);
+        if (request.getUserInput() != null) {
+            productionContext.setAttribute("userInput", request.getUserInput());
+        }
+        
+        ProductionResult productionResult = productionDeliveryFacade.executeProduction(
+            promptId,
+            authUser.getId(),
+            request.getProductionCommand(),
+            request.getUserInput()
+        );
+        
+        if (!productionResult.isSuccess()) {
+            return CustomResponseHelper.ok(
+                PromptProductionDeliveryResponse.of(promptResult, productionResult, null)
+            );
+        }
+        
+        DeliveryResult deliveryResult = productionDeliveryFacade.executeDelivery(
+            productionResult.getProductionId(), // Production ID 필요
+            request.getDeliveryContext()
+        );
+        
+        return CustomResponseHelper.ok(
+            PromptProductionDeliveryResponse.of(promptResult, productionResult, deliveryResult)
+        );
+    }
+}
+
+@RestController
+@RequestMapping("/production")
+@RequiredArgsConstructor
+public class ProductionController {
+    
+    private final PromptProductionDeliveryFacade productionDeliveryFacade;
+    
+    // 새로 추가: Delivery 실행
+    @PostMapping("/{productionId}/delivery")
+    public ResponseEntity<CustomResponse<DeliveryResult>> executeDelivery(
+            @PathVariable Long productionId,
+            @Valid @RequestBody DeliveryRequestDto request,
+            @CurrentUser AuthUser authUser
+    ) {
+        DeliveryResult result = productionDeliveryFacade.executeDelivery(
+            productionId,
+            request.toDeliveryContext()
+        );
+        return CustomResponseHelper.ok(result);
+    }
+    
+    // Production 결과 조회
+    @GetMapping("/{productionId}")
+    public ResponseEntity<CustomResponse<ProductionResult>> getProductionResult(
+            @PathVariable Long productionId,
+            @CurrentUser AuthUser authUser
+    ) {
+        ProductionResult result = productionDeliveryFacade.getProductionResult(productionId);
+        return CustomResponseHelper.ok(result);
+    }
 }
 ```
 
@@ -333,15 +565,17 @@ public class PromptProductionDeliveryFacade {
 
 **핵심 설계 원칙:**
 1. Prompt → Production → Delivery 3단계 파이프라인
-2. Production은 Delivery를 절대 알지 못함
-3. Delivery는 ProductionArtifact만 소비
-4. Application/Facade 계층이 둘을 조합
-5. **AI Client는 Infra/Adapter 계층에서만 관리 (토큰 노출 최소화, 테스트 용이성)**
-6. **ProductionModule은 단순히 "compose" 역할만 수행 (AI Client 직접 호출 금지)**
-7. Production은 프롬프트 결과와 사용자 입력값을 조합하여 콘텐츠 생성
-8. Delivery는 타입 안전한 설정 객체를 통해 전송/게시/배포 수행
-9. **Artifact 타입별 getLocation() 의미 구분 필수 (TEXT는 콘텐츠, FILE/IMAGE는 경로)**
-10. 검증 실패 → Exception, 생성 실패 → Result.failure
+2. **⚠️ 자동 실행 금지: 각 단계는 사용자가 명시적으로 API를 통해 요청해야 함**
+3. Production은 Delivery를 절대 알지 못함
+4. Delivery는 ProductionArtifact만 소비
+5. Application/Facade 계층이 둘을 조합
+6. **AI Client는 Infra/Adapter 계층에서만 관리 (토큰 노출 최소화, 테스트 용이성)**
+7. **ProductionModule은 단순히 "compose" 역할만 수행 (AI Client 직접 호출 금지)**
+8. Production은 프롬프트 결과와 사용자 입력값을 조합하여 콘텐츠 생성
+9. Delivery는 타입 안전한 설정 객체를 통해 전송/게시/배포 수행
+10. **Artifact 타입별 getLocation() 의미 구분 필수 (TEXT는 콘텐츠, FILE/IMAGE는 경로)**
+11. 검증 실패 → Exception, 생성 실패 → Result.failure
+12. **사용자 제어: 각 단계를 독립적으로 실행할 수 있는 API 제공 (단계별 실행 또는 한 번에 실행 선택 가능)**
 
 **AI Client 설계 원칙:**
 - 텍스트 생성과 이미지 생성을 별도 인터페이스로 분리

@@ -1,7 +1,7 @@
 package org.example.sharedprompts.module.domain.production.coordinator;
 
-import org.example.sharedprompts.module.domain.production.api.ProductionCommandType;
-import org.example.sharedprompts.module.domain.production.api.ProductionModule;
+import org.example.sharedprompts.module.domain.production.api.command.ProductionCommandType;
+import org.example.sharedprompts.module.domain.production.api.module.ProductionModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

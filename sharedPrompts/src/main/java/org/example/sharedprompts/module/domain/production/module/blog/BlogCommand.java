@@ -1,10 +1,12 @@
 package org.example.sharedprompts.module.domain.production.module.blog;
 
-import org.example.sharedprompts.module.domain.production.api.ProductionCommand;
-import org.example.sharedprompts.module.domain.production.api.ProductionCommandType;
+import lombok.Getter;
+import org.example.sharedprompts.module.domain.production.api.command.ProductionCommand;
+import org.example.sharedprompts.module.domain.production.api.command.ProductionCommandType;
 
 import java.util.List;
 
+@Getter
 public class BlogCommand implements ProductionCommand {
     private final String commandId;
     private final String title;
@@ -25,13 +27,6 @@ public class BlogCommand implements ProductionCommand {
     public String getCommandId() {
         return commandId;
     }
-    
-    public String getTitle() {
-        return title;
-    }
-    
-    public List<String> getTags() {
-        return tags;
-    }
+
 }
 

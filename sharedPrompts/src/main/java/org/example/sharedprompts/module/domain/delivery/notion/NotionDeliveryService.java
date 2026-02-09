@@ -1,14 +1,14 @@
 package org.example.sharedprompts.module.domain.delivery.notion;
 
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.module.domain.delivery.api.DeliveryContext;
-import org.example.sharedprompts.module.domain.delivery.api.DeliveryResult;
-import org.example.sharedprompts.module.domain.delivery.api.DeliveryService;
-import org.example.sharedprompts.module.domain.delivery.api.DeliveryType;
-import org.example.sharedprompts.module.domain.delivery.api.NotionClient;
+import org.example.sharedprompts.module.domain.delivery.api.client.NotionClient;
+import org.example.sharedprompts.module.domain.delivery.api.model.DeliveryContext;
+import org.example.sharedprompts.module.domain.delivery.api.model.DeliveryResult;
+import org.example.sharedprompts.module.domain.delivery.api.service.DeliveryService;
+import org.example.sharedprompts.module.domain.delivery.api.type.DeliveryType;
 import org.example.sharedprompts.module.domain.delivery.exception.DeliveryException;
-import org.example.sharedprompts.module.domain.production.api.ArtifactType;
-import org.example.sharedprompts.module.domain.production.api.ProductionArtifact;
+import org.example.sharedprompts.module.domain.production.api.artifact.ArtifactType;
+import org.example.sharedprompts.module.domain.production.api.artifact.ProductionArtifact;
 import org.springframework.stereotype.Component;
 
 @Component
