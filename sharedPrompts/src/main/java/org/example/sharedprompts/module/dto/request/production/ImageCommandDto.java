@@ -1,6 +1,5 @@
 package org.example.sharedprompts.module.dto.request.production;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -12,7 +11,6 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonTypeInfo(use = JsonTypeInfo.Id.NONE)
 public class ImageCommandDto implements CommandDto {
     @NotNull(message = "프롬프트를 입력해주세요.")
     private String prompt;

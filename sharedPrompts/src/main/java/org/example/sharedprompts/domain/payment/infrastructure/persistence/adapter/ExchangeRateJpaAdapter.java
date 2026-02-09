@@ -25,8 +25,3 @@ public class ExchangeRateJpaAdapter {
         return exchangeRateRepository.findByCurrencyPair(fromCurrency, toCurrency);
     }
 }
-
-
-
-
-

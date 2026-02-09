@@ -45,4 +45,3 @@ public class EmailSenderImpl implements EmailSender {
         return DefaultDeliveryResult.success();
     }
 }
-

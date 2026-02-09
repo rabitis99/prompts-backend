@@ -63,8 +63,3 @@ public class PointJpaAdapter {
         return pointRepository.findByPaymentIdWithFetchJoin(paymentId, pageable);
     }
 }
-
-
-
-
-

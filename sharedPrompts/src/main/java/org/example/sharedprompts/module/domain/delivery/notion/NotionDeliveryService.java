@@ -73,4 +73,3 @@ public class NotionDeliveryService implements DeliveryService {
         return notionClient.createPage(content, pageTitle, parentPageId, context);
     }
 }
-

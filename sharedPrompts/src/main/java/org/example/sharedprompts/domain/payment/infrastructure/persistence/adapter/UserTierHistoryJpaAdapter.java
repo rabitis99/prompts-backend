@@ -27,8 +27,3 @@ public class UserTierHistoryJpaAdapter {
         return userTierHistoryRepository.findByUserIdWithFetchJoin(userId, pageable);
     }
 }
-
-
-
-
-

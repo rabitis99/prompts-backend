@@ -277,7 +277,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"새로운 프롬프트 제목\",\n  \"description\": \"프롬프트 설명입니다.\",\n  \"is_public\": true,\n  \"prompt_category\": \"DEVELOPMENT\",\n  \"tags\": [\"태그1\", \"태그2\", \"태그3\"],\n  \"input\": \"프롬프트 입력 내용\",\n  \"tone\": \"FRIENDLY\",\n  \"experience\": \"INTERMEDIATE\",\n  \"style\": \"NARRATIVE\",\n  \"language\": \"KOREAN\"\n}"
+              "raw": "{\n  \"title\": \"새로운 프롬프트 제목\",\n  \"description\": \"프롬프트 설명입니다.\",\n  \"is_public\": true,\n  \"prompt_category\": \"DEVELOPMENT\",\n  \"tags\": [\"태그1\", \"태그2\", \"태그3\"],\n  \"input\": \"프롬프트 입력 내용\",\n  \"action_type\": \"ARCHITECTURE_DESIGN\",\n  \"role_type\": \"BACKEND_DEVELOPER\",\n  \"tone\": \"FRIENDLY\",\n  \"experience\": \"INTERMEDIATE\",\n  \"style\": \"NARRATIVE\",\n  \"language\": \"KOREAN\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/prompts",
@@ -1732,6 +1732,233 @@
               "raw": "{{baseUrl}}/statistics/me",
               "host": ["{{baseUrl}}"],
               "path": ["statistics", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Production",
+      "item": [
+        {
+          "name": "프롬프트 생산 실행",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"commandType\": \"BLOG\",\n  \"command\": {\n    \"title\": \"블로그 제목\",\n    \"tags\": [\"태그1\", \"태그2\"]\n  },\n  \"userInput\": {\n    \"input\": \"사용자 입력 내용\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prompts/1/production",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "1", "production"]
+            }
+          }
+        },
+        {
+          "name": "프롬프트 생산 실행 (EMAIL)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"commandType\": \"EMAIL\",\n  \"command\": {\n    \"subject\": \"이메일 제목\",\n    \"recipient\": \"recipient@example.com\"\n  },\n  \"userInput\": {\n    \"input\": \"사용자 입력 내용\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prompts/1/production",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "1", "production"]
+            }
+          }
+        },
+        {
+          "name": "프롬프트 생산 실행 (TEXT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"commandType\": \"TEXT\",\n  \"command\": {\n    \"fileName\": \"output.txt\",\n    \"format\": \"plain\"\n  },\n  \"userInput\": {\n    \"input\": \"사용자 입력 내용\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prompts/1/production",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "1", "production"]
+            }
+          }
+        },
+        {
+          "name": "프롬프트 생산 실행 (IMAGE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"commandType\": \"IMAGE\",\n  \"command\": {\n    \"prompt\": \"이미지 생성 프롬프트\",\n    \"width\": 1024,\n    \"height\": 768\n  },\n  \"userInput\": {\n    \"input\": \"사용자 입력 내용\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prompts/1/production",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "1", "production"]
+            }
+          }
+        },
+        {
+          "name": "생산 결과 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/production/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["production", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delivery",
+      "item": [
+        {
+          "name": "배송 실행 (BLOG)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryType\": \"BLOG\",\n  \"context\": {\n    \"platform\": \"velog\",\n    \"title\": \"블로그 포스트 제목\",\n    \"additionalAttributes\": {}\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/production/1/delivery",
+              "host": ["{{baseUrl}}"],
+              "path": ["production", "1", "delivery"]
+            }
+          }
+        },
+        {
+          "name": "배송 실행 (EMAIL)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryType\": \"EMAIL\",\n  \"context\": {\n    \"to\": \"recipient@example.com\",\n    \"subject\": \"이메일 제목\",\n    \"additionalAttributes\": {}\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/production/1/delivery",
+              "host": ["{{baseUrl}}"],
+              "path": ["production", "1", "delivery"]
+            }
+          }
+        },
+        {
+          "name": "배송 실행 (GITHUB)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryType\": \"GITHUB\",\n  \"context\": {\n    \"repository\": \"username/repo-name\",\n    \"branch\": \"main\",\n    \"path\": \"path/to/file.md\",\n    \"additionalAttributes\": {}\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/production/1/delivery",
+              "host": ["{{baseUrl}}"],
+              "path": ["production", "1", "delivery"]
+            }
+          }
+        },
+        {
+          "name": "배송 실행 (NOTION)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryType\": \"NOTION\",\n  \"context\": {\n    \"pageId\": \"notion-page-id\",\n    \"title\": \"노션 페이지 제목\",\n    \"additionalAttributes\": {}\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/production/1/delivery",
+              "host": ["{{baseUrl}}"],
+              "path": ["production", "1", "delivery"]
             }
           }
         }
