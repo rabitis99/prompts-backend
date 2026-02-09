@@ -8,6 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import static org.example.sharedprompts.global.util.SensitiveDataMasker.maskEmail;
+
 /**
  * 이메일을 전송하는 Sender 구현체.
  * Delivery 계층에서 사용되며, 외부 이메일 서비스 API 호출을 담당한다.
@@ -39,15 +41,15 @@ public class EmailSenderImpl implements EmailSender {
             return DefaultDeliveryResult.failure("Email recipient is not specified");
         }
         
-        log.info("이메일 전송 시도: userId={}, recipient={}, subject={}, contentLength={}", 
-                context.getUserId(), recipient, subject, emailContent.length());
+        log.info("이메일 전송 시도: userId={}, recipient={}, subject={}, contentLength={}",
+                context.getUserId(), maskEmail(recipient), subject, emailContent.length());
         
         // TODO: 실제 이메일 서비스 API 연동 구현
         // - SMTP 서버 연동
         // - SendGrid, AWS SES 등 외부 서비스 연동
         
         // 현재는 시뮬레이션으로 성공 반환
-        log.info("이메일 전송 완료 (시뮬레이션): recipient={}", recipient);
+        log.info("이메일 전송 완료 (시뮬레이션): recipient={}", maskEmail(recipient));
         return DefaultDeliveryResult.success();
     }
 }
