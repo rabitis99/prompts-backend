@@ -10,7 +10,6 @@ import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import org.example.sharedprompts.module.dto.request.production.ProductionRequestDto;
 import org.example.sharedprompts.module.dto.response.production.ProductionResponseDto;
 import org.example.sharedprompts.module.domain.production.api.model.ProductionResult;
-import org.example.sharedprompts.module.domain.production.repository.ProductionArtifactRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 public class ProductionController {
     
     private final PromptProductionDeliveryFacade productionDeliveryFacade;
-    private final ProductionArtifactRepository productionArtifactRepository;
     
     @PostMapping("/prompts/{promptId}/production")
     public ResponseEntity<CustomResponse<ProductionResponseDto>> executeProduction(
@@ -36,30 +34,23 @@ public class ProductionController {
                 request.getUserInput().getInput() : null
         );
         
-        Long productionEntityId = productionArtifactRepository
-                .findTop1000ByUserIdOrderByCreatedAtDesc(authUser.getId())
-                .stream()
-                .filter(entity -> entity.getCommandType().equals(request.getCommandType()))
-                .findFirst()
-                .map(entity -> entity.getId())
-                .orElse(null);
+        Long productionEntityId = productionDeliveryFacade.getLatestProductionArtifactId(
+            authUser.getId(), 
+            request.getCommandType()
+        );
         
         ProductionResponseDto response = ProductionResponseDto.from(result, productionEntityId);
         return CustomResponseHelper.ok(response);
     }
     
-    @GetMapping("/production/{productionId}")
+    @GetMapping("/production/{productionArtifactId}")
     public ResponseEntity<CustomResponse<ProductionResponseDto>> getProductionResult(
-            @PathVariable String productionId,
+            @PathVariable Long productionArtifactId,
             @CurrentUser AuthUser authUser
     ) {
-        ProductionResult result = productionDeliveryFacade.getProductionResult(productionId, authUser.getId());
+        ProductionResult result = productionDeliveryFacade.getProductionResult(productionArtifactId, authUser.getId());
         
-        Long entityId = productionArtifactRepository.findByProductionId(productionId)
-                .map(entity -> entity.getId())
-                .orElse(null);
-        
-        ProductionResponseDto response = ProductionResponseDto.from(result, entityId);
+        ProductionResponseDto response = ProductionResponseDto.from(result, productionArtifactId);
         return CustomResponseHelper.ok(response);
     }
 }

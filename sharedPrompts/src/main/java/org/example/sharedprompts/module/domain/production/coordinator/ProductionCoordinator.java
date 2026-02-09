@@ -64,8 +64,8 @@ public class ProductionCoordinator {
         } catch (Exception e) {
             // 아티팩트 저장 실패는 로깅만 하고 원래 결과는 반환
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            log.warn("아티팩트 저장 실패 - productionId: {}, error: {}", 
-                    context.getProductionId(), errorMsg, e);
+            log.warn("아티팩트 저장 실패 - userId: {}, error: {}", 
+                    context.getUserId(), errorMsg, e);
         }
         
         return result;
@@ -78,7 +78,6 @@ public class ProductionCoordinator {
     ) {
         var artifact = result.getArtifact();
         ProductionArtifactEntity entity = ProductionArtifactEntity.builder()
-            .productionId(context.getProductionId())
             .userId(context.getUserId())
             .commandType(command.getCommandType())
             .artifactType(artifact != null ? artifact.getType() : null)
@@ -89,7 +88,8 @@ public class ProductionCoordinator {
             .errorMessage(result.getErrorMessage())
             .build();
         
-        artifactRepository.save(entity);
+        ProductionArtifactEntity saved = artifactRepository.save(entity);
+        log.debug("Production artifact saved - id: {}, userId: {}", saved.getId(), saved.getUserId());
     }
 }
 

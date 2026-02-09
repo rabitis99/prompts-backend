@@ -51,6 +51,9 @@ public class DeliveryCoordinator {
         
         try {
             result = deliveryService.deliver(artifact, context);
+            if (result == null) {
+                result = DefaultDeliveryResult.failure("DeliveryService returned null result");
+            }
         } catch (DeliveryException e) {
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
             result = DefaultDeliveryResult.failure(errorMsg);
@@ -72,8 +75,8 @@ public class DeliveryCoordinator {
         } catch (Exception e) {
             // 배달 저장 실패는 로깅만 하고 원래 결과는 반환
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            log.warn("배달 저장 실패 - productionId: {}, error: {}", 
-                    context.getAttribute("productionId", String.class), errorMsg, e);
+            log.warn("배달 저장 실패 - productionArtifactId: {}, error: {}", 
+                    context.getAttribute("productionArtifactId", Long.class), errorMsg, e);
         }
         
         return result;
@@ -86,11 +89,16 @@ public class DeliveryCoordinator {
             Instant completedAt
     ) {
         String deliveryId = UUID.randomUUID().toString();
-        String productionId = context.getAttribute("productionId", String.class);
+        Long productionArtifactId = context.getAttribute("productionArtifactId", Long.class);
+        
+        if (productionArtifactId == null) {
+            log.warn("productionArtifactId가 null이므로 배달 기록을 저장할 수 없습니다. userId={}", context.getUserId());
+            return;
+        }
         
         DeliveryEntity entity = DeliveryEntity.builder()
             .deliveryId(deliveryId)
-            .productionId(productionId)
+            .productionArtifactId(productionArtifactId)
             .userId(context.getUserId())
             .deliveryType(context.getDeliveryType())
             .startedAt(startedAt)

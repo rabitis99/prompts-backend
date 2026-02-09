@@ -28,12 +28,19 @@ public class DeliveryContext {
         attributes.put(key, value);
     }
     
+    @SuppressWarnings("unchecked")
     public <T> T getAttribute(String key, Class<T> type) {
         Object value = attributes.get(key);
         if (value == null) {
             return null;
         }
-        return type.cast(value);
+        if (!type.isInstance(value)) {
+            throw new ClassCastException(
+                String.format("Attribute '%s' is not of type %s, but %s", 
+                    key, type.getName(), value.getClass().getName())
+            );
+        }
+        return (T) value;
     }
     
     // BlogDeliveryService에서 사용하는 platform getter

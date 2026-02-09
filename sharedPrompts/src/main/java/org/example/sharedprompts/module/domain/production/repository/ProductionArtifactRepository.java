@@ -12,8 +12,6 @@ import java.util.Optional;
 
 public interface ProductionArtifactRepository extends JpaRepository<ProductionArtifactEntity, Long> {
     
-    Optional<ProductionArtifactEntity> findByProductionId(String productionId);
-    
     // ⚠️ 대량 데이터 로딩 위험: 최대 1000건만 반환 (Top1000 사용)
     // 사용자의 artifact 수가 증가하면 메모리 이슈와 쿼리 성능 저하가 발생할 수 있습니다.
     // 가능하면 Page variant를 사용하는 것을 권장합니다.
@@ -46,6 +44,5 @@ public interface ProductionArtifactRepository extends JpaRepository<ProductionAr
     // - (userId, createdAt) - findByUserIdOrderByCreatedAtDesc 쿼리 최적화
     // - (userId, commandType, createdAt) - findByUserIdAndCommandTypeOrderByCreatedAtDesc 쿼리 최적화
     // - (userId, artifactType, createdAt) - findByUserIdAndArtifactTypeOrderByCreatedAtDesc 쿼리 최적화
-    // - (productionId) - findByProductionId 쿼리 최적화
 }
 

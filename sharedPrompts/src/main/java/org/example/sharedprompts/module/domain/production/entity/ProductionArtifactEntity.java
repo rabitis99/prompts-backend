@@ -18,8 +18,7 @@ import java.time.Instant;
     indexes = {
         @Index(name = "idx_production_artifacts_user_id_created_at", columnList = "user_id,created_at"),
         @Index(name = "idx_production_artifacts_user_id_command_type_created_at", columnList = "user_id,command_type,created_at"),
-        @Index(name = "idx_production_artifacts_user_id_artifact_type_created_at", columnList = "user_id,artifact_type,created_at"),
-        @Index(name = "idx_production_artifacts_production_id", columnList = "production_id")
+        @Index(name = "idx_production_artifacts_user_id_artifact_type_created_at", columnList = "user_id,artifact_type,created_at")
     }
 )
 public class ProductionArtifactEntity extends BaseEntity {
@@ -27,9 +26,6 @@ public class ProductionArtifactEntity extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(name = "production_id", nullable = false, length = 100, unique = true)
-    private String productionId;
 
     @Column(name = "user_id", nullable = false)
     private Long userId;

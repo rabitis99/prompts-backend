@@ -8,6 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Locale;
+
 /**
  * GitHub API와 연동하는 Client 구현체.
  * Delivery 계층에서 사용되며, 외부 API 호출을 담당한다.
@@ -41,7 +43,7 @@ public class GitHubClientImpl implements GitHubClient {
         // - 인증 토큰 관리
         // - PR 생성, Commit, Issue 생성 등
         
-        switch (action.toLowerCase()) {
+        switch (action.toLowerCase(Locale.ROOT)) {
             case "pr":
                 log.info("GitHub PR 생성 (시뮬레이션): repository={}, branch={}", repository, branch);
                 break;

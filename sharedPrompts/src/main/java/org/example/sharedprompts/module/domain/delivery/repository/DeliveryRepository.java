@@ -13,9 +13,7 @@ public interface DeliveryRepository extends JpaRepository<DeliveryEntity, Long> 
     
     Optional<DeliveryEntity> findByDeliveryId(String deliveryId);
     
-    Optional<DeliveryEntity> findByProductionId(String productionId);
-    
-    Optional<DeliveryEntity> findFirstByProductionIdOrderByCreatedAtDesc(String productionId);
+    Optional<DeliveryEntity> findFirstByProductionArtifactIdOrderByCreatedAtDesc(Long productionArtifactId);
     
     // ⚠️ 대량 데이터 로딩 위험: 최대 1000건만 반환 (Top1000 사용)
     // 사용자의 delivery 수가 증가하면 메모리 이슈와 쿼리 성능 저하가 발생할 수 있습니다.
@@ -39,7 +37,7 @@ public interface DeliveryRepository extends JpaRepository<DeliveryEntity, Long> 
     // DeliveryEntity에 다음 복합 인덱스가 적용되어 있습니다:
     // - (userId, createdAt) - findByUserIdOrderByCreatedAtDesc 쿼리 최적화
     // - (userId, deliveryType, createdAt) - findByUserIdAndDeliveryTypeOrderByCreatedAtDesc 쿼리 최적화
-    // - (productionId) - findByProductionId 쿼리 최적화
+    // - (productionArtifactId) - findFirstByProductionArtifactIdOrderByCreatedAtDesc 쿼리 최적화
     // - (deliveryId) - findByDeliveryId 쿼리 최적화
 }
 

@@ -35,29 +35,39 @@ public class DeliveryRequestDto {
         DeliveryContext deliveryContext = new DeliveryContext(deliveryType, userId);
         
         if (context instanceof BlogDeliveryContextDto blogCtx) {
-            deliveryContext.setAttribute("platform", blogCtx.getPlatform());
-            deliveryContext.setAttribute("title", blogCtx.getTitle());
+            // additionalAttributes를 먼저 설정하여 고정 속성이 우선되도록 함
             if (blogCtx.getAdditionalAttributes() != null) {
                 blogCtx.getAdditionalAttributes().forEach(deliveryContext::setAttribute);
             }
+            deliveryContext.setAttribute("platform", blogCtx.getPlatform());
+            deliveryContext.setAttribute("title", blogCtx.getTitle());
         } else if (context instanceof EmailDeliveryContextDto emailCtx) {
-            deliveryContext.setAttribute("to", emailCtx.getTo());
-            deliveryContext.setAttribute("subject", emailCtx.getSubject());
+            // additionalAttributes를 먼저 설정하여 고정 속성이 우선되도록 함
             if (emailCtx.getAdditionalAttributes() != null) {
                 emailCtx.getAdditionalAttributes().forEach(deliveryContext::setAttribute);
             }
+            deliveryContext.setAttribute("to", emailCtx.getTo());
+            deliveryContext.setAttribute("subject", emailCtx.getSubject());
         } else if (context instanceof GitHubDeliveryContextDto githubCtx) {
-            deliveryContext.setAttribute("repository", githubCtx.getRepository());
-            deliveryContext.setAttribute("branch", githubCtx.getBranch());
-            deliveryContext.setAttribute("path", githubCtx.getPath());
+            // additionalAttributes를 먼저 설정하여 고정 속성이 우선되도록 함
             if (githubCtx.getAdditionalAttributes() != null) {
                 githubCtx.getAdditionalAttributes().forEach(deliveryContext::setAttribute);
             }
+            deliveryContext.setAttribute("repository", githubCtx.getRepository());
+            deliveryContext.setAttribute("branch", githubCtx.getBranch());
+            deliveryContext.setAttribute("path", githubCtx.getPath());
         } else if (context instanceof NotionDeliveryContextDto notionCtx) {
-            deliveryContext.setAttribute("pageId", notionCtx.getPageId());
-            deliveryContext.setAttribute("title", notionCtx.getTitle());
+            // additionalAttributes를 먼저 설정하여 고정 속성이 우선되도록 함
             if (notionCtx.getAdditionalAttributes() != null) {
                 notionCtx.getAdditionalAttributes().forEach(deliveryContext::setAttribute);
+            }
+            deliveryContext.setAttribute("pageId", notionCtx.getPageId());
+            deliveryContext.setAttribute("title", notionCtx.getTitle());
+        } else {
+            // 새로운 DeliveryContextDto 구현체가 추가된 경우를 대비
+            // additionalAttributes만 설정 (고정 속성은 없음)
+            if (context.getAdditionalAttributes() != null) {
+                context.getAdditionalAttributes().forEach(deliveryContext::setAttribute);
             }
         }
         

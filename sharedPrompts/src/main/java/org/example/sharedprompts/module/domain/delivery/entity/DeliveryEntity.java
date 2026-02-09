@@ -17,8 +17,7 @@ import java.time.Instant;
     indexes = {
         @Index(name = "idx_deliveries_user_id_created_at", columnList = "user_id,created_at"),
         @Index(name = "idx_deliveries_user_id_delivery_type_created_at", columnList = "user_id,delivery_type,created_at"),
-        @Index(name = "idx_deliveries_production_id", columnList = "production_id"),
-        @Index(name = "idx_deliveries_delivery_id", columnList = "delivery_id")
+        @Index(name = "idx_deliveries_production_artifact_id", columnList = "production_artifact_id")
     }
 )
 public class DeliveryEntity extends BaseEntity {
@@ -30,8 +29,8 @@ public class DeliveryEntity extends BaseEntity {
     @Column(name = "delivery_id", nullable = false, length = 100, unique = true)
     private String deliveryId;
 
-    @Column(name = "production_id", nullable = false, length = 100)
-    private String productionId;
+    @Column(name = "production_artifact_id", nullable = false)
+    private Long productionArtifactId;
 
     @Column(name = "user_id", nullable = false)
     private Long userId;

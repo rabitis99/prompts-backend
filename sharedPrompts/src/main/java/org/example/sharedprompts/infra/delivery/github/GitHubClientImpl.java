@@ -1,9 +1,9 @@
 package org.example.sharedprompts.infra.delivery.github;
 
-import org.example.sharedprompts.domain.delivery.api.DeliveryContext;
-import org.example.sharedprompts.domain.delivery.api.DeliveryResult;
-import org.example.sharedprompts.domain.delivery.api.DefaultDeliveryResult;
-import org.example.sharedprompts.domain.delivery.api.GitHubClient;
+import org.example.sharedprompts.module.domain.delivery.api.client.GitHubClient;
+import org.example.sharedprompts.module.domain.delivery.api.model.DeliveryContext;
+import org.example.sharedprompts.module.domain.delivery.api.model.DeliveryResult;
+import org.example.sharedprompts.module.domain.delivery.api.model.DefaultDeliveryResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
