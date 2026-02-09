@@ -6,6 +6,7 @@ import org.example.sharedprompts.module.domain.production.module.blog.BlogComman
 import org.example.sharedprompts.module.domain.production.module.email.EmailCommand;
 import org.example.sharedprompts.module.domain.production.module.image.ImageCommand;
 import org.example.sharedprompts.module.domain.production.module.text.TextCommand;
+import org.example.sharedprompts.module.utils.ValidationUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
@@ -46,7 +47,12 @@ public class ProductionCommandMapper {
             }
             case IMAGE -> {
                 ImageCommandDto cmd = (ImageCommandDto) commandDto;
-                yield new ImageCommand(commandId, cmd.getPrompt(), cmd.getWidth(), cmd.getHeight());
+                yield new ImageCommand(
+                        commandId,
+                        cmd.getPrompt(),
+                        ValidationUtils.requireNonNull(cmd.getWidth(), "width"),
+                        ValidationUtils.requireNonNull(cmd.getHeight(), "height")
+                );
             }
             case DOCUMENT -> throw new UnsupportedOperationException("DOCUMENT 타입은 아직 지원하지 않습니다.");
         };
