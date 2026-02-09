@@ -21,26 +21,24 @@ public class TextFileWriter {
     
     /**
      * 텍스트 파일을 작성한다.
-     * 
-     * @param content 파일에 작성할 내용
-     * @param fileName 파일명 (확장자 제외)
-     * @param format 파일 형식 (txt, md 등)
-     * @return 생성된 파일의 경로
-     * @throws IOException 파일 작성 실패 시
      */
     public String write(String content, String fileName, String format) throws IOException {
-        // 출력 디렉토리 생성
-        Path outputDir = Paths.get(OUTPUT_DIR);
-        if (!Files.exists(outputDir)) {
-            Files.createDirectories(outputDir);
+        if (content == null || fileName == null || format == null) {
+            throw new IllegalArgumentException("content, fileName, and format must not be null");
         }
         
-        // 파일명 생성 (타임스탬프 포함)
+        Path outputDir = Paths.get(OUTPUT_DIR);
+        Files.createDirectories(outputDir);
+        
         String timestamp = LocalDateTime.now().format(DATE_FORMATTER);
         String fullFileName = String.format("%s_%s.%s", fileName, timestamp, format);
         Path filePath = outputDir.resolve(fullFileName);
         
-        // 파일 작성
+        // 경로 탐색 방지: resolve 후 결과 경로가 outputDir 하위에 있는지 확인
+        if (!filePath.normalize().startsWith(outputDir.normalize())) {
+            throw new IOException("Invalid file path: path traversal detected");
+        }
+        
         Files.writeString(filePath, content);
         
         return filePath.toString();

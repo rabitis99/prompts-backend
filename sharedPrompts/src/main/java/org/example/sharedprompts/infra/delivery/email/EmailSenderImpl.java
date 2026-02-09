@@ -3,29 +3,29 @@ package org.example.sharedprompts.infra.delivery.email;
 import org.example.sharedprompts.domain.delivery.api.DeliveryContext;
 import org.example.sharedprompts.domain.delivery.api.DeliveryResult;
 import org.example.sharedprompts.domain.delivery.api.DefaultDeliveryResult;
+import org.example.sharedprompts.domain.delivery.api.EmailSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * 이메일을 전송하는 Sender.
+ * 이메일을 전송하는 Sender 구현체.
  * Delivery 계층에서 사용되며, 외부 이메일 서비스 API 호출을 담당한다.
- * 
- * 현재는 기본 구현으로, 실제 이메일 서비스 연동은 추후 구현 예정.
  */
 @Component
-public class EmailSender {
-    
-    private static final Logger log = LoggerFactory.getLogger(EmailSender.class);
+public class EmailSenderImpl implements EmailSender {
+
+    private static final Logger log = LoggerFactory.getLogger(EmailSenderImpl.class);
     
     /**
      * 이메일을 전송한다.
-     * 
-     * @param emailContent 전송할 이메일 내용
-     * @param context Delivery 컨텍스트
-     * @return Delivery 결과
      */
     public DeliveryResult send(String emailContent, DeliveryContext context) {
+        if (emailContent == null) {
+            log.warn("이메일 내용이 null입니다: userId={}", context.getUserId());
+            return DefaultDeliveryResult.failure("Email content is null");
+        }
+        
         String recipient = context.getAttribute("recipient", String.class);
         String subject = context.getAttribute("subject", String.class);
         

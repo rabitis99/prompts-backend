@@ -5,10 +5,10 @@ import org.example.sharedprompts.domain.delivery.api.DeliveryContext;
 import org.example.sharedprompts.domain.delivery.api.DeliveryResult;
 import org.example.sharedprompts.domain.delivery.api.DeliveryService;
 import org.example.sharedprompts.domain.delivery.api.DeliveryType;
+import org.example.sharedprompts.domain.delivery.api.GitHubClient;
 import org.example.sharedprompts.domain.delivery.exception.DeliveryException;
 import org.example.sharedprompts.domain.production.api.ArtifactType;
 import org.example.sharedprompts.domain.production.api.ProductionArtifact;
-import org.example.sharedprompts.infra.delivery.github.GitHubClient;
 import org.springframework.stereotype.Component;
 
 @Component

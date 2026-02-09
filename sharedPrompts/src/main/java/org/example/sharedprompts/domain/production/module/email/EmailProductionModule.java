@@ -1,6 +1,8 @@
 package org.example.sharedprompts.domain.production.module.email;
 
 import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.domain.production.api.DefaultProductionResult;
+import org.example.sharedprompts.domain.production.api.ProductionArtifact;
 import org.example.sharedprompts.domain.production.api.ProductionCommand;
 import org.example.sharedprompts.domain.production.api.ProductionCommandType;
 import org.example.sharedprompts.domain.production.api.ProductionContext;
@@ -42,7 +44,7 @@ public class EmailProductionModule implements ProductionModule {
             PromptResponseDto promptResult = context.getAttribute("promptResult", PromptResponseDto.class);
             
             if (promptResult == null) {
-                return EmailResult.failure("PromptResult not found in context", startedAt, Instant.now());
+                return DefaultProductionResult.failure("PromptResult not found in context", startedAt, Instant.now());
             }
             
             String emailContent = emailComposer.compose(
@@ -53,11 +55,11 @@ public class EmailProductionModule implements ProductionModule {
             
             Instant completedAt = Instant.now();
             
-            org.example.sharedprompts.domain.production.api.ProductionArtifact artifact = new TextArtifact(emailContent);
-            return EmailResult.success(artifact, startedAt, completedAt);
+            ProductionArtifact artifact = new TextArtifact(emailContent);
+            return DefaultProductionResult.success(artifact, startedAt, completedAt);
             
         } catch (Exception e) {
-            return EmailResult.failure(e.getMessage(), startedAt, Instant.now());
+            return DefaultProductionResult.failure(e.getMessage(), startedAt, Instant.now());
         }
     }
 }

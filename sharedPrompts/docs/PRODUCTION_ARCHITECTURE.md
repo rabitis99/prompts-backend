@@ -389,15 +389,15 @@ public class EmailProductionModule implements ProductionModule {
         
         try {
             PromptResponseDto promptResult = context.getAttribute("promptResult", PromptResponseDto.class);
-            UserInputDto userInput = context.getAttribute("userInput", UserInputDto.class);
             
-            // EmailComposer가 Infra 계층의 AI Client를 통해 콘텐츠 생성
-            // ProductionModule은 단순히 compose 역할만 수행
+            if (promptResult == null) {
+                return EmailResult.failure("PromptResult not found in context", startedAt, Instant.now());
+            }
+            
             String emailContent = emailComposer.compose(
                 emailCommand.getSubject(),
                 promptResult.getContent(),
-                emailCommand.getRecipients(),
-                userInput
+                emailCommand.getRecipient()
             );
             
             Instant completedAt = Instant.now();

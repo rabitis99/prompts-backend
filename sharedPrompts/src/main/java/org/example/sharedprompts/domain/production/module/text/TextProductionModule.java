@@ -1,7 +1,9 @@
 package org.example.sharedprompts.domain.production.module.text;
 
 import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.domain.production.api.DefaultProductionResult;
 import org.example.sharedprompts.domain.production.api.FileArtifact;
+import org.example.sharedprompts.domain.production.api.ProductionArtifact;
 import org.example.sharedprompts.domain.production.api.ProductionCommand;
 import org.example.sharedprompts.domain.production.api.ProductionCommandType;
 import org.example.sharedprompts.domain.production.api.ProductionContext;
@@ -42,7 +44,7 @@ public class TextProductionModule implements ProductionModule {
             PromptResponseDto promptResult = context.getAttribute("promptResult", PromptResponseDto.class);
             
             if (promptResult == null) {
-                return TextResult.failure("PromptResult not found in context", startedAt, Instant.now());
+                return DefaultProductionResult.failure("PromptResult not found in context", startedAt, Instant.now());
             }
             
             String filePath = textFileWriter.write(
@@ -53,11 +55,11 @@ public class TextProductionModule implements ProductionModule {
             
             Instant completedAt = Instant.now();
             
-            org.example.sharedprompts.domain.production.api.ProductionArtifact artifact = new FileArtifact(filePath);
-            return TextResult.success(artifact, startedAt, completedAt);
+            ProductionArtifact artifact = new FileArtifact(filePath);
+            return DefaultProductionResult.success(artifact, startedAt, completedAt);
             
         } catch (Exception e) {
-            return TextResult.failure(e.getMessage(), startedAt, Instant.now());
+            return DefaultProductionResult.failure(e.getMessage(), startedAt, Instant.now());
         }
     }
 }

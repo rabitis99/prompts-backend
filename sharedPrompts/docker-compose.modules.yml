@@ -1,200 +1,88 @@
 version: '3.9'
 
+x-module-common: &module-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  environment: &module-env
+    SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+    SERVER_PORT: 8080
+    SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+    SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+    SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+    REDIS_HOST: redis
+    REDIS_PORT: 6379
+    RABBITMQ_HOST: rabbitmq
+    RABBITMQ_PORT: 5672
+    RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+    RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+    # TODO: 최소 권한 원칙 적용 - 각 모듈에 실제 필요한 AI API 키만 전달하도록 개선 권장
+    # 예: blog-module, email-module은 텍스트 생성이 필요하므로 SPRING_AI_OPENAI_API_KEY만
+    #     image-module은 이미지 생성이 필요하므로 해당 이미지 생성 API 키만
+    SPRING_AI_OPENAI_API_KEY: ${SPRING_AI_OPENAI_API_KEY}
+    GOOGLE_GEMINI_API_KEY: ${GOOGLE_GEMINI_API_KEY}
+    GOOGLE_GEMINI_MODEL: ${GOOGLE_GEMINI_MODEL}
+    GOOGLE_GEMINI_BASE_URL: ${GOOGLE_GEMINI_BASE_URL}
+  networks:
+    - sharedprompts_network
+  depends_on:
+    redis:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/actuator/health"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+    start_period: 60s
+
 services:
   blog-module:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    <<: *module-common
     container_name: sharedprompts_blog_module
     ports:
       - "${BLOG_MODULE_PORT:-8081}:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
-      SERVER_PORT: 8080
+      <<: *module-env
       ACTIVE_MODULES: blog
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
-      SPRING_AI_OPENAI_API_KEY: ${SPRING_AI_OPENAI_API_KEY}
-      GOOGLE_GEMINI_API_KEY: ${GOOGLE_GEMINI_API_KEY}
-      GOOGLE_GEMINI_MODEL: ${GOOGLE_GEMINI_MODEL}
-      GOOGLE_GEMINI_BASE_URL: ${GOOGLE_GEMINI_BASE_URL}
-    networks:
-      - sharedprompts_network
-    depends_on:
-      redis:
-        condition: service_started
-      rabbitmq:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   email-module:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    <<: *module-common
     container_name: sharedprompts_email_module
     ports:
       - "${EMAIL_MODULE_PORT:-8082}:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
-      SERVER_PORT: 8080
+      <<: *module-env
       ACTIVE_MODULES: email
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
-      SPRING_AI_OPENAI_API_KEY: ${SPRING_AI_OPENAI_API_KEY}
-      GOOGLE_GEMINI_API_KEY: ${GOOGLE_GEMINI_API_KEY}
-      GOOGLE_GEMINI_MODEL: ${GOOGLE_GEMINI_MODEL}
-      GOOGLE_GEMINI_BASE_URL: ${GOOGLE_GEMINI_BASE_URL}
-    networks:
-      - sharedprompts_network
-    depends_on:
-      redis:
-        condition: service_started
-      rabbitmq:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   text-module:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    <<: *module-common
     container_name: sharedprompts_text_module
     ports:
       - "${TEXT_MODULE_PORT:-8083}:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
-      SERVER_PORT: 8080
+      <<: *module-env
       ACTIVE_MODULES: text
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
-      SPRING_AI_OPENAI_API_KEY: ${SPRING_AI_OPENAI_API_KEY}
-      GOOGLE_GEMINI_API_KEY: ${GOOGLE_GEMINI_API_KEY}
-      GOOGLE_GEMINI_MODEL: ${GOOGLE_GEMINI_MODEL}
-      GOOGLE_GEMINI_BASE_URL: ${GOOGLE_GEMINI_BASE_URL}
-    networks:
-      - sharedprompts_network
-    depends_on:
-      redis:
-        condition: service_started
-      rabbitmq:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   image-module:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    <<: *module-common
     container_name: sharedprompts_image_module
     ports:
       - "${IMAGE_MODULE_PORT:-8084}:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
-      SERVER_PORT: 8080
+      <<: *module-env
       ACTIVE_MODULES: image
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
-      SPRING_AI_OPENAI_API_KEY: ${SPRING_AI_OPENAI_API_KEY}
-      GOOGLE_GEMINI_API_KEY: ${GOOGLE_GEMINI_API_KEY}
-      GOOGLE_GEMINI_MODEL: ${GOOGLE_GEMINI_MODEL}
-      GOOGLE_GEMINI_BASE_URL: ${GOOGLE_GEMINI_BASE_URL}
-    networks:
-      - sharedprompts_network
-    depends_on:
-      redis:
-        condition: service_started
-      rabbitmq:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   document-module:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    <<: *module-common
     container_name: sharedprompts_document_module
     ports:
       - "${DOCUMENT_MODULE_PORT:-8085}:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
-      SERVER_PORT: 8080
+      <<: *module-env
       ACTIVE_MODULES: document
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
-      SPRING_AI_OPENAI_API_KEY: ${SPRING_AI_OPENAI_API_KEY}
-      GOOGLE_GEMINI_API_KEY: ${GOOGLE_GEMINI_API_KEY}
-      GOOGLE_GEMINI_MODEL: ${GOOGLE_GEMINI_MODEL}
-      GOOGLE_GEMINI_BASE_URL: ${GOOGLE_GEMINI_BASE_URL}
-    networks:
-      - sharedprompts_network
-    depends_on:
-      redis:
-        condition: service_started
-      rabbitmq:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   redis:
     image: redis:7.4.6

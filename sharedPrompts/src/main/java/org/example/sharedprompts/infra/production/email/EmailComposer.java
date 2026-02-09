@@ -11,11 +11,6 @@ public class EmailComposer {
     
     /**
      * 이메일 콘텐츠를 구성한다.
-     * 
-     * @param subject 이메일 제목
-     * @param content 프롬프트로부터 생성된 본문 내용
-     * @param recipient 수신자 이메일 주소
-     * @return 구성된 이메일 콘텐츠 (HTML 형식)
      */
     public String compose(String subject, String content, String recipient) {
         StringBuilder emailContent = new StringBuilder();
@@ -32,8 +27,14 @@ public class EmailComposer {
         emailContent.append("    <h2>").append(escapeHtml(subject)).append("</h2>\n");
         emailContent.append("    <div style=\"line-height: 1.6; color: #333;\">\n");
         
-        // 본문 내용을 HTML로 변환 (간단한 줄바꿈 처리)
-        String htmlContent = content.replace("\n", "<br>\n");
+        // 수신자 정보 포함 (있는 경우)
+        if (recipient != null && !recipient.trim().isEmpty()) {
+            emailContent.append("      <p><strong>To:</strong> ").append(escapeHtml(recipient)).append("</p>\n");
+        }
+        
+        // 본문 내용을 HTML로 변환 (XSS 방지를 위해 이스케이프 후 줄바꿈 처리)
+        String safeContent = content != null ? content : "";
+        String htmlContent = escapeHtml(safeContent).replace("\n", "<br>\n");
         emailContent.append("      ").append(htmlContent).append("\n");
         
         emailContent.append("    </div>\n");

@@ -1,11 +1,12 @@
 package org.example.sharedprompts.domain.prompt.facade;
 
 import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.domain.delivery.api.DefaultDeliveryResult;
 import org.example.sharedprompts.domain.delivery.api.DeliveryContext;
 import org.example.sharedprompts.domain.delivery.api.DeliveryResult;
 import org.example.sharedprompts.domain.delivery.api.DeliveryService;
 import org.example.sharedprompts.domain.delivery.coordinator.DeliveryRegistry;
-import org.example.sharedprompts.domain.delivery.exception.DeliveryServiceNotFoundException;
+import org.example.sharedprompts.domain.delivery.exception.DeliveryException;
 import org.example.sharedprompts.domain.production.api.ProductionCommand;
 import org.example.sharedprompts.domain.production.api.ProductionContext;
 import org.example.sharedprompts.domain.production.api.ProductionResult;
@@ -14,7 +15,6 @@ import org.example.sharedprompts.dto.prompt.request.PromptRequestDto;
 import org.example.sharedprompts.dto.prompt.response.PromptProductionDeliveryResponse;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
@@ -24,7 +24,8 @@ public class PromptProductionDeliveryFacade {
     private final ProductionCoordinator productionCoordinator;
     private final DeliveryRegistry deliveryRegistry;
     
-    @Transactional
+    // 프롬프트 생성은 PromptCreationFlow.create()에서 자체 트랜잭션 관리
+    // 프로덕션과 배달은 외부 호출(AI, API)이므로 트랜잭션 외부에서 실행
     public PromptProductionDeliveryResponse createProduceAndDeliver(
             PromptRequestDto request, 
             Long userId,
@@ -49,16 +50,28 @@ public class PromptProductionDeliveryFacade {
             );
         }
         
-        DeliveryService deliveryService = deliveryRegistry.find(deliveryContext.getDeliveryType());
-        
-        if (deliveryService == null) {
-            throw new DeliveryServiceNotFoundException(deliveryContext.getDeliveryType());
+        DeliveryResult deliveryResult;
+        try {
+            DeliveryService deliveryService = deliveryRegistry.find(deliveryContext.getDeliveryType());
+            
+            if (deliveryService == null) {
+                deliveryResult = DefaultDeliveryResult.failure(
+                    "Delivery service not found for type: " + deliveryContext.getDeliveryType()
+                );
+            } else {
+                deliveryResult = deliveryService.deliver(
+                    productionResult.getArtifact(),
+                    deliveryContext
+                );
+            }
+        } catch (DeliveryException e) {
+            // 배달 실패 시에도 프롬프트는 유지 (프로덕션 실패와 동일한 처리)
+            deliveryResult = DefaultDeliveryResult.failure(e.getMessage());
+        } catch (Exception e) {
+            // 예상치 못한 예외도 실패 결과로 변환
+            String errorMessage = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            deliveryResult = DefaultDeliveryResult.failure("Delivery failed: " + errorMessage);
         }
-        
-        DeliveryResult deliveryResult = deliveryService.deliver(
-            productionResult.getArtifact(),
-            deliveryContext
-        );
         
         return PromptProductionDeliveryResponse.of(
             promptResult, 

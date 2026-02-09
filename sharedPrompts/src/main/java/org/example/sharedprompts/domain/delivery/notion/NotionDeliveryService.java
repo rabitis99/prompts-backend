@@ -5,10 +5,10 @@ import org.example.sharedprompts.domain.delivery.api.DeliveryContext;
 import org.example.sharedprompts.domain.delivery.api.DeliveryResult;
 import org.example.sharedprompts.domain.delivery.api.DeliveryService;
 import org.example.sharedprompts.domain.delivery.api.DeliveryType;
+import org.example.sharedprompts.domain.delivery.api.NotionClient;
 import org.example.sharedprompts.domain.delivery.exception.DeliveryException;
 import org.example.sharedprompts.domain.production.api.ArtifactType;
 import org.example.sharedprompts.domain.production.api.ProductionArtifact;
-import org.example.sharedprompts.infra.delivery.notion.NotionClient;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -35,6 +35,13 @@ public class NotionDeliveryService implements DeliveryService {
         String content = artifact.getLocation();
         String pageTitle = context.getAttribute("pageTitle", String.class);
         String parentPageId = context.getAttribute("parentPageId", String.class);
+        
+        // pageTitle은 필수 속성
+        if (pageTitle == null || pageTitle.trim().isEmpty()) {
+            throw new DeliveryException("Notion delivery requires pageTitle in context");
+        }
+        
+        // parentPageId는 선택적 (null 허용)
         
         return notionClient.createPage(content, pageTitle, parentPageId, context);
     }

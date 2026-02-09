@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.production.coordinator;
 
-import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.domain.production.api.DefaultProductionResult;
 import org.example.sharedprompts.domain.production.api.ProductionCommand;
 import org.example.sharedprompts.domain.production.api.ProductionContext;
 import org.example.sharedprompts.domain.production.api.ProductionModule;
@@ -9,16 +9,27 @@ import org.example.sharedprompts.domain.production.entity.ProductionArtifactEnti
 import org.example.sharedprompts.domain.production.exception.ProductionModuleNotFoundException;
 import org.example.sharedprompts.domain.production.repository.ProductionArtifactRepository;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import java.time.Instant;
 
 @Component
-@RequiredArgsConstructor
 public class ProductionCoordinator {
     
     private final ProductionRegistry registry;
     private final ProductionArtifactRepository artifactRepository;
+    private final TransactionTemplate transactionTemplate;
     
-    @Transactional
+    public ProductionCoordinator(
+            ProductionRegistry registry,
+            ProductionArtifactRepository artifactRepository,
+            PlatformTransactionManager transactionManager) {
+        this.registry = registry;
+        this.artifactRepository = artifactRepository;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+    }
+    
     public ProductionResult produce(
             ProductionCommand command, 
             ProductionContext context
@@ -29,9 +40,25 @@ public class ProductionCoordinator {
             throw new ProductionModuleNotFoundException(command.getCommandType());
         }
         
-        ProductionResult result = module.produce(command, context);
+        Instant startedAt = Instant.now();
+        ProductionResult result;
         
-        saveArtifact(command, context, result);
+        try {
+            result = module.produce(command, context);
+        } catch (Exception e) {
+            Instant completedAt = Instant.now();
+            result = DefaultProductionResult.failure(e.getMessage(), startedAt, completedAt);
+        }
+        
+        final ProductionResult finalResult = result;
+        try {
+            transactionTemplate.execute(status -> {
+                saveArtifact(command, context, finalResult);
+                return null;
+            });
+        } catch (Exception e) {
+            // 아티팩트 저장 실패는 로깅만 하고 원래 결과는 반환
+        }
         
         return result;
     }

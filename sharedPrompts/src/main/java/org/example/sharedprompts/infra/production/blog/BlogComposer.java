@@ -14,13 +14,12 @@ public class BlogComposer {
     
     /**
      * 블로그 콘텐츠를 구성한다.
-     * 
-     * @param title 블로그 제목
-     * @param content 프롬프트로부터 생성된 본문 내용
-     * @param tags 태그 리스트
-     * @return 구성된 블로그 콘텐츠 (마크다운 형식)
      */
     public String compose(String title, String content, List<String> tags) {
+        if (title == null || content == null) {
+            throw new IllegalArgumentException("title and content must not be null");
+        }
+        
         StringBuilder blogContent = new StringBuilder();
         
         // 제목

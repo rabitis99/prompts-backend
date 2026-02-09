@@ -62,9 +62,11 @@ Delivery 과정에 필요한 컨텍스트 정보를 담는다.
 - `getAttribute(key, type)` 사용 시 **반드시 타입을 명시**해야 함
 - 타입 캐스팅 위험 방지를 위해 `getAttribute(key, Class<T> type)` 메서드 사용 필수
 - 임의로 `attributes.get(key)` 직접 사용 금지
-- 플랫폼별 설정은 타입 안전한 getter 메서드 사용 권장
 
-**개선 사항:** 플랫폼별 설정을 타입 안전하게 처리하기 위해 강제 타입 검사 메서드 제공.
+**실제 구현:**
+- 현재 구현에서는 `context.getAttribute("pageTitle", String.class)` 같은 raw attribute 접근을 사용
+- 타입 안전한 getter 메서드(`getBlogSettings()`, `getNotionSettings()` 등)는 선택적으로 사용 가능
+- 플랫폼별 설정 객체를 사용하는 경우 타입 안전한 getter 메서드 사용 권장
 
 ```java
 package org.example.sharedprompts.domain.delivery.api;
@@ -453,7 +455,7 @@ public class NotionDeliveryService implements DeliveryService {
 
 ### 6.2 실패 처리 흐름
 
-```
+```text
 요청
   │
   └─► [Delivery 단계]

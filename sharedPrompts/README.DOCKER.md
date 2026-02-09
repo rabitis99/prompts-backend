@@ -174,7 +174,7 @@ curl http://localhost:8080/api/actuator/health
 
 브라우저에서 접근:
 
-```
+```text
 http://localhost:15672
 ```
 

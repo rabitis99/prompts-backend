@@ -378,13 +378,13 @@ public class PromptProductionDeliveryFacade {
   - **모듈 등록**: ProductionModuleConfig를 통한 모듈 등록
   - **실패 정책**: 검증 실패(Exception) vs 생성 실패(Result.failure) 구분
 
-- **[DELIVERY_ARCHITECTURE.md](./DELIVERY_ARCHITECTURE.md)**: Delivery 계층 상세 설명 (TODO: 실제 코드 구현 필요)
+- **[DELIVERY_ARCHITECTURE.md](./DELIVERY_ARCHITECTURE.md)**: Delivery 계층 상세 설명
   - Delivery 인터페이스
   - DeliveryContext 및 플랫폼별 설정
   - Delivery 모듈 예시
   - 실패 정책
 
-- **[AI_INFRASTRUCTURE.md](./AI_INFRASTRUCTURE.md)**: AI Client 및 인프라 배포 전략 (TODO: 실제 코드 구현 필요)
+- **[AI_INFRASTRUCTURE.md](./AI_INFRASTRUCTURE.md)**: AI Client 및 인프라 배포 전략
   - AI Client 인터페이스 및 구현
   - AI 모델별 특징 및 권장 사용처
   - AWS 클라우드 환경 배포 시나리오

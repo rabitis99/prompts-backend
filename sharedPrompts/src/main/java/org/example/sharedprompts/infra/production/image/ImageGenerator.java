@@ -10,12 +10,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 /**
  * 이미지를 생성하는 Generator.
- * Production 계층에서 사용되며, 외부 시스템 통신 없이 로컬 파일 시스템에만 접근한다.
- * 
- * 현재는 기본 구현으로, 실제 이미지 생성은 추후 구현 예정.
  */
 @Component
 public class ImageGenerator {
@@ -26,15 +24,10 @@ public class ImageGenerator {
     
     /**
      * 이미지를 생성한다.
-     * 
-     * @param prompt 이미지 생성 프롬프트
-     * @param width 이미지 너비
-     * @param height 이미지 높이
-     * @return 생성된 이미지 파일 경로
-     * @throws IOException 이미지 생성 실패 시
      */
     public String generate(String prompt, int width, int height) throws IOException {
-        log.info("이미지 생성 시도: prompt={}, width={}, height={}", prompt, width, height);
+        log.info("이미지 생성 시도: promptLength={}, width={}, height={}", 
+                prompt != null ? prompt.length() : 0, width, height);
         
         // 출력 디렉토리 생성
         Path outputDir = Paths.get(OUTPUT_DIR);
@@ -42,9 +35,10 @@ public class ImageGenerator {
             Files.createDirectories(outputDir);
         }
         
-        // 파일명 생성 (타임스탬프 포함)
+        // 파일명 생성 (타임스탬프 + UUID로 고유성 보장)
         String timestamp = LocalDateTime.now().format(DATE_FORMATTER);
-        String fileName = String.format("image_%s.png", timestamp);
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
+        String fileName = String.format("image_%s_%s.png", timestamp, uniqueId);
         Path filePath = outputDir.resolve(fileName);
         
         // TODO: 실제 이미지 생성 로직 구현

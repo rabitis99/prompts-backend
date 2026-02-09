@@ -1,12 +1,14 @@
 package org.example.sharedprompts.domain.production.module.document;
 
 import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.domain.production.api.DefaultProductionResult;
+import org.example.sharedprompts.domain.production.api.FileArtifact;
+import org.example.sharedprompts.domain.production.api.ProductionArtifact;
 import org.example.sharedprompts.domain.production.api.ProductionCommand;
 import org.example.sharedprompts.domain.production.api.ProductionCommandType;
 import org.example.sharedprompts.domain.production.api.ProductionContext;
 import org.example.sharedprompts.domain.production.api.ProductionModule;
 import org.example.sharedprompts.domain.production.api.ProductionResult;
-import org.example.sharedprompts.domain.production.api.FileArtifact;
 import org.example.sharedprompts.domain.production.exception.CommandValidationException;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
 import org.springframework.stereotype.Component;
@@ -16,6 +18,12 @@ import java.time.Instant;
 @Component
 @RequiredArgsConstructor
 public class DocumentProductionModule implements ProductionModule {
+    
+    // TODO: 아키텍처 문서(PRODUCTION_ARCHITECTURE.md 섹션 4.5)에 명시된 의존성 추가 필요:
+    // - DocumentGenerator (Apache POI 사용, 문서 포맷팅)
+    // - TextAiClient (텍스트 생성 AI, 문서 내용 생성용)
+    // - DocumentStorage (파일 저장용)
+    // 현재는 실제 문서 생성 로직 없이 파일 경로만 반환하는 미구현 상태입니다.
     
     @Override
     public ProductionCommandType getSupportedCommandType() {
@@ -39,18 +47,23 @@ public class DocumentProductionModule implements ProductionModule {
             PromptResponseDto promptResult = context.getAttribute("promptResult", PromptResponseDto.class);
             
             if (promptResult == null) {
-                return DocumentResult.failure("PromptResult not found in context", startedAt, Instant.now());
+                return DefaultProductionResult.failure("PromptResult not found in context", startedAt, Instant.now());
             }
             
+            // TODO: 실제 문서 생성 로직 구현 필요
+            // 1. TextAiClient를 사용하여 문서 내용 생성 (필요 시)
+            // 2. DocumentGenerator를 사용하여 Apache POI로 문서 포맷팅 (DOCX/XLSX)
+            // 3. DocumentStorage를 사용하여 파일 저장
+            // 현재는 존재하지 않는 파일 경로만 반환합니다.
             String filePath = String.format("output/document/%s.%s", documentCommand.getFileName(), documentCommand.getFormat());
             
             Instant completedAt = Instant.now();
             
-            org.example.sharedprompts.domain.production.api.ProductionArtifact artifact = new FileArtifact(filePath);
-            return DocumentResult.success(artifact, startedAt, completedAt);
+            ProductionArtifact artifact = new FileArtifact(filePath);
+            return DefaultProductionResult.success(artifact, startedAt, completedAt);
             
         } catch (Exception e) {
-            return DocumentResult.failure(e.getMessage(), startedAt, Instant.now());
+            return DefaultProductionResult.failure(e.getMessage(), startedAt, Instant.now());
         }
     }
 }

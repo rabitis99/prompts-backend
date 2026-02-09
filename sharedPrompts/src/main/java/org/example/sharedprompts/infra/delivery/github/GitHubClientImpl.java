@@ -3,28 +3,22 @@ package org.example.sharedprompts.infra.delivery.github;
 import org.example.sharedprompts.domain.delivery.api.DeliveryContext;
 import org.example.sharedprompts.domain.delivery.api.DeliveryResult;
 import org.example.sharedprompts.domain.delivery.api.DefaultDeliveryResult;
+import org.example.sharedprompts.domain.delivery.api.GitHubClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * GitHub API와 연동하는 Client.
+ * GitHub API와 연동하는 Client 구현체.
  * Delivery 계층에서 사용되며, 외부 API 호출을 담당한다.
- * 
- * 현재는 기본 구현으로, 실제 GitHub API 연동은 추후 구현 예정.
  */
 @Component
-public class GitHubClient {
+public class GitHubClientImpl implements GitHubClient {
     
-    private static final Logger log = LoggerFactory.getLogger(GitHubClient.class);
+    private static final Logger log = LoggerFactory.getLogger(GitHubClientImpl.class);
     
     /**
      * 파일을 GitHub에 업로드한다.
-     * 
-     * @param filePath 업로드할 파일 경로
-     * @param action 수행할 액션 (pr, commit, issue 등)
-     * @param context Delivery 컨텍스트
-     * @return Delivery 결과
      */
     public DeliveryResult upload(String filePath, String action, DeliveryContext context) {
         String repository = context.getAttribute("repository", String.class);
@@ -39,6 +33,11 @@ public class GitHubClient {
         // - 인증 토큰 관리
         // - PR 생성, Commit, Issue 생성 등
         
+        if (action == null) {
+            log.warn("GitHub action이 null입니다: userId={}", context.getUserId());
+            return DefaultDeliveryResult.failure("action is required");
+        }
+        
         switch (action.toLowerCase()) {
             case "pr":
                 log.info("GitHub PR 생성 (시뮬레이션): repository={}, branch={}", repository, branch);
@@ -51,6 +50,7 @@ public class GitHubClient {
                 break;
             default:
                 log.warn("알 수 없는 GitHub 액션: {}", action);
+                return DefaultDeliveryResult.failure("Unknown GitHub action: " + action);
         }
         
         // 현재는 시뮬레이션으로 성공 반환

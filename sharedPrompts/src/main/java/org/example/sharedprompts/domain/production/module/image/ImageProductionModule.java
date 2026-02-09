@@ -1,7 +1,10 @@
 package org.example.sharedprompts.domain.production.module.image;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.domain.production.api.DefaultProductionResult;
 import org.example.sharedprompts.domain.production.api.ImageArtifact;
+import org.example.sharedprompts.domain.production.api.ProductionArtifact;
 import org.example.sharedprompts.domain.production.api.ProductionCommand;
 import org.example.sharedprompts.domain.production.api.ProductionCommandType;
 import org.example.sharedprompts.domain.production.api.ProductionContext;
@@ -13,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ImageProductionModule implements ProductionModule {
@@ -46,11 +50,15 @@ public class ImageProductionModule implements ProductionModule {
             
             Instant completedAt = Instant.now();
             
-            org.example.sharedprompts.domain.production.api.ProductionArtifact artifact = new ImageArtifact(imagePath);
-            return ImageResult.success(artifact, startedAt, completedAt);
+            ProductionArtifact artifact = new ImageArtifact(imagePath);
+            return DefaultProductionResult.success(artifact, startedAt, completedAt);
             
         } catch (Exception e) {
-            return ImageResult.failure(e.getMessage(), startedAt, Instant.now());
+            log.error("Image generation failed for prompt: {}", imageCommand.getPrompt(), e);
+            return DefaultProductionResult.failure(
+                e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName(),
+                startedAt, Instant.now()
+            );
         }
     }
 }

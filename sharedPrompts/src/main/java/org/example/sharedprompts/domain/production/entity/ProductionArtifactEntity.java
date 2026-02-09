@@ -17,7 +17,6 @@ import java.time.Instant;
     name = "production_artifacts",
     indexes = {
         @Index(name = "idx_production_artifacts_user_id", columnList = "user_id"),
-        @Index(name = "idx_production_artifacts_production_id", columnList = "production_id"),
         @Index(name = "idx_production_artifacts_command_type", columnList = "command_type"),
         @Index(name = "idx_production_artifacts_created_at", columnList = "created_at")
     }
@@ -28,7 +27,7 @@ public class ProductionArtifactEntity extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "production_id", nullable = false, length = 100)
+    @Column(name = "production_id", nullable = false, length = 100, unique = true)
     private String productionId;
 
     @Column(name = "user_id", nullable = false)
@@ -52,7 +51,7 @@ public class ProductionArtifactEntity extends BaseEntity {
     private Instant completedAt;
 
     @Column(name = "success", nullable = false)
-    private Boolean success;
+    private boolean success;
 
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;

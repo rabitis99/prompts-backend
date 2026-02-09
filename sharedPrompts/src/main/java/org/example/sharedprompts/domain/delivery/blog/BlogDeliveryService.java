@@ -1,6 +1,7 @@
 package org.example.sharedprompts.domain.delivery.blog;
 
 import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.domain.delivery.api.BlogPublisher;
 import org.example.sharedprompts.domain.delivery.api.DeliveryContext;
 import org.example.sharedprompts.domain.delivery.api.DeliveryResult;
 import org.example.sharedprompts.domain.delivery.api.DeliveryService;
@@ -8,7 +9,6 @@ import org.example.sharedprompts.domain.delivery.api.DeliveryType;
 import org.example.sharedprompts.domain.delivery.exception.DeliveryException;
 import org.example.sharedprompts.domain.production.api.ArtifactType;
 import org.example.sharedprompts.domain.production.api.ProductionArtifact;
-import org.example.sharedprompts.infra.delivery.blog.BlogPublisher;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -33,6 +33,10 @@ public class BlogDeliveryService implements DeliveryService {
         
         String blogContent = artifact.getLocation();
         String platform = context.getPlatform();
+        
+        if (platform == null || platform.isBlank()) {
+            throw new DeliveryException("Blog delivery requires a platform to be specified");
+        }
         
         return blogPublisher.publish(blogContent, platform, context);
     }
