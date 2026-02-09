@@ -9,6 +9,8 @@ import org.example.sharedprompts.module.domain.delivery.api.type.DeliveryType;
 import org.example.sharedprompts.module.domain.delivery.exception.DeliveryException;
 import org.example.sharedprompts.module.domain.production.api.artifact.ArtifactType;
 import org.example.sharedprompts.module.domain.production.api.artifact.ProductionArtifact;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -19,6 +21,8 @@ import java.nio.file.Paths;
 @Component
 @RequiredArgsConstructor
 public class NotionDeliveryService implements DeliveryService {
+    
+    private static final Logger log = LoggerFactory.getLogger(NotionDeliveryService.class);
     
     private final NotionClient notionClient;
     
@@ -51,7 +55,8 @@ public class NotionDeliveryService implements DeliveryService {
                 Path path = Paths.get(filePath);
                 content = Files.readString(path);
             } catch (IOException e) {
-                throw new DeliveryException("Failed to read file content: " + filePath, e);
+                log.error("Failed to read file content: {}", filePath, e);
+                throw new DeliveryException("Failed to read file content for delivery", e);
             }
         }
         

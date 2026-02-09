@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.prompt.facade.PromptProductionDeliveryFacade;
 import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.dto.common.CustomResponseHelper;
+import org.example.sharedprompts.module.dto.request.production.ProductionCommandMapper;
 import org.example.sharedprompts.module.dto.request.production.ProductionRequestDto;
 import org.example.sharedprompts.module.dto.response.production.ProductionResponseDto;
 import org.example.sharedprompts.module.domain.production.api.model.ProductionResult;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class ProductionController {
     
     private final PromptProductionDeliveryFacade productionDeliveryFacade;
+    private final ProductionCommandMapper productionCommandMapper;
     
     @PostMapping("/prompts/{promptId}/production")
     public ResponseEntity<CustomResponse<ProductionResponseDto>> executeProduction(
@@ -29,7 +31,7 @@ public class ProductionController {
         ProductionResult result = productionDeliveryFacade.executeProduction(
             promptId,
             authUser.getId(),
-            request.toProductionCommand(),
+            productionCommandMapper.toProductionCommand(request.getCommand()),
             request.getUserInput() != null ? 
                 request.getUserInput().getInput() : null
         );

@@ -23,7 +23,8 @@ public class EmailSenderImpl implements EmailSender {
     @Override
     public DeliveryResult send(String emailContent, DeliveryContext context) {
         if (context == null) {
-            throw new IllegalArgumentException("context must not be null");
+            log.warn("DeliveryContext가 null입니다.");
+            return DefaultDeliveryResult.failure("Delivery context is null");
         }
         if (emailContent == null) {
             log.warn("이메일 내용이 null입니다: userId={}", context.getUserId());
@@ -32,6 +33,11 @@ public class EmailSenderImpl implements EmailSender {
         
         String recipient = context.getAttribute("recipient", String.class);
         String subject = context.getAttribute("subject", String.class);
+        
+        if (recipient == null || recipient.isBlank()) {
+            log.warn("수신자가 지정되지 않았습니다: userId={}", context.getUserId());
+            return DefaultDeliveryResult.failure("Email recipient is not specified");
+        }
         
         log.info("이메일 전송 시도: userId={}, recipient={}, subject={}, contentLength={}", 
                 context.getUserId(), recipient, subject, emailContent.length());

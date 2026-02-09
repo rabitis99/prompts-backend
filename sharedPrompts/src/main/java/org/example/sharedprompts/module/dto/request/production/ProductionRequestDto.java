@@ -7,14 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.sharedprompts.module.domain.production.api.command.ProductionCommand;
 import org.example.sharedprompts.module.domain.production.api.command.ProductionCommandType;
-import org.example.sharedprompts.module.domain.production.module.blog.BlogCommand;
-import org.example.sharedprompts.module.domain.production.module.email.EmailCommand;
-import org.example.sharedprompts.module.domain.production.module.image.ImageCommand;
-import org.example.sharedprompts.module.domain.production.module.text.TextCommand;
-
-import java.util.UUID;
 
 @Getter
 @Builder
@@ -32,40 +25,6 @@ public class ProductionRequestDto {
         if (command == null) {
             return null;
         }
-        if (command instanceof BlogCommandDto) {
-            return ProductionCommandType.BLOG;
-        } else if (command instanceof EmailCommandDto) {
-            return ProductionCommandType.EMAIL;
-        } else if (command instanceof TextCommandDto) {
-            return ProductionCommandType.TEXT;
-        } else if (command instanceof ImageCommandDto) {
-            return ProductionCommandType.IMAGE;
-        }
-        return null;
-    }
-
-    public ProductionCommand toProductionCommand() {
-        String commandId = UUID.randomUUID().toString();
-        ProductionCommandType commandType = getCommandType();
-
-        return switch (commandType) {
-            case BLOG -> {
-                BlogCommandDto cmd = (BlogCommandDto) command;
-                yield new BlogCommand(commandId, cmd.getTitle(), cmd.getTags());
-            }
-            case EMAIL -> {
-                EmailCommandDto cmd = (EmailCommandDto) command;
-                yield new EmailCommand(commandId, cmd.getSubject(), cmd.getRecipient());
-            }
-            case TEXT -> {
-                TextCommandDto cmd = (TextCommandDto) command;
-                yield new TextCommand(commandId, cmd.getFileName(), cmd.getFormat());
-            }
-            case IMAGE -> {
-                ImageCommandDto cmd = (ImageCommandDto) command;
-                yield new ImageCommand(commandId, cmd.getPrompt(), cmd.getWidth(), cmd.getHeight());
-            }
-            case DOCUMENT -> throw new UnsupportedOperationException("DOCUMENT 타입은 아직 지원하지 않습니다.");
-        };
+        return command.getCommandType();
     }
 }

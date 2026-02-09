@@ -2,6 +2,7 @@ package org.example.sharedprompts.module.dto.request.production;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import org.example.sharedprompts.module.domain.production.api.command.ProductionCommandType;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
@@ -15,5 +16,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = ImageCommandDto.class, name = "IMAGE")
 })
 public interface CommandDto {
+    ProductionCommandType getCommandType();
 }
 

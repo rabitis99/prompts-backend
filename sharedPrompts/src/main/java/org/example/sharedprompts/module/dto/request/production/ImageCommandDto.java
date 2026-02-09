@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.sharedprompts.module.domain.production.api.command.ProductionCommandType;
 
 @Getter
 @Builder
@@ -22,5 +23,10 @@ public class ImageCommandDto implements CommandDto {
     @NotNull(message = "높이를 입력해주세요.")
     @Min(value = 1, message = "높이는 1 이상이어야 합니다.")
     private Integer height;
+    
+    @Override
+    public ProductionCommandType getCommandType() {
+        return ProductionCommandType.IMAGE;
+    }
 }
 

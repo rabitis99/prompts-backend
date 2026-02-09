@@ -1756,7 +1756,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"commandType\": \"BLOG\",\n  \"command\": {\n    \"title\": \"블로그 제목\",\n    \"tags\": [\"태그1\", \"태그2\"]\n  },\n  \"userInput\": {\n    \"input\": \"사용자 입력 내용\"\n  }\n}"
+              "raw": "{\n  \"command\": {\n    \"command_type\": \"BLOG\",\n    \"title\": \"블로그 제목\",\n    \"tags\": [\"태그1\", \"태그2\"]\n  },\n  \"user_input\": {\n    \"input\": \"사용자 입력 내용\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/prompts/1/production",
@@ -1781,7 +1781,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"commandType\": \"EMAIL\",\n  \"command\": {\n    \"subject\": \"이메일 제목\",\n    \"recipient\": \"recipient@example.com\"\n  },\n  \"userInput\": {\n    \"input\": \"사용자 입력 내용\"\n  }\n}"
+              "raw": "{\n  \"command\": {\n    \"command_type\": \"EMAIL\",\n    \"subject\": \"이메일 제목\",\n    \"recipient\": \"recipient@example.com\"\n  },\n  \"user_input\": {\n    \"input\": \"사용자 입력 내용\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/prompts/1/production",
@@ -1806,7 +1806,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"commandType\": \"TEXT\",\n  \"command\": {\n    \"fileName\": \"output.txt\",\n    \"format\": \"plain\"\n  },\n  \"userInput\": {\n    \"input\": \"사용자 입력 내용\"\n  }\n}"
+              "raw": "{\n  \"command\": {\n    \"command_type\": \"TEXT\",\n    \"file_name\": \"output.txt\",\n    \"format\": \"plain\"\n  },\n  \"user_input\": {\n    \"input\": \"사용자 입력 내용\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/prompts/1/production",
@@ -1831,7 +1831,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"commandType\": \"IMAGE\",\n  \"command\": {\n    \"prompt\": \"이미지 생성 프롬프트\",\n    \"width\": 1024,\n    \"height\": 768\n  },\n  \"userInput\": {\n    \"input\": \"사용자 입력 내용\"\n  }\n}"
+              "raw": "{\n  \"command\": {\n    \"command_type\": \"IMAGE\",\n    \"prompt\": \"이미지 생성 프롬프트\",\n    \"width\": 1024,\n    \"height\": 768\n  },\n  \"user_input\": {\n    \"input\": \"사용자 입력 내용\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/prompts/1/production",
