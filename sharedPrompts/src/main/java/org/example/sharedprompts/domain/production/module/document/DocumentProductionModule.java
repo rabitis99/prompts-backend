@@ -12,6 +12,8 @@ import org.example.sharedprompts.domain.production.exception.CommandValidationEx
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 
 @Component
@@ -69,7 +71,14 @@ public class DocumentProductionModule implements ProductionModule {
                 return DefaultProductionResult.failure("Invalid file name or format: path traversal detected", startedAt, Instant.now());
             }
             
-            String filePath = String.format("%s/%s.%s", outputDir, fileName, format);
+            // outputDir 자체에 대한 경로 검증: 최종 경로가 의도한 기본 디렉토리 내에 있는지 확인
+            Path baseDirPath = Paths.get(outputDir).normalize().toAbsolutePath();
+            Path filePathObj = baseDirPath.resolve(String.format("%s.%s", fileName, format)).normalize();
+            if (!filePathObj.startsWith(baseDirPath)) {
+                return DefaultProductionResult.failure("Invalid output directory: path traversal detected", startedAt, Instant.now());
+            }
+            
+            String filePath = filePathObj.toString();
             
             Instant completedAt = Instant.now();
             

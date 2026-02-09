@@ -25,15 +25,19 @@ public class ProductionModuleConfig {
     
     // Property name follows Spring Boot convention: production.active-modules
     // Supports both:
-    // - ACTIVE_MODULES environment variable (backward compatibility, maps to active.modules)
+    // - ACTIVE_MODULES environment variable (backward compatibility, SpEL default value syntax)
     // - production.active-modules property (Spring Boot convention, kebab-case)
-    // Spring Boot relaxed binding automatically maps PRODUCTION_ACTIVE_MODULES env var to production.active-modules
+    // Note: ${ACTIVE_MODULES:...} uses SpEL default value syntax, not Spring Boot relaxed binding.
+    // Spring Boot relaxed binding maps PRODUCTION_ACTIVE_MODULES env var to production.active-modules,
+    // but ACTIVE_MODULES maps to active.modules (not production.active-modules).
     @Value("${ACTIVE_MODULES:${production.active-modules:blog,email,text,image,document}}")
     private String activeModules;
     
     // TODO: 실제 외부 연동 시 리소스 낭비 방지를 위해 각 모듈에 @ConditionalOnProperty 추가 고려
     // 예: @ConditionalOnProperty(name = "modules.blog.enabled", havingValue = "true", matchIfMissing = false)
     // 현재는 모든 모듈이 Spring에 의해 인스턴스화되므로, ACTIVE_MODULES에 포함되지 않아도 빈이 생성됩니다.
+    // 실제 외부 연동(AI 클라이언트, 스토리지 등)이 추가되면 불필요한 리소스 낭비와 시작 실패 가능성이 있습니다.
+    // @ConditionalOnProperty 또는 Optional<T> 파라미터로 전환을 고려해 주세요.
     
     @Bean
     public ProductionRegistry productionRegistry(
@@ -45,6 +49,7 @@ public class ProductionModuleConfig {
     ) {
         List<String> activeModuleList = Arrays.stream(activeModules.split(","))
                 .map(String::trim)
+                .map(String::toLowerCase)
                 .toList();
         List<ProductionModule> modules = new ArrayList<>();
         

@@ -76,12 +76,13 @@ public class ProductionCoordinator {
             ProductionContext context,
             ProductionResult result
     ) {
+        var artifact = result.getArtifact();
         ProductionArtifactEntity entity = ProductionArtifactEntity.builder()
             .productionId(context.getProductionId())
             .userId(context.getUserId())
             .commandType(command.getCommandType())
-            .artifactType(result.getArtifact() != null ? result.getArtifact().getType() : null)
-            .location(result.getArtifact() != null ? result.getArtifact().getLocation() : null)
+            .artifactType(artifact != null ? artifact.getType() : null)
+            .location(artifact != null ? artifact.getLocation() : null)
             .startedAt(result.getStartedAt())
             .completedAt(result.getCompletedAt())
             .success(result.isSuccess())

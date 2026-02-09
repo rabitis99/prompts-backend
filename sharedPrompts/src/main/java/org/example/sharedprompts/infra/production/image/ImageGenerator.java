@@ -35,6 +35,9 @@ public class ImageGenerator {
         if (prompt == null) {
             throw new IllegalArgumentException("prompt must not be null");
         }
+        if (width <= 0 || height <= 0) {
+            throw new IllegalArgumentException("width and height must be greater than 0");
+        }
         
         log.info("이미지 생성 시도: promptLength={}, width={}, height={}", 
                 prompt.length(), width, height);
