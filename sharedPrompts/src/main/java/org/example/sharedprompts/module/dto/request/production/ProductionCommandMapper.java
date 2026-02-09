@@ -12,26 +12,28 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 /**
- * CommandDto를 ProductionCommand로 변환하는 매퍼
+ * CommandDto를 ProductionCommand로 변환하는 매퍼 클래스
  */
 @Component
 public class ProductionCommandMapper {
-    
+
     /**
-     * CommandDto를 ProductionCommand로 변환
+     * CommandDto를 ProductionCommand로 변환한다.
      */
     public ProductionCommand toProductionCommand(CommandDto commandDto) {
         if (commandDto == null) {
-            throw new IllegalArgumentException("CommandDto must not be null");
+            throw new IllegalArgumentException("CommandDto는 null일 수 없습니다.");
         }
-        
+
         String commandId = UUID.randomUUID().toString();
         ProductionCommandType commandType = commandDto.getCommandType();
-        
+
         if (commandType == null) {
-            throw new IllegalArgumentException("지원하지 않는 Command 타입입니다: " + commandDto.getClass().getSimpleName());
+            throw new IllegalArgumentException(
+                    "Command 타입이 지정되지 않았습니다: " + commandDto.getClass().getSimpleName()
+            );
         }
-        
+
         return switch (commandType) {
             case BLOG -> {
                 BlogCommandDto cmd = (BlogCommandDto) commandDto;
@@ -50,12 +52,12 @@ public class ProductionCommandMapper {
                 yield new ImageCommand(
                         commandId,
                         cmd.getPrompt(),
-                        ValidationUtils.requireNonNull(cmd.getWidth(), "width"),
-                        ValidationUtils.requireNonNull(cmd.getHeight(), "height")
+                        ValidationUtils.requireNonNull(cmd.getWidth(), "width는 필수 값입니다."),
+                        ValidationUtils.requireNonNull(cmd.getHeight(), "height는 필수 값입니다.")
                 );
             }
-            case DOCUMENT -> throw new UnsupportedOperationException("DOCUMENT 타입은 아직 지원하지 않습니다.");
+            case DOCUMENT ->
+                    throw new UnsupportedOperationException("DOCUMENT 타입은 아직 지원하지 않습니다.");
         };
     }
 }
-
