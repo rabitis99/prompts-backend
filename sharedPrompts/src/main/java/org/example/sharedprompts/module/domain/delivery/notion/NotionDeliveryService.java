@@ -11,6 +11,11 @@ import org.example.sharedprompts.module.domain.production.api.artifact.ArtifactT
 import org.example.sharedprompts.module.domain.production.api.artifact.ProductionArtifact;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 @Component
 @RequiredArgsConstructor
 public class NotionDeliveryService implements DeliveryService {
@@ -32,12 +37,34 @@ public class NotionDeliveryService implements DeliveryService {
             throw new DeliveryException("Notion delivery requires TEXT or FILE artifact");
         }
         
-        String content = artifact.getLocation();
+        String content;
+        if (artifact.getType() == ArtifactType.TEXT) {
+            // TEXT Artifact: getLocation()은 실제 텍스트 콘텐츠를 반환
+            content = artifact.getLocation();
+        } else {
+            // FILE Artifact: getLocation()은 파일 경로를 반환하므로 파일 내용을 읽어야 함
+            String filePath = artifact.getLocation();
+            if (filePath == null) {
+                throw new DeliveryException("File artifact location is null");
+            }
+            try {
+                Path path = Paths.get(filePath);
+                content = Files.readString(path);
+            } catch (IOException e) {
+                throw new DeliveryException("Failed to read file content: " + filePath, e);
+            }
+        }
+        
+        // content null 체크
+        if (content == null) {
+            throw new DeliveryException("Content is null for artifact type: " + artifact.getType());
+        }
+        
         String pageTitle = context.getAttribute("pageTitle", String.class);
         String parentPageId = context.getAttribute("parentPageId", String.class);
         
         // pageTitle은 필수 속성
-        if (pageTitle == null || pageTitle.trim().isEmpty()) {
+        if (pageTitle == null || pageTitle.isBlank()) {
             throw new DeliveryException("Notion delivery requires pageTitle in context");
         }
         

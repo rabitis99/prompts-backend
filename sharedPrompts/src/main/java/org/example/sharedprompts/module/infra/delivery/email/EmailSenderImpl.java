@@ -20,7 +20,11 @@ public class EmailSenderImpl implements EmailSender {
     /**
      * 이메일을 전송한다.
      */
+    @Override
     public DeliveryResult send(String emailContent, DeliveryContext context) {
+        if (context == null) {
+            throw new IllegalArgumentException("context must not be null");
+        }
         if (emailContent == null) {
             log.warn("이메일 내용이 null입니다: userId={}", context.getUserId());
             return DefaultDeliveryResult.failure("Email content is null");

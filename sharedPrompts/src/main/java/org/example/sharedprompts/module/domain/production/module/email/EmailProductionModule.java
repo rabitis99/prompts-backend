@@ -59,7 +59,8 @@ public class EmailProductionModule implements ProductionModule {
             return DefaultProductionResult.success(artifact, startedAt, completedAt);
             
         } catch (Exception e) {
-            return DefaultProductionResult.failure(e.getMessage(), startedAt, Instant.now());
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return DefaultProductionResult.failure(errorMsg, startedAt, Instant.now());
         }
     }
 }
