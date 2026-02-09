@@ -56,7 +56,7 @@ public class NotionDeliveryService implements DeliveryService {
                 content = Files.readString(path);
             } catch (IOException e) {
                 log.error("Failed to read file content: {}", filePath, e);
-                throw new DeliveryException("Failed to read file content for delivery", e);
+                throw new DeliveryException("Failed to read file content for delivery");
             }
         }
         
