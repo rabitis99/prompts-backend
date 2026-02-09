@@ -26,9 +26,6 @@ public class DeliveryEntity extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "delivery_id", nullable = false, length = 100, unique = true)
-    private String deliveryId;
-
     @Column(name = "production_artifact_id", nullable = false)
     private Long productionArtifactId;
 

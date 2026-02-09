@@ -16,7 +16,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Component
 public class DeliveryCoordinator {
@@ -88,7 +87,6 @@ public class DeliveryCoordinator {
             Instant startedAt,
             Instant completedAt
     ) {
-        String deliveryId = UUID.randomUUID().toString();
         Long productionArtifactId = context.getAttribute("productionArtifactId", Long.class);
         
         if (productionArtifactId == null) {
@@ -97,7 +95,6 @@ public class DeliveryCoordinator {
         }
         
         DeliveryEntity entity = DeliveryEntity.builder()
-            .deliveryId(deliveryId)
             .productionArtifactId(productionArtifactId)
             .userId(context.getUserId())
             .deliveryType(context.getDeliveryType())

@@ -104,13 +104,7 @@ public class PromptProductionDeliveryFacade {
      * 경쟁 조건을 피하기 위해 commandType으로 필터링하여 조회합니다.
      */
     public Long getLatestProductionArtifactId(Long userId, ProductionCommandType commandType) {
-        return productionArtifactRepository
-                .findTop1000ByUserIdOrderByCreatedAtDesc(userId)
-                .stream()
-                .filter(entity -> entity.getCommandType().equals(commandType))
-                .findFirst()
-                .map(ProductionArtifactEntity::getId)
-                .orElse(null);
+        return productionArtifactRepository.findLatestIdByUserIdAndCommandType(userId, commandType);
     }
     
     public DeliveryResult executeDelivery(
