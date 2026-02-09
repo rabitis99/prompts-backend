@@ -1,0 +1,57 @@
+package org.example.sharedprompts.domain.production.module.image;
+
+import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.domain.production.api.ImageArtifact;
+import org.example.sharedprompts.domain.production.api.ProductionCommand;
+import org.example.sharedprompts.domain.production.api.ProductionCommandType;
+import org.example.sharedprompts.domain.production.api.ProductionContext;
+import org.example.sharedprompts.domain.production.api.ProductionModule;
+import org.example.sharedprompts.domain.production.api.ProductionResult;
+import org.example.sharedprompts.domain.production.exception.CommandValidationException;
+import org.example.sharedprompts.infra.production.image.ImageGenerator;
+import org.springframework.stereotype.Component;
+
+import java.time.Instant;
+
+@Component
+@RequiredArgsConstructor
+public class ImageProductionModule implements ProductionModule {
+    
+    private final ImageGenerator imageGenerator;
+    
+    @Override
+    public ProductionCommandType getSupportedCommandType() {
+        return ProductionCommandType.IMAGE;
+    }
+    
+    @Override
+    public ProductionResult produce(
+            ProductionCommand command, 
+            ProductionContext context
+    ) {
+        if (!(command instanceof ImageCommand imageCommand)) {
+            throw new CommandValidationException(
+                "Expected ImageCommand, but got: " + command.getClass()
+            );
+        }
+        
+        Instant startedAt = Instant.now();
+        
+        try {
+            String imagePath = imageGenerator.generate(
+                imageCommand.getPrompt(),
+                imageCommand.getWidth(),
+                imageCommand.getHeight()
+            );
+            
+            Instant completedAt = Instant.now();
+            
+            org.example.sharedprompts.domain.production.api.ProductionArtifact artifact = new ImageArtifact(imagePath);
+            return ImageResult.success(artifact, startedAt, completedAt);
+            
+        } catch (Exception e) {
+            return ImageResult.failure(e.getMessage(), startedAt, Instant.now());
+        }
+    }
+}
+

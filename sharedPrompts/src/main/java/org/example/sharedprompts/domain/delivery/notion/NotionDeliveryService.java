@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.delivery.blog;
+package org.example.sharedprompts.domain.delivery.notion;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.delivery.api.DeliveryContext;
@@ -8,18 +8,18 @@ import org.example.sharedprompts.domain.delivery.api.DeliveryType;
 import org.example.sharedprompts.domain.delivery.exception.DeliveryException;
 import org.example.sharedprompts.domain.production.api.ArtifactType;
 import org.example.sharedprompts.domain.production.api.ProductionArtifact;
-import org.example.sharedprompts.infra.delivery.blog.BlogPublisher;
+import org.example.sharedprompts.infra.delivery.notion.NotionClient;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class BlogDeliveryService implements DeliveryService {
+public class NotionDeliveryService implements DeliveryService {
     
-    private final BlogPublisher blogPublisher;
+    private final NotionClient notionClient;
     
     @Override
     public DeliveryType getSupportedDeliveryType() {
-        return DeliveryType.BLOG;
+        return DeliveryType.NOTION;
     }
     
     @Override
@@ -27,14 +27,16 @@ public class BlogDeliveryService implements DeliveryService {
             ProductionArtifact artifact, 
             DeliveryContext context
     ) {
-        if (artifact.getType() != ArtifactType.TEXT) {
-            throw new DeliveryException("Blog delivery requires TEXT artifact");
+        // Notion은 TEXT 또는 FILE Artifact를 지원
+        if (artifact.getType() != ArtifactType.TEXT && artifact.getType() != ArtifactType.FILE) {
+            throw new DeliveryException("Notion delivery requires TEXT or FILE artifact");
         }
         
-        String blogContent = artifact.getLocation();
-        String platform = context.getPlatform();
+        String content = artifact.getLocation();
+        String pageTitle = context.getAttribute("pageTitle", String.class);
+        String parentPageId = context.getAttribute("parentPageId", String.class);
         
-        return blogPublisher.publish(blogContent, platform, context);
+        return notionClient.createPage(content, pageTitle, parentPageId, context);
     }
 }
 

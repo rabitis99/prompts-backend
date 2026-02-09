@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.production.module.blog;
+package org.example.sharedprompts.domain.production.module.document;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.production.api.ProductionCommand;
@@ -6,23 +6,20 @@ import org.example.sharedprompts.domain.production.api.ProductionCommandType;
 import org.example.sharedprompts.domain.production.api.ProductionContext;
 import org.example.sharedprompts.domain.production.api.ProductionModule;
 import org.example.sharedprompts.domain.production.api.ProductionResult;
-import org.example.sharedprompts.domain.production.api.TextArtifact;
+import org.example.sharedprompts.domain.production.api.FileArtifact;
 import org.example.sharedprompts.domain.production.exception.CommandValidationException;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
-import org.example.sharedprompts.infra.production.blog.BlogComposer;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 
 @Component
 @RequiredArgsConstructor
-public class BlogProductionModule implements ProductionModule {
-    
-    private final BlogComposer blogComposer;
+public class DocumentProductionModule implements ProductionModule {
     
     @Override
     public ProductionCommandType getSupportedCommandType() {
-        return ProductionCommandType.BLOG;
+        return ProductionCommandType.DOCUMENT;
     }
     
     @Override
@@ -30,9 +27,9 @@ public class BlogProductionModule implements ProductionModule {
             ProductionCommand command, 
             ProductionContext context
     ) {
-        if (!(command instanceof BlogCommand blogCommand)) {
+        if (!(command instanceof DocumentCommand documentCommand)) {
             throw new CommandValidationException(
-                "Expected BlogCommand, but got: " + command.getClass()
+                "Expected DocumentCommand, but got: " + command.getClass()
             );
         }
         
@@ -42,22 +39,18 @@ public class BlogProductionModule implements ProductionModule {
             PromptResponseDto promptResult = context.getAttribute("promptResult", PromptResponseDto.class);
             
             if (promptResult == null) {
-                return BlogResult.failure("PromptResult not found in context", startedAt, Instant.now());
+                return DocumentResult.failure("PromptResult not found in context", startedAt, Instant.now());
             }
             
-            String blogContent = blogComposer.compose(
-                blogCommand.getTitle(),
-                promptResult.getContent(),
-                blogCommand.getTags()
-            );
+            String filePath = String.format("output/document/%s.%s", documentCommand.getFileName(), documentCommand.getFormat());
             
             Instant completedAt = Instant.now();
             
-            org.example.sharedprompts.domain.production.api.ProductionArtifact artifact = new TextArtifact(blogContent);
-            return BlogResult.success(artifact, startedAt, completedAt);
+            org.example.sharedprompts.domain.production.api.ProductionArtifact artifact = new FileArtifact(filePath);
+            return DocumentResult.success(artifact, startedAt, completedAt);
             
         } catch (Exception e) {
-            return BlogResult.failure(e.getMessage(), startedAt, Instant.now());
+            return DocumentResult.failure(e.getMessage(), startedAt, Instant.now());
         }
     }
 }
