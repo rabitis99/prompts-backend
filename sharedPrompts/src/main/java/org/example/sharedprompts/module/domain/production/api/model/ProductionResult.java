@@ -10,5 +10,6 @@ public interface ProductionResult {
     Instant getStartedAt();
     Instant getCompletedAt();
     ProductionArtifact getArtifact();
+    Long getArtifactId();
 }
 

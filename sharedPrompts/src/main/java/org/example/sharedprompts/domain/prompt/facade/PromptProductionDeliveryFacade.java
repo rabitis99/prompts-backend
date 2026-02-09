@@ -60,8 +60,8 @@ public class PromptProductionDeliveryFacade {
             );
         }
         
-        // 저장된 artifact의 ID를 조회하여 DeliveryContext에 설정
-        Long productionArtifactId = getLatestProductionArtifactId(userId, productionCommand.getCommandType());
+        // 경쟁 조건을 피하기 위해 result에서 직접 artifact ID를 가져옵니다
+        Long productionArtifactId = productionResult.getArtifactId();
         
         if (productionArtifactId == null) {
             throw new IllegalStateException("Production artifact를 찾을 수 없습니다.");
@@ -151,7 +151,8 @@ public class PromptProductionDeliveryFacade {
             return DefaultProductionResult.success(
                 artifact,
                 entity.getStartedAt(),
-                entity.getCompletedAt()
+                entity.getCompletedAt(),
+                entity.getId()
             );
         } else {
             return DefaultProductionResult.failure(

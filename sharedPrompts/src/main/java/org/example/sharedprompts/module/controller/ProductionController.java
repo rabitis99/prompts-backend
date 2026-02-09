@@ -36,10 +36,8 @@ public class ProductionController {
                 request.getUserInput().getInput() : null
         );
         
-        Long productionEntityId = productionDeliveryFacade.getLatestProductionArtifactId(
-            authUser.getId(), 
-            request.getCommandType()
-        );
+        // 경쟁 조건을 피하기 위해 result에서 직접 artifact ID를 가져옵니다
+        Long productionEntityId = result.getArtifactId();
         
         ProductionResponseDto response = ProductionResponseDto.from(result, productionEntityId);
         return CustomResponseHelper.ok(response);

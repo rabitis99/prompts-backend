@@ -10,24 +10,36 @@ public class DefaultProductionResult implements ProductionResult {
     private final Instant startedAt;
     private final Instant completedAt;
     private final ProductionArtifact artifact;
+    private final Long artifactId;
 
     private DefaultProductionResult(boolean success, String errorMessage,
-            Instant startedAt, Instant completedAt, ProductionArtifact artifact) {
+            Instant startedAt, Instant completedAt, ProductionArtifact artifact, Long artifactId) {
         this.success = success;
         this.errorMessage = errorMessage;
         this.startedAt = startedAt;
         this.completedAt = completedAt;
         this.artifact = artifact;
+        this.artifactId = artifactId;
     }
 
     public static DefaultProductionResult success(ProductionArtifact artifact,
             Instant startedAt, Instant completedAt) {
-        return new DefaultProductionResult(true, null, startedAt, completedAt, artifact);
+        return new DefaultProductionResult(true, null, startedAt, completedAt, artifact, null);
+    }
+
+    public static DefaultProductionResult success(ProductionArtifact artifact,
+            Instant startedAt, Instant completedAt, Long artifactId) {
+        return new DefaultProductionResult(true, null, startedAt, completedAt, artifact, artifactId);
     }
 
     public static DefaultProductionResult failure(String errorMessage,
             Instant startedAt, Instant completedAt) {
-        return new DefaultProductionResult(false, errorMessage, startedAt, completedAt, null);
+        return new DefaultProductionResult(false, errorMessage, startedAt, completedAt, null, null);
+    }
+
+    public static DefaultProductionResult failure(String errorMessage,
+            Instant startedAt, Instant completedAt, Long artifactId) {
+        return new DefaultProductionResult(false, errorMessage, startedAt, completedAt, null, artifactId);
     }
 
     @Override
@@ -53,6 +65,11 @@ public class DefaultProductionResult implements ProductionResult {
     @Override
     public ProductionArtifact getArtifact() {
         return artifact;
+    }
+
+    @Override
+    public Long getArtifactId() {
+        return artifactId;
     }
 }
 
