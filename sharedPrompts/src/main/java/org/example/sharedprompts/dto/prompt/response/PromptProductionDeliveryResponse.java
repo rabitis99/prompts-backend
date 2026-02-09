@@ -4,8 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.sharedprompts.domain.delivery.api.DeliveryResult;
-import org.example.sharedprompts.domain.production.api.ProductionResult;
+import org.example.sharedprompts.module.domain.delivery.api.DeliveryResult;
+import org.example.sharedprompts.module.domain.production.api.ProductionResult;
 
 @Getter
 @Builder

@@ -1,16 +1,16 @@
 package org.example.sharedprompts.domain.prompt.facade;
 
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.domain.delivery.api.DefaultDeliveryResult;
-import org.example.sharedprompts.domain.delivery.api.DeliveryContext;
-import org.example.sharedprompts.domain.delivery.api.DeliveryResult;
-import org.example.sharedprompts.domain.delivery.api.DeliveryService;
-import org.example.sharedprompts.domain.delivery.coordinator.DeliveryRegistry;
-import org.example.sharedprompts.domain.delivery.exception.DeliveryException;
-import org.example.sharedprompts.domain.production.api.ProductionCommand;
-import org.example.sharedprompts.domain.production.api.ProductionContext;
-import org.example.sharedprompts.domain.production.api.ProductionResult;
-import org.example.sharedprompts.domain.production.coordinator.ProductionCoordinator;
+import org.example.sharedprompts.module.domain.delivery.api.DefaultDeliveryResult;
+import org.example.sharedprompts.module.domain.delivery.api.DeliveryContext;
+import org.example.sharedprompts.module.domain.delivery.api.DeliveryResult;
+import org.example.sharedprompts.module.domain.delivery.api.DeliveryService;
+import org.example.sharedprompts.module.domain.delivery.coordinator.DeliveryRegistry;
+import org.example.sharedprompts.module.domain.delivery.exception.DeliveryException;
+import org.example.sharedprompts.module.domain.production.api.ProductionCommand;
+import org.example.sharedprompts.module.domain.production.api.ProductionContext;
+import org.example.sharedprompts.module.domain.production.api.ProductionResult;
+import org.example.sharedprompts.module.domain.production.coordinator.ProductionCoordinator;
 import org.example.sharedprompts.dto.prompt.request.PromptRequestDto;
 import org.example.sharedprompts.dto.prompt.response.PromptProductionDeliveryResponse;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
