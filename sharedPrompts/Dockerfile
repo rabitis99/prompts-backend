@@ -8,6 +8,7 @@ RUN gradle build --no-daemon -x test
 
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
+RUN apk add --no-cache curl
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 COPY --from=build /app/build/libs/*.jar app.jar

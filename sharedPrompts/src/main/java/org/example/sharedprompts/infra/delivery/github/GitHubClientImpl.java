@@ -28,6 +28,11 @@ public class GitHubClientImpl implements GitHubClient {
         // TODO: 실제 GitHub API 연동 구현 시 null 검증 필요
         // repository, branch, commitMessage 등 필수 속성에 대한 null 체크 및 검증 로직 추가
         
+        if (action == null) {
+            log.warn("GitHub action이 null입니다: userId={}", context.getUserId());
+            return DefaultDeliveryResult.failure("action is required");
+        }
+        
         log.info("GitHub 업로드 시도: userId={}, repository={}, branch={}, action={}, filePath={}", 
                 context.getUserId(), repository, branch, action, filePath);
         
@@ -35,11 +40,6 @@ public class GitHubClientImpl implements GitHubClient {
         // - GitHub REST API 또는 GraphQL API 사용
         // - 인증 토큰 관리
         // - PR 생성, Commit, Issue 생성 등
-        
-        if (action == null) {
-            log.warn("GitHub action이 null입니다: userId={}", context.getUserId());
-            return DefaultDeliveryResult.failure("action is required");
-        }
         
         switch (action.toLowerCase()) {
             case "pr":

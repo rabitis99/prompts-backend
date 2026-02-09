@@ -16,9 +16,10 @@ import java.time.Instant;
 @Table(
     name = "production_artifacts",
     indexes = {
-        @Index(name = "idx_production_artifacts_user_id", columnList = "user_id"),
-        @Index(name = "idx_production_artifacts_command_type", columnList = "command_type"),
-        @Index(name = "idx_production_artifacts_created_at", columnList = "created_at")
+        @Index(name = "idx_production_artifacts_user_id_created_at", columnList = "user_id,created_at"),
+        @Index(name = "idx_production_artifacts_user_id_command_type_created_at", columnList = "user_id,command_type,created_at"),
+        @Index(name = "idx_production_artifacts_user_id_artifact_type_created_at", columnList = "user_id,artifact_type,created_at"),
+        @Index(name = "idx_production_artifacts_production_id", columnList = "production_id")
     }
 )
 public class ProductionArtifactEntity extends BaseEntity {

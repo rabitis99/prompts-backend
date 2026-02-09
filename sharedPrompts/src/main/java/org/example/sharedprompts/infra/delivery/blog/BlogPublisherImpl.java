@@ -19,6 +19,7 @@ public class BlogPublisherImpl implements BlogPublisher {
     /**
      * 블로그 콘텐츠를 플랫폼에 게시한다.
      */
+    @Override
     public DeliveryResult publish(String blogContent, String platform, DeliveryContext context) {
         if (blogContent == null) {
             throw new IllegalArgumentException("blogContent must not be null");

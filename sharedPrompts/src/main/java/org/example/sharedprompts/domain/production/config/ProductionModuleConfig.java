@@ -7,6 +7,8 @@ import org.example.sharedprompts.domain.production.module.email.EmailProductionM
 import org.example.sharedprompts.domain.production.module.text.TextProductionModule;
 import org.example.sharedprompts.domain.production.module.image.ImageProductionModule;
 import org.example.sharedprompts.domain.production.module.document.DocumentProductionModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,7 +21,14 @@ import java.util.Map;
 @Configuration
 public class ProductionModuleConfig {
     
-    @Value("${ACTIVE_MODULES:blog,email,text,image,document}")
+    private static final Logger log = LoggerFactory.getLogger(ProductionModuleConfig.class);
+    
+    // Property name follows Spring Boot convention: production.active-modules
+    // Supports both:
+    // - ACTIVE_MODULES environment variable (backward compatibility, maps to active.modules)
+    // - production.active-modules property (Spring Boot convention, kebab-case)
+    // Spring Boot relaxed binding automatically maps PRODUCTION_ACTIVE_MODULES env var to production.active-modules
+    @Value("${ACTIVE_MODULES:${production.active-modules:blog,email,text,image,document}}")
     private String activeModules;
     
     // TODO: 실제 외부 연동 시 리소스 낭비 방지를 위해 각 모듈에 @ConditionalOnProperty 추가 고려
@@ -51,6 +60,9 @@ public class ProductionModuleConfig {
             ProductionModule module = moduleMap.get(name);
             if (module != null) {
                 modules.add(module);
+            } else {
+                log.warn("Unknown module name in ACTIVE_MODULES: '{}'. Available modules: {}", 
+                        name, moduleMap.keySet());
             }
         });
         

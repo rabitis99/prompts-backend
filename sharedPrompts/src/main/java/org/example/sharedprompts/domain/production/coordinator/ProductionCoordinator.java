@@ -51,7 +51,8 @@ public class ProductionCoordinator {
             result = module.produce(command, context);
         } catch (Exception e) {
             Instant completedAt = Instant.now();
-            result = DefaultProductionResult.failure(e.getMessage(), startedAt, completedAt);
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            result = DefaultProductionResult.failure(errorMsg, startedAt, completedAt);
         }
         
         final ProductionResult finalResult = result;

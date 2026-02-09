@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class NotionClientImpl implements NotionClient {
     
-    private static final Logger log = LoggerFactory.getLogger(NotionClient.class);
+    private static final Logger log = LoggerFactory.getLogger(NotionClientImpl.class);
     
     /**
      * Notion 페이지를 생성한다.
