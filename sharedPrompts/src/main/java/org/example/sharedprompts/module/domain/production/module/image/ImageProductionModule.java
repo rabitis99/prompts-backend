@@ -6,9 +6,9 @@ import org.example.sharedprompts.module.domain.production.api.artifact.ImageArti
 import org.example.sharedprompts.module.domain.production.api.artifact.ProductionArtifact;
 import org.example.sharedprompts.module.domain.production.api.command.ProductionCommand;
 import org.example.sharedprompts.module.domain.production.api.command.ProductionCommandType;
-import org.example.sharedprompts.module.domain.production.api.model.DefaultProductionResult;
+import org.example.sharedprompts.module.domain.production.api.model.DefaultModuleProductionResult;
+import org.example.sharedprompts.module.domain.production.api.model.ModuleProductionResult;
 import org.example.sharedprompts.module.domain.production.api.model.ProductionContext;
-import org.example.sharedprompts.module.domain.production.api.model.ProductionResult;
 import org.example.sharedprompts.module.domain.production.api.module.ProductionModule;
 import org.example.sharedprompts.module.domain.production.exception.CommandValidationException;
 import org.example.sharedprompts.module.domain.production.exception.ProductionException;
@@ -30,7 +30,7 @@ public class ImageProductionModule implements ProductionModule {
     }
     
     @Override
-    public ProductionResult produce(
+    public ModuleProductionResult produce(
             ProductionCommand command, 
             ProductionContext context
     ) {
@@ -52,7 +52,7 @@ public class ImageProductionModule implements ProductionModule {
             Instant completedAt = Instant.now();
             
             ProductionArtifact artifact = new ImageArtifact(imagePath);
-            return DefaultProductionResult.success(artifact, startedAt, completedAt);
+            return DefaultModuleProductionResult.success(artifact, startedAt, completedAt);
             
         } catch (Exception e) {
             int promptLength = imageCommand.getPrompt() != null ? imageCommand.getPrompt().length() : 0;

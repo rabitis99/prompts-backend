@@ -4,9 +4,9 @@ import org.example.sharedprompts.module.domain.production.api.artifact.FileArtif
 import org.example.sharedprompts.module.domain.production.api.artifact.ProductionArtifact;
 import org.example.sharedprompts.module.domain.production.api.command.ProductionCommand;
 import org.example.sharedprompts.module.domain.production.api.command.ProductionCommandType;
-import org.example.sharedprompts.module.domain.production.api.model.DefaultProductionResult;
+import org.example.sharedprompts.module.domain.production.api.model.DefaultModuleProductionResult;
+import org.example.sharedprompts.module.domain.production.api.model.ModuleProductionResult;
 import org.example.sharedprompts.module.domain.production.api.model.ProductionContext;
-import org.example.sharedprompts.module.domain.production.api.model.ProductionResult;
 import org.example.sharedprompts.module.domain.production.api.module.ProductionModule;
 import org.example.sharedprompts.module.domain.production.exception.CommandValidationException;
 import org.example.sharedprompts.module.domain.production.exception.ProductionException;
@@ -38,7 +38,7 @@ public class DocumentProductionModule implements ProductionModule {
     }
     
     @Override
-    public ProductionResult produce(
+    public ModuleProductionResult produce(
             ProductionCommand command, 
             ProductionContext context
     ) {
@@ -50,46 +50,28 @@ public class DocumentProductionModule implements ProductionModule {
         
         Instant startedAt = Instant.now();
         
-        try {
-            // TODO: 실제 문서 생성 로직 구현 필요
-            // 1. PromptResponseDto import 추가 필요
-            // 2. PromptResponseDto promptResult = context.getAttribute("promptResult", PromptResponseDto.class);
-            //    - promptResult null 체크 필요
-            //    - promptResult.getContent()를 사용하여 문서 내용 생성
-            // 3. TextAiClient를 사용하여 문서 내용 생성 (필요 시)
-            // 4. DocumentGenerator를 사용하여 Apache POI로 문서 포맷팅 (DOCX/XLSX)
-            // 5. DocumentStorage를 사용하여 파일 저장
-            // 현재는 존재하지 않는 파일 경로만 반환합니다. (스텁 구현)
-            
-            // Path traversal 방지: fileName과 format에 경로 조작 시퀀스가 포함되지 않도록 검증
-            String fileName = documentCommand.getFileName();
-            String format = documentCommand.getFormat();
-            if (fileName == null || format == null) {
-                return DefaultProductionResult.failure("File name and format must not be null", startedAt, Instant.now());
-            }
-            if (fileName.contains("..") || fileName.contains("/") || fileName.contains("\\") ||
-                format.contains("..") || format.contains("/") || format.contains("\\")) {
-                return DefaultProductionResult.failure("Invalid file name or format: path traversal detected", startedAt, Instant.now());
-            }
-            
-            // outputDir 자체에 대한 경로 검증: 최종 경로가 의도한 기본 디렉토리 내에 있는지 확인
-            Path baseDirPath = Paths.get(outputDir).normalize().toAbsolutePath();
-            Path filePathObj = baseDirPath.resolve(String.format("%s.%s", fileName, format)).normalize();
-            if (!filePathObj.startsWith(baseDirPath)) {
-                return DefaultProductionResult.failure("Invalid output directory: path traversal detected", startedAt, Instant.now());
-            }
-            
-            String filePath = filePathObj.toString();
-            
-            Instant completedAt = Instant.now();
-            
-            ProductionArtifact artifact = new FileArtifact(filePath);
-            return DefaultProductionResult.success(artifact, startedAt, completedAt);
-            
-        } catch (Exception e) {
-            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            return DefaultProductionResult.failure(errorMsg, startedAt, Instant.now());
+        String fileName = documentCommand.getFileName();
+        String format = documentCommand.getFormat();
+        if (fileName == null || format == null) {
+            throw new ProductionException("File name and format must not be null");
         }
+        if (fileName.contains("..") || fileName.contains("/") || fileName.contains("\\") ||
+            format.contains("..") || format.contains("/") || format.contains("\\")) {
+            throw new ProductionException("Invalid file name or format: path traversal detected");
+        }
+        
+        Path baseDirPath = Paths.get(outputDir).normalize().toAbsolutePath();
+        Path filePathObj = baseDirPath.resolve(String.format("%s.%s", fileName, format)).normalize();
+        if (!filePathObj.startsWith(baseDirPath)) {
+            throw new ProductionException("Invalid output directory: path traversal detected");
+        }
+        
+        String filePath = filePathObj.toString();
+        
+        Instant completedAt = Instant.now();
+        
+        ProductionArtifact artifact = new FileArtifact(filePath);
+        return DefaultModuleProductionResult.success(artifact, startedAt, completedAt);
     }
 }
 

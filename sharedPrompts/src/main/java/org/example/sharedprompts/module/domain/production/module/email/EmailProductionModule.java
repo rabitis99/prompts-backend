@@ -5,9 +5,9 @@ import org.example.sharedprompts.module.domain.production.api.artifact.Productio
 import org.example.sharedprompts.module.domain.production.api.artifact.TextArtifact;
 import org.example.sharedprompts.module.domain.production.api.command.ProductionCommand;
 import org.example.sharedprompts.module.domain.production.api.command.ProductionCommandType;
-import org.example.sharedprompts.module.domain.production.api.model.DefaultProductionResult;
+import org.example.sharedprompts.module.domain.production.api.model.DefaultModuleProductionResult;
+import org.example.sharedprompts.module.domain.production.api.model.ModuleProductionResult;
 import org.example.sharedprompts.module.domain.production.api.model.ProductionContext;
-import org.example.sharedprompts.module.domain.production.api.model.ProductionResult;
 import org.example.sharedprompts.module.domain.production.api.module.ProductionModule;
 import org.example.sharedprompts.module.domain.production.exception.CommandValidationException;
 import org.example.sharedprompts.module.domain.production.exception.ProductionException;
@@ -29,7 +29,7 @@ public class EmailProductionModule implements ProductionModule {
     }
     
     @Override
-    public ProductionResult produce(
+    public ModuleProductionResult produce(
             ProductionCommand command, 
             ProductionContext context
     ) {
@@ -56,7 +56,7 @@ public class EmailProductionModule implements ProductionModule {
         Instant completedAt = Instant.now();
         
         ProductionArtifact artifact = new TextArtifact(emailContent);
-        return DefaultProductionResult.success(artifact, startedAt, completedAt);
+        return DefaultModuleProductionResult.success(artifact, startedAt, completedAt);
     }
 }
 

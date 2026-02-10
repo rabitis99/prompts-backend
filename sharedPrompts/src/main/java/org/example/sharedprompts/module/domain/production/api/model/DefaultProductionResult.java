@@ -23,18 +23,8 @@ public class DefaultProductionResult implements ProductionResult {
     }
 
     public static DefaultProductionResult success(ProductionArtifact artifact,
-            Instant startedAt, Instant completedAt) {
-        return new DefaultProductionResult(true, null, startedAt, completedAt, artifact, null);
-    }
-
-    public static DefaultProductionResult success(ProductionArtifact artifact,
             Instant startedAt, Instant completedAt, Long artifactId) {
         return new DefaultProductionResult(true, null, startedAt, completedAt, artifact, artifactId);
-    }
-
-    public static DefaultProductionResult failure(String errorMessage,
-            Instant startedAt, Instant completedAt) {
-        return new DefaultProductionResult(false, errorMessage, startedAt, completedAt, null, null);
     }
 
     public static DefaultProductionResult failure(String errorMessage,
@@ -72,18 +62,26 @@ public class DefaultProductionResult implements ProductionResult {
         return artifactId;
     }
     
-    public DefaultProductionResult withArtifactId(Long artifactId) {
-        if (this.artifactId != null) {
-            return this;
+    public static DefaultProductionResult fromModuleResult(ModuleProductionResult moduleResult, Long artifactId) {
+        if (moduleResult.isSuccess()) {
+            return new DefaultProductionResult(
+                true,
+                null,
+                moduleResult.getStartedAt(),
+                moduleResult.getCompletedAt(),
+                moduleResult.getArtifact(),
+                artifactId
+            );
+        } else {
+            return new DefaultProductionResult(
+                false,
+                moduleResult.getErrorMessage(),
+                moduleResult.getStartedAt(),
+                moduleResult.getCompletedAt(),
+                null,
+                artifactId
+            );
         }
-        return new DefaultProductionResult(
-            this.success,
-            this.errorMessage,
-            this.startedAt,
-            this.completedAt,
-            this.artifact,
-            artifactId
-        );
     }
 }
 

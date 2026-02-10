@@ -1,7 +1,9 @@
 package org.example.sharedprompts.module.domain.production.coordinator;
 
 import org.example.sharedprompts.module.domain.production.api.command.ProductionCommand;
+import org.example.sharedprompts.module.domain.production.api.model.DefaultModuleProductionResult;
 import org.example.sharedprompts.module.domain.production.api.model.DefaultProductionResult;
+import org.example.sharedprompts.module.domain.production.api.model.ModuleProductionResult;
 import org.example.sharedprompts.module.domain.production.api.model.ProductionContext;
 import org.example.sharedprompts.module.domain.production.api.model.ProductionResult;
 import org.example.sharedprompts.module.domain.production.api.module.ProductionModule;
@@ -45,46 +47,28 @@ public class ProductionCoordinator {
         }
         
         Instant startedAt = Instant.now();
-        ProductionResult moduleResult;
+        ModuleProductionResult moduleResult;
         
         try {
             moduleResult = module.produce(command, context);
         } catch (Exception e) {
             Instant completedAt = Instant.now();
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            moduleResult = DefaultProductionResult.failure(errorMsg, startedAt, completedAt);
+            moduleResult = DefaultModuleProductionResult.failure(errorMsg, startedAt, completedAt);
         }
         
-        final ProductionResult finalModuleResult = moduleResult;
+        final ModuleProductionResult finalModuleResult = moduleResult;
         Long artifactId = transactionTemplate.execute(status -> {
             return saveArtifact(command, context, finalModuleResult);
         });
         
-        if (moduleResult instanceof DefaultProductionResult defaultResult) {
-            return defaultResult.withArtifactId(artifactId);
-        } else {
-            if (moduleResult.isSuccess()) {
-                return DefaultProductionResult.success(
-                    moduleResult.getArtifact(),
-                    moduleResult.getStartedAt(),
-                    moduleResult.getCompletedAt(),
-                    artifactId
-                );
-            } else {
-                return DefaultProductionResult.failure(
-                    moduleResult.getErrorMessage(),
-                    moduleResult.getStartedAt(),
-                    moduleResult.getCompletedAt(),
-                    artifactId
-                );
-            }
-        }
+        return DefaultProductionResult.fromModuleResult(moduleResult, artifactId);
     }
     
     private Long saveArtifact(
             ProductionCommand command,
             ProductionContext context,
-            ProductionResult result
+            ModuleProductionResult result
     ) {
         var artifact = result.getArtifact();
         ProductionArtifactEntity entity = ProductionArtifactEntity.builder()
