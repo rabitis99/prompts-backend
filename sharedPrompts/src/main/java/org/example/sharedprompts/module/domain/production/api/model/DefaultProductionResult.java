@@ -71,5 +71,19 @@ public class DefaultProductionResult implements ProductionResult {
     public Long getArtifactId() {
         return artifactId;
     }
+    
+    public DefaultProductionResult withArtifactId(Long artifactId) {
+        if (this.artifactId != null) {
+            return this;
+        }
+        return new DefaultProductionResult(
+            this.success,
+            this.errorMessage,
+            this.startedAt,
+            this.completedAt,
+            this.artifact,
+            artifactId
+        );
+    }
 }
 

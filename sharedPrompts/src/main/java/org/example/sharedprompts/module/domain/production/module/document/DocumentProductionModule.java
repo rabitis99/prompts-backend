@@ -9,6 +9,7 @@ import org.example.sharedprompts.module.domain.production.api.model.ProductionCo
 import org.example.sharedprompts.module.domain.production.api.model.ProductionResult;
 import org.example.sharedprompts.module.domain.production.api.module.ProductionModule;
 import org.example.sharedprompts.module.domain.production.exception.CommandValidationException;
+import org.example.sharedprompts.module.domain.production.exception.ProductionException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
