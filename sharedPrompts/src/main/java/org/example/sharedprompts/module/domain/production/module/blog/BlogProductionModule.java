@@ -5,11 +5,12 @@ import org.example.sharedprompts.module.domain.production.api.artifact.Productio
 import org.example.sharedprompts.module.domain.production.api.artifact.TextArtifact;
 import org.example.sharedprompts.module.domain.production.api.command.ProductionCommand;
 import org.example.sharedprompts.module.domain.production.api.command.ProductionCommandType;
-import org.example.sharedprompts.module.domain.production.api.model.DefaultProductionResult;
+import org.example.sharedprompts.module.domain.production.api.model.DefaultModuleProductionResult;
+import org.example.sharedprompts.module.domain.production.api.model.ModuleProductionResult;
 import org.example.sharedprompts.module.domain.production.api.model.ProductionContext;
-import org.example.sharedprompts.module.domain.production.api.model.ProductionResult;
 import org.example.sharedprompts.module.domain.production.api.module.ProductionModule;
 import org.example.sharedprompts.module.domain.production.exception.CommandValidationException;
+import org.example.sharedprompts.module.domain.production.exception.ProductionException;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
 import org.example.sharedprompts.module.infra.production.blog.BlogComposer;
 import org.springframework.stereotype.Component;
@@ -28,7 +29,7 @@ public class BlogProductionModule implements ProductionModule {
     }
     
     @Override
-    public ProductionResult produce(
+    public ModuleProductionResult produce(
             ProductionCommand command, 
             ProductionContext context
     ) {
@@ -40,28 +41,22 @@ public class BlogProductionModule implements ProductionModule {
         
         Instant startedAt = Instant.now();
         
-        try {
-            PromptResponseDto promptResult = context.getAttribute("promptResult", PromptResponseDto.class);
-            
-            if (promptResult == null) {
-                return DefaultProductionResult.failure("PromptResult not found in context", startedAt, Instant.now());
-            }
-            
-            String blogContent = blogComposer.compose(
-                blogCommand.getTitle(),
-                promptResult.getContent(),
-                blogCommand.getTags()
-            );
-            
-            Instant completedAt = Instant.now();
-            
-            ProductionArtifact artifact = new TextArtifact(blogContent);
-            return DefaultProductionResult.success(artifact, startedAt, completedAt);
-            
-        } catch (Exception e) {
-            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            return DefaultProductionResult.failure(errorMsg, startedAt, Instant.now());
+        PromptResponseDto promptResult = context.getAttribute("promptResult", PromptResponseDto.class);
+        
+        if (promptResult == null) {
+            throw new ProductionException("PromptResult not found in context");
         }
+        
+        String blogContent = blogComposer.compose(
+            blogCommand.getTitle(),
+            promptResult.getContent(),
+            blogCommand.getTags()
+        );
+        
+        Instant completedAt = Instant.now();
+        
+        ProductionArtifact artifact = new TextArtifact(blogContent);
+        return DefaultModuleProductionResult.success(artifact, startedAt, completedAt);
     }
 }
 

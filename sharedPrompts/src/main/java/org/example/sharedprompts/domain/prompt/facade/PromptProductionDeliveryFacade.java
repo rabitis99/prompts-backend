@@ -158,7 +158,8 @@ public class PromptProductionDeliveryFacade {
             return DefaultProductionResult.failure(
                 entity.getErrorMessage(),
                 entity.getStartedAt(),
-                entity.getCompletedAt()
+                entity.getCompletedAt(),
+                entity.getId()
             );
         }
     }

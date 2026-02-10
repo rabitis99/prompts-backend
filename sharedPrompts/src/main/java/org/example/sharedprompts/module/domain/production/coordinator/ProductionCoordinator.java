@@ -1,7 +1,9 @@
 package org.example.sharedprompts.module.domain.production.coordinator;
 
 import org.example.sharedprompts.module.domain.production.api.command.ProductionCommand;
+import org.example.sharedprompts.module.domain.production.api.model.DefaultModuleProductionResult;
 import org.example.sharedprompts.module.domain.production.api.model.DefaultProductionResult;
+import org.example.sharedprompts.module.domain.production.api.model.ModuleProductionResult;
 import org.example.sharedprompts.module.domain.production.api.model.ProductionContext;
 import org.example.sharedprompts.module.domain.production.api.model.ProductionResult;
 import org.example.sharedprompts.module.domain.production.api.module.ProductionModule;
@@ -45,54 +47,28 @@ public class ProductionCoordinator {
         }
         
         Instant startedAt = Instant.now();
-        ProductionResult result;
+        ModuleProductionResult moduleResult;
         
         try {
-            result = module.produce(command, context);
+            moduleResult = module.produce(command, context);
         } catch (Exception e) {
             Instant completedAt = Instant.now();
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            result = DefaultProductionResult.failure(errorMsg, startedAt, completedAt);
+            moduleResult = DefaultModuleProductionResult.failure(errorMsg, startedAt, completedAt);
         }
         
-        final ProductionResult finalResult = result;
-        Long artifactId = null;
-        try {
-            artifactId = transactionTemplate.execute(status -> {
-                return saveArtifact(command, context, finalResult);
-            });
-        } catch (Exception e) {
-            // 아티팩트 저장 실패는 로깅만 하고 원래 결과는 반환
-            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            log.warn("아티팩트 저장 실패 - userId: {}, error: {}", 
-                    context.getUserId(), errorMsg, e);
-        }
+        final ModuleProductionResult finalModuleResult = moduleResult;
+        Long artifactId = transactionTemplate.execute(status -> {
+            return saveArtifact(command, context, finalModuleResult);
+        });
         
-        // 저장된 artifact ID를 포함한 결과 반환
-        if (artifactId != null) {
-            if (finalResult.isSuccess()) {
-                return DefaultProductionResult.success(
-                    finalResult.getArtifact(),
-                    finalResult.getStartedAt(),
-                    finalResult.getCompletedAt(),
-                    artifactId
-                );
-            } else {
-                return DefaultProductionResult.failure(
-                    finalResult.getErrorMessage(),
-                    finalResult.getStartedAt(),
-                    finalResult.getCompletedAt(),
-                    artifactId
-                );
-            }
-        }
-        return result;
+        return DefaultProductionResult.fromModuleResult(moduleResult, artifactId);
     }
     
     private Long saveArtifact(
             ProductionCommand command,
             ProductionContext context,
-            ProductionResult result
+            ModuleProductionResult result
     ) {
         var artifact = result.getArtifact();
         ProductionArtifactEntity entity = ProductionArtifactEntity.builder()
