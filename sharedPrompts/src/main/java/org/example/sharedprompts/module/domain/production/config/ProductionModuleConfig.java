@@ -1,6 +1,7 @@
 package org.example.sharedprompts.module.domain.production.config;
 
-import org.example.sharedprompts.module.domain.production.api.ProductionModule;
+
+import org.example.sharedprompts.module.domain.production.api.module.ProductionModule;
 import org.example.sharedprompts.module.domain.production.coordinator.ProductionRegistry;
 import org.example.sharedprompts.module.domain.production.module.blog.BlogProductionModule;
 import org.example.sharedprompts.module.domain.production.module.email.EmailProductionModule;

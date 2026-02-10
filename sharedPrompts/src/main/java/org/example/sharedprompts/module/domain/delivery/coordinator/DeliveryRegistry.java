@@ -1,7 +1,8 @@
 package org.example.sharedprompts.module.domain.delivery.coordinator;
 
-import org.example.sharedprompts.module.domain.delivery.api.DeliveryService;
-import org.example.sharedprompts.module.domain.delivery.api.DeliveryType;
+
+import org.example.sharedprompts.module.domain.delivery.api.service.DeliveryService;
+import org.example.sharedprompts.module.domain.delivery.api.type.DeliveryType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

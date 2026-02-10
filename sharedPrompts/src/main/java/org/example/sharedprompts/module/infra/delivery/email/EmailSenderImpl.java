@@ -1,12 +1,14 @@
 package org.example.sharedprompts.module.infra.delivery.email;
 
-import org.example.sharedprompts.module.domain.delivery.api.DeliveryContext;
-import org.example.sharedprompts.module.domain.delivery.api.DeliveryResult;
-import org.example.sharedprompts.module.domain.delivery.api.DefaultDeliveryResult;
-import org.example.sharedprompts.module.domain.delivery.api.EmailSender;
+import org.example.sharedprompts.module.domain.delivery.api.client.EmailSender;
+import org.example.sharedprompts.module.domain.delivery.api.model.DefaultDeliveryResult;
+import org.example.sharedprompts.module.domain.delivery.api.model.DeliveryContext;
+import org.example.sharedprompts.module.domain.delivery.api.model.DeliveryResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import static org.example.sharedprompts.global.util.SensitiveDataMasker.maskEmail;
 
 /**
  * 이메일을 전송하는 Sender 구현체.
@@ -20,7 +22,12 @@ public class EmailSenderImpl implements EmailSender {
     /**
      * 이메일을 전송한다.
      */
+    @Override
     public DeliveryResult send(String emailContent, DeliveryContext context) {
+        if (context == null) {
+            log.warn("DeliveryContext가 null입니다.");
+            return DefaultDeliveryResult.failure("Delivery context is null");
+        }
         if (emailContent == null) {
             log.warn("이메일 내용이 null입니다: userId={}", context.getUserId());
             return DefaultDeliveryResult.failure("Email content is null");
@@ -29,16 +36,20 @@ public class EmailSenderImpl implements EmailSender {
         String recipient = context.getAttribute("recipient", String.class);
         String subject = context.getAttribute("subject", String.class);
         
-        log.info("이메일 전송 시도: userId={}, recipient={}, subject={}, contentLength={}", 
-                context.getUserId(), recipient, subject, emailContent.length());
+        if (recipient == null || recipient.isBlank()) {
+            log.warn("수신자가 지정되지 않았습니다: userId={}", context.getUserId());
+            return DefaultDeliveryResult.failure("Email recipient is not specified");
+        }
+        
+        log.info("이메일 전송 시도: userId={}, recipient={}, subject={}, contentLength={}",
+                context.getUserId(), maskEmail(recipient), subject, emailContent.length());
         
         // TODO: 실제 이메일 서비스 API 연동 구현
         // - SMTP 서버 연동
         // - SendGrid, AWS SES 등 외부 서비스 연동
         
         // 현재는 시뮬레이션으로 성공 반환
-        log.info("이메일 전송 완료 (시뮬레이션): recipient={}", recipient);
+        log.info("이메일 전송 완료 (시뮬레이션): recipient={}", maskEmail(recipient));
         return DefaultDeliveryResult.success();
     }
 }
-

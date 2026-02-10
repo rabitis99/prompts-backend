@@ -1,13 +1,13 @@
 package org.example.sharedprompts.module.domain.production.module.document;
 
-import org.example.sharedprompts.module.domain.production.api.DefaultProductionResult;
-import org.example.sharedprompts.module.domain.production.api.FileArtifact;
-import org.example.sharedprompts.module.domain.production.api.ProductionArtifact;
-import org.example.sharedprompts.module.domain.production.api.ProductionCommand;
-import org.example.sharedprompts.module.domain.production.api.ProductionCommandType;
-import org.example.sharedprompts.module.domain.production.api.ProductionContext;
-import org.example.sharedprompts.module.domain.production.api.ProductionModule;
-import org.example.sharedprompts.module.domain.production.api.ProductionResult;
+import org.example.sharedprompts.module.domain.production.api.artifact.FileArtifact;
+import org.example.sharedprompts.module.domain.production.api.artifact.ProductionArtifact;
+import org.example.sharedprompts.module.domain.production.api.command.ProductionCommand;
+import org.example.sharedprompts.module.domain.production.api.command.ProductionCommandType;
+import org.example.sharedprompts.module.domain.production.api.model.DefaultProductionResult;
+import org.example.sharedprompts.module.domain.production.api.model.ProductionContext;
+import org.example.sharedprompts.module.domain.production.api.model.ProductionResult;
+import org.example.sharedprompts.module.domain.production.api.module.ProductionModule;
 import org.example.sharedprompts.module.domain.production.exception.CommandValidationException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

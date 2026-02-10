@@ -48,8 +48,3 @@ public class CashbackJpaAdapter {
         return cashbackRepository.findAllUnpaidWithFetchJoin(pageable);
     }
 }
-
-
-
-
-

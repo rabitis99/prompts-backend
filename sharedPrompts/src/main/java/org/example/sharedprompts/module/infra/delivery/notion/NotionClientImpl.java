@@ -1,9 +1,9 @@
 package org.example.sharedprompts.module.infra.delivery.notion;
 
-import org.example.sharedprompts.module.domain.delivery.api.DeliveryContext;
-import org.example.sharedprompts.module.domain.delivery.api.DeliveryResult;
-import org.example.sharedprompts.module.domain.delivery.api.DefaultDeliveryResult;
-import org.example.sharedprompts.module.domain.delivery.api.NotionClient;
+import org.example.sharedprompts.module.domain.delivery.api.client.NotionClient;
+import org.example.sharedprompts.module.domain.delivery.api.model.DefaultDeliveryResult;
+import org.example.sharedprompts.module.domain.delivery.api.model.DeliveryContext;
+import org.example.sharedprompts.module.domain.delivery.api.model.DeliveryResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -19,6 +19,7 @@ public class NotionClientImpl implements NotionClient {
     /**
      * Notion 페이지를 생성한다.
      */
+    @Override
     public DeliveryResult createPage(String content, String pageTitle, String parentPageId, DeliveryContext context) {
         if (content == null) {
             throw new IllegalArgumentException("content must not be null");

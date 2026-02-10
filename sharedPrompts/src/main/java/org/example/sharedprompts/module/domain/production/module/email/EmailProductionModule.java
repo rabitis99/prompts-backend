@@ -1,14 +1,14 @@
 package org.example.sharedprompts.module.domain.production.module.email;
 
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.module.domain.production.api.DefaultProductionResult;
-import org.example.sharedprompts.module.domain.production.api.ProductionArtifact;
-import org.example.sharedprompts.module.domain.production.api.ProductionCommand;
-import org.example.sharedprompts.module.domain.production.api.ProductionCommandType;
-import org.example.sharedprompts.module.domain.production.api.ProductionContext;
-import org.example.sharedprompts.module.domain.production.api.ProductionModule;
-import org.example.sharedprompts.module.domain.production.api.ProductionResult;
-import org.example.sharedprompts.module.domain.production.api.TextArtifact;
+import org.example.sharedprompts.module.domain.production.api.artifact.ProductionArtifact;
+import org.example.sharedprompts.module.domain.production.api.artifact.TextArtifact;
+import org.example.sharedprompts.module.domain.production.api.command.ProductionCommand;
+import org.example.sharedprompts.module.domain.production.api.command.ProductionCommandType;
+import org.example.sharedprompts.module.domain.production.api.model.DefaultProductionResult;
+import org.example.sharedprompts.module.domain.production.api.model.ProductionContext;
+import org.example.sharedprompts.module.domain.production.api.model.ProductionResult;
+import org.example.sharedprompts.module.domain.production.api.module.ProductionModule;
 import org.example.sharedprompts.module.domain.production.exception.CommandValidationException;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
 import org.example.sharedprompts.module.infra.production.email.EmailComposer;
@@ -59,7 +59,8 @@ public class EmailProductionModule implements ProductionModule {
             return DefaultProductionResult.success(artifact, startedAt, completedAt);
             
         } catch (Exception e) {
-            return DefaultProductionResult.failure(e.getMessage(), startedAt, Instant.now());
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return DefaultProductionResult.failure(errorMsg, startedAt, Instant.now());
         }
     }
 }

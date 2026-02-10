@@ -1,12 +1,14 @@
 package org.example.sharedprompts.module.infra.delivery.github;
 
-import org.example.sharedprompts.module.domain.delivery.api.DeliveryContext;
-import org.example.sharedprompts.module.domain.delivery.api.DeliveryResult;
-import org.example.sharedprompts.module.domain.delivery.api.DefaultDeliveryResult;
-import org.example.sharedprompts.module.domain.delivery.api.GitHubClient;
+import org.example.sharedprompts.module.domain.delivery.api.client.GitHubClient;
+import org.example.sharedprompts.module.domain.delivery.api.model.DefaultDeliveryResult;
+import org.example.sharedprompts.module.domain.delivery.api.model.DeliveryContext;
+import org.example.sharedprompts.module.domain.delivery.api.model.DeliveryResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.Locale;
 
 /**
  * GitHub API와 연동하는 Client 구현체.
@@ -41,7 +43,7 @@ public class GitHubClientImpl implements GitHubClient {
         // - 인증 토큰 관리
         // - PR 생성, Commit, Issue 생성 등
         
-        switch (action.toLowerCase()) {
+        switch (action.toLowerCase(Locale.ROOT)) {
             case "pr":
                 log.info("GitHub PR 생성 (시뮬레이션): repository={}, branch={}", repository, branch);
                 break;

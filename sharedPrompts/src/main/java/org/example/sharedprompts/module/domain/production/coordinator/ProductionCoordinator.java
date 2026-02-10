@@ -1,10 +1,10 @@
 package org.example.sharedprompts.module.domain.production.coordinator;
 
-import org.example.sharedprompts.module.domain.production.api.DefaultProductionResult;
-import org.example.sharedprompts.module.domain.production.api.ProductionCommand;
-import org.example.sharedprompts.module.domain.production.api.ProductionContext;
-import org.example.sharedprompts.module.domain.production.api.ProductionModule;
-import org.example.sharedprompts.module.domain.production.api.ProductionResult;
+import org.example.sharedprompts.module.domain.production.api.command.ProductionCommand;
+import org.example.sharedprompts.module.domain.production.api.model.DefaultProductionResult;
+import org.example.sharedprompts.module.domain.production.api.model.ProductionContext;
+import org.example.sharedprompts.module.domain.production.api.model.ProductionResult;
+import org.example.sharedprompts.module.domain.production.api.module.ProductionModule;
 import org.example.sharedprompts.module.domain.production.entity.ProductionArtifactEntity;
 import org.example.sharedprompts.module.domain.production.exception.ProductionModuleNotFoundException;
 import org.example.sharedprompts.module.domain.production.repository.ProductionArtifactRepository;
@@ -56,29 +56,46 @@ public class ProductionCoordinator {
         }
         
         final ProductionResult finalResult = result;
+        Long artifactId = null;
         try {
-            transactionTemplate.execute(status -> {
-                saveArtifact(command, context, finalResult);
-                return null;
+            artifactId = transactionTemplate.execute(status -> {
+                return saveArtifact(command, context, finalResult);
             });
         } catch (Exception e) {
             // 아티팩트 저장 실패는 로깅만 하고 원래 결과는 반환
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            log.warn("아티팩트 저장 실패 - productionId: {}, error: {}", 
-                    context.getProductionId(), errorMsg, e);
+            log.warn("아티팩트 저장 실패 - userId: {}, error: {}", 
+                    context.getUserId(), errorMsg, e);
         }
         
+        // 저장된 artifact ID를 포함한 결과 반환
+        if (artifactId != null) {
+            if (finalResult.isSuccess()) {
+                return DefaultProductionResult.success(
+                    finalResult.getArtifact(),
+                    finalResult.getStartedAt(),
+                    finalResult.getCompletedAt(),
+                    artifactId
+                );
+            } else {
+                return DefaultProductionResult.failure(
+                    finalResult.getErrorMessage(),
+                    finalResult.getStartedAt(),
+                    finalResult.getCompletedAt(),
+                    artifactId
+                );
+            }
+        }
         return result;
     }
     
-    private void saveArtifact(
+    private Long saveArtifact(
             ProductionCommand command,
             ProductionContext context,
             ProductionResult result
     ) {
         var artifact = result.getArtifact();
         ProductionArtifactEntity entity = ProductionArtifactEntity.builder()
-            .productionId(context.getProductionId())
             .userId(context.getUserId())
             .commandType(command.getCommandType())
             .artifactType(artifact != null ? artifact.getType() : null)
@@ -89,7 +106,9 @@ public class ProductionCoordinator {
             .errorMessage(result.getErrorMessage())
             .build();
         
-        artifactRepository.save(entity);
+        ProductionArtifactEntity saved = artifactRepository.save(entity);
+        log.debug("Production artifact saved - id: {}, userId: {}", saved.getId(), saved.getUserId());
+        return saved.getId();
     }
 }
 
