@@ -1,0 +1,73 @@
+package org.example.sharedprompts.module.domain.production.service.job;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
+import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommand;
+import org.example.sharedprompts.module.domain.production.repository.job.JobRepository;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class JobEntityCreationService {
+
+    private final JobRepository jobRepository;
+    private final ObjectMapper objectMapper;
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public JobEntity createJob(
+            Long promptId,
+            Long userId,
+            ProductionCommand command,
+            String userInput,
+            String idempotencyKey
+    ) {
+        try {
+            String commandJson = objectMapper.writeValueAsString(command);
+            String commandType = command.getCommandType() != null
+                    ? command.getCommandType().name()
+                    : "UNKNOWN";
+
+            JobEntity job = JobEntity.create(
+                    promptId,
+                    userId,
+                    commandType,
+                    commandJson,
+                    userInput,
+                    idempotencyKey
+            );
+
+            JobEntity savedJob = jobRepository.save(job);
+            log.info("Job created - jobId: {}, idempotencyKey: {}",
+                    savedJob.getJobId(), idempotencyKey);
+
+            return savedJob;
+
+        } catch (DataIntegrityViolationException e) {
+            log.info("Duplicate idempotencyKey detected - idempotencyKey: {}", idempotencyKey);
+
+            JobEntity existingJob = jobRepository.findByIdempotencyKey(idempotencyKey)
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Job with idempotencyKey not found after duplicate exception: " + idempotencyKey, e));
+
+            if (existingJob.isFailed()) {
+                existingJob.resetForIdempotencyRetry();
+                log.info("Reset failed job for retry - jobId: {}, idempotencyKey: {}",
+                        existingJob.getJobId(), idempotencyKey);
+                return jobRepository.save(existingJob);
+            }
+
+            return existingJob;
+
+        } catch (Exception e) {
+            log.error("Failed to create job - idempotencyKey: {}", idempotencyKey, e);
+            throw new RuntimeException("Failed to create job: " + e.getMessage(), e);
+        }
+    }
+}
+

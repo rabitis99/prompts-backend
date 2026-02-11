@@ -288,6 +288,21 @@ resilience4j:
           - org.springframework.data.redis.RedisConnectionFailureException
         ignoreExceptions:
           - org.example.sharedprompts.global.exception.ApiException
+      # AI Production 서비스용 Circuit Breaker
+      # AI 제공자 장애 시 빠른 실패 반환으로 스레드풀 고갈 방지
+      aiProduction:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20  # 최근 20개 호출 기준으로 실패율 계산
+        failureRateThreshold: 50  # 실패율 50% 시 Circuit Breaker Open
+        slowCallRateThreshold: 70  # 느린 호출 비율 70% 시 Circuit Breaker Open
+        slowCallDurationThreshold: 30s  # 30초 이상 소요 시 느린 호출로 간주 (AI 호출은 오래 걸릴 수 있음)
+        waitDurationInOpenState: 60s  # Open 상태에서 60초 후 Half-Open으로 전환
+        permittedNumberOfCallsInHalfOpenState: 3  # Half-Open 상태에서 3개 호출 허용
+        minimumNumberOfCalls: 10  # 최소 10개 호출 후 통계 계산
+        recordExceptions:
+          - java.lang.RuntimeException
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
 
 # =========================
 # 알림 설정
@@ -347,6 +362,16 @@ app:
     creation:
       # 프롬프트 생성 타임아웃 설정 (밀리초)
       timeout-ms: ${APP_PROMPT_CREATION_TIMEOUT_MS:40000}
+
+# =========================
+# Job 복구 설정
+# =========================
+job:
+  recovery:
+    # 최대 재시도 횟수
+    max-retry-count: ${JOB_RECOVERY_MAX_RETRY_COUNT:3}
+    # Job 만료 기준 시간 (분)
+    stale-job-threshold-minutes: ${JOB_RECOVERY_STALE_JOB_THRESHOLD_MINUTES:30}
 
 # =========================
 # 관리자 유지보수 작업 설정
@@ -475,6 +500,28 @@ payment:
     project-id: ${PAYMENT_FCM_PROJECT_ID:sharedprompt-8ed9d}
     credentials-path: ${PAYMENT_FCM_CREDENTIALS_PATH:}
     classpath-resource: ${PAYMENT_FCM_CLASSPATH_RESOURCE:firebase/sharedprompt-8ed9d-firebase-adminsdk-fbsvc-601af9062b.json}
+
+# =========================
+# Production Storage 설정
+# =========================
+production:
+  storage:
+    type: ${PRODUCTION_STORAGE_TYPE:LOCAL}
+    local:
+      base-path: ${PRODUCTION_STORAGE_LOCAL_BASE_PATH:./storage/production}
+    s3:
+      bucket: ${AWS_S3_BUCKET:}
+      prefix: ${AWS_S3_PREFIX:production}
+
+# Spring Cloud AWS
+spring.cloud.aws:
+  s3:
+    enabled: ${SPRING_CLOUD_AWS_S3_ENABLED:false}
+  region:
+    static: ${AWS_REGION:ap-northeast-2}
+  credentials:
+    access-key: ${AWS_ACCESS_KEY_ID:}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:}
 
 # =========================
 # 이메일 설정

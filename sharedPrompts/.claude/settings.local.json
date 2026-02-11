@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew compileJava:*)",
+      "Bash(del /q \"src\\\\main\\\\java\\\\org\\\\example\\\\sharedprompts\\\\dto\\\\prompt\\\\response\\\\PromptProductionDeliveryResponse.java\")",
+      "Bash(del /q \"src\\\\main\\\\java\\\\org\\\\example\\\\sharedprompts\\\\module\\\\dto\\\\request\\\\delivery\\\\DeliveryRequestDto.java\")",
+      "Bash(del /q \"src\\\\main\\\\java\\\\org\\\\example\\\\sharedprompts\\\\module\\\\dto\\\\request\\\\delivery\\\\DeliveryContextDto.java\")",
+      "Bash(del /q \"src\\\\main\\\\java\\\\org\\\\example\\\\sharedprompts\\\\module\\\\dto\\\\request\\\\delivery\\\\BlogDeliveryContextDto.java\")",
+      "Bash(del /q \"src\\\\main\\\\java\\\\org\\\\example\\\\sharedprompts\\\\module\\\\dto\\\\request\\\\delivery\\\\EmailDeliveryContextDto.java\")",
+      "Bash(del /q \"src\\\\main\\\\java\\\\org\\\\example\\\\sharedprompts\\\\module\\\\dto\\\\request\\\\delivery\\\\GitHubDeliveryContextDto.java\")",
+      "Bash(del /q \"src\\\\main\\\\java\\\\org\\\\example\\\\sharedprompts\\\\module\\\\dto\\\\request\\\\delivery\\\\NotionDeliveryContextDto.java\")",
+      "Bash(del /q \"src\\\\main\\\\java\\\\org\\\\example\\\\sharedprompts\\\\module\\\\dto\\\\response\\\\delivery\\\\DeliveryResponseDto.java\")",
+      "Bash(./gradlew test:*)"
+    ]
+  }
+}
