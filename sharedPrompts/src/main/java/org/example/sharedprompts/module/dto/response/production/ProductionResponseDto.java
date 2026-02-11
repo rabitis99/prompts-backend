@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.sharedprompts.module.domain.production.api.model.ProductionResult;
+import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactEntity;
 
 import java.time.Instant;
 
@@ -13,22 +13,22 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductionResponseDto {
-    
+
     private Long productionId;
     private boolean success;
     private String errorMessage;
     private Instant startedAt;
     private Instant completedAt;
     private ArtifactDto artifact;
-    
-    public static ProductionResponseDto from(ProductionResult result, Long productionId) {
+
+    public static ProductionResponseDto from(ProductionArtifactEntity entity) {
         return ProductionResponseDto.builder()
-                .productionId(productionId)
-                .success(result.isSuccess())
-                .errorMessage(result.getErrorMessage())
-                .startedAt(result.getStartedAt())
-                .completedAt(result.getCompletedAt())
-                .artifact(result.getArtifact() != null ? ArtifactDto.from(result.getArtifact()) : null)
+                .productionId(entity.getId())
+                .success(entity.isSuccess())
+                .errorMessage(entity.getDetail() != null ? entity.getDetail().getErrorMessage() : null)
+                .startedAt(entity.getStartedAt())
+                .completedAt(entity.getCompletedAt())
+                .artifact(entity.getDetail() != null ? ArtifactDto.from(entity.getDetail()) : null)
                 .build();
     }
 }

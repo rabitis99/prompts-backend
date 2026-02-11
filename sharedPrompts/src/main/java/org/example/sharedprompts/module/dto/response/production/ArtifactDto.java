@@ -4,8 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.sharedprompts.module.domain.production.api.artifact.ArtifactType;
-import org.example.sharedprompts.module.domain.production.api.artifact.ProductionArtifact;
+import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactDetailEntity;
+import org.example.sharedprompts.module.domain.production.entity.production.StorageFormat;
+import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
 
 @Getter
 @Builder
@@ -14,11 +15,21 @@ import org.example.sharedprompts.module.domain.production.api.artifact.Productio
 public class ArtifactDto {
     private ArtifactType type;
     private String location;
-    
-    public static ArtifactDto from(ProductionArtifact artifact) {
+    private String fileName;
+    private String contentType;
+    private String storageLocation;
+
+    public static ArtifactDto from(ProductionArtifactDetailEntity detail) {
+        String location = detail.getStorageType() == StorageFormat.INLINE_TEXT
+                ? detail.getContent()
+                : detail.getFilePath();
+
         return ArtifactDto.builder()
-                .type(artifact.getType())
-                .location(artifact.getLocation())
+                .type(detail.getArtifactType())
+                .location(location)
+                .fileName(detail.getFileName())
+                .contentType(detail.getContentType())
+                .storageLocation(detail.getStorageLocation())
                 .build();
     }
 }
