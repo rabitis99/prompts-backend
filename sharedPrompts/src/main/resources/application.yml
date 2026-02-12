@@ -512,6 +512,10 @@ production:
     s3:
       bucket: ${AWS_S3_BUCKET:}
       prefix: ${AWS_S3_PREFIX:production}
+  # Artifact URL 설정
+artifact:
+  url:
+    default-ttl: ${ARTIFACT_URL_DEFAULT_TTL:300}  # Presigned URL 기본 TTL (초, 기본값: 5분)
 
 # Spring Cloud AWS
 spring.cloud.aws:
