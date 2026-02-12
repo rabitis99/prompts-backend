@@ -56,6 +56,13 @@ public class AsyncExecutorConfig {
                 DEFAULT_AWAIT_TERMINATION_SECONDS, createCallerThreadRejectionHandler());
     }
 
+    /** 썸네일 생성 전용 Executor */
+    @Bean(name = "thumbnailTaskExecutor")
+    public Executor thumbnailTaskExecutor() {
+        return createExecutor("thumbnail-", 3, 8, 50, DEFAULT_AWAIT_TERMINATION_SECONDS,
+                createCallerThreadRejectionHandler());
+    }
+
     /** @EnableAsync의 기본 Executor */
     @Bean(name = "taskExecutor")
     public Executor taskExecutor() {

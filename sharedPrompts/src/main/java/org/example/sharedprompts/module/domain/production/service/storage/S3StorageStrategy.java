@@ -148,7 +148,46 @@ public class S3StorageStrategy implements StorageStrategy {
         return StorageType.S3;
     }
 
+    @Override
+    public String store(String content, String tenantId, Long userId, String jobId, String fileName) {
+        byte[] data = content.getBytes(StandardCharsets.UTF_8);
+        String contentType = ContentTypeUtils.guessContentType(fileName);
+        return store(data, contentType, tenantId, userId, jobId, fileName);
+    }
+
+    @Override
+    public String store(byte[] data, String contentType, String tenantId, Long userId, String jobId, String fileName) {
+        String s3Key = buildS3Key(tenantId, userId, jobId, fileName);
+
+        log.info("Uploading to S3 - bucket: {}, key: {}, contentType: {}, size: {} bytes",
+                bucket, s3Key, contentType, data.length);
+
+        try {
+            PutObjectRequest request = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(s3Key)
+                    .contentType(contentType)
+                    .contentLength((long) data.length)
+                    .build();
+
+            s3Client.putObject(request, RequestBody.fromBytes(data));
+            log.info("S3 upload completed - key: {}", s3Key);
+            return s3Key;
+
+        } catch (Exception e) {
+            log.error("S3 upload failed - bucket: {}, key: {}", bucket, s3Key, e);
+            throw new S3StorageException("S3 upload failed: " + e.getMessage(), e);
+        }
+    }
+
     private String buildS3Key(Long userId, String jobId, String fileName) {
         return String.format("%s/%d/%s/%s", prefix, userId, jobId, fileName);
+    }
+
+    private String buildS3Key(String tenantId, Long userId, String jobId, String fileName) {
+        if (tenantId == null || tenantId.isBlank()) {
+            return buildS3Key(userId, jobId, fileName);
+        }
+        return String.format("%s/%s/%d/%s/%s", prefix, tenantId, userId, jobId, fileName);
     }
 }

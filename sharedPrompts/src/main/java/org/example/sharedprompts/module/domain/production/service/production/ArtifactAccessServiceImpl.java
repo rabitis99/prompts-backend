@@ -1,6 +1,7 @@
 package org.example.sharedprompts.module.domain.production.service.production;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.domain.production.service.cdn.CdnUrlProvider;
 import org.example.sharedprompts.module.domain.production.service.production.presign.PresignedUrlGenerator;
 import org.example.sharedprompts.module.exception.BaseException;
 import org.example.sharedprompts.module.exception.ModuleErrorCode;
@@ -18,6 +19,7 @@ public class ArtifactAccessServiceImpl implements ArtifactAccessService {
 
     private final PresignedUrlGenerator presignedUrlGenerator;
     private final StringRedisTemplate redisTemplate;
+    private final CdnUrlProvider cdnUrlProvider;
     private final String bucket;
     private final Duration presignedUrlTtl;
     private final Duration cacheTtl;
@@ -27,10 +29,12 @@ public class ArtifactAccessServiceImpl implements ArtifactAccessService {
     public ArtifactAccessServiceImpl(
             PresignedUrlGenerator presignedUrlGenerator,
             StringRedisTemplate redisTemplate,
+            CdnUrlProvider cdnUrlProvider,
             @Value("${production.storage.s3.bucket}") String bucket,
             @Value("${artifact.url.default-ttl:300}") int ttlSeconds) {
         this.presignedUrlGenerator = presignedUrlGenerator;
         this.redisTemplate = redisTemplate;
+        this.cdnUrlProvider = cdnUrlProvider;
         this.bucket = bucket;
         this.presignedUrlTtl = Duration.ofSeconds(ttlSeconds);
         this.cacheTtl = Duration.ofSeconds(Math.max(ttlSeconds - 30, ttlSeconds / 2));
@@ -76,6 +80,20 @@ public class ArtifactAccessServiceImpl implements ArtifactAccessService {
         } catch (Exception e) {
             log.error("Presigned URL generation failed - key: {}", key, e);
             throw new BaseException(ModuleErrorCode.STORAGE_ERROR, e);
+        }
+    }
+
+    @Override
+    public String generateCdnUrl(String filePath) {
+        if (!cdnUrlProvider.isEnabled()) {
+            return null;
+        }
+        try {
+            String key = extractS3Key(filePath);
+            return cdnUrlProvider.generateUrl(key);
+        } catch (Exception e) {
+            log.warn("CDN URL generation failed - filePath: {}", filePath, e);
+            return null;
         }
     }
 

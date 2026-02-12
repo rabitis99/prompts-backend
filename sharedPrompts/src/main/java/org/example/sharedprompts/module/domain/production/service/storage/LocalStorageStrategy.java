@@ -66,6 +66,49 @@ public class LocalStorageStrategy implements StorageStrategy {
         }
     }
 
+    @Override
+    public String store(String content, String tenantId, Long userId, String jobId, String fileName) {
+        log.info("Storing file locally - tenantId: {}, userId: {}, jobId: {}, fileName: {}",
+                tenantId, userId, jobId, fileName);
+        try {
+            Path directory = buildDirectory(tenantId, userId, jobId);
+            Files.createDirectories(directory);
+            Path filePath = directory.resolve(fileName);
+            validateWithinBasePath(filePath);
+            Files.writeString(filePath, content);
+            log.info("File stored successfully - path: {}", filePath);
+            return filePath.toString();
+        } catch (IOException e) {
+            log.error("Failed to store file locally - tenantId: {}, userId: {}", tenantId, userId, e);
+            throw new LocalStorageException("Failed to store file: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public String store(byte[] data, String contentType, String tenantId, Long userId, String jobId, String fileName) {
+        log.info("Storing binary file locally - tenantId: {}, userId: {}, jobId: {}, fileName: {}",
+                tenantId, userId, jobId, fileName);
+        try {
+            Path directory = buildDirectory(tenantId, userId, jobId);
+            Files.createDirectories(directory);
+            Path filePath = directory.resolve(fileName);
+            validateWithinBasePath(filePath);
+            Files.write(filePath, data);
+            log.info("Binary file stored successfully - path: {}, size: {} bytes", filePath, data.length);
+            return filePath.toString();
+        } catch (IOException e) {
+            log.error("Failed to store binary file locally - tenantId: {}, userId: {}", tenantId, userId, e);
+            throw new LocalStorageException("Failed to store binary file: " + e.getMessage(), e);
+        }
+    }
+
+    private Path buildDirectory(String tenantId, Long userId, String jobId) {
+        if (tenantId != null && !tenantId.isBlank()) {
+            return Paths.get(basePath, tenantId, String.valueOf(userId), jobId);
+        }
+        return Paths.get(basePath, String.valueOf(userId), jobId);
+    }
+
     private void validateWithinBasePath(Path filePath) {
         if (!filePath.normalize().toAbsolutePath().startsWith(
                 Paths.get(basePath).normalize().toAbsolutePath())) {

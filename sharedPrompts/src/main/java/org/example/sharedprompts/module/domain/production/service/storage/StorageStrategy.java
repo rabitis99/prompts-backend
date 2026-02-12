@@ -8,6 +8,14 @@ public interface StorageStrategy {
 
     String store(byte[] data, String contentType, Long userId, String jobId, String fileName);
 
+    default String store(String content, String tenantId, Long userId, String jobId, String fileName) {
+        return store(content, userId, jobId, fileName);
+    }
+
+    default String store(byte[] data, String contentType, String tenantId, Long userId, String jobId, String fileName) {
+        return store(data, contentType, userId, jobId, fileName);
+    }
+
     String generateChecksum(String content);
 
     StorageType getStorageType();

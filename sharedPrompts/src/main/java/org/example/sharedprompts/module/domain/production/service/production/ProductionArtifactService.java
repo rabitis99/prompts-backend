@@ -10,6 +10,8 @@ import org.example.sharedprompts.module.domain.production.model.contract.result.
 import org.example.sharedprompts.module.domain.production.repository.production.ProductionArtifactRepository;
 import org.example.sharedprompts.module.domain.production.service.artifact.ArtifactHandler;
 import org.example.sharedprompts.module.domain.production.service.artifact.ArtifactHandlerRegistry;
+import org.example.sharedprompts.module.domain.production.model.tenant.TenantContext;
+import org.example.sharedprompts.module.domain.production.service.image.ThumbnailService;
 import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategy;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,7 @@ public class ProductionArtifactService {
 
     private final ProductionArtifactRepository productionArtifactRepository;
     private final ArtifactHandlerRegistry artifactHandlerRegistry;
+    private final ThumbnailService thumbnailService;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public ProductionArtifactEntity createArtifact(
@@ -61,6 +64,7 @@ public class ProductionArtifactService {
         }
 
         ProductionArtifactEntity artifact = ProductionArtifactEntity.builder()
+                .tenantId(TenantContext.getCurrentTenantId())
                 .userId(job.getUserId())
                 .commandType(commandType)
                 .startedAt(startedAt)
@@ -71,7 +75,18 @@ public class ProductionArtifactService {
         ProductionArtifactDetailEntity detail = handler.createDetail(filePath, storageStrategy);
         artifact.setDetail(detail);
 
-        return productionArtifactRepository.save(artifact);
+        ProductionArtifactEntity saved = productionArtifactRepository.save(artifact);
+
+        if (artifactType == ArtifactType.IMAGE && saved.getDetail() != null) {
+            thumbnailService.generateThumbnailsAsync(
+                    saved.getDetail().getId(),
+                    filePath,
+                    job.getUserId(),
+                    job.getJobId()
+            );
+        }
+
+        return saved;
     }
 }
 

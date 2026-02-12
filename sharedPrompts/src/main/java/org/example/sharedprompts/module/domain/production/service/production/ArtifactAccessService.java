@@ -10,5 +10,11 @@ public interface ArtifactAccessService {
      * 파일 다운로드용 Presigned URL 생성
      */
     String generateDownloadUrl(String filePath);
-}
 
+    /**
+     * CDN URL 생성 (CDN 비활성화 시 null 반환)
+     */
+    default String generateCdnUrl(String filePath) {
+        return null;
+    }
+}
