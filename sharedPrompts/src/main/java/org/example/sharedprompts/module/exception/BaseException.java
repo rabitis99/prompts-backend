@@ -1,6 +1,7 @@
 package org.example.sharedprompts.module.exception;
 
 import lombok.Getter;
+import org.example.sharedprompts.global.util.ValidationUtils;
 
 @Getter
 public class BaseException extends RuntimeException {
@@ -8,7 +9,7 @@ public class BaseException extends RuntimeException {
     private final String fieldName;
 
     public BaseException(ModuleErrorCode errorCode) {
-        super(errorCode.getMessage());
+        super(ValidationUtils.requireNonNull(errorCode, "errorCode must not be null").getMessage());
         this.errorCode = errorCode;
         this.fieldName = null;
     }
