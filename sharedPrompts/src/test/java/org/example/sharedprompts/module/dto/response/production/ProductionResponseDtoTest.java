@@ -32,12 +32,12 @@ class ProductionResponseDtoTest {
                 .build();
         entity.setDetail(detail);
 
-        ProductionResponseDto dto = ProductionResponseDto.from(entity);
+        ProductionResponseDto dto = ProductionResponseDtoMapper.toDto(entity);
 
-        assertThat(dto.getStatus()).isEqualTo(ProductionStatus.SUCCESS);
-        assertThat(dto.getErrorMessage()).isNull();
-        assertThat(dto.getArtifact()).isNotNull();
-        assertThat(dto.getArtifact().getType()).isEqualTo(ArtifactType.TEXT);
+        assertThat(dto.status()).isEqualTo(ProductionStatus.SUCCESS);
+        assertThat(dto.errorMessage()).isNull();
+        assertThat(dto.artifact()).isNotNull();
+        assertThat(dto.artifact().type()).isEqualTo(ArtifactType.TEXT);
     }
 
     @Test
@@ -56,11 +56,11 @@ class ProductionResponseDtoTest {
                 .build();
         entity.setDetail(detail);
 
-        ProductionResponseDto dto = ProductionResponseDto.from(entity);
+        ProductionResponseDto dto = ProductionResponseDtoMapper.toDto(entity);
 
-        assertThat(dto.getStatus()).isEqualTo(ProductionStatus.FAILED);
-        assertThat(dto.getErrorMessage()).isEqualTo("Processing failed");
-        assertThat(dto.getArtifact()).isNull();
+        assertThat(dto.status()).isEqualTo(ProductionStatus.FAILED);
+        assertThat(dto.errorMessage()).isEqualTo("Processing failed");
+        assertThat(dto.artifact()).isNull();
     }
 
     @Test
@@ -70,14 +70,14 @@ class ProductionResponseDtoTest {
                 .userId(100L)
                 .success(true)
                 .startedAt(Instant.now())
-                .completedAt(Instant.now())
+                .completedAt(null)
                 .build();
 
-        ProductionResponseDto dto = ProductionResponseDto.from(entity);
+        ProductionResponseDto dto = ProductionResponseDtoMapper.toDto(entity);
 
-        assertThat(dto.getStatus()).isEqualTo(ProductionStatus.PROCESSING);
-        assertThat(dto.getErrorMessage()).isNull();
-        assertThat(dto.getArtifact()).isNull();
+        assertThat(dto.status()).isEqualTo(ProductionStatus.PROCESSING);
+        assertThat(dto.errorMessage()).isNull();
+        assertThat(dto.artifact()).isNull();
     }
 }
 

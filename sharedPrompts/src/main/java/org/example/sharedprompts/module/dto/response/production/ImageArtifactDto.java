@@ -21,5 +21,5 @@ public record ImageArtifactDto(
     
     @JsonProperty("storage_location")
     String storageLocation
-) implements ArtifactDto {
+) implements FileBasedArtifactDto, ArtifactDto {
 }

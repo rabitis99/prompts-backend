@@ -12,7 +12,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 @ConditionalOnProperty(name = "production.storage.type", havingValue = "S3")
 public class S3Config {
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public S3Presigner s3Presigner(
             @org.springframework.beans.factory.annotation.Value("${spring.cloud.aws.credentials.access-key:}") String accessKey,
             @org.springframework.beans.factory.annotation.Value("${spring.cloud.aws.credentials.secret-key:}") String secretKey,

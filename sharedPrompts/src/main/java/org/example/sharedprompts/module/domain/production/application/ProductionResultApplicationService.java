@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactEntity;
 import org.example.sharedprompts.module.domain.production.model.job.Job;
+import org.example.sharedprompts.module.domain.production.model.job.JobStatus;
 import org.example.sharedprompts.module.domain.production.repository.production.ProductionArtifactRepository;
 import org.example.sharedprompts.module.domain.production.service.job.process.recovery.JobRecoveryService;
 import org.example.sharedprompts.module.domain.production.service.job.queue.JobQueueService;
@@ -26,6 +27,17 @@ public class ProductionResultApplicationService {
     private final JobRecoveryService jobRecoveryService;
     private final ArtifactAccessService artifactAccessService;
 
+    private Job getJobOrThrow(String jobId, Long userId) {
+        Job job = jobQueueService.getJob(jobId);
+        if (job == null) {
+            throw new BaseException(ModuleErrorCode.JOB_NOT_FOUND);
+        }
+        if (!job.getUserId().equals(userId)) {
+            throw new BaseException(ModuleErrorCode.JOB_FORBIDDEN);
+        }
+        return job;
+    }
+
     @Transactional(readOnly = true)
     public ProductionResponseDto getProductionResult(Long productionId, Long userId) {
         log.info("Production result requested - productionId: {}, userId: {}", 
@@ -45,30 +57,22 @@ public class ProductionResultApplicationService {
     @Transactional(readOnly = true)
     public JobResponseDto getJobStatus(String jobId, Long userId) {
         log.info("Job status requested - jobId: {}, userId: {}", jobId, userId);
-        
-        Job job = jobQueueService.getJob(jobId);
-        if (job == null) {
-            throw new BaseException(ModuleErrorCode.JOB_NOT_FOUND);
-        }
-        
-        if (!job.getUserId().equals(userId)) {
-            throw new BaseException(ModuleErrorCode.JOB_FORBIDDEN);
-        }
-        
+        Job job = getJobOrThrow(jobId, userId);
         return JobResponseDto.from(job);
     }
 
     @Transactional
     public void retryJob(String jobId, Long userId) {
         log.info("Job retry requested - jobId: {}, userId: {}", jobId, userId);
+        Job job = getJobOrThrow(jobId, userId);
         
-        Job job = jobQueueService.getJob(jobId);
-        if (job == null) {
-            throw new BaseException(ModuleErrorCode.JOB_NOT_FOUND);
+        // 실패한 Job만 retry 가능
+        JobStatus status = job.getStatus();
+        if (status == JobStatus.COMPLETED) {
+            throw new BaseException(ModuleErrorCode.JOB_ALREADY_COMPLETED);
         }
-        
-        if (!job.getUserId().equals(userId)) {
-            throw new BaseException(ModuleErrorCode.JOB_FORBIDDEN);
+        if (status != JobStatus.FAILED && status != JobStatus.PARSE_FAILED) {
+            throw new BaseException(ModuleErrorCode.JOB_INVALID_STATUS);
         }
         
         jobRecoveryService.recoverFromParsed(jobId);

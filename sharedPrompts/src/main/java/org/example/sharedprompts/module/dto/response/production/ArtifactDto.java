@@ -11,17 +11,8 @@ import org.example.sharedprompts.module.domain.production.model.contract.result.
     @JsonSubTypes.Type(value = FileArtifactDto.class, name = "FILE"),
     @JsonSubTypes.Type(value = ImageArtifactDto.class, name = "IMAGE")
 })
-public sealed interface ArtifactDto permits TextArtifactDto, FileArtifactDto, ImageArtifactDto {
+public sealed interface ArtifactDto permits FileArtifactDto, FileBasedArtifactDto, ImageArtifactDto, TextArtifactDto {
     
     @JsonProperty("type")
     ArtifactType type();
-    
-    @JsonProperty("file_name")
-    String fileName();
-    
-    @JsonProperty("content_type")
-    String contentType();
-    
-    @JsonProperty("storage_location")
-    String storageLocation();
 }
