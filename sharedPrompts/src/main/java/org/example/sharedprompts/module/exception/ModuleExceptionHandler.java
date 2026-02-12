@@ -1,35 +1,37 @@
 package org.example.sharedprompts.module.exception;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.module.domain.production.application.exception.ProductionApplicationException;
 import org.example.sharedprompts.module.domain.production.application.exception.ProductionCommandFactoryNotFoundException;
-import org.example.sharedprompts.module.domain.production.exception.ParseException;
-import org.example.sharedprompts.module.domain.production.service.format.FormatConversionException;
-import org.example.sharedprompts.module.domain.production.service.job.idempotencykey.exception.IdempotencyKeyGenerationException;
-import org.example.sharedprompts.module.domain.production.service.job.process.exception.AIServiceException;
-import org.example.sharedprompts.module.domain.production.service.job.process.exception.ContentRenderException;
-import org.example.sharedprompts.module.domain.production.service.job.process.exception.JobProcessingException;
-import org.example.sharedprompts.module.domain.production.service.job.process.exception.RecoveryException;
-import org.example.sharedprompts.module.domain.production.service.job.process.exception.StorageException;
-import org.example.sharedprompts.module.domain.production.service.storage.exception.LocalStorageException;
-import org.example.sharedprompts.module.domain.production.service.storage.exception.S3StorageException;
 import org.example.sharedprompts.module.domain.production.validation.ValidationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+/**
+ * Module 패키지 내 예외를 처리하는 전역 예외 핸들러.
+ * 
+ * 대부분의 BaseException 하위 타입은 handleBaseException에서 통합 처리되며,
+ * warn 레벨 로깅이 필요한 예외만 개별 핸들러로 처리합니다.
+ */
 @RestControllerAdvice(basePackages = "org.example.sharedprompts.module")
 @Slf4j
 public class ModuleExceptionHandler {
 
+    /**
+     * BaseException 및 모든 하위 타입을 처리하는 통합 핸들러.
+     * 예외 클래스 이름을 로그에 포함하여 디버깅을 용이하게 합니다.
+     */
     @ExceptionHandler(BaseException.class)
     public ResponseEntity<ModuleResponse<Void>> handleBaseException(BaseException e) {
-        log.error("BaseException: {} ({})", e.getMessage(), e.getErrorCode().name(), e);
+        log.error("{}: {} ({})", e.getClass().getSimpleName(), e.getMessage(), e.getErrorCode().name(), e);
         return ResponseEntity
                 .status(e.getErrorCode().getHttpStatus())
                 .body(ModuleResponse.fail(e));
     }
 
+    /**
+     * ProductionCommandFactoryNotFoundException은 warn 레벨로 처리합니다.
+     */
     @ExceptionHandler(ProductionCommandFactoryNotFoundException.class)
     public ResponseEntity<ModuleResponse<Void>> handleProductionCommandFactoryNotFoundException(
             ProductionCommandFactoryNotFoundException e) {
@@ -39,87 +41,9 @@ public class ModuleExceptionHandler {
                 .body(ModuleResponse.fail(e));
     }
 
-    @ExceptionHandler(ProductionApplicationException.class)
-    public ResponseEntity<ModuleResponse<Void>> handleProductionApplicationException(
-            ProductionApplicationException e) {
-        log.error("Production application error: {}", e.getMessage(), e);
-        return ResponseEntity
-                .status(e.getErrorCode().getHttpStatus())
-                .body(ModuleResponse.fail(e));
-    }
-
-    @ExceptionHandler(JobProcessingException.class)
-    public ResponseEntity<ModuleResponse<Void>> handleJobProcessingException(JobProcessingException e) {
-        log.error("Job processing error: {}", e.getMessage(), e);
-        return ResponseEntity
-                .status(e.getErrorCode().getHttpStatus())
-                .body(ModuleResponse.fail(e));
-    }
-
-    @ExceptionHandler(AIServiceException.class)
-    public ResponseEntity<ModuleResponse<Void>> handleAIServiceException(AIServiceException e) {
-        log.error("AI service error: {}", e.getMessage(), e);
-        return ResponseEntity
-                .status(e.getErrorCode().getHttpStatus())
-                .body(ModuleResponse.fail(e));
-    }
-
-    @ExceptionHandler(ContentRenderException.class)
-    public ResponseEntity<ModuleResponse<Void>> handleContentRenderException(ContentRenderException e) {
-        log.error("Content render error: {}", e.getMessage(), e);
-        return ResponseEntity
-                .status(e.getErrorCode().getHttpStatus())
-                .body(ModuleResponse.fail(e));
-    }
-
-    @ExceptionHandler(StorageException.class)
-    public ResponseEntity<ModuleResponse<Void>> handleStorageException(StorageException e) {
-        log.error("Storage error: {}", e.getMessage(), e);
-        return ResponseEntity
-                .status(e.getErrorCode().getHttpStatus())
-                .body(ModuleResponse.fail(e));
-    }
-
-    @ExceptionHandler(LocalStorageException.class)
-    public ResponseEntity<ModuleResponse<Void>> handleLocalStorageException(LocalStorageException e) {
-        log.error("Local storage error: {}", e.getMessage(), e);
-        return ResponseEntity
-                .status(e.getErrorCode().getHttpStatus())
-                .body(ModuleResponse.fail(e));
-    }
-
-    @ExceptionHandler(S3StorageException.class)
-    public ResponseEntity<ModuleResponse<Void>> handleS3StorageException(S3StorageException e) {
-        log.error("S3 storage error: {}", e.getMessage(), e);
-        return ResponseEntity
-                .status(e.getErrorCode().getHttpStatus())
-                .body(ModuleResponse.fail(e));
-    }
-
-    @ExceptionHandler(RecoveryException.class)
-    public ResponseEntity<ModuleResponse<Void>> handleRecoveryException(RecoveryException e) {
-        log.error("Recovery error: {}", e.getMessage(), e);
-        return ResponseEntity
-                .status(e.getErrorCode().getHttpStatus())
-                .body(ModuleResponse.fail(e));
-    }
-
-    @ExceptionHandler(ParseException.class)
-    public ResponseEntity<ModuleResponse<Void>> handleParseException(ParseException e) {
-        log.error("Parse error: {}", e.getMessage(), e);
-        return ResponseEntity
-                .status(e.getErrorCode().getHttpStatus())
-                .body(ModuleResponse.fail(e));
-    }
-
-    @ExceptionHandler(FormatConversionException.class)
-    public ResponseEntity<ModuleResponse<Void>> handleFormatConversionException(FormatConversionException e) {
-        log.error("Format conversion error: {}", e.getMessage(), e);
-        return ResponseEntity
-                .status(e.getErrorCode().getHttpStatus())
-                .body(ModuleResponse.fail(e));
-    }
-
+    /**
+     * ValidationException은 warn 레벨로 처리합니다.
+     */
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ModuleResponse<Void>> handleValidationException(ValidationException e) {
         log.warn("Validation error: {}", e.getMessage());
@@ -128,14 +52,13 @@ public class ModuleExceptionHandler {
                 .body(ModuleResponse.fail(e));
     }
 
-    @ExceptionHandler(IdempotencyKeyGenerationException.class)
-    public ResponseEntity<ModuleResponse<Void>> handleIdempotencyKeyGenerationException(IdempotencyKeyGenerationException e) {
-        log.error("Idempotency key generation error: {}", e.getMessage(), e);
-        return ResponseEntity
-                .status(e.getErrorCode().getHttpStatus())
-                .body(ModuleResponse.fail(e));
-    }
-
+    /**
+     * IllegalStateException을 처리합니다.
+     * 
+     * TODO: 이 핸들러는 예외 메시지 문자열 매칭에 의존하므로 깨지기 쉽습니다.
+     * 가능하다면 IllegalStateException 대신 처음부터 적절한 BaseException 하위 타입
+     * (예: JobInvalidStatusException)을 던지도록 발생 지점을 리팩터링하는 것이 더 안전합니다.
+     */
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ModuleResponse<Void>> handleIllegalStateException(IllegalStateException e) {
         log.warn("IllegalStateException: {}", e.getMessage());

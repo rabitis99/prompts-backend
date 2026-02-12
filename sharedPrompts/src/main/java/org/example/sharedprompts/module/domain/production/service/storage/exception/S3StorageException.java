@@ -1,26 +1,26 @@
 package org.example.sharedprompts.module.domain.production.service.storage.exception;
 
-import org.example.sharedprompts.module.exception.BaseException;
 import org.example.sharedprompts.module.exception.ModuleErrorCode;
 
-import static org.example.sharedprompts.module.exception.ModuleErrorCode.STORAGE_ERROR;
-
-public class S3StorageException extends BaseException {
+/**
+ * S3 저장소 전략에서 발생하는 예외.
+ */
+public class S3StorageException extends AbstractStorageException {
     
     public S3StorageException(String message) {
-        super(STORAGE_ERROR, null, message);
+        super(message);
     }
 
     public S3StorageException(String message, Throwable cause) {
-        super(STORAGE_ERROR, null, message, cause);
+        super(message, cause);
     }
 
     public S3StorageException(ModuleErrorCode errorCode, String message) {
-        super(errorCode, null, message);
+        super(errorCode, message);
     }
 
     public S3StorageException(ModuleErrorCode errorCode, String message, Throwable cause) {
-        super(errorCode, null, message, cause);
+        super(errorCode, message, cause);
     }
 }
 

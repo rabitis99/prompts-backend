@@ -10,7 +10,11 @@ public class ValidationException extends BaseException {
     public ValidationException(String message) {
         super(VALIDATION_ERROR, null, message);
     }
-    
+
+    public ValidationException(String fieldName, String message) {
+        super(VALIDATION_ERROR, fieldName, message);
+    }
+
     public ValidationException(String message, Throwable cause) {
         super(VALIDATION_ERROR, null, message, cause);
     }
