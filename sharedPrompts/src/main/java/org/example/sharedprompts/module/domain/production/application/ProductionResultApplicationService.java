@@ -8,7 +8,7 @@ import org.example.sharedprompts.module.domain.production.model.job.JobStatus;
 import org.example.sharedprompts.module.domain.production.repository.production.ProductionArtifactRepository;
 import org.example.sharedprompts.module.domain.production.service.job.process.recovery.ProcessJobRecoveryService;
 import org.example.sharedprompts.module.domain.production.service.job.queue.JobQueueService;
-import org.example.sharedprompts.module.domain.production.service.production.ArtifactAccessService;
+import org.example.sharedprompts.module.domain.production.service.artifact.ArtifactHandlerRegistry;
 import org.example.sharedprompts.module.dto.response.production.JobResponseDto;
 import org.example.sharedprompts.module.dto.response.production.ProductionResponseDto;
 import org.example.sharedprompts.module.dto.response.production.ProductionResponseDtoMapper;
@@ -25,7 +25,7 @@ public class ProductionResultApplicationService {
     private final ProductionArtifactRepository productionArtifactRepository;
     private final JobQueueService jobQueueService;
     private final ProcessJobRecoveryService processJobRecoveryService;
-    private final ArtifactAccessService artifactAccessService;
+    private final ArtifactHandlerRegistry artifactHandlerRegistry;
 
     private Job getJobOrThrow(String jobId, Long userId) {
         Job job = jobQueueService.getJob(jobId);
@@ -51,7 +51,7 @@ public class ProductionResultApplicationService {
             throw new BaseException(ModuleErrorCode.PRODUCTION_FORBIDDEN);
         }
         
-        return ProductionResponseDtoMapper.toDto(artifact, artifactAccessService);
+        return ProductionResponseDtoMapper.toDto(artifact, artifactHandlerRegistry);
     }
 
     @Transactional(readOnly = true)

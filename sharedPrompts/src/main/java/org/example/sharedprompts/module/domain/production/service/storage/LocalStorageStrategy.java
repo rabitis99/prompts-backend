@@ -24,7 +24,6 @@ public class LocalStorageStrategy implements StorageStrategy {
                 userId, jobId, fileName);
 
         try {
-            // 경로 생성: basePath/userId/jobId/fileName
             Path directory = Paths.get(basePath, String.valueOf(userId), jobId);
             Files.createDirectories(directory);
 
@@ -63,6 +62,38 @@ public class LocalStorageStrategy implements StorageStrategy {
                     userId, jobId, fileName, e);
             throw new LocalStorageException("Failed to store binary file: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public byte[] read(String storagePath) {
+        log.info("Reading file locally - path: {}", storagePath);
+        try {
+            return Files.readAllBytes(Paths.get(storagePath));
+        } catch (IOException e) {
+            log.error("Failed to read file locally - path: {}", storagePath, e);
+            throw new LocalStorageException("Failed to read file: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public boolean exists(String storagePath) {
+        return Files.exists(Paths.get(storagePath));
+    }
+
+    @Override
+    public void delete(String storagePath) {
+        log.info("Deleting file locally - path: {}", storagePath);
+        try {
+            Files.deleteIfExists(Paths.get(storagePath));
+        } catch (IOException e) {
+            log.error("Failed to delete file locally - path: {}", storagePath, e);
+            throw new LocalStorageException("Failed to delete file: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public String generateAccessUrl(String storagePath, java.time.Duration ttl) {
+        return storagePath;
     }
 
     @Override

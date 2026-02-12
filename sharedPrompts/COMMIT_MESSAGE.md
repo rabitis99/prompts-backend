@@ -1,76 +1,74 @@
-refactor(production): 코드 품질 개선 및 아키텍처 정리
+refactor(production): P1 중기 개선 사항 완료 및 코드 구조 정리
 
 ## 주요 변경사항
 
-### 1. YAML 설정 구조 개선
-- `application.yml`: artifact 키의 YAML 계층 구조 명확화
-  - 주석 들여쓰기 수정 및 섹션 헤더 추가
-  - `artifact:`를 루트 레벨로 명확히 표시
+### 1. P1 중기 개선 사항 완료
 
-### 2. 예외 처리 일관성 개선
-- `ArtifactAccessServiceImpl`: RuntimeException → BaseException 변경
-  - `ModuleErrorCode.STORAGE_ERROR` 사용으로 일관된 예외 처리
-  - 원인 예외(cause) 포함하여 예외 체인 유지
+#### PDF 변환 개선
+- `PdfFormatConverter`: Markdown → HTML → PDF 파이프라인 통합
+  - Markdown 콘텐츠 자동 감지 및 변환
+  - FlexMark를 사용한 Markdown 파싱 (제목, 리스트, 코드 블록, 테이블 등 지원)
+  - OpenHTMLToPDF를 사용한 HTML → PDF 변환
+  - CSS 스타일링 지원
+  - 일반 텍스트도 HTML로 감싸서 PDF 변환 지원
 
-### 3. 리소스 관리 개선
-- `S3Config`: S3Presigner에 `@Bean(destroyMethod = "close")` 명시
-  - 명시적 리소스 정리로 메모리 누수 방지
+#### StorageStrategy 인터페이스 확장
+- `read()`, `exists()`, `delete()`, `generateAccessUrl()` 메서드 구현
+- `S3StorageStrategy`, `LocalStorageStrategy` 모두 지원
 
-### 4. 코드 리팩토링
-- `ArtifactDtoMapper`:
-  - private 생성자 추가 (유틸리티 클래스 인스턴스화 방지)
-  - if-else 체인을 switch 표현식으로 변경
-  - enum 값 추가 시 컴파일 타임 누락 감지 가능
+#### ArtifactHandler 전략 패턴
+- `ArtifactHandlerRegistry`로 타입별 Handler 관리
+- `TextArtifactHandler`, `FileArtifactHandler`, `ImageArtifactHandler` 구현
 
-- `ProductionResultApplicationService`:
-  - 중복된 Job 조회 및 소유권 검증 로직을 `getJobOrThrow()` 헬퍼 메서드로 추출
-  - `retryJob()`에 Job 상태 검증 추가 (FAILED/PARSE_FAILED만 retry 가능)
+### 2. 코드 구조 정리
 
-### 5. 인터페이스 분리 원칙 적용
-- `ArtifactDto` 구조 개선:
-  - `FileBasedArtifactDto` sealed interface 추가
-  - `TextArtifactDto`에서 불필요한 파일 메타데이터 필드 제거
-  - `ImageArtifactDto`, `FileArtifactDto`는 `FileBasedArtifactDto` 구현
+#### 폴더 구조 개선
+- PDF 관련 코드를 `format/pdf/` 서브폴더로 분리
+  - `HtmlToPdfConverter.java`
+  - `OpenHtmlToPdfConverterImpl.java`
+  - `PdfCssProvider.java`
+  - `DefaultPdfCssProvider.java`
 
-### 6. 환경별 구현체 분리
-- `LocalArtifactAccessServiceImpl` 추가:
-  - LOCAL 환경용 fallback 구현체
-  - `@ConditionalOnProperty(matchIfMissing = true)`로 기본값 지원
-  - 파일 경로를 그대로 반환 (Presigned URL 불필요)
+- Markdown 관련 코드를 `format/markdown/` 서브폴더로 분리
+  - `MarkdownToHtmlConverter.java`
+  - `FlexMarkMarkdownToHtmlConverter.java`
 
-### 7. TTL 일관성 개선
-- `ArtifactAccessServiceImpl`:
-  - 단일 TTL 설정값에서 Presigned URL TTL과 캐시 TTL 도출
-  - 캐시 TTL을 Presigned URL TTL보다 짧게 설정하여 만료된 URL 반환 방지
-  - `Math.max(ttlSeconds - 30, ttlSeconds / 2)` 공식 적용
+#### 주석 최소화
+- 불필요한 JavaDoc 주석 제거
+- 코드 자체로 의도가 명확하도록 정리
+- `StorageStrategy`, `ArtifactHandler` 인터페이스 주석 제거
 
-### 8. 테스트 코드 수정
-- `ProductionResponseDtoTest`:
-  - `ProductionResponseDto.from()` → `ProductionResponseDtoMapper.toDto()` 변경
-  - record 접근자 메서드 수정 (getStatus() → status())
-  - `testProcessingStatus`: completedAt을 null로 변경하여 비즈니스 로직 일관성 개선
+### 3. 의존성 업데이트
+- OpenHTMLToPDF 버전 업그레이드: `1.1.24` → `1.1.37`
+- 패키지 경로 변경: `com.openhtmltopdf` → `io.github.openhtmltopdf`
 
 ## 변경된 파일
 
 ### 신규 생성
-- `LocalArtifactAccessServiceImpl.java`
-- `FileBasedArtifactDto.java`
+- `format/pdf/HtmlToPdfConverter.java`
+- `format/pdf/OpenHtmlToPdfConverterImpl.java`
+- `format/pdf/PdfCssProvider.java`
+- `format/pdf/DefaultPdfCssProvider.java`
+- `format/markdown/MarkdownToHtmlConverter.java`
+- `format/markdown/FlexMarkMarkdownToHtmlConverter.java`
 
 ### 수정
-- `application.yml` (artifact 섹션 구조 개선)
-- `ArtifactAccessServiceImpl.java` (예외 처리, TTL 일관성)
-- `S3Config.java` (destroyMethod 명시)
-- `ArtifactDtoMapper.java` (private 생성자, switch 표현식)
-- `ProductionResultApplicationService.java` (중복 제거, 상태 검증)
-- `ArtifactDto.java` (인터페이스 분리)
-- `TextArtifactDto.java` (불필요한 필드 제거)
-- `ImageArtifactDto.java` (FileBasedArtifactDto 구현)
-- `FileArtifactDto.java` (FileBasedArtifactDto 구현)
-- `ProductionResponseDtoTest.java` (테스트 코드 수정)
+- `PdfFormatConverter.java` (Markdown → HTML → PDF 파이프라인 통합)
+- `StorageStrategy.java` (주석 제거)
+- `ArtifactHandler.java` (주석 제거)
+- `LocalStorageStrategy.java` (주석 제거)
+- `build.gradle` (OpenHTMLToPDF 의존성 업데이트)
+
+### 삭제
+- `format/HtmlToPdfConverter.java` (pdf 서브폴더로 이동)
+- `format/OpenHtmlToPdfConverterImpl.java` (pdf 서브폴더로 이동)
+- `format/PdfCssProvider.java` (pdf 서브폴더로 이동)
+- `format/DefaultPdfCssProvider.java` (pdf 서브폴더로 이동)
+- `format/MarkdownToHtmlConverter.java` (markdown 서브폴더로 이동)
+- `format/FlexMarkMarkdownToHtmlConverter.java` (markdown 서브폴더로 이동)
 
 ## 효과
-- 코드 품질 향상: 중복 제거, 일관성 개선
-- 타입 안전성 강화: sealed interface 활용
-- 환경별 지원: LOCAL/S3 환경 모두 정상 동작
-- 리소스 관리 개선: 명시적 정리로 메모리 누수 방지
-- 테스트 신뢰성 향상: 비즈니스 로직 반영
+- 코드 구조 명확화: PDF/Markdown 관련 코드가 논리적으로 그룹화됨
+- 확장성 향상: 새로운 변환 타입 추가 시 서브폴더 구조로 관리 용이
+- 코드 가독성 개선: 불필요한 주석 제거로 핵심 로직에 집중
+- PDF 변환 품질 향상: Markdown 구조 완벽 지원 및 CSS 스타일링 적용
