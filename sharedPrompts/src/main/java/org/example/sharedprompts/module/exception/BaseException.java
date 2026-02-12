@@ -14,12 +14,6 @@ public class BaseException extends RuntimeException {
         this.fieldName = null;
     }
 
-    public BaseException(ModuleErrorCode errorCode, String fieldName) {
-        super(errorCode.getMessage());
-        this.errorCode = errorCode;
-        this.fieldName = fieldName;
-    }
-
     public BaseException(ModuleErrorCode errorCode, Throwable cause) {
         super(errorCode.getMessage(), cause);
         this.errorCode = errorCode;
