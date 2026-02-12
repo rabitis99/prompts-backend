@@ -7,6 +7,8 @@ import org.example.sharedprompts.module.domain.production.service.format.pdf.Htm
 import org.example.sharedprompts.module.domain.production.service.format.pdf.PdfCssProvider;
 import org.springframework.stereotype.Component;
 
+import java.util.regex.Pattern;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -16,9 +18,16 @@ public class PdfFormatConverter implements FormatConverter {
     private final HtmlToPdfConverter htmlToPdfConverter;
     private final PdfCssProvider cssProvider;
 
+    private static final Pattern MARKDOWN_PATTERN = Pattern.compile(
+            "(?m)(^#{1,6}\\s|^[*\\-+]\\s|^\\d+\\.\\s|^```|\\[.+]\\(.+\\)|^>\\s|^\\|.+\\|)"
+    );
+
     @Override
     public byte[] convert(String content, String fileName) {
         try {
+            if (content == null) {
+                throw new FormatConversionException("Content must not be null for file: " + fileName);
+            }
             log.debug("Converting content to PDF - fileName: {}, contentLength: {}", fileName, content.length());
 
             String html = convertToHtml(content);
@@ -28,6 +37,9 @@ public class PdfFormatConverter implements FormatConverter {
             log.debug("PDF conversion completed - fileName: {}, pdfSize: {} bytes", fileName, pdfBytes.length);
             return pdfBytes;
 
+        } catch (FormatConversionException e) {
+            log.error("PDF conversion failed - fileName: {}", fileName, e);
+            throw e;
         } catch (Exception e) {
             log.error("PDF conversion failed - fileName: {}", fileName, e);
             throw new FormatConversionException("PDF conversion failed: " + e.getMessage(), e);
@@ -48,26 +60,7 @@ public class PdfFormatConverter implements FormatConverter {
         if (content == null || content.isBlank()) {
             return false;
         }
-
-        boolean hasMarkdownPattern = content.contains("#") 
-                || content.contains("*") 
-                || content.contains("`") 
-                || content.contains("[") 
-                || content.contains("|")
-                || content.contains("-") 
-                || content.contains(">");
-
-        if (!hasMarkdownPattern) {
-            return false;
-        }
-
-        try {
-            markdownToHtmlConverter.convert(content);
-            return true;
-        } catch (Exception e) {
-            log.debug("Markdown parsing failed, treating as plain text: {}", e.getMessage());
-            return false;
-        }
+        return MARKDOWN_PATTERN.matcher(content).find();
     }
 
     private String wrapPlainTextInHtml(String text) {
@@ -75,6 +68,9 @@ public class PdfFormatConverter implements FormatConverter {
                 .replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("\r\n", "<br>")
+                .replace("\r", "<br>")
                 .replace("\n", "<br>");
         
         return "<p>" + escaped + "</p>";

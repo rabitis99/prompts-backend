@@ -64,11 +64,21 @@ public class LocalStorageStrategy implements StorageStrategy {
         }
     }
 
+    private Path validateAndResolvePath(String storagePath) {
+        Path resolved = Paths.get(storagePath).normalize().toAbsolutePath();
+        Path base = Paths.get(basePath).normalize().toAbsolutePath();
+        if (!resolved.startsWith(base)) {
+            throw new LocalStorageException(
+                    "Access denied: path is outside storage base directory");
+        }
+        return resolved;
+    }
+
     @Override
     public byte[] read(String storagePath) {
         log.info("Reading file locally - path: {}", storagePath);
         try {
-            return Files.readAllBytes(Paths.get(storagePath));
+            return Files.readAllBytes(validateAndResolvePath(storagePath));
         } catch (IOException e) {
             log.error("Failed to read file locally - path: {}", storagePath, e);
             throw new LocalStorageException("Failed to read file: " + e.getMessage(), e);
@@ -77,14 +87,19 @@ public class LocalStorageStrategy implements StorageStrategy {
 
     @Override
     public boolean exists(String storagePath) {
-        return Files.exists(Paths.get(storagePath));
+        try {
+            return Files.exists(validateAndResolvePath(storagePath));
+        } catch (LocalStorageException e) {
+            // If path is outside base directory, it doesn't exist in our storage
+            return false;
+        }
     }
 
     @Override
     public void delete(String storagePath) {
         log.info("Deleting file locally - path: {}", storagePath);
         try {
-            Files.deleteIfExists(Paths.get(storagePath));
+            Files.deleteIfExists(validateAndResolvePath(storagePath));
         } catch (IOException e) {
             log.error("Failed to delete file locally - path: {}", storagePath, e);
             throw new LocalStorageException("Failed to delete file: " + e.getMessage(), e);
@@ -93,6 +108,7 @@ public class LocalStorageStrategy implements StorageStrategy {
 
     @Override
     public String generateAccessUrl(String storagePath, java.time.Duration ttl) {
+        // 로컬 스토리지는 TTL 기반 URL을 지원하지 않으므로 경로를 그대로 반환
         return storagePath;
     }
 

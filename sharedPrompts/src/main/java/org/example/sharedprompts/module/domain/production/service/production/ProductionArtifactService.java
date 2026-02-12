@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
@@ -32,14 +33,32 @@ public class ProductionArtifactService {
             String filePath,
             StorageStrategy storageStrategy
     ) {
-        ProductionCommandType commandType = ProductionCommandType.valueOf(job.getCommandType());
+        ProductionCommandType commandType;
+        try {
+            commandType = ProductionCommandType.valueOf(job.getCommandType());
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid command type: {}", job.getCommandType(), e);
+            throw new IllegalArgumentException("Invalid command type: " + job.getCommandType(), e);
+        }
+
         ArtifactType artifactType = ArtifactMetadataHelper.determineArtifactType(commandType);
-        ArtifactHandler handler = artifactHandlerRegistry.getHandler(artifactType);
+        
+        ArtifactHandler handler;
+        try {
+            handler = artifactHandlerRegistry.getHandler(artifactType);
+        } catch (IllegalArgumentException e) {
+            log.error("No ArtifactHandler found for type: {}", artifactType, e);
+            throw new IllegalArgumentException("No ArtifactHandler found for type: " + artifactType, e);
+        }
+
+        Instant startedAt = job.getStartedAt() != null 
+                ? job.getStartedAt() 
+                : job.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant();
 
         ProductionArtifactEntity artifact = ProductionArtifactEntity.builder()
                 .userId(job.getUserId())
                 .commandType(commandType)
-                .startedAt(job.getStartedAt() != null ? job.getStartedAt() : Instant.from(job.getCreatedAt()))
+                .startedAt(startedAt)
                 .completedAt(Instant.now())
                 .success(true)
                 .build();

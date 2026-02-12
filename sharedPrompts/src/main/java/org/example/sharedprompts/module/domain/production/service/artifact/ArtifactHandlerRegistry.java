@@ -4,22 +4,31 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @Slf4j
 public class ArtifactHandlerRegistry {
 
-    private final Map<ArtifactType, ArtifactHandler> handlerMap = new ConcurrentHashMap<>();
+    private final Map<ArtifactType, ArtifactHandler> handlerMap;
 
     public ArtifactHandlerRegistry(List<ArtifactHandler> handlers) {
+        Map<ArtifactType, ArtifactHandler> map = new HashMap<>();
         for (ArtifactHandler handler : handlers) {
-            handlerMap.put(handler.getSupportedType(), handler);
+            ArtifactHandler existing = map.put(handler.getSupportedType(), handler);
+            if (existing != null) {
+                log.warn("Duplicate ArtifactHandler for type: {}. {} replaced by {}",
+                        handler.getSupportedType(),
+                        existing.getClass().getSimpleName(),
+                        handler.getClass().getSimpleName());
+            }
             log.info("Registered ArtifactHandler: {} for type: {}",
                     handler.getClass().getSimpleName(), handler.getSupportedType());
         }
+        this.handlerMap = Collections.unmodifiableMap(map);
     }
 
     public ArtifactHandler getHandler(ArtifactType type) {

@@ -73,7 +73,7 @@ public class S3StorageStrategy implements StorageStrategy {
 
     @Override
     public byte[] read(String storagePath) {
-        log.info("Reading from S3 - bucket: {}, key: {}", bucket, storagePath);
+        log.debug("Reading from S3 - bucket: {}, key: {}", bucket, storagePath);
         try {
             ResponseBytes<GetObjectResponse> responseBytes = s3Client.getObjectAsBytes(
                     GetObjectRequest.builder()
@@ -97,6 +97,12 @@ public class S3StorageStrategy implements StorageStrategy {
             return true;
         } catch (NoSuchKeyException e) {
             return false;
+        } catch (S3Exception e) {
+            if (e.statusCode() == 404) {
+                return false;
+            }
+            log.error("S3 exists check failed - bucket: {}, key: {}", bucket, storagePath, e);
+            throw new S3StorageException("S3 exists check failed: " + e.getMessage(), e);
         } catch (Exception e) {
             log.error("S3 exists check failed - bucket: {}, key: {}", bucket, storagePath, e);
             throw new S3StorageException("S3 exists check failed: " + e.getMessage(), e);

@@ -4,7 +4,7 @@ import org.example.sharedprompts.module.domain.production.entity.production.Prod
 import org.example.sharedprompts.module.domain.production.service.artifact.ArtifactHandlerRegistry;
 import org.example.sharedprompts.module.domain.production.service.production.ArtifactAccessService;
 
-public class ProductionResponseDtoMapper {
+public final class ProductionResponseDtoMapper {
 
     private ProductionResponseDtoMapper() {
     }
@@ -20,16 +20,7 @@ public class ProductionResponseDtoMapper {
             artifact = ArtifactDtoMapper.toDto(entity.getDetail(), artifactHandlerRegistry);
         }
 
-        return new ProductionResponseDto(
-                entity.getId(),
-                status,
-                status == ProductionStatus.FAILED && entity.getDetail() != null
-                        ? entity.getDetail().getErrorMessage()
-                        : null,
-                entity.getStartedAt(),
-                entity.getCompletedAt(),
-                artifact
-        );
+        return buildResponseDto(entity, status, artifact);
     }
 
     @Deprecated
@@ -49,6 +40,13 @@ public class ProductionResponseDtoMapper {
             artifact = ArtifactDtoMapper.toDto(entity.getDetail(), artifactAccessService);
         }
 
+        return buildResponseDto(entity, status, artifact);
+    }
+
+    private static ProductionResponseDto buildResponseDto(
+            ProductionArtifactEntity entity,
+            ProductionStatus status,
+            ArtifactDto artifact) {
         return new ProductionResponseDto(
                 entity.getId(),
                 status,

@@ -22,6 +22,10 @@ public class ArtifactDtoMapper {
             throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, "detail",
                     "ProductionArtifactDetailEntity must not be null");
         }
+        if (registry == null) {
+            throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, "registry",
+                    "ArtifactHandlerRegistry must not be null");
+        }
         return registry.getHandler(detail.getArtifactType()).toDto(detail);
     }
 

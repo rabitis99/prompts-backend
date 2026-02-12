@@ -41,10 +41,10 @@ public class DefaultPdfCssProvider implements PdfCssProvider {
                     color: #666;
                     font-style: italic;
                 }
-                table { width: 100%%; border-collapse: collapse; margin: 12pt 0; }
+                table { width: 100%; border-collapse: collapse; margin: 12pt 0; }
                 th, td { border: 1pt solid #ddd; padding: 8pt; text-align: left; }
                 th { background-color: #f0f0f0; font-weight: bold; }
-                img { max-width: 100%%; height: auto; }
+                img { max-width: 100%; height: auto; }
                 """;
     }
 }

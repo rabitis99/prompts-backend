@@ -33,6 +33,9 @@ public class FlexMarkMarkdownToHtmlConverter implements MarkdownToHtmlConverter 
 
     @Override
     public String convert(String markdown) {
+        if (markdown == null || markdown.isBlank()) {
+            return "";
+        }
         try {
             Node document = parser.parse(markdown);
             return renderer.render(document);
