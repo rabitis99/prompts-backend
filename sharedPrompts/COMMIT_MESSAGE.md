@@ -1,74 +1,32 @@
-refactor(production): P1 중기 개선 사항 완료 및 코드 구조 정리
+fix(production): 코드 리뷰 2차 피드백 반영 - 보안/안전성 추가 개선
 
 ## 주요 변경사항
 
-### 1. P1 중기 개선 사항 완료
+### 1. 보안 개선
 
-#### PDF 변환 개선
-- `PdfFormatConverter`: Markdown → HTML → PDF 파이프라인 통합
-  - Markdown 콘텐츠 자동 감지 및 변환
-  - FlexMark를 사용한 Markdown 파싱 (제목, 리스트, 코드 블록, 테이블 등 지원)
-  - OpenHTMLToPDF를 사용한 HTML → PDF 변환
-  - CSS 스타일링 지원
-  - 일반 텍스트도 HTML로 감싸서 PDF 변환 지원
+#### LocalStorageStrategy
+- store() 메서드 Path Traversal 취약점 수정: fileName에 `../` 포함 시 basePath 외부 쓰기 방지
+- validateWithinBasePath() 헬퍼 메서드 추가 (store 전용 경로 검증)
+- generateAccessUrl()에 운영 환경 사용 경고 로그 추가 (내부 파일시스템 경로 노출 방지)
 
-#### StorageStrategy 인터페이스 확장
-- `read()`, `exists()`, `delete()`, `generateAccessUrl()` 메서드 구현
-- `S3StorageStrategy`, `LocalStorageStrategy` 모두 지원
+### 2. 버그 수정
 
-#### ArtifactHandler 전략 패턴
-- `ArtifactHandlerRegistry`로 타입별 Handler 관리
-- `TextArtifactHandler`, `FileArtifactHandler`, `ImageArtifactHandler` 구현
+#### TextArtifactHandler
+- createDetail() 오버라이드 추가: TEXT 아티팩트의 content 필드가 null로 남는 문제 해결
+- storageStrategy.read()로 파일 내용을 읽어 INLINE_TEXT로 저장
 
-### 2. 코드 구조 정리
+#### ProductionArtifactService
+- ZoneId.systemDefault() → ZoneId.of("Asia/Seoul")로 변경 (환경별 시간대 차이 제거)
+- job.getCreatedAt() null 안전성 추가 (NPE 방지)
 
-#### 폴더 구조 개선
-- PDF 관련 코드를 `format/pdf/` 서브폴더로 분리
-  - `HtmlToPdfConverter.java`
-  - `OpenHtmlToPdfConverterImpl.java`
-  - `PdfCssProvider.java`
-  - `DefaultPdfCssProvider.java`
+### 3. 코드 정리
 
-- Markdown 관련 코드를 `format/markdown/` 서브폴더로 분리
-  - `MarkdownToHtmlConverter.java`
-  - `FlexMarkMarkdownToHtmlConverter.java`
-
-#### 주석 최소화
-- 불필요한 JavaDoc 주석 제거
-- 코드 자체로 의도가 명확하도록 정리
-- `StorageStrategy`, `ArtifactHandler` 인터페이스 주석 제거
-
-### 3. 의존성 업데이트
-- OpenHTMLToPDF 버전 업그레이드: `1.1.24` → `1.1.37`
-- 패키지 경로 변경: `com.openhtmltopdf` → `io.github.openhtmltopdf`
+#### ArtifactHandler 인터페이스
+- createDetail()에서 사용되지 않는 JobEntity job 파라미터 제거
 
 ## 변경된 파일
 
-### 신규 생성
-- `format/pdf/HtmlToPdfConverter.java`
-- `format/pdf/OpenHtmlToPdfConverterImpl.java`
-- `format/pdf/PdfCssProvider.java`
-- `format/pdf/DefaultPdfCssProvider.java`
-- `format/markdown/MarkdownToHtmlConverter.java`
-- `format/markdown/FlexMarkMarkdownToHtmlConverter.java`
-
-### 수정
-- `PdfFormatConverter.java` (Markdown → HTML → PDF 파이프라인 통합)
-- `StorageStrategy.java` (주석 제거)
-- `ArtifactHandler.java` (주석 제거)
-- `LocalStorageStrategy.java` (주석 제거)
-- `build.gradle` (OpenHTMLToPDF 의존성 업데이트)
-
-### 삭제
-- `format/HtmlToPdfConverter.java` (pdf 서브폴더로 이동)
-- `format/OpenHtmlToPdfConverterImpl.java` (pdf 서브폴더로 이동)
-- `format/PdfCssProvider.java` (pdf 서브폴더로 이동)
-- `format/DefaultPdfCssProvider.java` (pdf 서브폴더로 이동)
-- `format/MarkdownToHtmlConverter.java` (markdown 서브폴더로 이동)
-- `format/FlexMarkMarkdownToHtmlConverter.java` (markdown 서브폴더로 이동)
-
-## 효과
-- 코드 구조 명확화: PDF/Markdown 관련 코드가 논리적으로 그룹화됨
-- 확장성 향상: 새로운 변환 타입 추가 시 서브폴더 구조로 관리 용이
-- 코드 가독성 개선: 불필요한 주석 제거로 핵심 로직에 집중
-- PDF 변환 품질 향상: Markdown 구조 완벽 지원 및 CSS 스타일링 적용
+- `LocalStorageStrategy.java` - store() 경로 검증 추가, generateAccessUrl() 경고 로그
+- `ArtifactHandler.java` - createDetail() 미사용 job 파라미터 제거
+- `TextArtifactHandler.java` - createDetail() 오버라이드로 content 설정
+- `ProductionArtifactService.java` - 명시적 타임존 + null 안전성 + 호출부 파라미터 수정

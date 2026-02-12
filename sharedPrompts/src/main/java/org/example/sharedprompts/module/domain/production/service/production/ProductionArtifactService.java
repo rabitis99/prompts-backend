@@ -51,9 +51,14 @@ public class ProductionArtifactService {
             throw new IllegalArgumentException("No ArtifactHandler found for type: " + artifactType, e);
         }
 
-        Instant startedAt = job.getStartedAt() != null 
-                ? job.getStartedAt() 
-                : job.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant();
+        Instant startedAt;
+        if (job.getStartedAt() != null) {
+            startedAt = job.getStartedAt();
+        } else if (job.getCreatedAt() != null) {
+            startedAt = job.getCreatedAt().atZone(ZoneId.of("Asia/Seoul")).toInstant();
+        } else {
+            startedAt = Instant.now();
+        }
 
         ProductionArtifactEntity artifact = ProductionArtifactEntity.builder()
                 .userId(job.getUserId())
@@ -63,7 +68,7 @@ public class ProductionArtifactService {
                 .success(true)
                 .build();
 
-        ProductionArtifactDetailEntity detail = handler.createDetail(job, filePath, storageStrategy);
+        ProductionArtifactDetailEntity detail = handler.createDetail(filePath, storageStrategy);
         artifact.setDetail(detail);
 
         return productionArtifactRepository.save(artifact);

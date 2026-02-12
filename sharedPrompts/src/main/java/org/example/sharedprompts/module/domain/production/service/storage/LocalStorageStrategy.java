@@ -28,6 +28,7 @@ public class LocalStorageStrategy implements StorageStrategy {
             Files.createDirectories(directory);
 
             Path filePath = directory.resolve(fileName);
+            validateWithinBasePath(filePath);
             Files.writeString(filePath, content);
 
             log.info("File stored successfully - path: {}", filePath);
@@ -51,6 +52,7 @@ public class LocalStorageStrategy implements StorageStrategy {
             Files.createDirectories(directory);
 
             Path filePath = directory.resolve(fileName);
+            validateWithinBasePath(filePath);
             Files.write(filePath, data);
 
             log.info("Binary file stored successfully - path: {}, size: {} bytes", filePath, data.length);
@@ -61,6 +63,13 @@ public class LocalStorageStrategy implements StorageStrategy {
             log.error("Failed to store binary file locally - userId: {}, jobId: {}, fileName: {}",
                     userId, jobId, fileName, e);
             throw new LocalStorageException("Failed to store binary file: " + e.getMessage(), e);
+        }
+    }
+
+    private void validateWithinBasePath(Path filePath) {
+        if (!filePath.normalize().toAbsolutePath().startsWith(
+                Paths.get(basePath).normalize().toAbsolutePath())) {
+            throw new LocalStorageException("Invalid fileName: path traversal detected");
         }
     }
 
@@ -108,7 +117,9 @@ public class LocalStorageStrategy implements StorageStrategy {
 
     @Override
     public String generateAccessUrl(String storagePath, java.time.Duration ttl) {
-        // 로컬 스토리지는 TTL 기반 URL을 지원하지 않으므로 경로를 그대로 반환
+        // 로컬 스토리지는 개발 환경 전용 - 운영 환경에서는 S3 등 외부 스토리지 사용 필요
+        log.warn("LocalStorage does not support secure access URLs. " +
+                "Internal path returned - do not use in production.");
         return storagePath;
     }
 
