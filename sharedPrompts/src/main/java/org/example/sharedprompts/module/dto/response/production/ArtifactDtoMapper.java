@@ -52,6 +52,10 @@ public class ArtifactDtoMapper {
                         ArtifactType.FILE, metadata.filePath(), downloadUrl, 
                         metadata.fileName(), metadata.contentType(), metadata.storageLocation());
             }
+            default -> throw new BaseException(
+                    ModuleErrorCode.VALIDATION_ERROR,
+                    "artifactType",
+                    "Unsupported artifact type: " + artifactType);
         };
     }
 

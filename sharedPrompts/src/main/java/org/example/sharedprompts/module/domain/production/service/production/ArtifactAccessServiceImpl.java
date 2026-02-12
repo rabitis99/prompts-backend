@@ -90,7 +90,11 @@ public class ArtifactAccessServiceImpl implements ArtifactAccessService {
             if (slashIndex <= 0) {
                 throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, "filePath", "Invalid S3 path - missing object key: " + filePath);
             }
-            return withoutPrefix.substring(slashIndex + 1);
+            String objectKey = withoutPrefix.substring(slashIndex + 1);
+            if (objectKey.isBlank()) {
+                throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, "filePath", "Invalid S3 path - missing object key: " + filePath);
+            }
+            return objectKey;
         }
 
         return filePath;
