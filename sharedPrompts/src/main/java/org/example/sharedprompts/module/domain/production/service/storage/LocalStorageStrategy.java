@@ -24,11 +24,11 @@ public class LocalStorageStrategy implements StorageStrategy {
                 userId, jobId, fileName);
 
         try {
-            // 경로 생성: basePath/userId/jobId/fileName
             Path directory = Paths.get(basePath, String.valueOf(userId), jobId);
             Files.createDirectories(directory);
 
             Path filePath = directory.resolve(fileName);
+            validateWithinBasePath(filePath);
             Files.writeString(filePath, content);
 
             log.info("File stored successfully - path: {}", filePath);
@@ -52,6 +52,7 @@ public class LocalStorageStrategy implements StorageStrategy {
             Files.createDirectories(directory);
 
             Path filePath = directory.resolve(fileName);
+            validateWithinBasePath(filePath);
             Files.write(filePath, data);
 
             log.info("Binary file stored successfully - path: {}, size: {} bytes", filePath, data.length);
@@ -63,6 +64,63 @@ public class LocalStorageStrategy implements StorageStrategy {
                     userId, jobId, fileName, e);
             throw new LocalStorageException("Failed to store binary file: " + e.getMessage(), e);
         }
+    }
+
+    private void validateWithinBasePath(Path filePath) {
+        if (!filePath.normalize().toAbsolutePath().startsWith(
+                Paths.get(basePath).normalize().toAbsolutePath())) {
+            throw new LocalStorageException("Invalid fileName: path traversal detected");
+        }
+    }
+
+    private Path validateAndResolvePath(String storagePath) {
+        Path resolved = Paths.get(storagePath).normalize().toAbsolutePath();
+        Path base = Paths.get(basePath).normalize().toAbsolutePath();
+        if (!resolved.startsWith(base)) {
+            throw new LocalStorageException(
+                    "Access denied: path is outside storage base directory");
+        }
+        return resolved;
+    }
+
+    @Override
+    public byte[] read(String storagePath) {
+        log.info("Reading file locally - path: {}", storagePath);
+        try {
+            return Files.readAllBytes(validateAndResolvePath(storagePath));
+        } catch (IOException e) {
+            log.error("Failed to read file locally - path: {}", storagePath, e);
+            throw new LocalStorageException("Failed to read file: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public boolean exists(String storagePath) {
+        try {
+            return Files.exists(validateAndResolvePath(storagePath));
+        } catch (LocalStorageException e) {
+            // If path is outside base directory, it doesn't exist in our storage
+            return false;
+        }
+    }
+
+    @Override
+    public void delete(String storagePath) {
+        log.info("Deleting file locally - path: {}", storagePath);
+        try {
+            Files.deleteIfExists(validateAndResolvePath(storagePath));
+        } catch (IOException e) {
+            log.error("Failed to delete file locally - path: {}", storagePath, e);
+            throw new LocalStorageException("Failed to delete file: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public String generateAccessUrl(String storagePath, java.time.Duration ttl) {
+        // 로컬 스토리지는 개발 환경 전용 - 운영 환경에서는 S3 등 외부 스토리지 사용 필요
+        log.warn("LocalStorage does not support secure access URLs. " +
+                "Internal path returned - do not use in production.");
+        return storagePath;
     }
 
     @Override

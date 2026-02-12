@@ -1741,56 +1741,6 @@
       "name": "Production",
       "item": [
         {
-          "name": "프롬프트 생산 실행",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"command\": {\n    \"command_type\": \"BLOG\",\n    \"title\": \"블로그 제목\",\n    \"tags\": [\"태그1\", \"태그2\"]\n  },\n  \"user_input\": {\n    \"input\": \"사용자 입력 내용\"\n  }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/prompts/1/production",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "production"]
-            }
-          }
-        },
-        {
-          "name": "프롬프트 생산 실행 (EMAIL)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"command\": {\n    \"command_type\": \"EMAIL\",\n    \"subject\": \"이메일 제목\",\n    \"recipient\": \"recipient@example.com\"\n  },\n  \"user_input\": {\n    \"input\": \"사용자 입력 내용\"\n  }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/prompts/1/production",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "production"]
-            }
-          }
-        },
-        {
           "name": "프롬프트 생산 실행 (TEXT)",
           "request": {
             "method": "POST",
@@ -1806,12 +1756,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"command\": {\n    \"command_type\": \"TEXT\",\n    \"file_name\": \"output.txt\",\n    \"format\": \"plain\"\n  },\n  \"user_input\": {\n    \"input\": \"사용자 입력 내용\"\n  }\n}"
+              "raw": "{\n  \"fileName\": \"output.txt\",\n  \"format\": \"plain\",\n  \"userInput\": \"사용자 입력 내용\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/prompts/1/production",
+              "raw": "{{baseUrl}}/prompts/1/production/text",
               "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "production"]
+              "path": ["prompts", "1", "production", "text"]
             }
           }
         },
@@ -1831,12 +1781,87 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"command\": {\n    \"command_type\": \"IMAGE\",\n    \"prompt\": \"이미지 생성 프롬프트\",\n    \"width\": 1024,\n    \"height\": 768\n  },\n  \"user_input\": {\n    \"input\": \"사용자 입력 내용\"\n  }\n}"
+              "raw": "{\n  \"prompt\": \"이미지 생성 프롬프트\",\n  \"width\": 1024,\n  \"height\": 768,\n  \"userInput\": \"사용자 입력 내용\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/prompts/1/production",
+              "raw": "{{baseUrl}}/prompts/1/production/image",
               "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "production"]
+              "path": ["prompts", "1", "production", "image"]
+            }
+          }
+        },
+        {
+          "name": "프롬프트 생산 실행 (EMAIL)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"이메일 제목\",\n  \"recipient\": \"recipient@example.com\",\n  \"userInput\": \"사용자 입력 내용\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prompts/1/production/email",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "1", "production", "email"]
+            }
+          }
+        },
+        {
+          "name": "프롬프트 생산 실행 (BLOG)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"블로그 제목\",\n  \"tags\": [\"태그1\", \"태그2\"],\n  \"userInput\": \"사용자 입력 내용\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prompts/1/production/blog",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "1", "production", "blog"]
+            }
+          }
+        },
+        {
+          "name": "프롬프트 생산 실행 (DOCUMENT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"document.pdf\",\n  \"format\": \"pdf\",\n  \"userInput\": \"사용자 입력 내용\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prompts/1/production/document",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "1", "production", "document"]
             }
           }
         },
@@ -1854,6 +1879,40 @@
               "raw": "{{baseUrl}}/production/1",
               "host": ["{{baseUrl}}"],
               "path": ["production", "1"]
+            }
+          }
+        },
+        {
+          "name": "작업 상태 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/jobs/job-id-123",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "job-id-123"]
+            }
+          }
+        },
+        {
+          "name": "작업 재시도",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/jobs/job-id-123/retry",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "job-id-123", "retry"]
             }
           }
         }
@@ -2727,6 +2786,244 @@
                   "raw": "{{baseUrl}}/admin/redis/health-check",
                   "host": ["{{baseUrl}}"],
                   "path": ["admin", "redis", "health-check"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "포인트 관리",
+          "item": [
+            {
+              "name": "사용자 포인트 잔액 조회",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/points/users/1/balance",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "points", "users", "1", "balance"]
+                }
+              }
+            },
+            {
+              "name": "사용자 포인트 내역 조회",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/points/users/1/history?page=0&size=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "points", "users", "1", "history"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "사용자 포인트 차감",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 1000,\n  \"description\": \"관리자 요청\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/points/users/1/use",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "points", "users", "1", "use"]
+                }
+              }
+            },
+            {
+              "name": "결제별 포인트 조회",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/points/payments/1?page=0&size=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "points", "payments", "1"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "캐시백 관리",
+          "item": [
+            {
+              "name": "사용자 캐시백 내역 조회",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/cashbacks/users/1/history?page=0&size=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "cashbacks", "users", "1", "history"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "사용자 미지급 캐시백 총액 조회",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/cashbacks/users/1/unpaid-total",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "cashbacks", "users", "1", "unpaid-total"]
+                }
+              }
+            },
+            {
+              "name": "사용자 미지급 캐시백 목록 조회",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/cashbacks/users/1/unpaid?page=0&size=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "cashbacks", "users", "1", "unpaid"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "전체 미지급 캐시백 총액 조회",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/cashbacks/unpaid-total",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "cashbacks", "unpaid-total"]
+                }
+              }
+            },
+            {
+              "name": "전체 미지급 캐시백 목록 조회",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/cashbacks/unpaid?page=0&size=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "cashbacks", "unpaid"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "캐시백 지급",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/cashbacks/1/pay",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "cashbacks", "1", "pay"]
                 }
               }
             }
