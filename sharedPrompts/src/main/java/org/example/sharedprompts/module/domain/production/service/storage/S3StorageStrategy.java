@@ -3,6 +3,7 @@ package org.example.sharedprompts.module.domain.production.service.storage;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.util.ChecksumUtils;
 import org.example.sharedprompts.global.util.ContentTypeUtils;
+import org.example.sharedprompts.module.domain.production.service.storage.exception.S3StorageException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -76,11 +77,5 @@ public class S3StorageStrategy implements StorageStrategy {
 
     private String buildS3Key(Long userId, String jobId, String fileName) {
         return String.format("%s/%d/%s/%s", prefix, userId, jobId, fileName);
-    }
-
-    public static class S3StorageException extends RuntimeException {
-        public S3StorageException(String message, Throwable cause) {
-            super(message, cause);
-        }
     }
 }
