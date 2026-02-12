@@ -31,6 +31,7 @@ public class S3Config {
                     .region(Region.of(region))
                     .build();
         } else {
+            // Access Key 기반 인증 사용
             return S3Presigner.builder()
                     .region(Region.of(region))
                     .credentialsProvider(StaticCredentialsProvider.create(
@@ -39,4 +40,3 @@ public class S3Config {
         }
     }
 }
-

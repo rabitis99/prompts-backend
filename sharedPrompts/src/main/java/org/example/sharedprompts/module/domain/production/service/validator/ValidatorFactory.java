@@ -14,7 +14,7 @@ public class ValidatorFactory {
     private final BlogValidator blogValidator;
     private final EmailValidator emailValidator;
     private final DocumentValidator documentValidator;
-    private final DefaultValidator defaultValidator;
+    private final ContentResponseValidator contentResponseValidator;
 
     /**
      * CommandType에 해당하는 Validator 반환
@@ -24,7 +24,7 @@ public class ValidatorFactory {
             case BLOG -> blogValidator;
             case EMAIL -> emailValidator;
             case DOCUMENT -> documentValidator;
-            default -> defaultValidator;
+            default -> contentResponseValidator;
         };
     }
 }

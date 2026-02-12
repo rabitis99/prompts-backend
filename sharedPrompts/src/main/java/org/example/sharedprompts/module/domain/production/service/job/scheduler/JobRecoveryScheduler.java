@@ -17,9 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class JobRecoveryScheduler {
 
-    private final JobRecoveryService jobRecoveryService;
+    private final SchedulerJobRecoveryService schedulerJobRecoveryService;
 
-    /**
+    /**`
      * 만료된 Job 복구 스케줄러
      */
     @Scheduled(fixedDelay = 60000)
@@ -31,7 +31,7 @@ public class JobRecoveryScheduler {
     @LockProviderToUse("fallbackLockProvider")
     @Transactional
     public void recoverStaleJobs() {
-        jobRecoveryService.recoverStaleJobs();
+        schedulerJobRecoveryService.recoverStaleJobs();
     }
 }
 

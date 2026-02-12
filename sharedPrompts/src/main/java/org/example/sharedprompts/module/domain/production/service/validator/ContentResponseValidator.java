@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Slf4j
-public class DefaultValidator implements ResponseValidator {
+public class ContentResponseValidator implements ResponseValidator {
 
     @Override
     public void validate(JsonNode jsonNode) {

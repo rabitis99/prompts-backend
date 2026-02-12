@@ -6,7 +6,7 @@ import org.example.sharedprompts.module.domain.production.entity.production.Prod
 import org.example.sharedprompts.module.domain.production.model.job.Job;
 import org.example.sharedprompts.module.domain.production.model.job.JobStatus;
 import org.example.sharedprompts.module.domain.production.repository.production.ProductionArtifactRepository;
-import org.example.sharedprompts.module.domain.production.service.job.process.recovery.JobRecoveryService;
+import org.example.sharedprompts.module.domain.production.service.job.process.recovery.ProcessJobRecoveryService;
 import org.example.sharedprompts.module.domain.production.service.job.queue.JobQueueService;
 import org.example.sharedprompts.module.domain.production.service.production.ArtifactAccessService;
 import org.example.sharedprompts.module.dto.response.production.JobResponseDto;
@@ -24,7 +24,7 @@ public class ProductionResultApplicationService {
 
     private final ProductionArtifactRepository productionArtifactRepository;
     private final JobQueueService jobQueueService;
-    private final JobRecoveryService jobRecoveryService;
+    private final ProcessJobRecoveryService processJobRecoveryService;
     private final ArtifactAccessService artifactAccessService;
 
     private Job getJobOrThrow(String jobId, Long userId) {
@@ -75,7 +75,7 @@ public class ProductionResultApplicationService {
             throw new BaseException(ModuleErrorCode.JOB_INVALID_STATUS);
         }
         
-        jobRecoveryService.recoverFromParsed(jobId);
+        processJobRecoveryService.recoverFromParsed(jobId);
     }
 }
 

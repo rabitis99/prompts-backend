@@ -23,7 +23,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class JobRecoveryService {
+public class SchedulerJobRecoveryService {
     
     private final JobRepository jobRepository;
     private final RetryPolicy retryPolicy;
