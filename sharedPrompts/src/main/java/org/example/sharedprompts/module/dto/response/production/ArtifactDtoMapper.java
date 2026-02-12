@@ -4,13 +4,14 @@ import org.example.sharedprompts.module.domain.production.entity.production.Prod
 import org.example.sharedprompts.module.domain.production.entity.production.StorageFormat;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
 import org.example.sharedprompts.module.domain.production.service.production.ArtifactAccessService;
+import org.example.sharedprompts.module.exception.BaseException;
+import org.example.sharedprompts.module.exception.ModuleErrorCode;
 
 import java.util.Optional;
 
 public class ArtifactDtoMapper {
 
     private ArtifactDtoMapper() {
-        // 유틸리티 클래스 인스턴스화 방지
     }
 
     public static ArtifactDto toDto(ProductionArtifactDetailEntity detail) {
@@ -21,6 +22,9 @@ public class ArtifactDtoMapper {
             ProductionArtifactDetailEntity detail,
             ArtifactAccessService artifactAccessService) {
         
+        if (detail == null) {
+            throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, "detail", "ProductionArtifactDetailEntity must not be null");
+        }
         ArtifactType artifactType = detail.getArtifactType();
 
         return switch (artifactType) {
@@ -31,28 +35,41 @@ public class ArtifactDtoMapper {
                 yield new TextArtifactDto(ArtifactType.TEXT, content);
             }
             case IMAGE -> {
-                String filePath = detail.getFilePath();
-                String fileName = detail.getFileName();
-                String contentType = detail.getContentType();
-                String storageLocation = detail.getStorageLocation();
+                FileMetadata metadata = extractFileMetadata(detail);
                 String previewUrl = Optional.ofNullable(artifactAccessService)
-                        .map(service -> service.generatePreviewUrl(filePath))
+                        .map(service -> service.generatePreviewUrl(metadata.filePath()))
                         .orElse(null);
                 yield new ImageArtifactDto(
-                        ArtifactType.IMAGE, filePath, previewUrl, fileName, contentType, storageLocation);
+                        ArtifactType.IMAGE, metadata.filePath(), previewUrl, 
+                        metadata.fileName(), metadata.contentType(), metadata.storageLocation());
             }
             case FILE -> {
-                String filePath = detail.getFilePath();
-                String fileName = detail.getFileName();
-                String contentType = detail.getContentType();
-                String storageLocation = detail.getStorageLocation();
+                FileMetadata metadata = extractFileMetadata(detail);
                 String downloadUrl = Optional.ofNullable(artifactAccessService)
-                        .map(service -> service.generateDownloadUrl(filePath))
+                        .map(service -> service.generateDownloadUrl(metadata.filePath()))
                         .orElse(null);
                 yield new FileArtifactDto(
-                        ArtifactType.FILE, filePath, downloadUrl, fileName, contentType, storageLocation);
+                        ArtifactType.FILE, metadata.filePath(), downloadUrl, 
+                        metadata.fileName(), metadata.contentType(), metadata.storageLocation());
             }
         };
+    }
+
+    private static FileMetadata extractFileMetadata(ProductionArtifactDetailEntity detail) {
+        return new FileMetadata(
+                detail.getFilePath(),
+                detail.getFileName(),
+                detail.getContentType(),
+                detail.getStorageLocation()
+        );
+    }
+
+    private record FileMetadata(
+            String filePath,
+            String fileName,
+            String contentType,
+            String storageLocation
+    ) {
     }
 }
 

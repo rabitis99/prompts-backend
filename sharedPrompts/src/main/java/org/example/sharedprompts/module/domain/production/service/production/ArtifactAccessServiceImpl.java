@@ -33,8 +33,6 @@ public class ArtifactAccessServiceImpl implements ArtifactAccessService {
         this.redisTemplate = redisTemplate;
         this.bucket = bucket;
         this.presignedUrlTtl = Duration.ofSeconds(ttlSeconds);
-        // 캐시 TTL을 presigned URL TTL보다 짧게 설정하여 만료된 URL 반환 방지
-        // 최소 30초 여유를 두거나, 절반 중 더 큰 값을 사용
         this.cacheTtl = Duration.ofSeconds(Math.max(ttlSeconds - 30, ttlSeconds / 2));
     }
 
@@ -52,17 +50,25 @@ public class ArtifactAccessServiceImpl implements ArtifactAccessService {
         String key = extractS3Key(filePath);
         String cacheKey = CACHE_PREFIX + type + ":" + key;
 
-        String cached = redisTemplate.opsForValue().get(cacheKey);
-        if (cached != null) {
-            log.debug("Presigned URL cache hit - key: {}", key);
-            return cached;
+        try {
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                log.debug("Presigned URL cache hit - key: {}", key);
+                return cached;
+            }
+        } catch (Exception e) {
+            log.warn("Redis cache read failed, generating new URL - key: {}", key, e);
         }
 
         try {
             String url = presignedUrlGenerator.generate(bucket, key, presignedUrlTtl);
 
-            redisTemplate.opsForValue()
-                    .set(cacheKey, url, cacheTtl);
+            try {
+                redisTemplate.opsForValue()
+                        .set(cacheKey, url, cacheTtl);
+            } catch (Exception e) {
+                log.warn("Redis cache write failed - key: {}", key, e);
+            }
 
             log.debug("Presigned URL generated - key: {}, type: {}", key, type);
             return url;
@@ -75,15 +81,16 @@ public class ArtifactAccessServiceImpl implements ArtifactAccessService {
 
     private String extractS3Key(String filePath) {
         if (filePath == null || filePath.isBlank()) {
-            throw new IllegalArgumentException("File path cannot be null or empty");
+            throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, "filePath", "File path cannot be null or empty");
         }
 
         if (filePath.startsWith("s3://")) {
             String withoutPrefix = filePath.substring(5);
             int slashIndex = withoutPrefix.indexOf('/');
-            return slashIndex > 0
-                    ? withoutPrefix.substring(slashIndex + 1)
-                    : withoutPrefix;
+            if (slashIndex <= 0) {
+                throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, "filePath", "Invalid S3 path - missing object key: " + filePath);
+            }
+            return withoutPrefix.substring(slashIndex + 1);
         }
 
         return filePath;

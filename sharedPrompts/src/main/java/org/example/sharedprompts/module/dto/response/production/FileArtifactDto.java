@@ -1,5 +1,6 @@
 package org.example.sharedprompts.module.dto.response.production;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
 
@@ -7,7 +8,7 @@ public record FileArtifactDto(
     @JsonProperty("type")
     ArtifactType type,
     
-    @JsonProperty("file_path")
+    @JsonIgnore
     String filePath,
     
     @JsonProperty("download_url")
