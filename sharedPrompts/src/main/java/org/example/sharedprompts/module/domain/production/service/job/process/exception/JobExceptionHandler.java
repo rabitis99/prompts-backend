@@ -50,9 +50,11 @@ public class JobExceptionHandler {
     }
 
     public void handleGeneralException(String jobId, String commandType, Exception e) {
-        log.error("General exception - jobId: {}, commandType: {}", jobId, commandType, e);
         if (e instanceof JobProcessingException jobException) {
-            log.error("ErrorCode: {}", jobException.getErrorCode());
+            log.error("General exception - jobId: {}, commandType: {}, errorCode: {}",
+                    jobId, commandType, jobException.getErrorCode(), e);
+        } else {
+            log.error("General exception - jobId: {}, commandType: {}", jobId, commandType, e);
         }
         jobStateService.saveJobFailure(jobId, "Job processing failed: " + e.getMessage());
         jobMetrics.recordJobFailed(commandType, "PROCESSING_FAILED");
