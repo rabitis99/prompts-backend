@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class JobRecoveryService {
+public class ProcessJobRecoveryService {
 
     private final AiCalledRecoveryService aiCalledRecoveryService;
     private final ParsedRecoveryService parsedRecoveryService;

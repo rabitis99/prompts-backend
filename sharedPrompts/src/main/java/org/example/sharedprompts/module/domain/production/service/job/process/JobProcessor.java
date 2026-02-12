@@ -18,7 +18,7 @@ import org.example.sharedprompts.module.domain.production.service.job.process.ex
 import org.example.sharedprompts.module.domain.production.service.job.process.execution.content.ContentFormatter;
 import org.example.sharedprompts.module.domain.production.service.job.process.execution.content.ContentRenderer;
 import org.example.sharedprompts.module.domain.production.service.job.process.execution.content.ContentStorageService;
-import org.example.sharedprompts.module.domain.production.service.job.process.recovery.JobRecoveryService;
+import org.example.sharedprompts.module.domain.production.service.job.process.recovery.ProcessJobRecoveryService;
 import org.example.sharedprompts.module.domain.production.service.job.process.util.CommandDeserializer;
 import org.example.sharedprompts.module.domain.production.service.job.process.util.FileNameGenerator;
 import org.example.sharedprompts.module.domain.production.service.parser.ParsedResponse;
@@ -46,7 +46,7 @@ public class JobProcessor {
     private final ContentFormatter contentFormatter;
     private final ContentStorageService contentStorageService;
     private final StorageStrategyFactory storageStrategyFactory;
-    private final JobRecoveryService jobRecoveryService;
+    private final ProcessJobRecoveryService processJobRecoveryService;
     private final JobExceptionHandler exceptionHandler;
     private final CommandDeserializer commandDeserializer;
     private final FileNameGenerator fileNameGenerator;
@@ -127,10 +127,10 @@ public class JobProcessor {
 
         try {
             switch (status) {
-                case AI_CALLED -> jobRecoveryService.recoverFromAiCalled(jobId);
-                case PARSED -> jobRecoveryService.recoverFromParsed(jobId);
-                case RENDERED -> jobRecoveryService.recoverFromRendered(jobId);
-                case STORED -> jobRecoveryService.recoverFromStored(jobId);
+                case AI_CALLED -> processJobRecoveryService.recoverFromAiCalled(jobId);
+                case PARSED -> processJobRecoveryService.recoverFromParsed(jobId);
+                case RENDERED -> processJobRecoveryService.recoverFromRendered(jobId);
+                case STORED -> processJobRecoveryService.recoverFromStored(jobId);
                 default -> {
                     log.warn("Cannot recover job from status - jobId: {}, status: {}", jobId, status);
                 }
