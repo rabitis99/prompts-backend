@@ -2,6 +2,7 @@ package org.example.sharedprompts.module.domain.production.service.job.process.e
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.domain.production.exception.ParseException;
 import org.example.sharedprompts.module.domain.production.service.job.JobStateService;
 import org.example.sharedprompts.module.domain.production.service.job.metrics.JobMetrics;
 import org.springframework.stereotype.Service;
@@ -21,8 +22,8 @@ public class JobExceptionHandler {
         jobMetrics.recordJobFailed(commandType, "AI_CALL_FAILED");
     }
 
-    public void handleParseException(String jobId, String commandType, AIServiceException e) {
-        log.error("Parse exception - jobId: {}, commandType: {}, errorCode: {}", 
+    public void handleParseException(String jobId, String commandType, ParseException e) {
+        log.error("Parse exception - jobId: {}, commandType: {}, errorCode: {}",
                 jobId, commandType, e.getErrorCode(), e);
         jobStateService.markParseFailed(jobId, e.getMessage());
         jobMetrics.recordJobFailed(commandType, "PARSE_FAILED");
