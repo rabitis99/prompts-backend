@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 @ConditionalOnProperty(name = "storage.lifecycle.enabled", havingValue = "true")
@@ -22,6 +23,7 @@ public class StorageLifecycleService {
     private final String prefix;
     private final int glacierDays;
     private final int deepArchiveDays;
+    private final AtomicBoolean running = new AtomicBoolean(false);
 
     private static final String LIFECYCLE_TAG_KEY = "lifecycle-status";
     private static final String TAG_GLACIER = "glacier";
@@ -41,6 +43,10 @@ public class StorageLifecycleService {
     }
 
     public int processLifecycleTransitions() {
+        if (!running.compareAndSet(false, true)) {
+            log.warn("Storage lifecycle processing is already running - skipping this invocation");
+            return 0;
+        }
         log.info("Starting storage lifecycle processing - bucket: {}, prefix: {}", bucket, prefix);
         int processedCount = 0;
 
@@ -68,6 +74,8 @@ public class StorageLifecycleService {
 
         } catch (Exception e) {
             log.error("Storage lifecycle processing failed", e);
+        } finally {
+            running.set(false);
         }
 
         log.info("Storage lifecycle processing completed - processed: {} objects", processedCount);

@@ -1,17 +1,18 @@
 package org.example.sharedprompts.global.config.async.security;
 
+import org.example.sharedprompts.module.domain.production.model.tenant.TenantContext;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.core.task.TaskDecorator;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
- * SecurityContext를 비동기 작업에 전파하는 TaskDecorator
- * 
- * <p>비동기 Executor에서 SecurityContext를 자동으로 전파하기 위해 사용됩니다.
+ * SecurityContext와 TenantContext를 비동기 작업에 전파하는 TaskDecorator
+ *
+ * <p>비동기 Executor에서 SecurityContext와 TenantContext를 자동으로 전파하기 위해 사용됩니다.
  * 이 클래스는 모든 비동기 Executor 설정에서 일관되게 사용되어
- * SecurityContext 전파 방식을 통일합니다.
- * 
+ * 컨텍스트 전파 방식을 통일합니다.
+ *
  * <p>사용 예시:
  * <ul>
  *   <li>AsyncConfig.taskExecutor: @EnableAsync의 기본 executor</li>
@@ -20,18 +21,28 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * </ul>
  */
 public class SecurityContextTaskDecorator implements TaskDecorator {
-    
+
     @NotNull
     @Override
     public Runnable decorate(@NotNull Runnable runnable) {
-        SecurityContext context = SecurityContextHolder.getContext();
+        SecurityContext securityContext = SecurityContextHolder.getContext();
+        String tenantId = TenantContext.getCurrentTenantId();
         return () -> {
-            SecurityContext previousContext = SecurityContextHolder.getContext();
+            SecurityContext previousSecurityContext = SecurityContextHolder.getContext();
+            String previousTenantId = TenantContext.getCurrentTenantId();
             try {
-                SecurityContextHolder.setContext(context);
+                SecurityContextHolder.setContext(securityContext);
+                if (tenantId != null) {
+                    TenantContext.setCurrentTenantId(tenantId);
+                }
                 runnable.run();
             } finally {
-                SecurityContextHolder.setContext(previousContext);
+                SecurityContextHolder.setContext(previousSecurityContext);
+                if (previousTenantId != null) {
+                    TenantContext.setCurrentTenantId(previousTenantId);
+                } else {
+                    TenantContext.clear();
+                }
             }
         };
     }

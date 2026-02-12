@@ -45,7 +45,6 @@ public class ImageArtifactHandler implements ArtifactHandler {
         );
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, String> buildThumbnailUrls(String metadataJson) {
         if (metadataJson == null || metadataJson.isBlank()) {
             return null;
@@ -58,7 +57,12 @@ public class ImageArtifactHandler implements ArtifactHandler {
                 return null;
             }
 
-            Map<String, String> thumbnailKeys = (Map<String, String>) thumbnails;
+            Map<String, String> thumbnailKeys = new HashMap<>();
+            ((Map<?, ?>) thumbnails).forEach((k, v) -> {
+                if (k instanceof String && v instanceof String) {
+                    thumbnailKeys.put((String) k, (String) v);
+                }
+            });
             Map<String, String> thumbnailUrls = new HashMap<>();
 
             thumbnailKeys.forEach((size, key) ->

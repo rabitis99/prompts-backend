@@ -20,50 +20,12 @@ public class LocalStorageStrategy implements StorageStrategy {
 
     @Override
     public String store(String content, Long userId, String jobId, String fileName) {
-        log.info("Storing file locally - userId: {}, jobId: {}, fileName: {}", 
-                userId, jobId, fileName);
-
-        try {
-            Path directory = Paths.get(basePath, String.valueOf(userId), jobId);
-            Files.createDirectories(directory);
-
-            Path filePath = directory.resolve(fileName);
-            validateWithinBasePath(filePath);
-            Files.writeString(filePath, content);
-
-            log.info("File stored successfully - path: {}", filePath);
-
-            return filePath.toString();
-
-        } catch (IOException e) {
-            log.error("Failed to store file locally - userId: {}, jobId: {}, fileName: {}", 
-                    userId, jobId, fileName, e);
-            throw new LocalStorageException("Failed to store file: " + e.getMessage(), e);
-        }
+        return store(content, null, userId, jobId, fileName);
     }
 
     @Override
     public String store(byte[] data, String contentType, Long userId, String jobId, String fileName) {
-        log.info("Storing binary file locally - userId: {}, jobId: {}, fileName: {}, contentType: {}",
-                userId, jobId, fileName, contentType);
-
-        try {
-            Path directory = Paths.get(basePath, String.valueOf(userId), jobId);
-            Files.createDirectories(directory);
-
-            Path filePath = directory.resolve(fileName);
-            validateWithinBasePath(filePath);
-            Files.write(filePath, data);
-
-            log.info("Binary file stored successfully - path: {}, size: {} bytes", filePath, data.length);
-
-            return filePath.toString();
-
-        } catch (IOException e) {
-            log.error("Failed to store binary file locally - userId: {}, jobId: {}, fileName: {}",
-                    userId, jobId, fileName, e);
-            throw new LocalStorageException("Failed to store binary file: " + e.getMessage(), e);
-        }
+        return store(data, contentType, null, userId, jobId, fileName);
     }
 
     @Override
@@ -72,9 +34,9 @@ public class LocalStorageStrategy implements StorageStrategy {
                 tenantId, userId, jobId, fileName);
         try {
             Path directory = buildDirectory(tenantId, userId, jobId);
-            Files.createDirectories(directory);
             Path filePath = directory.resolve(fileName);
             validateWithinBasePath(filePath);
+            Files.createDirectories(directory);
             Files.writeString(filePath, content);
             log.info("File stored successfully - path: {}", filePath);
             return filePath.toString();
@@ -90,9 +52,9 @@ public class LocalStorageStrategy implements StorageStrategy {
                 tenantId, userId, jobId, fileName);
         try {
             Path directory = buildDirectory(tenantId, userId, jobId);
-            Files.createDirectories(directory);
             Path filePath = directory.resolve(fileName);
             validateWithinBasePath(filePath);
+            Files.createDirectories(directory);
             Files.write(filePath, data);
             log.info("Binary file stored successfully - path: {}, size: {} bytes", filePath, data.length);
             return filePath.toString();
@@ -104,6 +66,9 @@ public class LocalStorageStrategy implements StorageStrategy {
 
     private Path buildDirectory(String tenantId, Long userId, String jobId) {
         if (tenantId != null && !tenantId.isBlank()) {
+            if (tenantId.contains("..") || tenantId.contains("/") || tenantId.contains("\\")) {
+                throw new LocalStorageException("Invalid tenantId: path traversal detected");
+            }
             return Paths.get(basePath, tenantId, String.valueOf(userId), jobId);
         }
         return Paths.get(basePath, String.valueOf(userId), jobId);

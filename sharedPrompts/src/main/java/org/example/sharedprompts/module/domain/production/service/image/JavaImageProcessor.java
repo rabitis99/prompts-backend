@@ -39,6 +39,10 @@ public class JavaImageProcessor implements ImageProcessor {
         int originalWidth = original.getWidth();
         int originalHeight = original.getHeight();
 
+        if (originalWidth <= 0 || originalHeight <= 0) {
+            throw new IOException("Invalid image dimensions: " + originalWidth + "x" + originalHeight);
+        }
+
         int thumbWidth, thumbHeight;
         if (originalWidth > originalHeight) {
             thumbWidth = size;
@@ -113,7 +117,9 @@ public class JavaImageProcessor implements ImageProcessor {
             if (imageBytes[0] == 0x47 && imageBytes[1] == 0x49 && imageBytes[2] == 0x46) {
                 return "gif";
             }
-            if (imageBytes[0] == 0x52 && imageBytes[1] == 0x49 && imageBytes[2] == 0x46 && imageBytes[3] == 0x46) {
+            if (imageBytes.length >= 12
+                    && imageBytes[0] == 0x52 && imageBytes[1] == 0x49 && imageBytes[2] == 0x46 && imageBytes[3] == 0x46
+                    && imageBytes[8] == 0x57 && imageBytes[9] == 0x45 && imageBytes[10] == 0x42 && imageBytes[11] == 0x50) {
                 return "webp";
             }
         }

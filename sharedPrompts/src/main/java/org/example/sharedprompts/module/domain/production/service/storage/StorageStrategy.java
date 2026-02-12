@@ -1,5 +1,7 @@
 package org.example.sharedprompts.module.domain.production.service.storage;
 
+import org.slf4j.LoggerFactory;
+
 import java.time.Duration;
 
 public interface StorageStrategy {
@@ -9,10 +11,16 @@ public interface StorageStrategy {
     String store(byte[] data, String contentType, Long userId, String jobId, String fileName);
 
     default String store(String content, String tenantId, Long userId, String jobId, String fileName) {
+        LoggerFactory.getLogger(getClass()).warn(
+                "Tenant-aware store not implemented by {}. tenantId '{}' will be ignored - data may not be tenant-isolated.",
+                getClass().getSimpleName(), tenantId);
         return store(content, userId, jobId, fileName);
     }
 
     default String store(byte[] data, String contentType, String tenantId, Long userId, String jobId, String fileName) {
+        LoggerFactory.getLogger(getClass()).warn(
+                "Tenant-aware store not implemented by {}. tenantId '{}' will be ignored - data may not be tenant-isolated.",
+                getClass().getSimpleName(), tenantId);
         return store(data, contentType, userId, jobId, fileName);
     }
 

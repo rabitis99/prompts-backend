@@ -292,19 +292,24 @@
 
 **목표**: 고급 기능 및 SaaS 준비
 
-- [ ] 썸네일 생성
+- [x] 썸네일 생성
   - ImageProcessor 인터페이스 및 구현
   - ThumbnailService 구현
   - 비동기 설정
 
-- [ ] CDN 통합
+- [x] CDN 통합
   - CloudFront 배포
   - CDN URL 생성 로직
 
-- [ ] 멀티 테넌시
+- [x] 멀티 테넌시
   - 테넌트 ID 필드 추가
   - S3 키 구조 변경
   - 접근 제어 강화
+
+- [x] 스토리지 자동 최적화
+  - StorageLifecycleService 구현
+  - StorageCleanupScheduler 구현
+  - 라이프사이클 정책 (Glacier/Deep Archive 전환)
 
 ---
 
