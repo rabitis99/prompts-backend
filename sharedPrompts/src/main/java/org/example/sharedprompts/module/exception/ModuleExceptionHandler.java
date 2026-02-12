@@ -1,66 +1,164 @@
 package org.example.sharedprompts.module.exception;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.dto.common.CustomResponseHelper;
-import org.example.sharedprompts.global.exception.ApiException;
-import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.module.domain.production.application.exception.ProductionApplicationException;
 import org.example.sharedprompts.module.domain.production.application.exception.ProductionCommandFactoryNotFoundException;
+import org.example.sharedprompts.module.domain.production.exception.ParseException;
+import org.example.sharedprompts.module.domain.production.service.format.FormatConversionException;
+import org.example.sharedprompts.module.domain.production.service.job.idempotencykey.exception.IdempotencyKeyGenerationException;
+import org.example.sharedprompts.module.domain.production.service.job.process.exception.AIServiceException;
+import org.example.sharedprompts.module.domain.production.service.job.process.exception.ContentRenderException;
+import org.example.sharedprompts.module.domain.production.service.job.process.exception.JobProcessingException;
+import org.example.sharedprompts.module.domain.production.service.job.process.exception.RecoveryException;
+import org.example.sharedprompts.module.domain.production.service.job.process.exception.StorageException;
+import org.example.sharedprompts.module.domain.production.service.storage.exception.LocalStorageException;
+import org.example.sharedprompts.module.domain.production.service.storage.exception.S3StorageException;
+import org.example.sharedprompts.module.domain.production.validation.ValidationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-/**
- * Production 모듈 전용 예외 핸들러
- */
 @RestControllerAdvice(basePackages = "org.example.sharedprompts.module")
 @Slf4j
 public class ModuleExceptionHandler {
 
-    /**
-     * ProductionCommandFactoryNotFoundException 처리
-     * 지원하지 않는 Production 타입 요청 시 발생
-     */
+    @ExceptionHandler(BaseException.class)
+    public ResponseEntity<ModuleResponse<Void>> handleBaseException(BaseException e) {
+        log.error("BaseException: {} ({})", e.getMessage(), e.getErrorCode().name(), e);
+        return ResponseEntity
+                .status(e.getErrorCode().getHttpStatus())
+                .body(ModuleResponse.fail(e));
+    }
+
     @ExceptionHandler(ProductionCommandFactoryNotFoundException.class)
-    public ResponseEntity<?> handleProductionCommandFactoryNotFoundException(
+    public ResponseEntity<ModuleResponse<Void>> handleProductionCommandFactoryNotFoundException(
             ProductionCommandFactoryNotFoundException e) {
         log.warn("ProductionCommandFactory not found: {}", e.getMessage());
-        return CustomResponseHelper.fail(new ApiException(ErrorCode.INVALID_INPUT_VALUE, 
-                "지원하지 않는 Production 타입입니다."));
+        return ResponseEntity
+                .status(e.getErrorCode().getHttpStatus())
+                .body(ModuleResponse.fail(e));
     }
 
-    /**
-     * ProductionApplicationException 처리
-     * Application 계층에서 발생하는 일반적인 예외
-     */
     @ExceptionHandler(ProductionApplicationException.class)
-    public ResponseEntity<?> handleProductionApplicationException(
+    public ResponseEntity<ModuleResponse<Void>> handleProductionApplicationException(
             ProductionApplicationException e) {
         log.error("Production application error: {}", e.getMessage(), e);
-        return CustomResponseHelper.fail(new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, 
-                "Production 처리 중 오류가 발생했습니다."));
+        return ResponseEntity
+                .status(e.getErrorCode().getHttpStatus())
+                .body(ModuleResponse.fail(e));
     }
 
-    /**
-     * IllegalStateException 처리
-     * Job 상태 전이 오류, 복구 불가능한 상태 등에서 발생
-     */
+    @ExceptionHandler(JobProcessingException.class)
+    public ResponseEntity<ModuleResponse<Void>> handleJobProcessingException(JobProcessingException e) {
+        log.error("Job processing error: {}", e.getMessage(), e);
+        return ResponseEntity
+                .status(e.getErrorCode().getHttpStatus())
+                .body(ModuleResponse.fail(e));
+    }
+
+    @ExceptionHandler(AIServiceException.class)
+    public ResponseEntity<ModuleResponse<Void>> handleAIServiceException(AIServiceException e) {
+        log.error("AI service error: {}", e.getMessage(), e);
+        return ResponseEntity
+                .status(e.getErrorCode().getHttpStatus())
+                .body(ModuleResponse.fail(e));
+    }
+
+    @ExceptionHandler(ContentRenderException.class)
+    public ResponseEntity<ModuleResponse<Void>> handleContentRenderException(ContentRenderException e) {
+        log.error("Content render error: {}", e.getMessage(), e);
+        return ResponseEntity
+                .status(e.getErrorCode().getHttpStatus())
+                .body(ModuleResponse.fail(e));
+    }
+
+    @ExceptionHandler(StorageException.class)
+    public ResponseEntity<ModuleResponse<Void>> handleStorageException(StorageException e) {
+        log.error("Storage error: {}", e.getMessage(), e);
+        return ResponseEntity
+                .status(e.getErrorCode().getHttpStatus())
+                .body(ModuleResponse.fail(e));
+    }
+
+    @ExceptionHandler(LocalStorageException.class)
+    public ResponseEntity<ModuleResponse<Void>> handleLocalStorageException(LocalStorageException e) {
+        log.error("Local storage error: {}", e.getMessage(), e);
+        return ResponseEntity
+                .status(e.getErrorCode().getHttpStatus())
+                .body(ModuleResponse.fail(e));
+    }
+
+    @ExceptionHandler(S3StorageException.class)
+    public ResponseEntity<ModuleResponse<Void>> handleS3StorageException(S3StorageException e) {
+        log.error("S3 storage error: {}", e.getMessage(), e);
+        return ResponseEntity
+                .status(e.getErrorCode().getHttpStatus())
+                .body(ModuleResponse.fail(e));
+    }
+
+    @ExceptionHandler(RecoveryException.class)
+    public ResponseEntity<ModuleResponse<Void>> handleRecoveryException(RecoveryException e) {
+        log.error("Recovery error: {}", e.getMessage(), e);
+        return ResponseEntity
+                .status(e.getErrorCode().getHttpStatus())
+                .body(ModuleResponse.fail(e));
+    }
+
+    @ExceptionHandler(ParseException.class)
+    public ResponseEntity<ModuleResponse<Void>> handleParseException(ParseException e) {
+        log.error("Parse error: {}", e.getMessage(), e);
+        return ResponseEntity
+                .status(e.getErrorCode().getHttpStatus())
+                .body(ModuleResponse.fail(e));
+    }
+
+    @ExceptionHandler(FormatConversionException.class)
+    public ResponseEntity<ModuleResponse<Void>> handleFormatConversionException(FormatConversionException e) {
+        log.error("Format conversion error: {}", e.getMessage(), e);
+        return ResponseEntity
+                .status(e.getErrorCode().getHttpStatus())
+                .body(ModuleResponse.fail(e));
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ModuleResponse<Void>> handleValidationException(ValidationException e) {
+        log.warn("Validation error: {}", e.getMessage());
+        return ResponseEntity
+                .status(e.getErrorCode().getHttpStatus())
+                .body(ModuleResponse.fail(e));
+    }
+
+    @ExceptionHandler(IdempotencyKeyGenerationException.class)
+    public ResponseEntity<ModuleResponse<Void>> handleIdempotencyKeyGenerationException(IdempotencyKeyGenerationException e) {
+        log.error("Idempotency key generation error: {}", e.getMessage(), e);
+        return ResponseEntity
+                .status(e.getErrorCode().getHttpStatus())
+                .body(ModuleResponse.fail(e));
+    }
+
     @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<?> handleIllegalStateException(IllegalStateException e) {
-        log.warn("IllegalStateException in Production module: {}", e.getMessage());
-        
-        // Job 상태 관련 오류인지 확인
+    public ResponseEntity<ModuleResponse<Void>> handleIllegalStateException(IllegalStateException e) {
+        log.warn("IllegalStateException: {}", e.getMessage());
         String message = e.getMessage();
+        BaseException baseException;
         if (message != null && (
                 message.contains("Cannot") && message.contains("status") ||
                 message.contains("Job") && message.contains("state")
         )) {
-            return CustomResponseHelper.fail(new ApiException(ErrorCode.INVALID_INPUT_VALUE, 
-                    "Job 상태 오류: " + message));
+            baseException = new BaseException(
+                    ModuleErrorCode.JOB_INVALID_STATUS,
+                    null,
+                    "Job 상태 오류: " + message
+            );
+        } else {
+            baseException = new BaseException(
+                    ModuleErrorCode.VALIDATION_ERROR,
+                    null,
+                    "요청을 처리할 수 없는 상태입니다: " + message
+            );
         }
-        
-        // 일반적인 IllegalStateException
-        return CustomResponseHelper.fail(new ApiException(ErrorCode.INVALID_INPUT_VALUE, 
-                "요청을 처리할 수 없는 상태입니다: " + message));
+        return ResponseEntity
+                .status(baseException.getErrorCode().getHttpStatus())
+                .body(ModuleResponse.fail(baseException));
     }
 }

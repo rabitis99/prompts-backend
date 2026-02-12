@@ -1,18 +1,29 @@
 package org.example.sharedprompts.module.domain.production.application.exception;
 
-/**
- * Production Application 계층에서 발생하는 예외의 기본 클래스
- */
-public class ProductionApplicationException extends RuntimeException {
+import org.example.sharedprompts.module.exception.BaseException;
+import org.example.sharedprompts.module.exception.ModuleErrorCode;
+
+import static org.example.sharedprompts.module.exception.ModuleErrorCode.AI_SERVICE_ERROR;
+
+public class ProductionApplicationException extends BaseException {
     
     public ProductionApplicationException(String message) {
-        super(message);
+        super(AI_SERVICE_ERROR, null, message);
     }
     
     public ProductionApplicationException(String message, Throwable cause) {
-        super(message, cause);
+        super(AI_SERVICE_ERROR, null, message, cause);
+    }
+
+    public ProductionApplicationException(ModuleErrorCode errorCode, String message) {
+        super(errorCode, null, message);
+    }
+
+    public ProductionApplicationException(ModuleErrorCode errorCode, String message, Throwable cause) {
+        super(errorCode, null, message, cause);
     }
 }
+
 
 
 

@@ -1,18 +1,19 @@
 package org.example.sharedprompts.module.domain.production.application.exception;
 
-/**
- * ProductionCommandFactory를 찾을 수 없을 때 발생하는 예외
- */
+import static org.example.sharedprompts.module.exception.ModuleErrorCode.COMMAND_FACTORY_NOT_FOUND;
+
 public class ProductionCommandFactoryNotFoundException extends ProductionApplicationException {
     
     public ProductionCommandFactoryNotFoundException(String message) {
-        super(message);
+        super(COMMAND_FACTORY_NOT_FOUND, message);
     }
     
     public ProductionCommandFactoryNotFoundException(Class<?> requestType) {
-        super("ProductionCommandFactory not found for request type: " + requestType.getName());
+        super(COMMAND_FACTORY_NOT_FOUND, 
+                "ProductionCommandFactory not found for request type: " + requestType.getName());
     }
 }
+
 
 
 

@@ -2,6 +2,7 @@ package org.example.sharedprompts.module.domain.production.service.storage;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.util.ChecksumUtils;
+import org.example.sharedprompts.module.domain.production.service.storage.exception.LocalStorageException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -37,7 +38,7 @@ public class LocalStorageStrategy implements StorageStrategy {
         } catch (IOException e) {
             log.error("Failed to store file locally - userId: {}, jobId: {}, fileName: {}", 
                     userId, jobId, fileName, e);
-            throw new StorageException("Failed to store file: " + e.getMessage(), e);
+            throw new LocalStorageException("Failed to store file: " + e.getMessage(), e);
         }
     }
 
@@ -60,7 +61,7 @@ public class LocalStorageStrategy implements StorageStrategy {
         } catch (IOException e) {
             log.error("Failed to store binary file locally - userId: {}, jobId: {}, fileName: {}",
                     userId, jobId, fileName, e);
-            throw new StorageException("Failed to store binary file: " + e.getMessage(), e);
+            throw new LocalStorageException("Failed to store binary file: " + e.getMessage(), e);
         }
     }
 
@@ -72,19 +73,6 @@ public class LocalStorageStrategy implements StorageStrategy {
     @Override
     public StorageType getStorageType() {
         return StorageType.LOCAL;
-    }
-
-    /**
-     * 저장 예외
-     */
-    public static class StorageException extends RuntimeException {
-        public StorageException(String message) {
-            super(message);
-        }
-
-        public StorageException(String message, Throwable cause) {
-            super(message, cause);
-        }
     }
 }
 
