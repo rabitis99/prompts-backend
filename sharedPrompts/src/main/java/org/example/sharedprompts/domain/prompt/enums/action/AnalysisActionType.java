@@ -2,6 +2,9 @@ package org.example.sharedprompts.domain.prompt.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
+
+import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
@@ -19,5 +22,10 @@ public enum AnalysisActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public Optional<TaskDomain> getTaskDomain() {
+        return Optional.of(TaskDomain.ANALYTICAL);
+    }
 }
 

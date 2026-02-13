@@ -47,7 +47,7 @@ public class ActionTypeDeserializer extends JsonDeserializer<ActionTypeInterface
         String value = p.getText();
         if (value == null || value.isBlank()) {
             // InputRequestDto에는 @NotNull 제약이 없으므로, null/blank 값에 대해 기본값 반환
-            // GuidelineBuilder에서 NPE 방지
+            // PromptGuidelineBuilder에서 NPE 방지
             return EtcActionType.GENERAL_CONSULTATION;
         }
         

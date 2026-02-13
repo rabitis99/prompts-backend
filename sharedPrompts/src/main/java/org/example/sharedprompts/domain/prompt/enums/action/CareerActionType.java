@@ -2,6 +2,9 @@ package org.example.sharedprompts.domain.prompt.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
+
+import java.util.Optional;
 
 /**
  * 커리어/취업 관련 액션 타입 enum
@@ -25,5 +28,10 @@ public enum CareerActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public Optional<TaskDomain> getTaskDomain() {
+        return Optional.of(TaskDomain.PRACTICAL);
+    }
 }
 

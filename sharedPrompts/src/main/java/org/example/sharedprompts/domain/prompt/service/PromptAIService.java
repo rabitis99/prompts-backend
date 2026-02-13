@@ -2,7 +2,6 @@ package org.example.sharedprompts.domain.prompt.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.prompt.service.guideline.GuidelineBuilderFactory;
 import org.example.sharedprompts.domain.prompt.service.guideline.PromptGuidelineBuilder;
 import org.example.sharedprompts.dto.prompt.request.InputRequestDto;
 import org.example.sharedprompts.dto.prompt.request.PromptRequestDto;
@@ -19,7 +18,7 @@ public class PromptAIService {
 
     private final PromptGenerator promptGenerator;
     private final SyncGoogleGeminiClient syncGoogleGeminiClient;
-    private final GuidelineBuilderFactory guidelineBuilderFactory;
+    private final PromptGuidelineBuilder promptGuidelineBuilder;
 
     /**
      * 트랜잭션 없이 AI 호출 및 Guideline 적용 수행
@@ -46,10 +45,7 @@ public class PromptAIService {
         }
 
         // 3. Guideline 적용
-        PromptGuidelineBuilder builder = guidelineBuilderFactory.getBuilder(dto.getLanguage());
-        ValidationUtils.requireNonNull(builder, "GuidelineBuilder for language: " + dto.getLanguage());
-
-        String result = builder.build(aiGeneratedContent, dto);
+        String result = promptGuidelineBuilder.build(aiGeneratedContent, dto);
         log.debug("Guideline 적용 완료: language={}", dto.getLanguage());
 
         return result;

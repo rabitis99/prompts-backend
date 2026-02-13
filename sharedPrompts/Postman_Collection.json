@@ -447,6 +447,181 @@
       ]
     },
     {
+      "name": "Prompt Metadata",
+      "item": [
+        {
+          "name": "모든 도메인 메타데이터 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/prompts/metadata/domains",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "metadata", "domains"]
+            }
+          }
+        },
+        {
+          "name": "특정 도메인 메타데이터 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/prompts/metadata/domains/ARCHITECTURE_DESIGN",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "metadata", "domains", "ARCHITECTURE_DESIGN"]
+            }
+          }
+        },
+        {
+          "name": "도메인별 추천 스타일 목록 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/prompts/metadata/domains/ARCHITECTURE_DESIGN/styles",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "metadata", "domains", "ARCHITECTURE_DESIGN", "styles"]
+            }
+          }
+        },
+        {
+          "name": "도메인별 추천 톤 목록 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/prompts/metadata/domains/ARCHITECTURE_DESIGN/tones",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "metadata", "domains", "ARCHITECTURE_DESIGN", "tones"]
+            }
+          }
+        },
+        {
+          "name": "모든 스타일 메타데이터 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/prompts/metadata/styles",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "metadata", "styles"]
+            }
+          }
+        },
+        {
+          "name": "특정 스타일 메타데이터 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/prompts/metadata/styles/NARRATIVE",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "metadata", "styles", "NARRATIVE"]
+            }
+          }
+        },
+        {
+          "name": "스타일별 추천 도메인 목록 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/prompts/metadata/styles/NARRATIVE/domains",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "metadata", "styles", "NARRATIVE", "domains"]
+            }
+          }
+        },
+        {
+          "name": "모든 톤 메타데이터 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/prompts/metadata/tones",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "metadata", "tones"]
+            }
+          }
+        },
+        {
+          "name": "특정 톤 메타데이터 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/prompts/metadata/tones/FRIENDLY",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "metadata", "tones", "FRIENDLY"]
+            }
+          }
+        },
+        {
+          "name": "톤별 추천 도메인 목록 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/prompts/metadata/tones/FRIENDLY/domains",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "metadata", "tones", "FRIENDLY", "domains"]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Comment",
       "item": [
         {
