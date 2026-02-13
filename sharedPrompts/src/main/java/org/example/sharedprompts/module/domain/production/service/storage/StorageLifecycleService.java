@@ -11,6 +11,7 @@ import software.amazon.awssdk.services.s3.model.*;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -67,6 +68,7 @@ public class StorageLifecycleService {
         int processedCount = 0;
 
         try {
+            Instant now = Instant.now();
             ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
                     .bucket(bucket)
                     .prefix(prefix + "/")
@@ -77,7 +79,7 @@ public class StorageLifecycleService {
                 response = s3Client.listObjectsV2(listRequest);
 
                 for (S3Object s3Object : response.contents()) {
-                    if (processObject(s3Object)) {
+                    if (processObject(s3Object, now)) {
                         processedCount++;
                     }
                 }
@@ -99,10 +101,10 @@ public class StorageLifecycleService {
         return processedCount;
     }
 
-    private boolean processObject(S3Object s3Object) {
+    private boolean processObject(S3Object s3Object, Instant now) {
         try {
             Instant lastModified = s3Object.lastModified();
-            long ageInDays = ChronoUnit.DAYS.between(lastModified, Instant.now());
+            long ageInDays = ChronoUnit.DAYS.between(lastModified, now);
 
             if (ageInDays >= deepArchiveDays) {
                 return tagObject(s3Object.key(), TAG_DEEP_ARCHIVE);
@@ -149,16 +151,16 @@ public class StorageLifecycleService {
     private Map<String, String> getObjectTags(String key) {
         try {
             GetObjectTaggingResponse response = s3Client.getObjectTagging(
-                    GetObjectTaggingRequest.builder()
-                            .bucket(bucket)
-                            .key(key)
-                            .build());
+            GetObjectTaggingRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build());
 
-            java.util.HashMap<String, String> tags = new java.util.HashMap<>();
+            HashMap<String, String> tags = new HashMap<>();
             response.tagSet().forEach(tag -> tags.put(tag.key(), tag.value()));
             return tags;
         } catch (Exception e) {
-            return new java.util.HashMap<>();
+            return new HashMap<>();
         }
     }
 }

@@ -66,11 +66,16 @@ public class LocalStorageStrategy implements StorageStrategy {
         }
     }
 
+    private void validatePathSegment(String value, String paramName) {
+        if (value != null && (value.contains("..") || value.contains("/") || value.contains("\\"))) {
+            throw new LocalStorageException("Invalid " + paramName + ": path traversal detected");
+        }
+    }
+
     private Path buildDirectory(String tenantId, Long userId, String jobId) {
+        validatePathSegment(jobId, "jobId");
         if (tenantId != null && !tenantId.isBlank()) {
-            if (tenantId.contains("..") || tenantId.contains("/") || tenantId.contains("\\")) {
-                throw new LocalStorageException("Invalid tenantId: path traversal detected");
-            }
+            validatePathSegment(tenantId, "tenantId");
             return Paths.get(basePath, tenantId, String.valueOf(userId), jobId);
         }
         return Paths.get(basePath, String.valueOf(userId), jobId);

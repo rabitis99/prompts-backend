@@ -103,11 +103,10 @@ public class ProductionArtifactService {
             String jobId = job.getJobId();
             // tenantId를 명시적으로 캡처하여 비동기 스레드에 전달
             // ThreadLocal 기반 TenantContext는 비동기 스레드에 전파되지 않으므로 명시적 전달 필요
-            String capturedTenantId = tenantId;
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    thumbnailService.generateThumbnailsAsync(detailId, filePath, capturedTenantId, userId, jobId);
+                    thumbnailService.generateThumbnailsAsync(detailId, filePath, tenantId, userId, jobId);
                 }
             });
         }
