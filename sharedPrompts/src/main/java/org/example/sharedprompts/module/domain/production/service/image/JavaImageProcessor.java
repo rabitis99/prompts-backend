@@ -1,6 +1,8 @@
 package org.example.sharedprompts.module.domain.production.service.image;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.exception.BaseException;
+import org.example.sharedprompts.module.exception.ModuleErrorCode;
 import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
@@ -16,6 +18,12 @@ public class JavaImageProcessor implements ImageProcessor {
 
     @Override
     public byte[] resize(byte[] imageBytes, int width, int height) throws IOException {
+        if (width <= 0 || height <= 0) {
+            throw new BaseException(
+                    ModuleErrorCode.VALIDATION_ERROR,
+                    null,
+                    "Resize dimensions must be positive: " + width + "x" + height);
+        }
         BufferedImage original = readImage(imageBytes);
 
         BufferedImage resized = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
@@ -34,6 +42,12 @@ public class JavaImageProcessor implements ImageProcessor {
 
     @Override
     public byte[] generateThumbnail(byte[] imageBytes, int size) throws IOException {
+        if (size <= 0) {
+            throw new BaseException(
+                    ModuleErrorCode.VALIDATION_ERROR,
+                    null,
+                    "Thumbnail size must be positive: " + size);
+        }
         BufferedImage original = readImage(imageBytes);
 
         int originalWidth = original.getWidth();
@@ -72,14 +86,15 @@ public class JavaImageProcessor implements ImageProcessor {
     @Override
     public ImageMetadata extractMetadata(byte[] imageBytes) throws IOException {
         BufferedImage image = readImage(imageBytes);
-        String format = detectFormat(imageBytes);
-        String mimeType = "jpg".equals(format) ? "image/jpeg" : "image/" + format;
+        String detectedFormat = detectFormat(imageBytes);
+        String mimeType = "jpg".equals(detectedFormat) ? "image/jpeg" : "image/" + detectedFormat;
+        String format = detectedFormat.toUpperCase();
 
         return new ImageMetadata(
                 image.getWidth(),
                 image.getHeight(),
                 imageBytes.length,
-                format.toUpperCase(),
+                format,
                 mimeType
         );
     }

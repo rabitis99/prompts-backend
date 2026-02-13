@@ -31,9 +31,9 @@ public class ThumbnailService {
 
     @Async("thumbnailTaskExecutor")
     @Transactional
-    public void generateThumbnailsAsync(Long artifactDetailId, String originalStoragePath, Long userId, String jobId) {
+    public void generateThumbnailsAsync(Long artifactDetailId, String originalStoragePath, String tenantId, Long userId, String jobId) {
         try {
-            log.info("Starting thumbnail generation - detailId: {}, path: {}", artifactDetailId, originalStoragePath);
+            log.info("Starting thumbnail generation - detailId: {}, path: {}, tenantId: {}", artifactDetailId, originalStoragePath, tenantId);
 
             byte[] originalImage = storageStrategy.read(originalStoragePath);
             ImageMetadata metadata = imageProcessor.extractMetadata(originalImage);
@@ -44,7 +44,7 @@ public class ThumbnailService {
                 try {
                     byte[] thumbnail = imageProcessor.generateThumbnail(originalImage, size);
                     String thumbnailFileName = "thumb_" + size + "_" + extractFileName(originalStoragePath);
-                    String storedPath = storageStrategy.store(thumbnail, "image/jpeg", userId, jobId, thumbnailFileName);
+                    String storedPath = storageStrategy.store(thumbnail, "image/jpeg", tenantId, userId, jobId, thumbnailFileName);
                     thumbnailKeys.put(String.valueOf(size), storedPath);
                     log.debug("Thumbnail generated - size: {}, path: {}", size, storedPath);
                 } catch (Exception e) {

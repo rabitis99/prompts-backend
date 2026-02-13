@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.util.ChecksumUtils;
 import org.example.sharedprompts.module.domain.production.service.storage.exception.LocalStorageException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -12,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 @Component
+@ConditionalOnProperty(name = "production.storage.type", havingValue = "LOCAL", matchIfMissing = true)
 @Slf4j
 public class LocalStorageStrategy implements StorageStrategy {
 

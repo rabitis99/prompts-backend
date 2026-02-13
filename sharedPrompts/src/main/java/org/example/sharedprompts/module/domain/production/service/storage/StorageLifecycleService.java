@@ -1,6 +1,8 @@
 package org.example.sharedprompts.module.domain.production.service.storage;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.exception.BaseException;
+import org.example.sharedprompts.module.exception.ModuleErrorCode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -38,10 +40,15 @@ public class StorageLifecycleService {
             @Value("${storage.lifecycle.glacier-days:30}") int glacierDays,
             @Value("${storage.lifecycle.deep-archive-days:90}") int deepArchiveDays) {
         if (glacierDays <= 0 || deepArchiveDays <= 0) {
-            throw new IllegalArgumentException("Lifecycle days must be positive");
+            throw new BaseException(
+                    ModuleErrorCode.VALIDATION_ERROR,
+                    null,
+                    "Lifecycle days must be positive");
         }
         if (glacierDays >= deepArchiveDays) {
-            throw new IllegalArgumentException(
+            throw new BaseException(
+                    ModuleErrorCode.VALIDATION_ERROR,
+                    null,
                     "glacierDays (" + glacierDays + ") must be less than deepArchiveDays (" + deepArchiveDays + ")");
         }
         this.s3Client = s3Client;
@@ -81,13 +88,14 @@ public class StorageLifecycleService {
 
             } while (response.isTruncated());
 
+            log.info("Storage lifecycle processing completed - processed: {} objects", processedCount);
+
         } catch (Exception e) {
             log.error("Storage lifecycle processing failed", e);
         } finally {
             running.set(false);
         }
 
-        log.info("Storage lifecycle processing completed - processed: {} objects", processedCount);
         return processedCount;
     }
 
