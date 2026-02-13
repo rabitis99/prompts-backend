@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.auth.jwt.filter.JwtAuthenticationFilter;
 import org.example.sharedprompts.auth.rate.filter.impl.IpRateLimitFilter;
 import org.example.sharedprompts.auth.rate.filter.impl.UserRateLimitFilter;
+import org.example.sharedprompts.auth.security.filter.TenantContextFilter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
  *   <li>IpRateLimitFilter: JWT 인증 전에 IP 기반 Rate Limit 체크 (인증되지 않은 사용자도 제한)</li>
  *   <li>JwtAuthenticationFilter: JWT 토큰 검증 및 인증 처리</li>
  *   <li>UserRateLimitFilter: JWT 인증 후 사용자 ID 기반 Rate Limit 체크 (인증된 사용자만 제한)</li>
+ *   <li>TenantContextFilter: 인증 후 X-Tenant-Id 헤더에서 테넌트 ID 추출 및 ThreadLocal 설정</li>
  * </ol>
  *
  * <p>이 순서는 다음과 같은 이유로 중요합니다:
@@ -34,6 +36,7 @@ public class SecurityFilterConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final IpRateLimitFilter ipRateLimitFilter;
     private final UserRateLimitFilter userRateLimitFilter;
+    private final TenantContextFilter tenantContextFilter;
 
     /**
      * Filter 순서 설정
@@ -63,6 +66,13 @@ public class SecurityFilterConfig {
         http.addFilterAfter(
                 userRateLimitFilter,
                 JwtAuthenticationFilter.class
+        );
+
+        // 4. Tenant Context 설정 (UserRateLimitFilter 후에 실행)
+        //    @Order(-40)로 설정 - X-Tenant-Id 헤더에서 테넌트 ID 추출
+        http.addFilterAfter(
+                tenantContextFilter,
+                UserRateLimitFilter.class
         );
     }
 }

@@ -520,6 +520,31 @@ artifact:
   url:
     default-ttl: ${ARTIFACT_URL_DEFAULT_TTL:300}  # Presigned URL 기본 TTL (초, 기본값: 5분)
 
+# =========================
+# 썸네일 설정
+# =========================
+thumbnail:
+  sizes: ${THUMBNAIL_SIZES:200,400}
+  enabled: ${THUMBNAIL_ENABLED:true}
+
+# =========================
+# CDN 설정
+# =========================
+cdn:
+  enabled: ${CDN_ENABLED:false}
+  domain: ${CDN_DOMAIN:}
+  ttl: ${CDN_TTL:86400}
+
+# =========================
+# 스토리지 라이프사이클 설정
+# =========================
+storage:
+  lifecycle:
+    enabled: ${STORAGE_LIFECYCLE_ENABLED:false}
+    glacier-days: ${STORAGE_GLACIER_DAYS:30}
+    deep-archive-days: ${STORAGE_DEEP_ARCHIVE_DAYS:90}
+    cleanup-cron: ${STORAGE_CLEANUP_CRON:0 0 3 * * ?}
+
 # Spring Cloud AWS
 spring.cloud.aws:
   s3:

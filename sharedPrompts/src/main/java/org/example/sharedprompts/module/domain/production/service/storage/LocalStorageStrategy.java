@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.util.ChecksumUtils;
 import org.example.sharedprompts.module.domain.production.service.storage.exception.LocalStorageException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -12,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 @Component
+@ConditionalOnProperty(name = "production.storage.type", havingValue = "LOCAL", matchIfMissing = true)
 @Slf4j
 public class LocalStorageStrategy implements StorageStrategy {
 
@@ -20,50 +22,63 @@ public class LocalStorageStrategy implements StorageStrategy {
 
     @Override
     public String store(String content, Long userId, String jobId, String fileName) {
-        log.info("Storing file locally - userId: {}, jobId: {}, fileName: {}", 
-                userId, jobId, fileName);
+        return store(content, null, userId, jobId, fileName);
+    }
 
+    @Override
+    public String store(byte[] data, String contentType, Long userId, String jobId, String fileName) {
+        return store(data, contentType, null, userId, jobId, fileName);
+    }
+
+    @Override
+    public String store(String content, String tenantId, Long userId, String jobId, String fileName) {
+        log.info("Storing file locally - tenantId: {}, userId: {}, jobId: {}, fileName: {}",
+                tenantId, userId, jobId, fileName);
         try {
-            Path directory = Paths.get(basePath, String.valueOf(userId), jobId);
-            Files.createDirectories(directory);
-
+            Path directory = buildDirectory(tenantId, userId, jobId);
             Path filePath = directory.resolve(fileName);
             validateWithinBasePath(filePath);
+            Files.createDirectories(directory);
             Files.writeString(filePath, content);
-
             log.info("File stored successfully - path: {}", filePath);
-
             return filePath.toString();
-
         } catch (IOException e) {
-            log.error("Failed to store file locally - userId: {}, jobId: {}, fileName: {}", 
-                    userId, jobId, fileName, e);
+            log.error("Failed to store file locally - tenantId: {}, userId: {}", tenantId, userId, e);
             throw new LocalStorageException("Failed to store file: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public String store(byte[] data, String contentType, Long userId, String jobId, String fileName) {
-        log.info("Storing binary file locally - userId: {}, jobId: {}, fileName: {}, contentType: {}",
-                userId, jobId, fileName, contentType);
-
+    public String store(byte[] data, String contentType, String tenantId, Long userId, String jobId, String fileName) {
+        log.info("Storing binary file locally - tenantId: {}, userId: {}, jobId: {}, fileName: {}",
+                tenantId, userId, jobId, fileName);
         try {
-            Path directory = Paths.get(basePath, String.valueOf(userId), jobId);
-            Files.createDirectories(directory);
-
+            Path directory = buildDirectory(tenantId, userId, jobId);
             Path filePath = directory.resolve(fileName);
             validateWithinBasePath(filePath);
+            Files.createDirectories(directory);
             Files.write(filePath, data);
-
             log.info("Binary file stored successfully - path: {}, size: {} bytes", filePath, data.length);
-
             return filePath.toString();
-
         } catch (IOException e) {
-            log.error("Failed to store binary file locally - userId: {}, jobId: {}, fileName: {}",
-                    userId, jobId, fileName, e);
+            log.error("Failed to store binary file locally - tenantId: {}, userId: {}", tenantId, userId, e);
             throw new LocalStorageException("Failed to store binary file: " + e.getMessage(), e);
         }
+    }
+
+    private void validatePathSegment(String value, String paramName) {
+        if (value != null && (value.contains("..") || value.contains("/") || value.contains("\\"))) {
+            throw new LocalStorageException("Invalid " + paramName + ": path traversal detected");
+        }
+    }
+
+    private Path buildDirectory(String tenantId, Long userId, String jobId) {
+        validatePathSegment(jobId, "jobId");
+        if (tenantId != null && !tenantId.isBlank()) {
+            validatePathSegment(tenantId, "tenantId");
+            return Paths.get(basePath, tenantId, String.valueOf(userId), jobId);
+        }
+        return Paths.get(basePath, String.valueOf(userId), jobId);
     }
 
     private void validateWithinBasePath(Path filePath) {

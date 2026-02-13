@@ -254,18 +254,18 @@
 
 **목표**: 타입 안전성 확보 및 기본 기능 완성
 
-- [ ] ArtifactDto 타입 분리
+- [x] ArtifactDto 타입 분리
   - 추상 클래스로 변경
   - TextArtifactDto, FileArtifactDto, ImageArtifactDto 구현
   - Jackson 다형성 직렬화 설정
 
-- [ ] Presigned URL 기본 구현
+- [x] Presigned URL 기본 구현
   - ArtifactAccessService 인터페이스 및 구현
   - S3Presigner Bean 설정
   - Redis 캐싱 적용
   - ImageArtifactDto에 previewUrl 자동 포함
 
-- [ ] success 필드 중복 제거
+- [x] success 필드 중복 제거
   - ProductionStatus enum 생성
   - ProductionResponseDto 수정
   - Controller 수정
@@ -274,16 +274,16 @@
 
 **목표**: 확장성 및 품질 향상
 
-- [ ] StorageStrategy 확장
+- [x] StorageStrategy 확장
   - read(), generateAccessUrl() 메서드 추가
   - S3StorageStrategy, LocalStorageStrategy 구현 확장
 
-- [ ] ArtifactHandler 전략 패턴
+- [x] ArtifactHandler 전략 패턴
   - ArtifactHandler 인터페이스 정의
   - 타입별 Handler 구현
   - ArtifactHandlerRegistry 도입
 
-- [ ] PDF 변환 개선
+- [x] PDF 변환 개선
   - FlexMark, OpenHTMLToPDF 의존성 추가
   - MarkdownParser, HtmlToPdfConverter 구현
   - CSS 스타일링 추가
@@ -292,26 +292,31 @@
 
 **목표**: 고급 기능 및 SaaS 준비
 
-- [ ] 썸네일 생성
+- [x] 썸네일 생성
   - ImageProcessor 인터페이스 및 구현
   - ThumbnailService 구현
   - 비동기 설정
 
-- [ ] CDN 통합
+- [x] CDN 통합
   - CloudFront 배포
   - CDN URL 생성 로직
 
-- [ ] 멀티 테넌시
+- [x] 멀티 테넌시
   - 테넌트 ID 필드 추가
   - S3 키 구조 변경
   - 접근 제어 강화
+
+- [x] 스토리지 자동 최적화
+  - StorageLifecycleService 구현
+  - StorageCleanupScheduler 구현
+  - 라이프사이클 정책 (Glacier/Deep Archive 전환)
 
 ---
 
 ## 6. 예상 효과
 
 ### 6.1 타입 안전성
-- ✅ 클라이언트 런타임 에러 90% 감소
+- ✅ 클라이언트 런타임 에러 대폭 감소 (목표)
 - ✅ API 계약 명확화
 - ✅ IDE 자동완성 지원
 
@@ -349,22 +354,22 @@
 ### Phase 1 체크리스트
 
 **파일 생성/수정:**
-- [ ] `ArtifactDto.java` - 추상 클래스로 변경
-- [ ] `TextArtifactDto.java` - 새로 생성
-- [ ] `FileArtifactDto.java` - 새로 생성
-- [ ] `ImageArtifactDto.java` - 새로 생성
-- [ ] `ProductionStatus.java` - 새로 생성
-- [ ] `ArtifactAccessService.java` - 인터페이스 생성
-- [ ] `ArtifactAccessServiceImpl.java` - 구현 생성
-- [ ] `S3Config.java` - S3Presigner Bean 설정
-- [ ] `ProductionResponseDto.java` - status 필드로 변경
-- [ ] `ProductionResultController.java` - ArtifactAccessService 사용
+- [x] `ArtifactDto.java` - 추상 클래스로 변경
+- [x] `TextArtifactDto.java` - 새로 생성
+- [x] `FileArtifactDto.java` - 새로 생성
+- [x] `ImageArtifactDto.java` - 새로 생성
+- [x] `ProductionStatus.java` - 새로 생성
+- [x] `ArtifactAccessService.java` - 인터페이스 생성
+- [x] `ArtifactAccessServiceImpl.java` - 구현 생성
+- [x] `S3Config.java` - S3Presigner Bean 설정
+- [x] `ProductionResponseDto.java` - status 필드로 변경
+- [x] `ProductionResultController.java` - ArtifactAccessService 사용
 
 **설정:**
-- [ ] `application.yml` - artifact.s3.bucket, artifact.url.default-ttl 추가
-- [ ] Redis 설정 확인 (Presigned URL 캐싱용)
+- [x] `application.yml` - artifact.s3.bucket, artifact.url.default-ttl 추가
+- [x] Redis 설정 확인 (Presigned URL 캐싱용)
 
-**테스트:**
+**테스트:** <!-- TODO: 담당자 배정 및 일정 확정 필요 -->
 - [ ] ArtifactDto 직렬화/역직렬화 테스트
 - [ ] Presigned URL 생성 테스트
 - [ ] 캐싱 동작 테스트
@@ -378,5 +383,6 @@
 ---
 
 이 가이드는 단계적 적용을 통해 리스크를 최소화하면서 시스템을 고도화할 수 있도록 설계되었습니다.
+
 
 

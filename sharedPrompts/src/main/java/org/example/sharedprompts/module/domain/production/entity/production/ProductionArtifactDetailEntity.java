@@ -49,5 +49,9 @@ public class ProductionArtifactDetailEntity {
 
     @Column(name = "metadata", columnDefinition = "TEXT")
     private String metadata;
+
+    public void updateMetadata(String metadata) {
+        this.metadata = metadata;
+    }
 }
 
