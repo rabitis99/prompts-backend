@@ -10,6 +10,8 @@ public interface StorageStrategy {
 
     String store(byte[] data, String contentType, Long userId, String jobId, String fileName);
 
+    // NOTE: 인터페이스 default 메서드에서는 Logger를 필드에 캐싱할 수 없으므로 호출마다 조회합니다.
+    // 이 폴백은 구현체가 tenant-aware store를 오버라이드하지 않은 경우에만 호출되므로 실제 영향은 제한적입니다.
     default String store(String content, String tenantId, Long userId, String jobId, String fileName) {
         LoggerFactory.getLogger(getClass()).warn(
                 "Tenant-aware store not implemented by {}. tenantId '{}' will be ignored - data may not be tenant-isolated.",

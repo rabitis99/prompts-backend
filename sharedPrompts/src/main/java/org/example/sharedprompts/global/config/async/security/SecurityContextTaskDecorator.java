@@ -34,6 +34,8 @@ public class SecurityContextTaskDecorator implements TaskDecorator {
                 SecurityContextHolder.setContext(securityContext);
                 if (tenantId != null) {
                     TenantContext.setCurrentTenantId(tenantId);
+                } else {
+                    TenantContext.clear();
                 }
                 runnable.run();
             } finally {

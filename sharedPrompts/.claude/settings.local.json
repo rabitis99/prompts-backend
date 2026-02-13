@@ -10,7 +10,8 @@
       "Bash(del /q \"src\\\\main\\\\java\\\\org\\\\example\\\\sharedprompts\\\\module\\\\dto\\\\request\\\\delivery\\\\GitHubDeliveryContextDto.java\")",
       "Bash(del /q \"src\\\\main\\\\java\\\\org\\\\example\\\\sharedprompts\\\\module\\\\dto\\\\request\\\\delivery\\\\NotionDeliveryContextDto.java\")",
       "Bash(del /q \"src\\\\main\\\\java\\\\org\\\\example\\\\sharedprompts\\\\module\\\\dto\\\\response\\\\delivery\\\\DeliveryResponseDto.java\")",
-      "Bash(./gradlew test:*)"
+      "Bash(./gradlew test:*)",
+      "Bash(git add:*)"
     ]
   }
 }

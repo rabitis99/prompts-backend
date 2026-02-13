@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.model.tenant.TenantContext;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.core.annotation.Order;
@@ -22,6 +23,7 @@ import java.io.IOException;
  */
 @Component
 @Order(-40)
+@Slf4j
 public class TenantContextFilter extends OncePerRequestFilter {
 
     private static final String TENANT_HEADER = "X-Tenant-Id";
@@ -35,7 +37,13 @@ public class TenantContextFilter extends OncePerRequestFilter {
         try {
             String tenantId = request.getHeader(TENANT_HEADER);
             if (tenantId != null && !tenantId.isBlank()) {
-                TenantContext.setCurrentTenantId(tenantId.trim());
+                String trimmed = tenantId.trim();
+                if (!trimmed.matches("^[a-zA-Z0-9_-]+$")) {
+                    log.warn("Invalid tenant ID rejected: {}", trimmed);
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid Tenant ID");
+                    return;
+                }
+                TenantContext.setCurrentTenantId(trimmed);
             }
             filterChain.doFilter(request, response);
         } finally {

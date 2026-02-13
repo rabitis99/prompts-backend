@@ -17,6 +17,8 @@ import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataH
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -78,12 +80,15 @@ public class ProductionArtifactService {
         ProductionArtifactEntity saved = productionArtifactRepository.save(artifact);
 
         if (artifactType == ArtifactType.IMAGE && saved.getDetail() != null) {
-            thumbnailService.generateThumbnailsAsync(
-                    saved.getDetail().getId(),
-                    filePath,
-                    job.getUserId(),
-                    job.getJobId()
-            );
+            Long detailId = saved.getDetail().getId();
+            Long userId = job.getUserId();
+            String jobId = job.getJobId();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    thumbnailService.generateThumbnailsAsync(detailId, filePath, userId, jobId);
+                }
+            });
         }
 
         return saved;

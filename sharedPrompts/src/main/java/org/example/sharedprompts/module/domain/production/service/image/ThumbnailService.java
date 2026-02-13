@@ -69,7 +69,7 @@ public class ThumbnailService {
 
         try {
             Map<String, Object> metadataMap = (detail.getMetadata() != null && !detail.getMetadata().isBlank())
-                    ? objectMapper.readValue(detail.getMetadata(), new TypeReference<>() {})
+                    ? objectMapper.readValue(detail.getMetadata(), new TypeReference<Map<String, Object>>() {})
                     : new HashMap<>();
 
             metadataMap.put("width", metadata.width());

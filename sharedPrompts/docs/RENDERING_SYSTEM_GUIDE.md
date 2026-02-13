@@ -316,7 +316,7 @@
 ## 6. 예상 효과
 
 ### 6.1 타입 안전성
-- ✅ 클라이언트 런타임 에러 90% 감소
+- ✅ 클라이언트 런타임 에러 대폭 감소 (목표)
 - ✅ API 계약 명확화
 - ✅ IDE 자동완성 지원
 
@@ -369,7 +369,7 @@
 - [x] `application.yml` - artifact.s3.bucket, artifact.url.default-ttl 추가
 - [x] Redis 설정 확인 (Presigned URL 캐싱용)
 
-**테스트:**
+**테스트:** <!-- TODO: 담당자 배정 및 일정 확정 필요 -->
 - [ ] ArtifactDto 직렬화/역직렬화 테스트
 - [ ] Presigned URL 생성 테스트
 - [ ] 캐싱 동작 테스트

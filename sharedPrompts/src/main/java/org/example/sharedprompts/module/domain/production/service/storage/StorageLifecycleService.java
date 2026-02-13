@@ -23,6 +23,8 @@ public class StorageLifecycleService {
     private final String prefix;
     private final int glacierDays;
     private final int deepArchiveDays;
+    // NOTE: AtomicBoolean은 단일 JVM 인스턴스 내에서만 중복 실행을 방지합니다.
+    // 다중 인스턴스 환경에서는 분산 락(Redis, DB lock 등)으로 교체가 필요합니다.
     private final AtomicBoolean running = new AtomicBoolean(false);
 
     private static final String LIFECYCLE_TAG_KEY = "lifecycle-status";
@@ -35,6 +37,13 @@ public class StorageLifecycleService {
             @Value("${production.storage.s3.prefix:production}") String prefix,
             @Value("${storage.lifecycle.glacier-days:30}") int glacierDays,
             @Value("${storage.lifecycle.deep-archive-days:90}") int deepArchiveDays) {
+        if (glacierDays <= 0 || deepArchiveDays <= 0) {
+            throw new IllegalArgumentException("Lifecycle days must be positive");
+        }
+        if (glacierDays >= deepArchiveDays) {
+            throw new IllegalArgumentException(
+                    "glacierDays (" + glacierDays + ") must be less than deepArchiveDays (" + deepArchiveDays + ")");
+        }
         this.s3Client = s3Client;
         this.bucket = bucket;
         this.prefix = prefix;

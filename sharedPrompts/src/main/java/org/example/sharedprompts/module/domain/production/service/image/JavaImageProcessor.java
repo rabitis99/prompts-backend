@@ -46,10 +46,10 @@ public class JavaImageProcessor implements ImageProcessor {
         int thumbWidth, thumbHeight;
         if (originalWidth > originalHeight) {
             thumbWidth = size;
-            thumbHeight = (int) ((double) originalHeight / originalWidth * size);
+            thumbHeight = Math.max(1, (int) ((double) originalHeight / originalWidth * size));
         } else {
             thumbHeight = size;
-            thumbWidth = (int) ((double) originalWidth / originalHeight * size);
+            thumbWidth = Math.max(1, (int) ((double) originalWidth / originalHeight * size));
         }
 
         BufferedImage thumbnail = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
