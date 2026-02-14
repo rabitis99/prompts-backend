@@ -14,7 +14,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
 
     private static final List<GuidelineRule> PRINCIPLES = List.of(
             // 핵심 원칙
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.PRINCIPLE.ORIGINALITY",
                     I18nText.of("독창성 추구", "Pursue Originality", "独創性の追求"),
                     I18nText.of(
@@ -24,7 +24,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.PRINCIPLE.EMOTIONAL_RESONANCE",
                     I18nText.of("감성적 공명", "Emotional Resonance", "感性的共鳴"),
                     I18nText.of(
@@ -34,7 +34,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.PRINCIPLE.CONTEXTUAL_FREEDOM",
                     I18nText.of("맥락적 자유", "Contextual Freedom", "文脈的自由"),
                     I18nText.of(
@@ -45,7 +45,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
                     SOFT, ALLOW
             ),
             // 의도적 불완전성 허용 (CREATIVE 전용 반-규칙)
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.ANTI.NO_FORCED_COMPLETION",
                     I18nText.of("완전성 강제 금지", "No Forced Completion", "完全性強制禁止"),
                     I18nText.of(
@@ -55,7 +55,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
                     ),
                     HARD, FORBID
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.ANTI.NO_FORCED_CONCLUSION",
                     I18nText.of("결론 강제 금지", "No Forced Conclusion", "結論強制禁止"),
                     I18nText.of(
@@ -65,7 +65,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
                     ),
                     HARD, FORBID
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.ANTI.NO_FORCED_MESSAGE",
                     I18nText.of("메시지 강제 금지", "No Forced Message", "メッセージ強制禁止"),
                     I18nText.of(
@@ -75,7 +75,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
                     ),
                     HARD, FORBID
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.ANTI.NO_FORCED_STRUCTURE",
                     I18nText.of("구조 강제 금지", "No Forced Structure", "構造強制禁止"),
                     I18nText.of(
@@ -88,7 +88,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> STRUCTURING_RULES = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.STRUCTURE.NATURAL_FLOW",
                     I18nText.of("자연스러운 흐름", "Natural Flow", "自然な流れ"),
                     I18nText.of(
@@ -98,7 +98,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.STRUCTURE.SENSORY_EXPRESSION",
                     I18nText.of("감각적 표현 장려", "Encourage Sensory Expression", "感覚的表現の奨励"),
                     I18nText.of(
@@ -108,7 +108,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.STRUCTURE.MOOD_CONSISTENCY",
                     I18nText.of("분위기 일관성", "Mood Consistency", "雰囲気の一貫性"),
                     I18nText.of(
@@ -118,7 +118,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.STRUCTURE.WHITE_SPACE",
                     I18nText.of("여백의 활용", "Use of White Space", "余白の活用"),
                     I18nText.of(
@@ -131,7 +131,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> QUALITY_STANDARDS = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.QUALITY.IMMERSION",
                     I18nText.of("몰입감", "Immersion", "没入感"),
                     I18nText.of(
@@ -141,7 +141,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.QUALITY.ORIGINALITY",
                     I18nText.of("독창성", "Originality", "独創性"),
                     I18nText.of(
@@ -151,7 +151,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.QUALITY.EMOTIONAL_DEPTH",
                     I18nText.of("정서적 울림", "Emotional Depth", "情緒的な響き"),
                     I18nText.of(
@@ -164,7 +164,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> OUTPUT_CONSTRAINTS = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.OUTPUT.FORMAT_FREEDOM",
                     I18nText.of("형식 자유", "Format Freedom", "形式の自由"),
                     I18nText.of(
@@ -174,7 +174,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
                     ),
                     HARD, ALLOW
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.OUTPUT.FREE_INTRO",
                     I18nText.of("도입부 자유", "Free Introduction", "導入部の自由"),
                     I18nText.of(
@@ -184,7 +184,7 @@ public final class CreativeGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, ALLOW
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "CREATIVE.OUTPUT.LINGERING_ENDING",
                     I18nText.of("마무리 여운", "Lingering Ending", "余韻のある結び"),
                     I18nText.of(
@@ -218,4 +218,5 @@ public final class CreativeGuidelines implements GuidelinePolicy {
         return OUTPUT_CONSTRAINTS;
     }
 }
+
 

@@ -10,6 +10,8 @@ import org.example.sharedprompts.domain.prompt.guideline.RuleType;
 import org.example.sharedprompts.domain.prompt.enums.role.RoleTypeInterface;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.joining;
 
@@ -83,12 +85,13 @@ public abstract class AbstractGuidelineRenderer implements GuidelineRenderer {
             return "";
         }
 
-        List<GuidelineRule> requires = hardRules.stream()
-                .filter(r -> r.type() == RuleType.REQUIRE).toList();
-        List<GuidelineRule> forbids = hardRules.stream()
-                .filter(r -> r.type() == RuleType.FORBID).toList();
-        List<GuidelineRule> allows = hardRules.stream()
-                .filter(r -> r.type() == RuleType.ALLOW).toList();
+        // 단일 패스로 RuleType별 그룹핑
+        Map<RuleType, List<GuidelineRule>> groupedByType = hardRules.stream()
+                .collect(Collectors.groupingBy(GuidelineRule::type));
+
+        List<GuidelineRule> requires = groupedByType.getOrDefault(RuleType.REQUIRE, List.of());
+        List<GuidelineRule> forbids = groupedByType.getOrDefault(RuleType.FORBID, List.of());
+        List<GuidelineRule> allows = groupedByType.getOrDefault(RuleType.ALLOW, List.of());
 
         StringBuilder sb = new StringBuilder();
 

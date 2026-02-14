@@ -13,7 +13,7 @@ public final class AnalyticalGuidelines implements GuidelinePolicy {
     public static final AnalyticalGuidelines INSTANCE = new AnalyticalGuidelines();
 
     private static final List<GuidelineRule> PRINCIPLES = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "ANALYTICAL.PRINCIPLE.EVIDENCE_BASED",
                     I18nText.of("증거 기반", "Evidence-Based", "証拠ベース"),
                     I18nText.of(
@@ -23,7 +23,7 @@ public final class AnalyticalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "ANALYTICAL.PRINCIPLE.MULTI_PERSPECTIVE",
                     I18nText.of("다각적 관점", "Multi-Perspective", "多角的視点"),
                     I18nText.of(
@@ -33,7 +33,7 @@ public final class AnalyticalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "ANALYTICAL.PRINCIPLE.SYSTEMATIC",
                     I18nText.of("체계적 사고", "Systematic Thinking", "体系的思考"),
                     I18nText.of(
@@ -46,7 +46,7 @@ public final class AnalyticalGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> STRUCTURING_RULES = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "ANALYTICAL.STRUCTURE.LOGICAL",
                     I18nText.of("논리적 구조", "Logical Structure", "論理的構造"),
                     I18nText.of(
@@ -56,7 +56,7 @@ public final class AnalyticalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "ANALYTICAL.STRUCTURE.DATA_VISUALIZATION",
                     I18nText.of("데이터 시각화", "Data Visualization", "データ可視化"),
                     I18nText.of(
@@ -66,7 +66,7 @@ public final class AnalyticalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "ANALYTICAL.STRUCTURE.CAUSALITY",
                     I18nText.of("인과관계 명시", "Explicit Causality", "因果関係の明示"),
                     I18nText.of(
@@ -76,7 +76,7 @@ public final class AnalyticalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "ANALYTICAL.STRUCTURE.LIMITATIONS",
                     I18nText.of("한계 인정", "Acknowledge Limitations", "限界の認識"),
                     I18nText.of(
@@ -89,7 +89,7 @@ public final class AnalyticalGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> QUALITY_STANDARDS = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "ANALYTICAL.QUALITY.RIGOR",
                     I18nText.of("논리적 엄밀성", "Logical Rigor", "論理的厳密性"),
                     I18nText.of(
@@ -99,7 +99,7 @@ public final class AnalyticalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "ANALYTICAL.QUALITY.OBJECTIVITY",
                     I18nText.of("객관성", "Objectivity", "客観性"),
                     I18nText.of(
@@ -109,7 +109,7 @@ public final class AnalyticalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "ANALYTICAL.QUALITY.ACTIONABILITY",
                     I18nText.of("실행 가능성", "Actionability", "実行可能性"),
                     I18nText.of(
@@ -122,7 +122,7 @@ public final class AnalyticalGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> OUTPUT_CONSTRAINTS = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "ANALYTICAL.OUTPUT.NO_GREETING",
                     I18nText.of("인사말 금지", "No Greetings", "挨拶禁止"),
                     I18nText.of(
@@ -132,7 +132,7 @@ public final class AnalyticalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, FORBID
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "ANALYTICAL.OUTPUT.CITE_SOURCES",
                     I18nText.of("출처 명시", "Cite Sources", "出典の明示"),
                     I18nText.of(
@@ -142,7 +142,7 @@ public final class AnalyticalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "ANALYTICAL.OUTPUT.SUMMARY_FIRST",
                     I18nText.of("핵심 요약 선행", "Summary First", "核心要約先行"),
                     I18nText.of(
@@ -152,7 +152,7 @@ public final class AnalyticalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "ANALYTICAL.OUTPUT.QUANT_QUAL_SEPARATION",
                     I18nText.of("정량/정성 구분", "Quantitative/Qualitative Separation", "定量/定性の区分"),
                     I18nText.of(
@@ -186,4 +186,5 @@ public final class AnalyticalGuidelines implements GuidelinePolicy {
         return OUTPUT_CONSTRAINTS;
     }
 }
+
 

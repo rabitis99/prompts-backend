@@ -13,7 +13,7 @@ public final class EducationalGuidelines implements GuidelinePolicy {
     public static final EducationalGuidelines INSTANCE = new EducationalGuidelines();
 
     private static final List<GuidelineRule> PRINCIPLES = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "EDU.PRINCIPLE.UNDERSTANDING",
                     I18nText.of("이해 촉진", "Promote Understanding", "理解の促進"),
                     I18nText.of(
@@ -23,7 +23,7 @@ public final class EducationalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "EDU.PRINCIPLE.PROGRESSIVE",
                     I18nText.of("단계적 심화", "Progressive Deepening", "段階的深化"),
                     I18nText.of(
@@ -33,7 +33,7 @@ public final class EducationalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "EDU.PRINCIPLE.ACTIVE_ENGAGEMENT",
                     I18nText.of("능동적 참여 유도", "Encourage Active Engagement", "能動的参加の誘導"),
                     I18nText.of(
@@ -46,7 +46,7 @@ public final class EducationalGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> STRUCTURING_RULES = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "EDU.STRUCTURE.CONCEPT_FIRST",
                     I18nText.of("개념 선행", "Concept First", "概念先行"),
                     I18nText.of(
@@ -56,7 +56,7 @@ public final class EducationalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "EDU.STRUCTURE.RICH_EXAMPLES",
                     I18nText.of("예시 풍부", "Rich Examples", "豊富な例示"),
                     I18nText.of(
@@ -66,7 +66,7 @@ public final class EducationalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "EDU.STRUCTURE.KEY_TAKEAWAYS",
                     I18nText.of("요약 및 복습", "Summary and Review", "要約と復習"),
                     I18nText.of(
@@ -76,7 +76,7 @@ public final class EducationalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "EDU.STRUCTURE.DIFFICULTY_LEVEL",
                     I18nText.of("난이도 표기", "Difficulty Marking", "難易度の表記"),
                     I18nText.of(
@@ -89,7 +89,7 @@ public final class EducationalGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> QUALITY_STANDARDS = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "EDU.QUALITY.ACCURACY",
                     I18nText.of("정확성", "Accuracy", "正確性"),
                     I18nText.of(
@@ -99,7 +99,7 @@ public final class EducationalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "EDU.QUALITY.ACCESSIBILITY",
                     I18nText.of("접근성", "Accessibility", "アクセシビリティ"),
                     I18nText.of(
@@ -109,7 +109,7 @@ public final class EducationalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "EDU.QUALITY.MOTIVATION",
                     I18nText.of("동기 부여", "Motivation", "動機付け"),
                     I18nText.of(
@@ -122,7 +122,7 @@ public final class EducationalGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> OUTPUT_CONSTRAINTS = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "EDU.OUTPUT.FRIENDLY_INTRO",
                     I18nText.of("친근한 도입 허용", "Friendly Introduction Allowed", "親しみやすい導入の許容"),
                     I18nText.of(
@@ -132,7 +132,7 @@ public final class EducationalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, ALLOW
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "EDU.OUTPUT.ENCOURAGING_ENDING",
                     I18nText.of("격려의 마무리", "Encouraging Ending", "励ましの結び"),
                     I18nText.of(
@@ -142,7 +142,7 @@ public final class EducationalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, ALLOW
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "EDU.OUTPUT.LEARNING_ACTIONS",
                     I18nText.of("학습 행동 유도", "Encourage Learning Actions", "学習行動の誘導"),
                     I18nText.of(
@@ -176,4 +176,5 @@ public final class EducationalGuidelines implements GuidelinePolicy {
         return OUTPUT_CONSTRAINTS;
     }
 }
+
 

@@ -11,3 +11,4 @@ import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 public record DomainResolution(TaskDomain domain, boolean isFallback) {
 }
 
+

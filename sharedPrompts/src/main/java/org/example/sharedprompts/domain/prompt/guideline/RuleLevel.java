@@ -10,3 +10,4 @@ public enum RuleLevel {
     SOFT
 }
 
+

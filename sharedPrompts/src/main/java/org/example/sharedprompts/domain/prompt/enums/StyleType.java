@@ -160,10 +160,7 @@ public enum StyleType {
                     List.of(TaskDomain.ANALYTICAL, TaskDomain.EDUCATIONAL, TaskDomain.GENERAL);
             
             // TECHNICAL + PRACTICAL 도메인에 적합한 스타일
-            case FORMATTED ->
-                    List.of(TaskDomain.TECHNICAL, TaskDomain.PRACTICAL);
-            
-            case CONCISE ->
+            case FORMATTED, CONCISE ->
                     List.of(TaskDomain.TECHNICAL, TaskDomain.PRACTICAL);
         };
     }

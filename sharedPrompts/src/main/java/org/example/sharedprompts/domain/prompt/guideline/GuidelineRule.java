@@ -16,10 +16,6 @@ public record GuidelineRule(
         RuleLevel level,
         RuleType type
 ) {
-
-    public static GuidelineRule of(String id, I18nText title, I18nText description,
-                                   RuleLevel level, RuleType type) {
-        return new GuidelineRule(id, title, description, level, type);
-    }
 }
+
 

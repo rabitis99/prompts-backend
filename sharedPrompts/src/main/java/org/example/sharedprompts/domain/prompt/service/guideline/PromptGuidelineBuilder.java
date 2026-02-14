@@ -44,7 +44,9 @@ public class PromptGuidelineBuilder {
         // 1. 페르소나 헤더: 역할 + 톤 + 스타일
         String personaHeader = renderer.renderPersonaHeader(
                 request.getRoleType(), request.getTone(), request.getStyle());
-        result.append(personaHeader);
+        if (!personaHeader.isEmpty()) {
+            result.append(personaHeader);
+        }
 
         // 2. 경험 수준 지시 (있는 경우)
         String experienceContext = renderer.renderExperienceContext(request.getExperience());
@@ -52,7 +54,9 @@ public class PromptGuidelineBuilder {
             result.append("\n").append(experienceContext);
         }
 
-        result.append("\n\n");
+        if (!result.isEmpty()) {
+            result.append("\n\n");
+        }
 
         // 3. AI 생성 본문
         result.append(basePrompt.strip());

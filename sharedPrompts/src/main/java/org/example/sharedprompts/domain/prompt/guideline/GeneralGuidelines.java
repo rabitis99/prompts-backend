@@ -14,7 +14,7 @@ public final class GeneralGuidelines implements GuidelinePolicy {
     public static final GeneralGuidelines INSTANCE = new GeneralGuidelines();
 
     /** GENERAL 폴백 시 출력되는 한계 인정 메타-규칙 */
-    public static final GuidelineRule LIMITATION_ACK = GuidelineRule.of(
+    public static final GuidelineRule LIMITATION_ACK = new GuidelineRule(
             "GENERAL.META.LIMITATION_ACK",
             I18nText.of("도메인 비특화 안내", "Domain Non-Specialization Notice", "ドメイン非特化案内"),
             I18nText.of(
@@ -29,7 +29,7 @@ public final class GeneralGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> PRINCIPLES = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "GENERAL.PRINCIPLE.BALANCED_ACCURACY",
                     I18nText.of("균형 잡힌 정확성", "Balanced Accuracy", "バランスの取れた正確性"),
                     I18nText.of(
@@ -39,7 +39,7 @@ public final class GeneralGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "GENERAL.PRINCIPLE.ADAPTIVE_CONTEXT",
                     I18nText.of("적응적 맥락 파악", "Adaptive Context Recognition", "適応的文脈把握"),
                     I18nText.of(
@@ -49,7 +49,7 @@ public final class GeneralGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "GENERAL.PRINCIPLE.UNIVERSAL_UTILITY",
                     I18nText.of("보편적 유용성", "Universal Utility", "普遍的有用性"),
                     I18nText.of(
@@ -62,7 +62,7 @@ public final class GeneralGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> STRUCTURING_RULES = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "GENERAL.STRUCTURE.FLEXIBLE",
                     I18nText.of("유연한 구성", "Flexible Organization", "柔軟な構成"),
                     I18nText.of(
@@ -72,7 +72,7 @@ public final class GeneralGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, ALLOW
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "GENERAL.STRUCTURE.READABILITY",
                     I18nText.of("가독성 확보", "Ensure Readability", "可読性の確保"),
                     I18nText.of(
@@ -82,7 +82,7 @@ public final class GeneralGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "GENERAL.STRUCTURE.CORE_FIRST",
                     I18nText.of("핵심 우선", "Core First", "核心優先"),
                     I18nText.of(
@@ -92,7 +92,7 @@ public final class GeneralGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "GENERAL.STRUCTURE.APPROPRIATE_LENGTH",
                     I18nText.of("적절한 분량", "Appropriate Length", "適切な分量"),
                     I18nText.of(
@@ -105,7 +105,7 @@ public final class GeneralGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> QUALITY_STANDARDS = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "GENERAL.QUALITY.COMPREHENSIBILITY",
                     I18nText.of("이해 용이성", "Comprehensibility", "理解の容易さ"),
                     I18nText.of(
@@ -115,7 +115,7 @@ public final class GeneralGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "GENERAL.QUALITY.PRACTICALITY",
                     I18nText.of("실용성", "Practicality", "実用性"),
                     I18nText.of(
@@ -125,7 +125,7 @@ public final class GeneralGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "GENERAL.QUALITY.RELIABILITY",
                     I18nText.of("신뢰성", "Reliability", "信頼性"),
                     I18nText.of(
@@ -138,7 +138,7 @@ public final class GeneralGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> OUTPUT_CONSTRAINTS = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "GENERAL.OUTPUT.MINIMAL_GREETING",
                     I18nText.of("인사말 최소화", "Minimize Greetings", "挨拶の最小化"),
                     I18nText.of(
@@ -148,7 +148,7 @@ public final class GeneralGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, ALLOW
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "GENERAL.OUTPUT.NATURAL_INTRO",
                     I18nText.of("자연스러운 도입", "Natural Introduction", "自然な導入"),
                     I18nText.of(
@@ -158,7 +158,7 @@ public final class GeneralGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, ALLOW
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "GENERAL.OUTPUT.APPROPRIATE_ENDING",
                     I18nText.of("적절한 마무리", "Appropriate Ending", "適切な結び"),
                     I18nText.of(
@@ -192,4 +192,5 @@ public final class GeneralGuidelines implements GuidelinePolicy {
         return OUTPUT_CONSTRAINTS;
     }
 }
+
 

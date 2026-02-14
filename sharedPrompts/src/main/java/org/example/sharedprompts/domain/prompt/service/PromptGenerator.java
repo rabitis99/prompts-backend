@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.prompt.service;
 
+import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.guideline.GuidelineRule;
@@ -11,7 +12,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-@lombok.RequiredArgsConstructor
+@RequiredArgsConstructor
 public class PromptGenerator {
 
     private final DomainResolver domainResolver;

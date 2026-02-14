@@ -13,7 +13,7 @@ public final class PracticalGuidelines implements GuidelinePolicy {
     public static final PracticalGuidelines INSTANCE = new PracticalGuidelines();
 
     private static final List<GuidelineRule> PRINCIPLES = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "PRACTICAL.PRINCIPLE.IMMEDIATE_USE",
                     I18nText.of("즉시 활용 가능", "Immediately Actionable", "即座に活用可能"),
                     I18nText.of(
@@ -23,7 +23,7 @@ public final class PracticalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "PRACTICAL.PRINCIPLE.EFFICIENCY",
                     I18nText.of("효율성 지향", "Efficiency-Oriented", "効率性志向"),
                     I18nText.of(
@@ -33,7 +33,7 @@ public final class PracticalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "PRACTICAL.PRINCIPLE.RESULT_ORIENTED",
                     I18nText.of("결과 중심", "Result-Oriented", "結果中心"),
                     I18nText.of(
@@ -46,7 +46,7 @@ public final class PracticalGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> STRUCTURING_RULES = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "PRACTICAL.STRUCTURE.CHECKLIST",
                     I18nText.of("체크리스트 형식", "Checklist Format", "チェックリスト形式"),
                     I18nText.of(
@@ -56,7 +56,7 @@ public final class PracticalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "PRACTICAL.STRUCTURE.PRIORITY",
                     I18nText.of("우선순위 표기", "Priority Marking", "優先順位の表記"),
                     I18nText.of(
@@ -66,7 +66,7 @@ public final class PracticalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "PRACTICAL.STRUCTURE.TEMPLATE",
                     I18nText.of("템플릿 제공", "Provide Templates", "テンプレートの提供"),
                     I18nText.of(
@@ -76,7 +76,7 @@ public final class PracticalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "PRACTICAL.STRUCTURE.EXPECTED_EFFECT",
                     I18nText.of("기대 효과 명시", "State Expected Effects", "期待効果の明示"),
                     I18nText.of(
@@ -89,7 +89,7 @@ public final class PracticalGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> QUALITY_STANDARDS = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "PRACTICAL.QUALITY.FEASIBILITY",
                     I18nText.of("실행 가능성", "Feasibility", "実行可能性"),
                     I18nText.of(
@@ -99,7 +99,7 @@ public final class PracticalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "PRACTICAL.QUALITY.CLARITY",
                     I18nText.of("명확성", "Clarity", "明確性"),
                     I18nText.of(
@@ -109,7 +109,7 @@ public final class PracticalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "PRACTICAL.QUALITY.SELF_CONTAINED",
                     I18nText.of("완결성", "Self-Contained", "完結性"),
                     I18nText.of(
@@ -122,7 +122,7 @@ public final class PracticalGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> OUTPUT_CONSTRAINTS = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "PRACTICAL.OUTPUT.NO_GREETING",
                     I18nText.of("인사말 금지", "No Greetings", "挨拶禁止"),
                     I18nText.of(
@@ -132,7 +132,7 @@ public final class PracticalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, FORBID
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "PRACTICAL.OUTPUT.MINIMAL_INTRO",
                     I18nText.of("서론 최소화", "Minimize Introduction", "前置き最小化"),
                     I18nText.of(
@@ -142,7 +142,7 @@ public final class PracticalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "PRACTICAL.OUTPUT.NEXT_STEPS",
                     I18nText.of("마무리 → Next Steps", "Ending → Next Steps", "結び → Next Steps"),
                     I18nText.of(
@@ -152,7 +152,7 @@ public final class PracticalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "PRACTICAL.OUTPUT.DIRECT_EXPRESSION",
                     I18nText.of("직접적 표현", "Direct Expression", "直接的表現"),
                     I18nText.of(
@@ -186,4 +186,5 @@ public final class PracticalGuidelines implements GuidelinePolicy {
         return OUTPUT_CONSTRAINTS;
     }
 }
+
 

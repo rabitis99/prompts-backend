@@ -13,7 +13,7 @@ public final class TechnicalGuidelines implements GuidelinePolicy {
     public static final TechnicalGuidelines INSTANCE = new TechnicalGuidelines();
 
     private static final List<GuidelineRule> PRINCIPLES = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "TECHNICAL.PRINCIPLE.ACCURACY",
                     I18nText.of("정확성", "Accuracy", "正確性"),
                     I18nText.of(
@@ -23,7 +23,7 @@ public final class TechnicalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "TECHNICAL.PRINCIPLE.CONTEXT",
                     I18nText.of("맥락", "Context", "文脈"),
                     I18nText.of(
@@ -33,7 +33,7 @@ public final class TechnicalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "TECHNICAL.PRINCIPLE.PRACTICALITY",
                     I18nText.of("실용성", "Practicality", "実用性"),
                     I18nText.of(
@@ -46,7 +46,7 @@ public final class TechnicalGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> STRUCTURING_RULES = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "TECHNICAL.STRUCTURE.LOGICAL",
                     I18nText.of("논리적 구성", "Logical", "論理的"),
                     I18nText.of(
@@ -56,7 +56,7 @@ public final class TechnicalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "TECHNICAL.STRUCTURE.READABILITY",
                     I18nText.of("가독성", "Readability", "可読性"),
                     I18nText.of(
@@ -66,7 +66,7 @@ public final class TechnicalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "TECHNICAL.STRUCTURE.NO_FLUFF",
                     I18nText.of("불필요 요소 제거", "No Fluff", "不要要素の除去"),
                     I18nText.of(
@@ -76,7 +76,7 @@ public final class TechnicalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "TECHNICAL.STRUCTURE.CONCISENESS",
                     I18nText.of("간결성", "Conciseness", "簡潔"),
                     I18nText.of(
@@ -89,7 +89,7 @@ public final class TechnicalGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> QUALITY_STANDARDS = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "TECHNICAL.QUALITY.CLARITY",
                     I18nText.of("명확성", "Clarity", "明確性"),
                     I18nText.of(
@@ -99,8 +99,8 @@ public final class TechnicalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, REQUIRE
             ),
-            GuidelineRule.of(
-                    "TECHNICAL.QUALITY.PRACTICALITY",
+            new GuidelineRule(
+                    "TECHNICAL.QUALITY.ACTIONABILITY",
                     I18nText.of("실행 가능성", "Actionability", "実行可能性"),
                     I18nText.of(
                             "실행 가능한 지침 포함",
@@ -109,7 +109,7 @@ public final class TechnicalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "TECHNICAL.QUALITY.COMPLETENESS",
                     I18nText.of("완전성", "Completeness", "完全性"),
                     I18nText.of(
@@ -122,7 +122,7 @@ public final class TechnicalGuidelines implements GuidelinePolicy {
     );
 
     private static final List<GuidelineRule> OUTPUT_CONSTRAINTS = List.of(
-            GuidelineRule.of(
+            new GuidelineRule(
                     "TECHNICAL.OUTPUT.NO_GREETING",
                     I18nText.of("인사말 금지", "No Greetings", "挨拶禁止"),
                     I18nText.of(
@@ -132,7 +132,7 @@ public final class TechnicalGuidelines implements GuidelinePolicy {
                     ),
                     HARD, FORBID
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "TECHNICAL.OUTPUT.MINIMAL_INTRO",
                     I18nText.of("서론 최소화", "Minimal Intro", "前置き最小"),
                     I18nText.of(
@@ -142,7 +142,7 @@ public final class TechnicalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "TECHNICAL.OUTPUT.CONCISE_ENDING",
                     I18nText.of("마무리 간결", "Concise End", "簡潔な結び"),
                     I18nText.of(
@@ -152,7 +152,7 @@ public final class TechnicalGuidelines implements GuidelinePolicy {
                     ),
                     SOFT, REQUIRE
             ),
-            GuidelineRule.of(
+            new GuidelineRule(
                     "TECHNICAL.OUTPUT.DIRECT_EXPRESSION",
                     I18nText.of("직접적 표현", "Direct", "直接的"),
                     I18nText.of(
