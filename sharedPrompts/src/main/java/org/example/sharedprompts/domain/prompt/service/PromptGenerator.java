@@ -193,9 +193,12 @@ public class PromptGenerator {
 
         // 7. Tags (의미적 통합)
         if (request.getTags() != null && !request.getTags().isEmpty()) {
-            section.append("## Key Themes\n")
-                    .append(formatTagsAsConstraints(request.getTags()))
-                    .append("\n\n");
+            List<String> normalizedTags = TagNormalizer.normalizeTags(request.getTags());
+            if (!normalizedTags.isEmpty()) {
+                section.append("## Key Themes\n")
+                        .append(formatTagsAsConstraints(normalizedTags))
+                        .append("\n\n");
+            }
         }
 
         // 8. Output Language
@@ -249,10 +252,11 @@ public class PromptGenerator {
     /**
      * Tag를 의미적으로 통합하여 자연스러운 제약으로 변환
      * (기존: "Consider aspects related to: X" → 개선: 구체적 sub-topic으로 직조)
+     * 
+     * @param normalizedTags 이미 정규화된 태그 리스트 (비어있지 않음을 보장)
      */
-    private String formatTagsAsConstraints(List<String> tags) {
-        List<String> normalized = TagNormalizer.normalizeTags(tags);
-        String tagList = String.join(", ", normalized);
+    private String formatTagsAsConstraints(List<String> normalizedTags) {
+        String tagList = String.join(", ", normalizedTags);
         return "The prompt must specifically address these themes: **" + tagList + "**.\n"
                 + "Weave these concepts naturally into the prompt as concrete sub-topics or constraints — "
                 + "do not list them as generic bullet points.";
