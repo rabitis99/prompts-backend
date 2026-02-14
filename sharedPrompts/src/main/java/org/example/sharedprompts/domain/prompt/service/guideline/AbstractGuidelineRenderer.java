@@ -103,7 +103,7 @@ public abstract class AbstractGuidelineRenderer implements GuidelineRenderer {
 
         if (!forbids.isEmpty()) {
             if (!sb.isEmpty()) sb.append("\n");
-            // renderCompactRule 재사용: 접미사는 별도로 적용하므로 applySuffix=false
+            // 제목 없이 설명 + 접미사만 사용 (renderCompactRule과 달리 제목 생략)
             sb.append(forbids.stream()
                     .map(r -> getRuleDescription(r) + getForbidSuffix())
                     .collect(joining(getDescriptionSeparator())));
@@ -111,7 +111,7 @@ public abstract class AbstractGuidelineRenderer implements GuidelineRenderer {
 
         if (!allows.isEmpty()) {
             if (!sb.isEmpty()) sb.append("\n");
-            // renderCompactRule 재사용: 접미사는 별도로 적용하므로 applySuffix=false
+            // 제목 없이 설명 + 접미사만 사용 (renderCompactRule과 달리 제목 생략)
             sb.append(allows.stream()
                     .map(r -> getRuleDescription(r) + getAllowSuffix())
                     .collect(joining(getDescriptionSeparator())));
