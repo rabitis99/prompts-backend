@@ -4,8 +4,7 @@ import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.ToneType;
-import org.example.sharedprompts.domain.prompt.enums.guideline.GuidelineRule;
-import org.example.sharedprompts.domain.prompt.enums.role.RoleTypeInterface;
+import org.example.sharedprompts.domain.prompt.guideline.GuidelineRule;
 import org.springframework.stereotype.Component;
 
 /**
@@ -85,16 +84,16 @@ public class EnglishGuidelineRenderer extends AbstractGuidelineRenderer {
     }
 
     @Override
-    public String renderPersonaHeader(RoleTypeInterface role, ToneType tone, StyleType style) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(getPersonaHeaderPrefix())
-                .append(role.getRoleNameByLang(getLanguageType()))
-                .append(getPersonaHeaderSuffix()).append("\n");
-        sb.append("Respond in a ").append(tone.getGuidelineByLang(getLanguageType()).toLowerCase())
-                .append(getToneStyleConnector())
-                .append(style.getGuidelineByLang(getLanguageType()).toLowerCase())
-                .append(getPersonaHeaderEnding());
-        return sb.toString();
+    protected String renderToneStyleLine(ToneType tone, StyleType style) {
+        if (tone == null || style == null) {
+            return "";
+        }
+        
+        return "Respond in a "
+                + tone.getGuidelineByLang(getLanguageType()).toLowerCase()
+                + getToneStyleConnector()
+                + style.getGuidelineByLang(getLanguageType()).toLowerCase()
+                + getPersonaHeaderEnding();
     }
 
     @Override

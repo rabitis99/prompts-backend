@@ -2,16 +2,18 @@ package org.example.sharedprompts.domain.prompt.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
-import org.example.sharedprompts.domain.prompt.enums.guideline.DomainResolution;
+import org.example.sharedprompts.domain.prompt.guideline.DomainResolution;
 import org.example.sharedprompts.dto.prompt.request.InputRequestDto;
+import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
 /**
- * 도메인 결정 유틸리티 클래스
+ * 도메인 결정 서비스
  * <p>PromptGenerator와 PromptGuidelineBuilder에서 공통으로 사용하는 도메인 결정 로직을 중앙화한다.</p>
  */
 @Slf4j
+@Component
 public class DomainResolver {
 
     /**
@@ -24,7 +26,7 @@ public class DomainResolver {
      * @param request 입력 요청 DTO
      * @return 도메인 해결 결과 (도메인 + 폴백 여부)
      */
-    public static DomainResolution resolveDomain(InputRequestDto request) {
+    public DomainResolution resolveDomain(InputRequestDto request) {
         Optional<TaskDomain> fromAction = request.getActionType().getTaskDomain();
 
         if (fromAction.isPresent() && fromAction.get() != TaskDomain.GENERAL) {
@@ -52,7 +54,7 @@ public class DomainResolver {
      * @param request 입력 요청 DTO
      * @return 결정된 도메인
      */
-    public static TaskDomain resolveDomainSimple(InputRequestDto request) {
+    public TaskDomain resolveDomainSimple(InputRequestDto request) {
         return resolveDomain(request).domain();
     }
 }

@@ -137,7 +137,7 @@ public enum StyleType {
                     List.of(TaskDomain.CREATIVE);
             
             // TECHNICAL 도메인 추천 스타일
-            case TECHNICAL, FORMATTED ->
+            case TECHNICAL ->
                     List.of(TaskDomain.TECHNICAL);
             
             // ANALYTICAL 도메인 추천 스타일
@@ -145,7 +145,7 @@ public enum StyleType {
                     List.of(TaskDomain.ANALYTICAL);
             
             // PRACTICAL 도메인 추천 스타일
-            case BULLET, CONCISE ->
+            case BULLET ->
                     List.of(TaskDomain.PRACTICAL);
             
             // EDUCATIONAL 도메인 추천 스타일
@@ -158,6 +158,13 @@ public enum StyleType {
             
             case QUESTION_ANSWER ->
                     List.of(TaskDomain.ANALYTICAL, TaskDomain.EDUCATIONAL, TaskDomain.GENERAL);
+            
+            // TECHNICAL + PRACTICAL 도메인에 적합한 스타일
+            case FORMATTED ->
+                    List.of(TaskDomain.TECHNICAL, TaskDomain.PRACTICAL);
+            
+            case CONCISE ->
+                    List.of(TaskDomain.TECHNICAL, TaskDomain.PRACTICAL);
         };
     }
 }

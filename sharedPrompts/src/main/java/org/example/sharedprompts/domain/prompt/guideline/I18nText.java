@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.enums.guideline;
+package org.example.sharedprompts.domain.prompt.guideline;
 
 import org.example.sharedprompts.domain.prompt.enums.LanguageType;
 
@@ -22,3 +22,4 @@ public record I18nText(String ko, String en, String ja) {
         };
     }
 }
+

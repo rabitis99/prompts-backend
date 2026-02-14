@@ -4,7 +4,7 @@ import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.enums.ToneType;
-import org.example.sharedprompts.domain.prompt.enums.guideline.GuidelineRule;
+import org.example.sharedprompts.domain.prompt.guideline.GuidelineRule;
 import org.example.sharedprompts.domain.prompt.enums.role.RoleTypeInterface;
 
 import java.util.List;

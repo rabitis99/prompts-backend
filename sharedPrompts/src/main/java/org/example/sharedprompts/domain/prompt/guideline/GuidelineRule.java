@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.enums.guideline;
+package org.example.sharedprompts.domain.prompt.guideline;
 
 /**
  * 가이드라인 규칙 record
@@ -22,3 +22,4 @@ public record GuidelineRule(
         return new GuidelineRule(id, title, description, level, type);
     }
 }
+

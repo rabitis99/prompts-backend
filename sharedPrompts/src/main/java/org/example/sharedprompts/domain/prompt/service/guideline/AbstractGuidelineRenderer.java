@@ -4,9 +4,9 @@ import org.example.sharedprompts.domain.prompt.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.enums.ToneType;
-import org.example.sharedprompts.domain.prompt.enums.guideline.GuidelineRule;
-import org.example.sharedprompts.domain.prompt.enums.guideline.GeneralGuidelines;
-import org.example.sharedprompts.domain.prompt.enums.guideline.RuleType;
+import org.example.sharedprompts.domain.prompt.guideline.GuidelineRule;
+import org.example.sharedprompts.domain.prompt.guideline.GeneralGuidelines;
+import org.example.sharedprompts.domain.prompt.guideline.RuleType;
 import org.example.sharedprompts.domain.prompt.enums.role.RoleTypeInterface;
 
 import java.util.List;
@@ -36,7 +36,7 @@ public abstract class AbstractGuidelineRenderer implements GuidelineRenderer {
 
     @Override
     public String renderFallbackNotice(TaskDomain domain) {
-        if (domain != TaskDomain.GENERAL) {
+        if (domain == null || domain != TaskDomain.GENERAL) {
             return "";
         }
 
@@ -46,15 +46,35 @@ public abstract class AbstractGuidelineRenderer implements GuidelineRenderer {
 
     @Override
     public String renderPersonaHeader(RoleTypeInterface role, ToneType tone, StyleType style) {
+        if (role == null || tone == null || style == null) {
+            return "";
+        }
+        
         StringBuilder sb = new StringBuilder();
         sb.append(getPersonaHeaderPrefix())
                 .append(role.getRoleNameByLang(getLanguageType()))
                 .append(getPersonaHeaderSuffix()).append("\n");
-        sb.append(tone.getGuidelineByLang(getLanguageType()))
-                .append(getToneStyleConnector())
-                .append(style.getGuidelineByLang(getLanguageType()))
-                .append(getPersonaHeaderEnding());
+        sb.append(renderToneStyleLine(tone, style));
         return sb.toString();
+    }
+
+    /**
+     * 톤과 스타일 라인 렌더링
+     * <p>언어별 특수 처리가 필요한 경우 서브클래스에서 오버라이드할 수 있습니다.</p>
+     *
+     * @param tone  톤 타입
+     * @param style 스타일 타입
+     * @return 렌더링된 톤/스타일 라인
+     */
+    protected String renderToneStyleLine(ToneType tone, StyleType style) {
+        if (tone == null || style == null) {
+            return "";
+        }
+        
+        return tone.getGuidelineByLang(getLanguageType())
+                + getToneStyleConnector()
+                + style.getGuidelineByLang(getLanguageType())
+                + getPersonaHeaderEnding();
     }
 
     @Override

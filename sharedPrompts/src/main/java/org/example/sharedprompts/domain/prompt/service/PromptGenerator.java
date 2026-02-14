@@ -2,8 +2,8 @@ package org.example.sharedprompts.domain.prompt.service;
 
 import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
-import org.example.sharedprompts.domain.prompt.enums.guideline.GuidelineRule;
-import org.example.sharedprompts.domain.prompt.enums.guideline.RuleLevel;
+import org.example.sharedprompts.domain.prompt.guideline.GuidelineRule;
+import org.example.sharedprompts.domain.prompt.guideline.RuleLevel;
 import org.example.sharedprompts.dto.prompt.request.InputRequestDto;
 import org.example.sharedprompts.global.util.TagNormalizer;
 import org.springframework.stereotype.Component;
@@ -11,7 +11,10 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
+@lombok.RequiredArgsConstructor
 public class PromptGenerator {
+
+    private final DomainResolver domainResolver;
 
     public String generatePrompt(InputRequestDto request) {
         return buildMetaPrompt(request);
@@ -217,6 +220,8 @@ public class PromptGenerator {
             case EXPERT -> directive.append(
                     "  → The prompt must demand cutting-edge insights, edge-case handling, "
                     + "performance benchmarks, and expert-level architectural decisions.\n");
+            default -> directive.append(
+                    "  → Adapt the depth and complexity to the user's experience level.\n");
         }
 
         return directive.toString();
@@ -238,6 +243,6 @@ public class PromptGenerator {
      * 도메인 결정 (DomainResolver 사용)
      */
     private TaskDomain resolveDomain(InputRequestDto request) {
-        return DomainResolver.resolveDomainSimple(request);
+        return domainResolver.resolveDomainSimple(request);
     }
 }

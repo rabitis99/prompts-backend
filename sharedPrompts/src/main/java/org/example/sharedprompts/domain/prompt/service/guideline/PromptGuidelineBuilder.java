@@ -2,9 +2,9 @@ package org.example.sharedprompts.domain.prompt.service.guideline;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
-import org.example.sharedprompts.domain.prompt.enums.guideline.DomainResolution;
-import org.example.sharedprompts.domain.prompt.enums.guideline.GuidelineRule;
-import org.example.sharedprompts.domain.prompt.enums.guideline.RuleLevel;
+import org.example.sharedprompts.domain.prompt.guideline.DomainResolution;
+import org.example.sharedprompts.domain.prompt.guideline.GuidelineRule;
+import org.example.sharedprompts.domain.prompt.guideline.RuleLevel;
 import org.example.sharedprompts.domain.prompt.service.DomainResolver;
 import org.example.sharedprompts.dto.prompt.request.InputRequestDto;
 import org.springframework.stereotype.Component;
@@ -21,6 +21,7 @@ import java.util.List;
 public class PromptGuidelineBuilder {
 
     private final GuidelineRendererFactory rendererFactory;
+    private final DomainResolver domainResolver;
 
     /**
      * 최종 프롬프트 구성:
@@ -30,6 +31,10 @@ public class PromptGuidelineBuilder {
      * 4. 필수 제약 — HARD 수준 도메인 규칙 (~100자)
      */
     public String build(String basePrompt, InputRequestDto request) {
+        if (basePrompt == null || basePrompt.isBlank()) {
+            basePrompt = "";
+        }
+        
         DomainResolution resolution = resolveDomain(request);
         GuidelineRenderer renderer = rendererFactory.getRenderer(request.getLanguage());
         TaskDomain domain = resolution.domain();
@@ -84,6 +89,6 @@ public class PromptGuidelineBuilder {
      * 도메인 결정 (DomainResolver 사용)
      */
     private DomainResolution resolveDomain(InputRequestDto request) {
-        return DomainResolver.resolveDomain(request);
+        return domainResolver.resolveDomain(request);
     }
 }

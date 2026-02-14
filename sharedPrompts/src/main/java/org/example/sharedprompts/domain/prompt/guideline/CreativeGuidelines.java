@@ -1,9 +1,9 @@
-package org.example.sharedprompts.domain.prompt.enums.guideline;
+package org.example.sharedprompts.domain.prompt.guideline;
 
 import java.util.List;
 
-import static org.example.sharedprompts.domain.prompt.enums.guideline.RuleLevel.*;
-import static org.example.sharedprompts.domain.prompt.enums.guideline.RuleType.*;
+import static org.example.sharedprompts.domain.prompt.guideline.RuleLevel.*;
+import static org.example.sharedprompts.domain.prompt.guideline.RuleType.*;
 
 /**
  * CREATIVE 도메인 가이드라인 — 독창성/감성 중심 창작 작업
@@ -218,3 +218,4 @@ public final class CreativeGuidelines implements GuidelinePolicy {
         return OUTPUT_CONSTRAINTS;
     }
 }
+

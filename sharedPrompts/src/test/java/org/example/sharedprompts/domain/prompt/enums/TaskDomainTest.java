@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.prompt.enums;
 
-import org.example.sharedprompts.domain.prompt.enums.guideline.GuidelineRule;
-import org.example.sharedprompts.domain.prompt.enums.guideline.I18nText;
+import org.example.sharedprompts.domain.prompt.guideline.GuidelineRule;
+import org.example.sharedprompts.domain.prompt.guideline.I18nText;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

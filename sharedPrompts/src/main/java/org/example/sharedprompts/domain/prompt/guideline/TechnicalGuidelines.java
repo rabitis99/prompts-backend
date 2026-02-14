@@ -1,9 +1,9 @@
-package org.example.sharedprompts.domain.prompt.enums.guideline;
+package org.example.sharedprompts.domain.prompt.guideline;
 
 import java.util.List;
 
-import static org.example.sharedprompts.domain.prompt.enums.guideline.RuleLevel.*;
-import static org.example.sharedprompts.domain.prompt.enums.guideline.RuleType.*;
+import static org.example.sharedprompts.domain.prompt.guideline.RuleLevel.*;
+import static org.example.sharedprompts.domain.prompt.guideline.RuleType.*;
 
 /**
  * TECHNICAL 도메인 가이드라인 — 정확성/실용성 중심 기술 작업
@@ -101,7 +101,7 @@ public final class TechnicalGuidelines implements GuidelinePolicy {
             ),
             GuidelineRule.of(
                     "TECHNICAL.QUALITY.PRACTICALITY",
-                    I18nText.of("실용성", "Practicality", "実用性"),
+                    I18nText.of("실행 가능성", "Actionability", "実行可能性"),
                     I18nText.of(
                             "실행 가능한 지침 포함",
                             "Include actionable guidelines",
@@ -186,3 +186,4 @@ public final class TechnicalGuidelines implements GuidelinePolicy {
         return OUTPUT_CONSTRAINTS;
     }
 }
+

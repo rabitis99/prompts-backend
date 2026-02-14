@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.enums.guideline;
+package org.example.sharedprompts.domain.prompt.guideline;
 
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 
@@ -10,3 +10,4 @@ import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
  */
 public record DomainResolution(TaskDomain domain, boolean isFallback) {
 }
+

@@ -1,9 +1,9 @@
-package org.example.sharedprompts.domain.prompt.enums.guideline;
+package org.example.sharedprompts.domain.prompt.guideline;
 
 import java.util.List;
 
-import static org.example.sharedprompts.domain.prompt.enums.guideline.RuleLevel.*;
-import static org.example.sharedprompts.domain.prompt.enums.guideline.RuleType.*;
+import static org.example.sharedprompts.domain.prompt.guideline.RuleLevel.*;
+import static org.example.sharedprompts.domain.prompt.guideline.RuleType.*;
 
 /**
  * EDUCATIONAL 도메인 가이드라인 — 이해 촉진/단계적 학습
@@ -176,3 +176,4 @@ public final class EducationalGuidelines implements GuidelinePolicy {
         return OUTPUT_CONSTRAINTS;
     }
 }
+

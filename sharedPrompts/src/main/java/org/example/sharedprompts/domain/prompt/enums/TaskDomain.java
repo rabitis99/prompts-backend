@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.enums;
 
-import org.example.sharedprompts.domain.prompt.enums.guideline.*;
+import org.example.sharedprompts.domain.prompt.guideline.*;
 
 import java.util.List;
 import java.util.stream.Stream;

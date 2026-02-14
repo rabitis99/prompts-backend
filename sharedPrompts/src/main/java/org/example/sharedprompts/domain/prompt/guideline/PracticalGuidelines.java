@@ -1,9 +1,9 @@
-package org.example.sharedprompts.domain.prompt.enums.guideline;
+package org.example.sharedprompts.domain.prompt.guideline;
 
 import java.util.List;
 
-import static org.example.sharedprompts.domain.prompt.enums.guideline.RuleLevel.*;
-import static org.example.sharedprompts.domain.prompt.enums.guideline.RuleType.*;
+import static org.example.sharedprompts.domain.prompt.guideline.RuleLevel.*;
+import static org.example.sharedprompts.domain.prompt.guideline.RuleType.*;
 
 /**
  * PRACTICAL 도메인 가이드라인 — 즉시 활용 가능한 실무
@@ -186,3 +186,4 @@ public final class PracticalGuidelines implements GuidelinePolicy {
         return OUTPUT_CONSTRAINTS;
     }
 }
+

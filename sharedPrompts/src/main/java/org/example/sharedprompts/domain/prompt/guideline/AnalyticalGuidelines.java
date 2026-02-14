@@ -1,9 +1,9 @@
-package org.example.sharedprompts.domain.prompt.enums.guideline;
+package org.example.sharedprompts.domain.prompt.guideline;
 
 import java.util.List;
 
-import static org.example.sharedprompts.domain.prompt.enums.guideline.RuleLevel.*;
-import static org.example.sharedprompts.domain.prompt.enums.guideline.RuleType.*;
+import static org.example.sharedprompts.domain.prompt.guideline.RuleLevel.*;
+import static org.example.sharedprompts.domain.prompt.guideline.RuleType.*;
 
 /**
  * ANALYTICAL 도메인 가이드라인 — 증거 기반 체계적 분석
@@ -186,3 +186,4 @@ public final class AnalyticalGuidelines implements GuidelinePolicy {
         return OUTPUT_CONSTRAINTS;
     }
 }
+

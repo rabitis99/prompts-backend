@@ -4,15 +4,20 @@ import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.enums.ToneType;
 import org.example.sharedprompts.dto.common.CustomResponse;
-import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import org.example.sharedprompts.dto.prompt.response.DomainMetadataResponseDto;
+import org.example.sharedprompts.dto.prompt.response.SimpleDomainResponseDto;
+import org.example.sharedprompts.dto.prompt.response.SimpleStyleResponseDto;
+import org.example.sharedprompts.dto.prompt.response.SimpleToneResponseDto;
 import org.example.sharedprompts.dto.prompt.response.StyleMetadataResponseDto;
 import org.example.sharedprompts.dto.prompt.response.ToneMetadataResponseDto;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.concurrent.TimeUnit;
 
 import java.util.Arrays;
 import java.util.List;
@@ -34,7 +39,9 @@ public class PromptMetadataController {
         List<DomainMetadataResponseDto> metadata = Arrays.stream(TaskDomain.values())
                 .map(DomainMetadataResponseDto::from)
                 .toList();
-        return CustomResponseHelper.ok(metadata);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
+                .body(CustomResponse.ok(metadata));
     }
 
     /**
@@ -45,33 +52,39 @@ public class PromptMetadataController {
             @PathVariable TaskDomain domain
     ) {
         DomainMetadataResponseDto metadata = DomainMetadataResponseDto.from(domain);
-        return CustomResponseHelper.ok(metadata);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
+                .body(CustomResponse.ok(metadata));
     }
 
     /**
      * 특정 TaskDomain에 추천되는 StyleType 목록 조회
      */
     @GetMapping("/domains/{domain}/styles")
-    public ResponseEntity<CustomResponse<List<String>>> getRecommendedStyles(
+    public ResponseEntity<CustomResponse<List<SimpleStyleResponseDto>>> getRecommendedStyles(
             @PathVariable TaskDomain domain
     ) {
-        List<String> styles = domain.getRecommendedStyles().stream()
-                .map(StyleType::name)
+        List<SimpleStyleResponseDto> styles = domain.getRecommendedStyles().stream()
+                .map(SimpleStyleResponseDto::from)
                 .toList();
-        return CustomResponseHelper.ok(styles);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
+                .body(CustomResponse.ok(styles));
     }
 
     /**
      * 특정 TaskDomain에 추천되는 ToneType 목록 조회
      */
     @GetMapping("/domains/{domain}/tones")
-    public ResponseEntity<CustomResponse<List<String>>> getRecommendedTones(
+    public ResponseEntity<CustomResponse<List<SimpleToneResponseDto>>> getRecommendedTones(
             @PathVariable TaskDomain domain
     ) {
-        List<String> tones = domain.getRecommendedTones().stream()
-                .map(ToneType::name)
+        List<SimpleToneResponseDto> tones = domain.getRecommendedTones().stream()
+                .map(SimpleToneResponseDto::from)
                 .toList();
-        return CustomResponseHelper.ok(tones);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
+                .body(CustomResponse.ok(tones));
     }
 
     /**
@@ -83,7 +96,9 @@ public class PromptMetadataController {
         List<StyleMetadataResponseDto> metadata = Arrays.stream(StyleType.values())
                 .map(StyleMetadataResponseDto::from)
                 .toList();
-        return CustomResponseHelper.ok(metadata);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
+                .body(CustomResponse.ok(metadata));
     }
 
     /**
@@ -94,20 +109,24 @@ public class PromptMetadataController {
             @PathVariable StyleType style
     ) {
         StyleMetadataResponseDto metadata = StyleMetadataResponseDto.from(style);
-        return CustomResponseHelper.ok(metadata);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
+                .body(CustomResponse.ok(metadata));
     }
 
     /**
      * 특정 StyleType에 추천되는 TaskDomain 목록 조회
      */
     @GetMapping("/styles/{style}/domains")
-    public ResponseEntity<CustomResponse<List<String>>> getRecommendedDomainsForStyle(
+    public ResponseEntity<CustomResponse<List<SimpleDomainResponseDto>>> getRecommendedDomainsForStyle(
             @PathVariable StyleType style
     ) {
-        List<String> domains = style.getRecommendedDomains().stream()
-                .map(TaskDomain::name)
+        List<SimpleDomainResponseDto> domains = style.getRecommendedDomains().stream()
+                .map(SimpleDomainResponseDto::from)
                 .toList();
-        return CustomResponseHelper.ok(domains);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
+                .body(CustomResponse.ok(domains));
     }
 
     /**
@@ -119,7 +138,9 @@ public class PromptMetadataController {
         List<ToneMetadataResponseDto> metadata = Arrays.stream(ToneType.values())
                 .map(ToneMetadataResponseDto::from)
                 .toList();
-        return CustomResponseHelper.ok(metadata);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
+                .body(CustomResponse.ok(metadata));
     }
 
     /**
@@ -130,20 +151,24 @@ public class PromptMetadataController {
             @PathVariable ToneType tone
     ) {
         ToneMetadataResponseDto metadata = ToneMetadataResponseDto.from(tone);
-        return CustomResponseHelper.ok(metadata);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
+                .body(CustomResponse.ok(metadata));
     }
 
     /**
      * 특정 ToneType에 추천되는 TaskDomain 목록 조회
      */
     @GetMapping("/tones/{tone}/domains")
-    public ResponseEntity<CustomResponse<List<String>>> getRecommendedDomainsForTone(
+    public ResponseEntity<CustomResponse<List<SimpleDomainResponseDto>>> getRecommendedDomainsForTone(
             @PathVariable ToneType tone
     ) {
-        List<String> domains = tone.getRecommendedDomains().stream()
-                .map(TaskDomain::name)
+        List<SimpleDomainResponseDto> domains = tone.getRecommendedDomains().stream()
+                .map(SimpleDomainResponseDto::from)
                 .toList();
-        return CustomResponseHelper.ok(domains);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
+                .body(CustomResponse.ok(domains));
     }
 }
 

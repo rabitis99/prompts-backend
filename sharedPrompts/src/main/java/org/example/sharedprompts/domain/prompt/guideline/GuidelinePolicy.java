@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.enums.guideline;
+package org.example.sharedprompts.domain.prompt.guideline;
 
 import java.util.List;
 
@@ -12,3 +12,4 @@ public interface GuidelinePolicy {
     List<GuidelineRule> qualityStandards();
     List<GuidelineRule> outputConstraints();
 }
+

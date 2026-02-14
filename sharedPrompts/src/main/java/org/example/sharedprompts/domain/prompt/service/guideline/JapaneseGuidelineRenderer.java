@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.prompt.service.guideline;
 
 import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.enums.LanguageType;
-import org.example.sharedprompts.domain.prompt.enums.guideline.GuidelineRule;
+import org.example.sharedprompts.domain.prompt.guideline.GuidelineRule;
 import org.springframework.stereotype.Component;
 
 /**
