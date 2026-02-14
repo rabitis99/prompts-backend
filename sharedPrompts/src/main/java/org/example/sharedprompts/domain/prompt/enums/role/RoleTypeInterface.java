@@ -27,18 +27,8 @@ public interface RoleTypeInterface {
     String getDescriptionJa();
     
     /**
-     * Enum의 name() 메서드를 안전하게 호출하기 위한 디폴트 메서드
-     */
-    default String name() {
-        if (this instanceof Enum<?> e) {
-            return e.name();
-        }
-        throw new UnsupportedOperationException("name() not supported for non-enum implementations");
-    }
-    
-    /**
      * 언어 타입에 따라 적절한 역할 이름을 반환하는 디폴트 메서드
-     * GuidelineBuilder 등에서 언어별 분기 로직을 줄이기 위해 사용
+     * 가이드라인 시스템 등에서 언어별 분기 로직을 줄이기 위해 사용
      */
     default String getRoleNameByLang(LanguageType lang) {
         if (lang == null) {
@@ -53,7 +43,7 @@ public interface RoleTypeInterface {
     
     /**
      * 언어 타입에 따라 적절한 역할 설명을 반환하는 디폴트 메서드
-     * GuidelineBuilder 등에서 언어별 분기 로직을 줄이기 위해 사용
+     * 가이드라인 시스템 등에서 언어별 분기 로직을 줄이기 위해 사용
      */
     default String getDescriptionByLang(LanguageType lang) {
         if (lang == null) {

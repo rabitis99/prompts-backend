@@ -12,8 +12,10 @@ public class RoleTypeSerializer extends JsonSerializer<RoleTypeInterface> {
     public void serialize(RoleTypeInterface value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
         if (value == null) {
             gen.writeNull();
+        } else if (value instanceof Enum<?> e) {
+            gen.writeString(e.name());
         } else {
-            gen.writeString(value.name());
+            throw new IllegalArgumentException("RoleTypeInterface must be an enum: " + value.getClass());
         }
     }
 }

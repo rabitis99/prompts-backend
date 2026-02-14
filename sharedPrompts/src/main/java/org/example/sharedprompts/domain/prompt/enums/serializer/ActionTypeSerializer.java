@@ -12,8 +12,10 @@ public class ActionTypeSerializer extends JsonSerializer<ActionTypeInterface> {
     public void serialize(ActionTypeInterface value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
         if (value == null) {
             gen.writeNull();
+        } else if (value instanceof Enum<?> e) {
+            gen.writeString(e.name());
         } else {
-            gen.writeString(value.name());
+            throw new IllegalArgumentException("ActionTypeInterface must be an enum: " + value.getClass());
         }
     }
 }

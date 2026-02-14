@@ -15,6 +15,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
@@ -43,6 +44,16 @@ public class GlobalExceptionHandler {
         String message = fieldError != null ? fieldError.getDefaultMessage() : "Validation failed";
         log.warn("Validation failed: {} ({})", message, fieldName);
         return CustomResponseHelper.fail(new ApiException(ErrorCode.INVALID_INPUT_VALUE, fieldName));
+    }
+
+    // PathVariable 타입 불일치 예외 처리 (예: 유효하지 않은 enum 값)
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<?> handleTypeMismatchException(MethodArgumentTypeMismatchException e) {
+        String parameterName = e.getName();
+        String requiredType = e.getRequiredType() != null ? e.getRequiredType().getSimpleName() : "unknown";
+        String providedValue = e.getValue() != null ? e.getValue().toString() : "null";
+        log.warn("Type mismatch for parameter '{}': expected {}, but got '{}'", parameterName, requiredType, providedValue);
+        return CustomResponseHelper.fail(new ApiException(ErrorCode.INVALID_INPUT_VALUE, parameterName));
     }
 
     @ExceptionHandler(JwtException.class)

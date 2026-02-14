@@ -11,7 +11,10 @@
       "Bash(del /q \"src\\\\main\\\\java\\\\org\\\\example\\\\sharedprompts\\\\module\\\\dto\\\\request\\\\delivery\\\\NotionDeliveryContextDto.java\")",
       "Bash(del /q \"src\\\\main\\\\java\\\\org\\\\example\\\\sharedprompts\\\\module\\\\dto\\\\response\\\\delivery\\\\DeliveryResponseDto.java\")",
       "Bash(./gradlew test:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(.gradlew.bat:*)",
+      "Bash(./gradlew.bat compileJava:*)",
+      "Bash(./gradlew.bat compileTestJava:*)"
     ]
   }
 }

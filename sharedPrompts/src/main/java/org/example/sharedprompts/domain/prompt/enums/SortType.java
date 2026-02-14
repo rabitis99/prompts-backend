@@ -21,7 +21,7 @@ public enum SortType {
         }
     };
 
-    private final String name;
+    private final String displayName;
     private final String description;
 
     public abstract OrderSpecifier<?>[] toOrderSpecifiers(QPrompt prompt);
