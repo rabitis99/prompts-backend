@@ -45,8 +45,14 @@ public class PromptAIService {
         }
 
         // 3. Guideline 적용
-        String result = promptGuidelineBuilder.build(aiGeneratedContent, dto);
-        log.debug("Guideline 적용 완료: language={}", dto.getLanguage());
+        String result;
+        try {
+            result = promptGuidelineBuilder.build(aiGeneratedContent, dto);
+            log.debug("Guideline 적용 완료: language={}", dto.getLanguage());
+        } catch (Exception e) {
+            log.warn("Guideline 적용 실패, 원본 AI 응답 반환: language={}", dto.getLanguage(), e);
+            result = aiGeneratedContent;
+        }
 
         return result;
     }

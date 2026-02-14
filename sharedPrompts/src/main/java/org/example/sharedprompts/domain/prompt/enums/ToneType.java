@@ -4,7 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.List;
-import java.util.Objects;
+
+import static org.example.sharedprompts.domain.prompt.enums.I18nUtils.getByLang;
 
 @Getter
 @AllArgsConstructor
@@ -113,12 +114,7 @@ public enum ToneType {
      * 언어 타입에 따라 적절한 톤 가이드라인을 반환한다.
      */
     public String getGuidelineByLang(LanguageType lang) {
-        Objects.requireNonNull(lang, "lang must not be null");
-        return switch (lang) {
-            case KOREAN -> guidelineKo;
-            case ENGLISH -> guidelineEn;
-            case JAPANESE -> guidelineJa;
-        };
+        return getByLang(lang, guidelineKo, guidelineEn, guidelineJa);
     }
 
     /**
@@ -142,9 +138,7 @@ public enum ToneType {
                     List.of(TaskDomain.PRACTICAL);
             
             // 여러 도메인에 적합한 톤
-            case PROFESSIONAL ->
-                    List.of(TaskDomain.TECHNICAL, TaskDomain.ANALYTICAL);
-            case NEUTRAL ->
+            case PROFESSIONAL, NEUTRAL ->
                     List.of(TaskDomain.TECHNICAL, TaskDomain.ANALYTICAL);
             case FRIENDLY ->
                     List.of(TaskDomain.EDUCATIONAL, TaskDomain.PRACTICAL, TaskDomain.GENERAL);

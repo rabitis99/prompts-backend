@@ -10,7 +10,6 @@ import org.example.sharedprompts.dto.prompt.request.InputRequestDto;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 /**
  * 프롬프트 가이드라인 빌더
@@ -62,6 +61,14 @@ public class PromptGuidelineBuilder {
             }
         }
 
+        // 5. 폴백 알림 (미매핑 도메인인 경우)
+        if (resolution.isFallback()) {
+            String fallbackNotice = renderer.renderFallbackNotice(domain);
+            if (!fallbackNotice.isEmpty()) {
+                result.append("\n\n").append(fallbackNotice);
+            }
+        }
+
         return result.toString();
     }
 
@@ -70,14 +77,7 @@ public class PromptGuidelineBuilder {
      * (principles + structuringRules + qualityStandards + outputConstraints)
      */
     private List<GuidelineRule> extractHardRules(TaskDomain domain) {
-        return Stream.of(
-                domain.principles().stream(),
-                domain.structuringRules().stream(),
-                domain.qualityStandards().stream(),
-                domain.outputConstraints().stream()
-        ).flatMap(s -> s)
-         .filter(rule -> rule.level() == RuleLevel.HARD)
-         .toList();
+        return domain.getRulesByLevel(RuleLevel.HARD);
     }
 
     /**

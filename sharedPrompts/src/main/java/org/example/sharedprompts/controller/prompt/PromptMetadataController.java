@@ -1,6 +1,5 @@
 package org.example.sharedprompts.controller.prompt;
 
-import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.enums.ToneType;
@@ -24,7 +23,6 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/prompts/metadata")
-@RequiredArgsConstructor
 public class PromptMetadataController {
 
     /**

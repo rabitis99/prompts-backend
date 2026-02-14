@@ -4,7 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.List;
-import java.util.Objects;
+
+import static org.example.sharedprompts.domain.prompt.enums.I18nUtils.getByLang;
 
 @Getter
 @AllArgsConstructor
@@ -120,12 +121,7 @@ public enum StyleType {
      * 언어 타입에 따라 적절한 스타일 가이드라인을 반환한다.
      */
     public String getGuidelineByLang(LanguageType lang) {
-        Objects.requireNonNull(lang, "lang must not be null");
-        return switch (lang) {
-            case KOREAN -> guidelineKo;
-            case ENGLISH -> guidelineEn;
-            case JAPANESE -> guidelineJa;
-        };
+        return getByLang(lang, guidelineKo, guidelineEn, guidelineJa);
     }
 
     /**

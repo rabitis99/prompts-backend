@@ -27,8 +27,15 @@ public interface GuidelineRenderer {
 
     /**
      * 응답 품질 기준 섹션 렌더링
+     * <p>품질 기준은 출력 제약사항과 통합하여 간소화되었으므로 빈 문자열을 반환합니다.</p>
+     *
+     * @param rules 규칙 목록 (사용되지 않음)
+     * @return 빈 문자열
      */
-    String renderQualityStandards(List<GuidelineRule> rules);
+    default String renderQualityStandards(List<GuidelineRule> rules) {
+        // 품질 기준은 출력 제약사항과 통합하여 간소화
+        return "";
+    }
 
     /**
      * 출력 형식 제약 섹션 렌더링

@@ -1,33 +1,42 @@
 package org.example.sharedprompts.domain.prompt.enums;
 
-import lombok.Getter;
 import org.example.sharedprompts.domain.prompt.enums.guideline.*;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * 작업 도메인 — PromptCategory/ActionType에 따라 적합한 가이드라인 정책을 결정
  * <p>GuidelinePolicy를 delegate 패턴으로 구현하여 enum 비대화를 방지한다.</p>
  */
-@Getter
 public enum TaskDomain implements GuidelinePolicy {
     /** 정확성/실용성 중심 기술 작업 */
-    TECHNICAL(TechnicalGuidelines.INSTANCE),
+    TECHNICAL("기술형", TechnicalGuidelines.INSTANCE),
     /** 독창성/감성 중심 창작 작업 */
-    CREATIVE(CreativeGuidelines.INSTANCE),
+    CREATIVE("창의형", CreativeGuidelines.INSTANCE),
     /** 증거 기반 체계적 분석 */
-    ANALYTICAL(AnalyticalGuidelines.INSTANCE),
+    ANALYTICAL("분석형", AnalyticalGuidelines.INSTANCE),
     /** 즉시 활용 가능한 실무 */
-    PRACTICAL(PracticalGuidelines.INSTANCE),
+    PRACTICAL("실무형", PracticalGuidelines.INSTANCE),
     /** 이해 촉진/단계적 학습 */
-    EDUCATIONAL(EducationalGuidelines.INSTANCE),
+    EDUCATIONAL("교육형", EducationalGuidelines.INSTANCE),
     /** 보수적 안전 모드 */
-    GENERAL(GeneralGuidelines.INSTANCE);
+    GENERAL("일반형", GeneralGuidelines.INSTANCE);
 
+    /** UI 표시용 */
+    private final String displayName;
     private final GuidelinePolicy delegate;
 
-    TaskDomain(GuidelinePolicy delegate) {
+    TaskDomain(String displayName, GuidelinePolicy delegate) {
+        this.displayName = displayName;
         this.delegate = delegate;
+    }
+
+    /**
+     * UI 표시용 이름을 반환한다.
+     */
+    public String getDisplayName() {
+        return displayName;
     }
 
     @Override
@@ -130,5 +139,23 @@ public enum TaskDomain implements GuidelinePolicy {
             );
             case GENERAL -> List.of(ToneType.values()); // 모든 톤 허용
         };
+    }
+
+    /**
+     * 지정된 레벨의 규칙을 모든 카테고리에서 추출하여 반환한다.
+     * <p>principles, structuringRules, qualityStandards, outputConstraints를 통합하여 필터링한다.</p>
+     *
+     * @param level 필터링할 규칙 레벨
+     * @return 해당 레벨의 규칙 목록
+     */
+    public List<GuidelineRule> getRulesByLevel(RuleLevel level) {
+        return Stream.of(
+                principles().stream(),
+                structuringRules().stream(),
+                qualityStandards().stream(),
+                outputConstraints().stream()
+        ).flatMap(s -> s)
+         .filter(rule -> rule.level() == level)
+         .toList();
     }
 }

@@ -41,7 +41,8 @@ public class DomainResolver {
         }
 
         log.warn("Unmapped ActionType: {} (category={}) — GENERAL fallback. 매핑 추가 필요.",
-                 request.getActionType().name(), request.getPromptCategory());
+                 request.getActionType() instanceof Enum<?> e ? e.name() : request.getActionType().getClass().getSimpleName(),
+                 request.getPromptCategory());
         return new DomainResolution(TaskDomain.GENERAL, true); // 미매핑 폴백
     }
 

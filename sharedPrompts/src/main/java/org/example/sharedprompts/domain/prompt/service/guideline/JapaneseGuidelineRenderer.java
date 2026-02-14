@@ -1,150 +1,84 @@
 package org.example.sharedprompts.domain.prompt.service.guideline;
 
-import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.enums.LanguageType;
-import org.example.sharedprompts.domain.prompt.enums.StyleType;
-import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
-import org.example.sharedprompts.domain.prompt.enums.ToneType;
 import org.example.sharedprompts.domain.prompt.enums.guideline.GuidelineRule;
-import org.example.sharedprompts.domain.prompt.enums.guideline.GeneralGuidelines;
-import org.example.sharedprompts.domain.prompt.enums.guideline.RuleType;
-import org.example.sharedprompts.domain.prompt.enums.role.RoleTypeInterface;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 /**
  * 日本語ガイドラインレンダラー
  */
 @Component
-@RequiredArgsConstructor
-public class JapaneseGuidelineRenderer implements GuidelineRenderer {
+public class JapaneseGuidelineRenderer extends AbstractGuidelineRenderer {
 
     @Override
-    public String renderPrinciples(List<GuidelineRule> rules) {
-        if (rules.isEmpty()) {
-            return "";
-        }
-
-        StringBuilder sb = new StringBuilder("原則\n");
-
-        for (int i = 0; i < rules.size(); i++) {
-            GuidelineRule rule = rules.get(i);
-            sb.append(renderCompactRule(rule));
-            if (i < rules.size() - 1) {
-                sb.append("\n");
-            }
-        }
-
-        return sb.toString();
+    protected LanguageType getLanguageType() {
+        return LanguageType.JAPANESE;
     }
 
     @Override
-    public String renderStructuringRules(List<GuidelineRule> rules) {
-        if (rules.isEmpty()) {
-            return "";
-        }
-
-        StringBuilder sb = new StringBuilder("応答ルール\n");
-
-        for (int i = 0; i < rules.size(); i++) {
-            GuidelineRule rule = rules.get(i);
-            sb.append(renderCompactRule(rule));
-            if (i < rules.size() - 1) {
-                sb.append("\n");
-            }
-        }
-
-        return sb.toString();
+    protected String getPrinciplesHeader() {
+        return "原則";
     }
 
     @Override
-    public String renderQualityStandards(List<GuidelineRule> rules) {
-        if (rules.isEmpty()) {
-            return "";
-        }
-
-        // 品質基準は出力制約に統合して簡素化
-        return "";
+    protected String getStructuringRulesHeader() {
+        return "応答ルール";
     }
 
     @Override
-    public String renderOutputConstraints(List<GuidelineRule> rules) {
-        if (rules.isEmpty()) {
-            return "";
-        }
-
-        StringBuilder sb = new StringBuilder();
-
-        for (int i = 0; i < rules.size(); i++) {
-            GuidelineRule rule = rules.get(i);
-            sb.append(renderCompactRule(rule));
-            if (i < rules.size() - 1) {
-                sb.append("\n");
-            }
-        }
-
-        return sb.toString();
+    protected String getRuleTitle(GuidelineRule rule) {
+        return rule.title().ja();
     }
 
     @Override
-    public String renderFallbackNotice(TaskDomain domain) {
-        if (domain != TaskDomain.GENERAL) {
-            return "";
-        }
-
-        GuidelineRule notice = GeneralGuidelines.LIMITATION_ACK;
-        return "## " + notice.title().ja() + "\n\n" + notice.description().ja();
+    protected String getRuleDescription(GuidelineRule rule) {
+        return rule.description().ja();
     }
 
     @Override
-    public String renderPersonaHeader(RoleTypeInterface role, ToneType tone, StyleType style) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("あなたは").append(role.getRoleNameByLang(LanguageType.JAPANESE)).append("です。\n");
-        sb.append(tone.getGuidelineByLang(LanguageType.JAPANESE))
-          .append("で、")
-          .append(style.getGuidelineByLang(LanguageType.JAPANESE))
-          .append("で回答してください。");
-        return sb.toString();
+    protected String getNoticeTitle(GuidelineRule notice) {
+        return notice.title().ja();
     }
 
     @Override
-    public String renderEssentialConstraints(List<GuidelineRule> hardRules) {
-        if (hardRules.isEmpty()) {
-            return "";
-        }
+    protected String getNoticeDescription(GuidelineRule notice) {
+        return notice.description().ja();
+    }
 
-        List<GuidelineRule> requires = hardRules.stream()
-                .filter(r -> r.type() == RuleType.REQUIRE).toList();
-        List<GuidelineRule> forbids = hardRules.stream()
-                .filter(r -> r.type() == RuleType.FORBID).toList();
-        List<GuidelineRule> allows = hardRules.stream()
-                .filter(r -> r.type() == RuleType.ALLOW).toList();
+    @Override
+    protected String getPersonaHeaderPrefix() {
+        return "あなたは";
+    }
 
-        StringBuilder sb = new StringBuilder();
+    @Override
+    protected String getPersonaHeaderSuffix() {
+        return "です。";
+    }
 
-        if (!requires.isEmpty()) {
-            sb.append(requires.stream()
-                    .map(r -> r.description().ja())
-                    .collect(java.util.stream.Collectors.joining("。")));
-        }
+    @Override
+    protected String getToneStyleConnector() {
+        return "で、";
+    }
 
-        if (!forbids.isEmpty()) {
-            if (!sb.isEmpty()) sb.append("\n");
-            sb.append(forbids.stream()
-                    .map(r -> r.description().ja() + " 禁止")
-                    .collect(java.util.stream.Collectors.joining("。")));
-        }
+    @Override
+    protected String getPersonaHeaderEnding() {
+        return "で回答してください。";
+    }
 
-        if (!allows.isEmpty()) {
-            if (!sb.isEmpty()) sb.append("\n");
-            sb.append(allows.stream()
-                    .map(r -> r.description().ja() + " 許可")
-                    .collect(java.util.stream.Collectors.joining("。")));
-        }
+    @Override
+    protected String getForbidSuffix() {
+        return " 禁止";
+    }
 
-        return sb.toString();
+    @Override
+    protected String getAllowSuffix() {
+        return " 許可";
+    }
+
+    @Override
+    protected String getDescriptionSeparator() {
+        return "。";
     }
 
     @Override
@@ -158,20 +92,6 @@ public class JapaneseGuidelineRenderer implements GuidelineRenderer {
             case ADVANCED -> "高度な内容、最適化手法、設計トレードオフを含めてください。";
             case EXPERT -> "最新動向、エッジケース、パフォーマンスベンチマーク、高度なアーキテクチャ判断を扱ってください。";
         };
-    }
-
-    /**
-     * 簡潔な形式でルールをレンダリング（一行）
-     */
-    private String renderCompactRule(GuidelineRule rule) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(rule.title().ja()).append(": ").append(rule.description().ja());
-
-        if (rule.type() == RuleType.FORBID) {
-            sb.append(" 禁止");
-        }
-
-        return sb.toString();
     }
 }
 

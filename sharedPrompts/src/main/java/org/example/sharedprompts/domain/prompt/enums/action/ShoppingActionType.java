@@ -28,7 +28,7 @@ public enum ShoppingActionType implements ActionTypeInterface {
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {
-        return Optional.of(TaskDomain.GENERAL);
+        return Optional.of(TaskDomain.PRACTICAL);
     }
 }
 

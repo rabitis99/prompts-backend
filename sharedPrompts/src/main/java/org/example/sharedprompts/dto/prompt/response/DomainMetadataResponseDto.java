@@ -31,7 +31,7 @@ public class DomainMetadataResponseDto {
     public static DomainMetadataResponseDto from(TaskDomain domain) {
         return DomainMetadataResponseDto.builder()
                 .domain(domain)
-                .displayName(domain.name())
+                .displayName(domain.getDisplayName())
                 .recommendedStyles(domain.getRecommendedStyles().stream()
                         .map(StyleType::name)
                         .toList())

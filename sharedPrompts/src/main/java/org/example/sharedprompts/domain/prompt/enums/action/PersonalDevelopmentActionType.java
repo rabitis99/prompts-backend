@@ -32,7 +32,7 @@ public enum PersonalDevelopmentActionType implements ActionTypeInterface {
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {
-        return Optional.of(TaskDomain.EDUCATIONAL);
+        return Optional.of(TaskDomain.PRACTICAL);
     }
 }
 

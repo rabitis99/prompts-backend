@@ -9,7 +9,6 @@ import org.example.sharedprompts.global.util.TagNormalizer;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 @Component
 public class PromptGenerator {
@@ -92,6 +91,8 @@ public class PromptGenerator {
                     + "- Adapt to the specific nature of the user's request\n"
                     + "- Provide balanced, well-rounded guidance\n"
                     + "- Keep language accessible and universally useful\n");
+            default -> strategy.append(
+                    "Adapt the prompt generation to the specific needs of the task.\n");
         }
 
         strategy.append("\n");
@@ -102,14 +103,7 @@ public class PromptGenerator {
      * SOFT 규칙을 AI 생성 품질 힌트로 변환 — 기존에 버려지던 SOFT 규칙을 메타프롬프트에 활용
      */
     private String buildQualityHints(TaskDomain domain) {
-        List<GuidelineRule> softRules = Stream.of(
-                domain.principles().stream(),
-                domain.structuringRules().stream(),
-                domain.qualityStandards().stream(),
-                domain.outputConstraints().stream()
-        ).flatMap(s -> s)
-         .filter(rule -> rule.level() == RuleLevel.SOFT)
-         .toList();
+        List<GuidelineRule> softRules = domain.getRulesByLevel(RuleLevel.SOFT);
 
         if (softRules.isEmpty()) {
             return "";
@@ -161,13 +155,14 @@ public class PromptGenerator {
                 .append("- **Tone**: ").append(request.getTone().getGuidelineEn())
                 .append(" — the prompt body must reflect this tone in its wording and phrasing.\n")
                 .append("- **Style**: ").append(request.getStyle().getGuidelineEn())
-                .append(" — structure the prompt body to match this format.\n");
+                .append(" — structure the prompt body to match this format.\n\n");
 
         // 5. Experience Level (구체적 생성 지시로 변환)
         if (request.getExperience() != null) {
-            section.append(buildExperienceDirective(request.getExperience()));
+            section.append("## Experience Level\n")
+                    .append(buildExperienceDirective(request.getExperience()))
+                    .append("\n");
         }
-        section.append("\n");
 
         // 6. Domain Context
         section.append("## Domain Context\n")
