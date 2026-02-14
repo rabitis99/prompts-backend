@@ -103,6 +103,7 @@ public abstract class AbstractGuidelineRenderer implements GuidelineRenderer {
 
         if (!forbids.isEmpty()) {
             if (!sb.isEmpty()) sb.append("\n");
+            // renderCompactRule 재사용: 접미사는 별도로 적용하므로 applySuffix=false
             sb.append(forbids.stream()
                     .map(r -> getRuleDescription(r) + getForbidSuffix())
                     .collect(joining(getDescriptionSeparator())));
@@ -110,6 +111,7 @@ public abstract class AbstractGuidelineRenderer implements GuidelineRenderer {
 
         if (!allows.isEmpty()) {
             if (!sb.isEmpty()) sb.append("\n");
+            // renderCompactRule 재사용: 접미사는 별도로 적용하므로 applySuffix=false
             sb.append(allows.stream()
                     .map(r -> getRuleDescription(r) + getAllowSuffix())
                     .collect(joining(getDescriptionSeparator())));
@@ -147,13 +149,34 @@ public abstract class AbstractGuidelineRenderer implements GuidelineRenderer {
 
     /**
      * 간결한 형식으로 규칙 렌더링 (한 줄)
+     * <p>기본적으로 FORBID 규칙에 접미사를 적용합니다.</p>
+     *
+     * @param rule 렌더링할 규칙
+     * @return 렌더링된 규칙 문자열
      */
     protected String renderCompactRule(GuidelineRule rule) {
+        return renderCompactRule(rule, true);
+    }
+
+    /**
+     * 간결한 형식으로 규칙 렌더링 (한 줄)
+     * <p>접미사 적용 여부를 명시적으로 제어할 수 있습니다.</p>
+     * <p>이 메서드는 {@link #renderEssentialConstraints}에서 재사용할 때 접미사 중복을 방지하기 위해 제공됩니다.</p>
+     *
+     * @param rule        렌더링할 규칙
+     * @param applySuffix 접미사 적용 여부 (FORBID 규칙의 경우 getForbidSuffix(), ALLOW 규칙의 경우 getAllowSuffix())
+     * @return 렌더링된 규칙 문자열
+     */
+    protected String renderCompactRule(GuidelineRule rule, boolean applySuffix) {
         StringBuilder sb = new StringBuilder();
         sb.append(getRuleTitle(rule)).append(": ").append(getRuleDescription(rule));
 
-        if (rule.type() == RuleType.FORBID) {
-            sb.append(getForbidSuffix());
+        if (applySuffix) {
+            if (rule.type() == RuleType.FORBID) {
+                sb.append(getForbidSuffix());
+            } else if (rule.type() == RuleType.ALLOW) {
+                sb.append(getAllowSuffix());
+            }
         }
 
         return sb.toString();

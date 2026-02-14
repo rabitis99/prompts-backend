@@ -2,7 +2,11 @@ package org.example.sharedprompts.domain.prompt.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
+import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.enums.ToneType;
+import org.example.sharedprompts.domain.prompt.enums.action.EtcActionType;
+import org.example.sharedprompts.domain.prompt.enums.role.EtcRoleType;
 import org.example.sharedprompts.domain.prompt.guideline.GuidelineRule;
 import org.example.sharedprompts.domain.prompt.guideline.RuleLevel;
 import org.example.sharedprompts.dto.prompt.request.InputRequestDto;
@@ -141,24 +145,35 @@ public class PromptGenerator {
                 .append("**Task**: Rewrite this into a clear, actionable prompt body that breaks down the topic into specific, concrete sub-tasks.\n\n");
 
         // 2. Action Context — 작업 유형을 명시하여 AI가 방향성을 잡도록 함
+        // null 체크: PromptRequestDto.toInputRequestDto()에서 기본값 제공하지만, 방어적 코딩
+        var actionType = request.getActionType() != null 
+                ? request.getActionType() 
+                : EtcActionType.GENERAL_CONSULTATION;
         section.append("## Action Context\n")
                 .append("The user wants to perform: **")
-                .append(request.getActionType().getDisplayNameEn())
+                .append(actionType.getDisplayNameEn())
                 .append("**\n")
                 .append("The generated prompt must be specifically structured for this type of task.\n\n");
 
         // 3. Role Context — AI가 역할을 인지하고 그에 맞는 프롬프트를 작성
+        // null 체크: PromptRequestDto.toInputRequestDto()에서 기본값 제공하지만, 방어적 코딩
+        var roleType = request.getRoleType() != null 
+                ? request.getRoleType() 
+                : EtcRoleType.GENERAL_CONSULTANT;
         section.append("## Role Context\n")
                 .append("The prompt is for an AI acting as **")
-                .append(request.getRoleType().getRoleNameEn())
-                .append("** (").append(request.getRoleType().getDescriptionEn()).append(").\n")
+                .append(roleType.getRoleNameEn())
+                .append("** (").append(roleType.getDescriptionEn()).append(").\n")
                 .append("Write instructions that naturally assume this role's expertise and perspective.\n\n");
 
         // 4. Tone & Style — 강한 지시로 변경
+        // null 체크: PromptRequestDto.toInputRequestDto()에서 기본값 제공하지만, 방어적 코딩
+        var tone = request.getTone() != null ? request.getTone() : ToneType.NEUTRAL;
+        var style = request.getStyle() != null ? request.getStyle() : StyleType.NARRATIVE;
         section.append("## Tone & Style\n")
-                .append("- **Tone**: ").append(request.getTone().getGuidelineEn())
+                .append("- **Tone**: ").append(tone.getGuidelineEn())
                 .append(" — the prompt body must reflect this tone in its wording and phrasing.\n")
-                .append("- **Style**: ").append(request.getStyle().getGuidelineEn())
+                .append("- **Style**: ").append(style.getGuidelineEn())
                 .append(" — structure the prompt body to match this format.\n\n");
 
         // 5. Experience Level (구체적 생성 지시로 변환)
@@ -169,9 +184,12 @@ public class PromptGenerator {
         }
 
         // 6. Domain Context
-        section.append("## Domain Context\n")
-                .append("**Category**: ").append(request.getPromptCategory().getDisplayName()).append("\n")
-                .append("**Guideline**: ").append(request.getPromptCategory().getGuidelineEn()).append("\n\n");
+        // null 체크: PromptRequestDto에서 @NotNull이지만, 방어적 코딩
+        if (request.getPromptCategory() != null) {
+            section.append("## Domain Context\n")
+                    .append("**Category**: ").append(request.getPromptCategory().getDisplayName()).append("\n")
+                    .append("**Guideline**: ").append(request.getPromptCategory().getGuidelineEn()).append("\n\n");
+        }
 
         // 7. Tags (의미적 통합)
         if (request.getTags() != null && !request.getTags().isEmpty()) {

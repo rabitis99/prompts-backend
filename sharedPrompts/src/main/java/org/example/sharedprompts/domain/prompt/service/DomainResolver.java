@@ -27,10 +27,22 @@ public class DomainResolver {
      * @return 도메인 해결 결과 (도메인 + 폴백 여부)
      */
     public DomainResolution resolveDomain(InputRequestDto request) {
+        // null 체크: PromptRequestDto.toInputRequestDto()에서 기본값 제공하지만, 방어적 코딩
+        if (request.getActionType() == null) {
+            log.warn("ActionType is null — using GENERAL fallback");
+            return new DomainResolution(TaskDomain.GENERAL, true);
+        }
+
         Optional<TaskDomain> fromAction = request.getActionType().getTaskDomain();
 
         if (fromAction.isPresent() && fromAction.get() != TaskDomain.GENERAL) {
             return new DomainResolution(fromAction.get(), false);
+        }
+
+        // null 체크: PromptRequestDto에서 @NotNull이지만, 방어적 코딩
+        if (request.getPromptCategory() == null) {
+            log.warn("PromptCategory is null — using GENERAL fallback");
+            return new DomainResolution(TaskDomain.GENERAL, true);
         }
 
         TaskDomain fromCategory = request.getPromptCategory().getDefaultDomain();

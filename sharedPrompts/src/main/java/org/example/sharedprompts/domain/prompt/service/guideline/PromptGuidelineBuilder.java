@@ -1,6 +1,7 @@
 package org.example.sharedprompts.domain.prompt.service.guideline;
 
 import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.domain.prompt.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.guideline.DomainResolution;
 import org.example.sharedprompts.domain.prompt.guideline.GuidelineRule;
@@ -36,7 +37,9 @@ public class PromptGuidelineBuilder {
         }
         
         DomainResolution resolution = resolveDomain(request);
-        GuidelineRenderer renderer = rendererFactory.getRenderer(request.getLanguage());
+        // language가 null인 경우 기본값으로 KOREAN 사용 (PromptRequestDto.toInputRequestDto()와 동일한 패턴)
+        LanguageType language = request.getLanguage() != null ? request.getLanguage() : LanguageType.KOREAN;
+        GuidelineRenderer renderer = rendererFactory.getRenderer(language);
         TaskDomain domain = resolution.domain();
 
         StringBuilder result = new StringBuilder();
