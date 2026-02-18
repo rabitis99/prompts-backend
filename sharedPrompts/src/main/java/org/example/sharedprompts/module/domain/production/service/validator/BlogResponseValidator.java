@@ -5,17 +5,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.exception.ParseException;
 import org.springframework.stereotype.Component;
 
-/**
- * Document CommandType별 필수 필드 검증
- */
 @Component
 @Slf4j
-public class DocumentValidator implements ResponseValidator {
+public class BlogResponseValidator implements ResponseValidator {
 
     @Override
     public void validate(JsonNode jsonNode) {
-        if (!jsonNode.has("content")) {
-            throw new ParseException("Missing required field: content");
+        if (!jsonNode.has("content") && !jsonNode.has("user_input")) {
+            throw new ParseException("Missing required field: content or user_input");
         }
     }
 }

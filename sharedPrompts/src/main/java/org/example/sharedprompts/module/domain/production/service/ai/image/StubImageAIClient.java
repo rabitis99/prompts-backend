@@ -2,7 +2,6 @@ package org.example.sharedprompts.module.domain.production.service.ai.image;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 /**
@@ -11,6 +10,7 @@ import org.springframework.stereotype.Component;
  * TODO: 실제 AI 클라이언트 구현으로 교체 필요
  */
 @Component
+@ConditionalOnMissingBean(LeonardoImageAiClient.class)
 @Slf4j
 public class StubImageAIClient implements ImageAIClient {
     

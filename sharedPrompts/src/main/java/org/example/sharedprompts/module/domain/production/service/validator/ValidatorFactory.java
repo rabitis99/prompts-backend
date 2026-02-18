@@ -4,26 +4,20 @@ import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
 import org.springframework.stereotype.Component;
 
-/**
- * CommandType → ResponseValidator 매핑 제공
- */
 @Component
 @RequiredArgsConstructor
 public class ValidatorFactory {
 
-    private final BlogValidator blogValidator;
-    private final EmailValidator emailValidator;
-    private final DocumentValidator documentValidator;
+    private final BlogResponseValidator blogResponseValidator;
+    private final EmailResponseValidator emailResponseValidator;
+    private final DocumentResponseValidator documentResponseValidator;
     private final ContentResponseValidator contentResponseValidator;
 
-    /**
-     * CommandType에 해당하는 Validator 반환
-     */
     public ResponseValidator getValidator(ProductionCommandType commandType) {
         return switch (commandType) {
-            case BLOG -> blogValidator;
-            case EMAIL -> emailValidator;
-            case DOCUMENT -> documentValidator;
+            case BLOG -> blogResponseValidator;
+            case EMAIL -> emailResponseValidator;
+            case DOCUMENT -> documentResponseValidator;
             default -> contentResponseValidator;
         };
     }

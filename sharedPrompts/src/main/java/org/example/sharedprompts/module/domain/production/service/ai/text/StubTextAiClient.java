@@ -1,6 +1,7 @@
 package org.example.sharedprompts.module.domain.production.service.ai.text;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.domain.production.service.ai.text.GroqTextAiClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.stereotype.Component;
 
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
  * TODO: 실제 AI 클라이언트 구현으로 교체 필요
  */
 @Component
+@ConditionalOnMissingBean(GroqTextAiClient.class)
 @Slf4j
 public class StubTextAiClient implements TextAiClient {
     
