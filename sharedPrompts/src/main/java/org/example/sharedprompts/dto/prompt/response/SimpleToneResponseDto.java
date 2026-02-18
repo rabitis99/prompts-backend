@@ -27,5 +27,3 @@ public class SimpleToneResponseDto {
                 .build();
     }
 }
-
-

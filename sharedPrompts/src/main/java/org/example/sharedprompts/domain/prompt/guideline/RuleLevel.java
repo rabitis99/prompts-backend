@@ -9,5 +9,3 @@ public enum RuleLevel {
     /** 가능하면 준수 */
     SOFT
 }
-
-

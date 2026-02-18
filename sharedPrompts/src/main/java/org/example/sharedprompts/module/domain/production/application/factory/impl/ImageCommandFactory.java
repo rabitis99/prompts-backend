@@ -34,11 +34,13 @@ public class ImageCommandFactory implements ProductionCommandFactory {
                     (request != null ? request.getClass().getName() : "null"));
         }
         
-        log.debug("Creating ImageCommand from request - prompt: {}, size: {}x{}", 
-                imageRequest.prompt(), imageRequest.width(), imageRequest.height());
+        log.debug("Creating ImageCommand from request - size: {}x{}", 
+                imageRequest.width(), imageRequest.height());
         
+        // prompt는 나중에 PromptTemplateService에서 병합된 프롬프트로 설정됨
+        // 여기서는 null로 설정하고, ImageCommandValidator는 나중에 검증
         return new ImageCommand(
-                imageRequest.prompt(),
+                null, // prompt는 나중에 설정됨
                 imageRequest.width(),
                 imageRequest.height()
         );

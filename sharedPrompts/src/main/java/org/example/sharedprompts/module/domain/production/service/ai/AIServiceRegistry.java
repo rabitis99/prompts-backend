@@ -1,6 +1,7 @@
 package org.example.sharedprompts.module.domain.production.service.ai;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.domain.production.service.ai.exception.UnsupportedContentTypeException;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.stream.Collectors;
 /**
  * AIService 레지스트리
  * 여러 AI 서비스를 등록하고 ContentType에 따라 적절한 서비스를 찾아 반환
+ * Thread-safe한 ConcurrentHashMap 사용
  */
 @Component
 @Slf4j
@@ -36,8 +38,7 @@ public class AIServiceRegistry {
     public AIService getService(ContentType contentType) {
         AIService service = serviceMap.get(contentType);
         if (service == null) {
-            throw new IllegalArgumentException(
-                    "No AIService found for ContentType: " + contentType);
+            throw new UnsupportedContentTypeException(contentType);
         }
         return service;
     }
