@@ -20,9 +20,19 @@ public class ValidatorRegistry {
         for (ProductionValidator validator : validators) {
             ProductionCommandType supportedType = findSupportedType(validator);
             if (supportedType != null) {
-                validatorMap.put(supportedType, validator);
-                log.info("Registered Validator: {} for CommandType: {}", 
-                        validator.getClass().getSimpleName(), supportedType);
+                ProductionValidator existing = validatorMap.putIfAbsent(supportedType, validator);
+                if (existing != null) {
+                    log.warn("Duplicate validator for CommandType: {} — {} ignored, {} retained",
+                            supportedType,
+                            validator.getClass().getSimpleName(),
+                            existing.getClass().getSimpleName());
+                } else {
+                    log.info("Registered Validator: {} for CommandType: {}",
+                            validator.getClass().getSimpleName(), supportedType);
+                }
+            } else {
+                log.warn("Validator {} does not support any CommandType — skipped",
+                        validator.getClass().getSimpleName());
             }
         }
     }

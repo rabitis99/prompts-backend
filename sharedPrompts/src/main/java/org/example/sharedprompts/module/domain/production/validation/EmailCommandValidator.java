@@ -1,6 +1,7 @@
 package org.example.sharedprompts.module.domain.production.validation;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommand;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
 import org.example.sharedprompts.module.domain.production.model.executor.email.EmailCommand;
@@ -37,7 +38,7 @@ public class EmailCommandValidator implements ProductionValidator {
         validateEmailFormat(emailCommand.recipient());
         
         log.debug("EmailCommand validation passed - subject: {}, recipient: {}", 
-                emailCommand.subject(), emailCommand.recipient());
+                emailCommand.subject(), SensitiveDataMasker.maskEmail(emailCommand.recipient()));
     }
     
     @Override
@@ -51,7 +52,7 @@ public class EmailCommandValidator implements ProductionValidator {
     private void validateEmailFormat(String email) {
         if (!EMAIL_PATTERN.matcher(email).matches()) {
             throw new ValidationException(
-                    "Invalid email format: " + email);
+                    "Invalid email format: " + SensitiveDataMasker.maskEmail(email));
         }
     }
 }
