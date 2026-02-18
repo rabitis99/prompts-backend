@@ -1,7 +1,10 @@
 package org.example.sharedprompts.module.domain.production.validation;
 
 import java.util.Arrays;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -18,6 +21,10 @@ public enum DocumentFormat {
     PDF("pdf");
     
     private final String value;
+    
+    private static final Map<String, DocumentFormat> LOOKUP =
+            Arrays.stream(values())
+                  .collect(Collectors.toUnmodifiableMap(DocumentFormat::getValue, Function.identity()));
     
     DocumentFormat(String value) {
         this.value = value;
@@ -37,11 +44,7 @@ public enum DocumentFormat {
         if (format == null) {
             return null;
         }
-        String lowerFormat = format.toLowerCase();
-        return Arrays.stream(values())
-                .filter(f -> f.value.equals(lowerFormat))
-                .findFirst()
-                .orElse(null);
+        return LOOKUP.get(format.toLowerCase(Locale.ROOT));
     }
     
     /**

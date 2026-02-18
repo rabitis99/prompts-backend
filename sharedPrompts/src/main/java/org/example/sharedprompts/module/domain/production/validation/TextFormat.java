@@ -1,7 +1,10 @@
 package org.example.sharedprompts.module.domain.production.validation;
 
 import java.util.Arrays;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -18,6 +21,15 @@ public enum TextFormat {
     PDF("pdf");
     
     private final String value;
+    
+    private static final Map<String, TextFormat> LOOKUP =
+            Arrays.stream(values())
+                  .collect(Collectors.toUnmodifiableMap(TextFormat::getValue, Function.identity()));
+    
+    private static final Set<String> SUPPORTED_FORMATS_CACHE =
+            Arrays.stream(values())
+                  .map(TextFormat::getValue)
+                  .collect(Collectors.toUnmodifiableSet());
     
     TextFormat(String value) {
         this.value = value;
@@ -37,11 +49,7 @@ public enum TextFormat {
         if (format == null) {
             return null;
         }
-        String lowerFormat = format.toLowerCase();
-        return Arrays.stream(values())
-                .filter(f -> f.value.equals(lowerFormat))
-                .findFirst()
-                .orElse(null);
+        return LOOKUP.get(format.toLowerCase(Locale.ROOT));
     }
     
     /**
@@ -71,9 +79,7 @@ public enum TextFormat {
      * @return 지원되는 포맷 값들의 Set
      */
     public static Set<String> getSupportedFormats() {
-        return Arrays.stream(values())
-                .map(TextFormat::getValue)
-                .collect(Collectors.toSet());
+        return SUPPORTED_FORMATS_CACHE;
     }
 }
 

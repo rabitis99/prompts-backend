@@ -3,7 +3,11 @@ package org.example.sharedprompts.module.domain.production.validation;
 /**
  * 포맷 검증 유틸리티
  */
-public class FormatValidator {
+public final class FormatValidator {
+    
+    private FormatValidator() {
+        // 유틸리티 클래스 — 인스턴스화 불가
+    }
     
     /**
      * 문서 포맷 검증
@@ -34,7 +38,7 @@ public class FormatValidator {
      */
     public static void validateFormatNotNullOrBlank(String format) {
         if (format == null || format.isBlank()) {
-            throw new ValidationException("format must not be blank");
+            throw new ValidationException("format must not be null or blank");
         }
     }
 }
