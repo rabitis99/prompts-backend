@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.nio.charset.StandardCharsets;
@@ -134,6 +135,23 @@ public class S3UploadService {
         }
 
         return null;
+    }
+
+    /**
+     * S3에서 파일을 삭제합니다.
+     */
+    public void delete(String s3Key) {
+        log.info("Deleting from S3 - bucket: {}, key: {}", bucket, s3Key);
+        try {
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(s3Key)
+                    .build());
+            log.info("S3 delete completed - key: {}", s3Key);
+        } catch (Exception e) {
+            log.error("S3 delete failed - bucket: {}, key: {}", bucket, s3Key, e);
+            throw new S3StorageException("S3 delete failed: " + e.getMessage(), e);
+        }
     }
 }
 

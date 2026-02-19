@@ -138,20 +138,5 @@ public class S3DownloadService {
         }
     }
 
-    /**
-     * S3에서 파일을 삭제합니다.
-     */
-    public void delete(String s3Key) {
-        log.info("Deleting from S3 - bucket: {}, key: {}", bucket, s3Key);
-        try {
-            s3Client.deleteObject(DeleteObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(s3Key)
-                    .build());
-        } catch (Exception e) {
-            log.error("S3 delete failed - bucket: {}, key: {}", bucket, s3Key, e);
-            throw new S3StorageException("S3 delete failed: " + e.getMessage(), e);
-        }
-    }
 }
 

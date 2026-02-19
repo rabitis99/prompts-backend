@@ -104,7 +104,7 @@ public class StorageFacade {
      * 파일 삭제
      */
     public void delete(String s3Key) {
-        downloadService.delete(s3Key);
+        uploadService.delete(s3Key);
     }
 
     /**
