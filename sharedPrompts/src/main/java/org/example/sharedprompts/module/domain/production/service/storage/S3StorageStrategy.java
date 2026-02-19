@@ -1,5 +1,6 @@
 package org.example.sharedprompts.module.domain.production.service.storage;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.util.ChecksumUtils;
 import org.example.sharedprompts.module.domain.production.application.storage.StorageFacade;
@@ -14,14 +15,11 @@ import java.time.Duration;
  * 내부적으로는 StorageFacade를 사용합니다.
  */
 @Component("s3StorageStrategy")
+@RequiredArgsConstructor
 @Slf4j
 public class S3StorageStrategy implements StorageStrategy {
 
     private final StorageFacade storageFacade;
-
-    public S3StorageStrategy(StorageFacade storageFacade) {
-        this.storageFacade = storageFacade;
-    }
 
     @PostConstruct
     public void initialize() {
