@@ -42,17 +42,8 @@ public class ArtifactAccessServiceImpl implements ArtifactAccessService {
 
     @Override
     public String generatePreviewUrl(String filePath) {
-        return generate(filePath, "preview");
-    }
-
-    @Override
-    public String generateDownloadUrl(String filePath) {
-        return generate(filePath, "download");
-    }
-
-    private String generate(String filePath, String type) {
         String key = extractS3Key(filePath);
-        String cacheKey = CACHE_PREFIX + type + ":" + key;
+        String cacheKey = CACHE_PREFIX + "preview:" + key;
 
         try {
             String cached = redisTemplate.opsForValue().get(cacheKey);
@@ -65,7 +56,7 @@ public class ArtifactAccessServiceImpl implements ArtifactAccessService {
         }
 
         try {
-            String url = presignedUrlGenerator.generate(bucket, key, presignedUrlTtl);
+            String url = presignedUrlGenerator.generate(bucket, key, presignedUrlTtl, "inline");
 
             try {
                 redisTemplate.opsForValue()
@@ -74,13 +65,61 @@ public class ArtifactAccessServiceImpl implements ArtifactAccessService {
                 log.warn("Redis cache write failed - key: {}", key, e);
             }
 
-            log.debug("Presigned URL generated - key: {}, type: {}", key, type);
+            log.debug("Presigned URL generated - key: {}, type: preview", key);
             return url;
 
         } catch (Exception e) {
             log.error("Presigned URL generation failed - key: {}", key, e);
             throw new BaseException(ModuleErrorCode.STORAGE_ERROR, e);
         }
+    }
+
+    @Override
+    public String generateDownloadUrl(String filePath) {
+        String key = extractS3Key(filePath);
+        String cacheKey = CACHE_PREFIX + "download:" + key;
+
+        try {
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                log.debug("Presigned URL cache hit - key: {}", key);
+                return cached;
+            }
+        } catch (Exception e) {
+            log.warn("Redis cache read failed, generating new URL - key: {}", key, e);
+        }
+
+        try {
+            String fileName = extractFileName(key);
+            String contentDisposition = fileName != null 
+                    ? String.format("attachment; filename=\"%s\"", fileName)
+                    : "attachment";
+            String url = presignedUrlGenerator.generate(bucket, key, presignedUrlTtl, contentDisposition);
+
+            try {
+                redisTemplate.opsForValue()
+                        .set(cacheKey, url, cacheTtl);
+            } catch (Exception e) {
+                log.warn("Redis cache write failed - key: {}", key, e);
+            }
+
+            log.debug("Presigned URL generated - key: {}, type: download", key);
+            return url;
+
+        } catch (Exception e) {
+            log.error("Presigned URL generation failed - key: {}", key, e);
+            throw new BaseException(ModuleErrorCode.STORAGE_ERROR, e);
+        }
+    }
+
+    private String extractFileName(String key) {
+        if (key == null || key.isBlank()) {
+            return null;
+        }
+        int lastSlash = key.lastIndexOf('/');
+        return lastSlash >= 0 && lastSlash < key.length() - 1 
+                ? key.substring(lastSlash + 1) 
+                : key;
     }
 
     @Override

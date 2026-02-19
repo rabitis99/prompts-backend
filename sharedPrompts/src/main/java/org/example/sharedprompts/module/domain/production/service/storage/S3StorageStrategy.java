@@ -3,9 +3,9 @@ package org.example.sharedprompts.module.domain.production.service.storage;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.util.ChecksumUtils;
 import org.example.sharedprompts.global.util.ContentTypeUtils;
+import org.example.sharedprompts.module.domain.production.config.condition.ConditionalOnStorageType;
 import org.example.sharedprompts.module.domain.production.service.storage.exception.S3StorageException;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -14,11 +14,12 @@ import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
+import jakarta.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 @Component
-@ConditionalOnProperty(name = "production.storage.type", havingValue = "S3")
+@ConditionalOnStorageType("S3")
 @Slf4j
 public class S3StorageStrategy implements StorageStrategy {
 
@@ -34,6 +35,13 @@ public class S3StorageStrategy implements StorageStrategy {
     public S3StorageStrategy(S3Client s3Client, S3Presigner s3Presigner) {
         this.s3Client = s3Client;
         this.s3Presigner = s3Presigner;
+        log.info("S3StorageStrategy bean created - S3Client and S3Presigner injected");
+    }
+
+    @PostConstruct
+    public void initialize() {
+        log.info("S3StorageStrategy initialized - bucket: {}, prefix: {}, storageType: {}", 
+                bucket, prefix, getStorageType());
     }
 
     @Override
@@ -132,10 +140,12 @@ public class S3StorageStrategy implements StorageStrategy {
 
     @Override
     public String store(byte[] data, String contentType, String tenantId, Long userId, String jobId, String fileName) {
-        String s3Key = buildS3Key(tenantId, userId, jobId, fileName);
+        // contentType 기반으로 올바른 확장자를 가진 파일명 생성
+        String correctedFileName = ensureCorrectExtension(fileName, contentType);
+        String s3Key = buildS3Key(tenantId, userId, jobId, correctedFileName);
 
-        log.info("Uploading to S3 - bucket: {}, key: {}, contentType: {}, size: {} bytes",
-                bucket, s3Key, contentType, data.length);
+        log.info("Uploading to S3 - bucket: {}, key: {}, contentType: {}, size: {} bytes, originalFileName: {}, correctedFileName: {}",
+                bucket, s3Key, contentType, data.length, fileName, correctedFileName);
 
         try {
             PutObjectRequest request = PutObjectRequest.builder()
@@ -155,10 +165,96 @@ public class S3StorageStrategy implements StorageStrategy {
         }
     }
 
+    /**
+     * contentType을 기반으로 올바른 확장자를 가진 파일명을 생성합니다.
+     * 파일명의 확장자가 contentType과 일치하지 않으면 올바른 확장자로 변경합니다.
+     */
+    private String ensureCorrectExtension(String fileName, String contentType) {
+        if (fileName == null || fileName.isBlank()) {
+            fileName = "output";
+        }
+
+        // contentType에서 확장자 결정
+        String correctExtension = getExtensionFromContentType(contentType);
+        
+        // 현재 파일명에서 확장자 추출
+        int lastDot = fileName.lastIndexOf('.');
+        String nameWithoutExt = lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
+        String currentExt = lastDot > 0 ? fileName.substring(lastDot + 1).toLowerCase() : "";
+
+        // 확장자가 올바르지 않거나 없으면 올바른 확장자로 변경
+        if (correctExtension != null && !currentExt.equals(correctExtension)) {
+            return nameWithoutExt + "." + correctExtension;
+        }
+
+        // 확장자가 이미 올바르면 그대로 반환
+        return fileName;
+    }
+
+    /**
+     * contentType에서 적절한 파일 확장자를 반환합니다.
+     */
+    private String getExtensionFromContentType(String contentType) {
+        if (contentType == null || contentType.isBlank()) {
+            return null;
+        }
+
+        String lowerContentType = contentType.toLowerCase();
+        
+        // 이미지 타입
+        if (lowerContentType.startsWith("image/")) {
+            return switch (lowerContentType) {
+                case "image/png" -> "png";
+                case "image/jpeg", "image/jpg" -> "jpg";
+                case "image/gif" -> "gif";
+                case "image/webp" -> "webp";
+                case "image/bmp" -> "bmp";
+                case "image/svg+xml" -> "svg";
+                default -> "jpg"; // 기본값
+            };
+        }
+        
+        // 문서 타입
+        if (lowerContentType.equals("application/pdf")) {
+            return "pdf";
+        }
+        if (lowerContentType.equals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) {
+            return "xlsx";
+        }
+        if (lowerContentType.equals("application/vnd.ms-excel")) {
+            return "xls";
+        }
+        if (lowerContentType.equals("text/csv")) {
+            return "csv";
+        }
+        if (lowerContentType.equals("text/html")) {
+            return "html";
+        }
+        if (lowerContentType.equals("text/markdown")) {
+            return "md";
+        }
+        if (lowerContentType.equals("application/json")) {
+            return "json";
+        }
+        if (lowerContentType.equals("text/plain")) {
+            return "txt";
+        }
+
+        // 알 수 없는 타입은 null 반환 (기존 확장자 유지)
+        return null;
+    }
+
+    /**
+     * 테넌트가 없는 경우의 S3 키를 생성합니다.
+     */
     private String buildS3Key(Long userId, String jobId, String fileName) {
         return String.format("%s/%d/%s/%s", prefix, userId, jobId, fileName);
     }
 
+    /**
+     * 테넌트 인식 S3 키를 생성합니다.
+     * tenantId가 null이거나 비어있으면 테넌트 없는 키를 생성합니다.
+     */
     private String buildS3Key(String tenantId, Long userId, String jobId, String fileName) {
         if (tenantId == null || tenantId.isBlank()) {
             return buildS3Key(userId, jobId, fileName);
