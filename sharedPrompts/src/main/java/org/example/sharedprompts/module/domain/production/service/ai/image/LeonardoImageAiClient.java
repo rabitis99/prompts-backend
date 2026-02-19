@@ -1,6 +1,7 @@
 package org.example.sharedprompts.module.domain.production.service.ai.image;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.service.ai.config.properties.LeonardoProperties;
 import org.example.sharedprompts.module.domain.production.service.ai.exception.AiClientException;
+import org.example.sharedprompts.module.domain.production.service.ai.retry.RetryExecutor;
 import org.example.sharedprompts.module.domain.production.service.ai.retry.RetryPolicy;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -17,7 +19,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.time.Duration;
 import java.util.List;
@@ -38,8 +39,9 @@ public class LeonardoImageAiClient implements ImageAIClient {
     private final WebClient.Builder webClientBuilder;
     private final ObjectMapper objectMapper;
     private final RetryPolicy retryPolicy;
+    private final RetryExecutor retryExecutor;
     
-    private WebClient webClient;
+    private volatile WebClient webClient;
     
     /**
      * 생성자
@@ -49,26 +51,35 @@ public class LeonardoImageAiClient implements ImageAIClient {
             LeonardoProperties properties,
             WebClient.Builder webClientBuilder,
             ObjectMapper objectMapper,
-            @Qualifier("leonardoRetryPolicy") RetryPolicy retryPolicy) {
+            @Qualifier("leonardoRetryPolicy") RetryPolicy retryPolicy,
+            RetryExecutor retryExecutor) {
         this.properties = properties;
         this.webClientBuilder = webClientBuilder;
         this.objectMapper = objectMapper;
         this.retryPolicy = retryPolicy;
+        this.retryExecutor = retryExecutor;
     }
     
     /**
-     * WebClient 초기화 (지연 초기화)
+     * WebClient 초기화 (Thread-safe 지연 초기화)
      */
     private WebClient getWebClient() {
-        if (webClient == null) {
-            this.webClient = webClientBuilder
-                    .baseUrl(properties.getBaseUrl())
-                    .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-                    .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                    .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + properties.getSecretKey())
-                    .build();
+        WebClient client = webClient;
+        if (client == null) {
+            synchronized (this) {
+                client = webClient;
+                if (client == null) {
+                    client = webClientBuilder
+                            .baseUrl(properties.getBaseUrl())
+                            .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + properties.getSecretKey())
+                            .build();
+                    webClient = client;
+                }
+            }
         }
-        return webClient;
+        return client;
     }
     
     @Override
@@ -115,8 +126,11 @@ public class LeonardoImageAiClient implements ImageAIClient {
                     properties.getUltra()  // ultra: 기본값 false
             );
             
-            LeonardoGenerationResponse generationResponse = executeWithRetry(() -> 
-                    createGeneration(request));
+            LeonardoGenerationResponse generationResponse = retryExecutor.executeWithRetry(
+                    () -> createGeneration(request),
+                    retryPolicy,
+                    "Leonardo API call (create generation)"
+            );
             
             if (generationResponse == null || generationResponse.getSdGenerationJob() == null) {
                 throw new AiClientException("Leonardo API returned empty generation response");
@@ -139,10 +153,6 @@ public class LeonardoImageAiClient implements ImageAIClient {
             log.debug("Image generation completed - url: {}", imageUrl);
             return imageUrl;
             
-        } catch (WebClientResponseException e) {
-            log.error("Leonardo API error - status: {}, message: {}", e.getStatusCode(), e.getMessage());
-            throw new AiClientException(
-                    String.format("Leonardo API error: %s", e.getStatusCode()), e);
         } catch (Exception e) {
             if (e instanceof AiClientException) {
                 throw e;
@@ -157,12 +167,15 @@ public class LeonardoImageAiClient implements ImageAIClient {
      */
     private LeonardoGenerationResponse createGeneration(LeonardoGenerationRequest request) {
         try {
-            // 요청 로깅
+            // 요청 로깅 (PII 보호: 프롬프트는 마스킹)
             try {
-                String requestJson = objectMapper.writeValueAsString(request);
-                log.debug("Leonardo API request: {}", requestJson);
-            } catch (JsonProcessingException e) {
-                log.warn("Failed to serialize request for logging", e);
+                String requestInfo = String.format("modelId: %s, promptLength: %d, width: %d, height: %d", 
+                        request.getModelId(), 
+                        request.getPrompt() != null ? request.getPrompt().length() : 0, 
+                        request.getWidth(), request.getHeight());
+                log.debug("Leonardo API request: {}", requestInfo);
+            } catch (Exception e) {
+                log.warn("Failed to format request for logging", e);
             }
             
             String responseBody = getWebClient()
@@ -179,51 +192,12 @@ public class LeonardoImageAiClient implements ImageAIClient {
             }
             
             return objectMapper.readValue(responseBody, LeonardoGenerationResponse.class);
-        } catch (WebClientResponseException e) {
-            // 400 Bad Request 등의 클라이언트 오류 시 응답 본문 로깅
-            String responseBody = e.getResponseBodyAsString();
-            String requestInfo = String.format("modelId: %s, prompt: %s, width: %d, height: %d", 
-                    request.getModelId(), request.getPrompt(), request.getWidth(), request.getHeight());
-            
-            log.error("Leonardo API error - status: {}, request: {}, response: {}", 
-                    e.getStatusCode(), requestInfo, responseBody != null ? responseBody : "no response body");
-            
-            // Content filter 오류인지 확인 (403 FORBIDDEN)
-            if (e.getStatusCode().value() == 403 && responseBody != null) {
-                String lowerBody = responseBody.toLowerCase();
-                if (lowerBody.contains("filter") && 
-                    (lowerBody.contains("inappropriate") || 
-                     lowerBody.contains("known person") || 
-                     lowerBody.contains("blocked"))) {
-                    String errorMessage = String.format(
-                            "Leonardo API: Content filter blocked the request. " +
-                            "The prompt may contain references to a known person or inappropriate content. " +
-                            "This error is not retryable. Please modify the prompt and try again. " +
-                            "Original error: %s",
-                            responseBody);
-                    throw new AiClientException(errorMessage, e);
-                }
-            }
-            
-            // 모델 지원 오류인지 확인
-            if (responseBody != null && responseBody.contains("model is not supported")) {
-                String errorMessage = String.format(
-                        "Leonardo API: Model ID '%s' is not supported in this API version. " +
-                        "Please check the model ID in your configuration (ai.provider.leonardo.default-model-id) " +
-                        "or visit https://docs.leonardo.ai/docs/commonly-used-api-values for valid model IDs. " +
-                        "Original error: %s",
-                        request.getModelId(), responseBody);
-                throw new AiClientException(errorMessage, e);
-            }
-            
-            throw new AiClientException(
-                    String.format("Leonardo API error: %s - %s", 
-                            e.getStatusCode(), 
-                            responseBody != null ? responseBody : e.getMessage()), 
-                    e);
         } catch (JsonProcessingException e) {
             throw new AiClientException("Failed to parse Leonardo generation response", e);
         } catch (Exception e) {
+            // retryExecutor가 모든 예외를 AiClientException으로 래핑하므로,
+            // WebClientResponseException은 여기에 도달하지 않음
+            // 하지만 다른 예외(예: JsonProcessingException)는 여기서 처리
             if (e instanceof AiClientException) {
                 throw e;
             }
@@ -239,6 +213,10 @@ public class LeonardoImageAiClient implements ImageAIClient {
         long maxWaitTime = properties.getMaxPollingWaitSeconds() * 1000L;
         int pollInterval = properties.getPollingIntervalSeconds() * 1000;
         
+        // 연속 실패 횟수 제한 (executeWithRetry 내부 재시도 후에도 계속 실패하는 경우 조기 중단)
+        int maxConsecutiveFailures = 5;
+        int consecutiveFailures = 0;
+        
         while (true) {
             long elapsed = System.currentTimeMillis() - startTime;
             if (elapsed >= maxWaitTime) {
@@ -248,8 +226,14 @@ public class LeonardoImageAiClient implements ImageAIClient {
             }
             
             try {
-                LeonardoGenerationStatusResponse statusResponse = executeWithRetry(() -> 
-                        getGenerationStatus(generationId));
+                LeonardoGenerationStatusResponse statusResponse = retryExecutor.executeWithRetry(
+                        () -> getGenerationStatus(generationId),
+                        retryPolicy,
+                        "Leonardo API call (get generation status)"
+                );
+                
+                // 성공 시 실패 카운터 리셋
+                consecutiveFailures = 0;
                 
                 if (statusResponse == null || statusResponse.getGenerationsByPk() == null) {
                     throw new AiClientException("Invalid status response");
@@ -286,9 +270,22 @@ public class LeonardoImageAiClient implements ImageAIClient {
                 
             } catch (Exception e) {
                 if (e instanceof AiClientException) {
+                    // AiClientException은 즉시 전파 (재시도 불가능한 오류)
                     throw e;
                 }
-                log.warn("Error polling generation status, retrying...", e);
+                
+                // 비-AiClientException 예외는 연속 실패 카운터 증가
+                consecutiveFailures++;
+                log.warn("Error polling generation status (consecutive failures: {}/{}), retrying...", 
+                        consecutiveFailures, maxConsecutiveFailures, e);
+                
+                // 연속 실패 횟수 초과 시 조기 중단
+                if (consecutiveFailures >= maxConsecutiveFailures) {
+                    throw new AiClientException(
+                            String.format("Polling failed after %d consecutive failures", 
+                                    maxConsecutiveFailures), e);
+                }
+                
                 try {
                     Thread.sleep(pollInterval);
                 } catch (InterruptedException ie) {
@@ -327,52 +324,6 @@ public class LeonardoImageAiClient implements ImageAIClient {
         }
     }
     
-    /**
-     * 재시도 로직을 포함한 API 호출
-     */
-    private <T> T executeWithRetry(RetryableOperation<T> operation) {
-        int attempt = 1;
-        Exception lastException = null;
-        
-        while (attempt <= retryPolicy.getMaxRetries() + 1) {
-            try {
-                return operation.execute();
-            } catch (Exception e) {
-                lastException = e;
-                
-                if (attempt > retryPolicy.getMaxRetries() || 
-                    !retryPolicy.shouldRetry(attempt, e)) {
-                    break;
-                }
-                
-                long delayMs = retryPolicy.calculateDelayMs(attempt);
-                log.warn("Leonardo API call failed - attempt: {}/{}, retrying after {}ms. Error: {}", 
-                        attempt, retryPolicy.getMaxRetries() + 1, delayMs, e.getMessage());
-                
-                try {
-                    Thread.sleep(delayMs);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new AiClientException("Retry interrupted", ie);
-                }
-                
-                attempt++;
-            }
-        }
-        
-        // 모든 재시도 실패
-        throw new AiClientException(
-                String.format("Leonardo API call failed after %d attempts", attempt), 
-                lastException);
-    }
-    
-    /**
-     * 재시도 가능한 작업 인터페이스
-     */
-    @FunctionalInterface
-    private interface RetryableOperation<T> {
-        T execute() throws Exception;
-    }
     
     /**
      * Leonardo 생성 요청 DTO
@@ -383,6 +334,7 @@ public class LeonardoImageAiClient implements ImageAIClient {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     private static class LeonardoGenerationRequest {
         @JsonProperty("modelId")

@@ -3,6 +3,7 @@ package org.example.sharedprompts.module.domain.production.service.ai.text;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.service.ai.config.properties.GroqProperties;
 import org.example.sharedprompts.module.domain.production.service.ai.exception.AiClientException;
+import org.example.sharedprompts.module.domain.production.service.ai.retry.RetryExecutor;
 import org.example.sharedprompts.module.domain.production.service.ai.retry.RetryPolicy;
 import org.example.sharedprompts.module.domain.production.service.ai.text.dto.GroqChatRequest;
 import org.example.sharedprompts.module.domain.production.service.ai.text.dto.GroqChatResponse;
@@ -13,7 +14,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.time.Duration;
 
@@ -33,6 +33,7 @@ public class GroqTextAiClient implements TextAiClient {
     private final WebClient.Builder webClientBuilder;
     private final GroqResponseParser responseParser;
     private final RetryPolicy retryPolicy;
+    private final RetryExecutor retryExecutor;
     
     private volatile WebClient webClient;
     
@@ -44,11 +45,13 @@ public class GroqTextAiClient implements TextAiClient {
             GroqProperties properties,
             WebClient.Builder webClientBuilder,
             GroqResponseParser responseParser,
-            @Qualifier("groqRetryPolicy") RetryPolicy retryPolicy) {
+            @Qualifier("groqRetryPolicy") RetryPolicy retryPolicy,
+            RetryExecutor retryExecutor) {
         this.properties = properties;
         this.webClientBuilder = webClientBuilder;
         this.responseParser = responseParser;
         this.retryPolicy = retryPolicy;
+        this.retryExecutor = retryExecutor;
     }
     
     /**
@@ -74,94 +77,57 @@ public class GroqTextAiClient implements TextAiClient {
     
     @Override
     public String generateText(String prompt, String modelName, String contentTypeHint) {
-        try {
-            String model = modelName != null && !modelName.isBlank() 
-                    ? modelName 
-                    : properties.getDefaultModel();
-            
-            log.debug("Generating text with Groq - model: {}, contentTypeHint: {}", model, contentTypeHint);
-            
-            GroqChatRequest request = new GroqChatRequest(
-                    model,
-                    new GroqMessage(ROLE_USER, prompt)
-            );
-            
-            GroqChatResponse response = executeWithRetry(request);
-            
-            if (response == null || response.getChoices() == null || response.getChoices().isEmpty()) {
-                throw new AiClientException("Groq API returned empty response");
-            }
-            
-            String generatedText = response.getChoices().get(0).getMessage().getContent();
-            
-            if (generatedText == null || generatedText.isBlank()) {
-                throw new AiClientException("Generated text is empty");
-            }
-            
-            log.debug("Text generation completed - length: {}", generatedText.length());
-            return generatedText;
-            
-        } catch (WebClientResponseException e) {
-            log.error("Groq API error - status: {}, message: {}", e.getStatusCode(), e.getMessage());
-            throw new AiClientException(
-                    String.format("Groq API error: %s", e.getStatusCode()), e);
-        } catch (Exception e) {
-            if (e instanceof AiClientException) {
-                throw e;
-            }
-            log.error("Unexpected error during text generation", e);
-            throw new AiClientException("Failed to generate text", e);
-        }
-    }
-    
-    /**
-     * 재시도 로직을 포함한 API 호출
-     */
-    private GroqChatResponse executeWithRetry(GroqChatRequest request) {
-        int attempt = 1;
-        Exception lastException = null;
+        String model = modelName != null && !modelName.isBlank() 
+                ? modelName 
+                : properties.getDefaultModelId();
         
-        while (attempt <= retryPolicy.getMaxRetries() + 1) {
-            try {
-                String responseBody = getWebClient()
-                        .post()
-                        .uri(CHAT_COMPLETIONS_ENDPOINT)
-                        .bodyValue(request)
-                        .retrieve()
-                        .bodyToMono(String.class)
-                        .timeout(Duration.ofSeconds(properties.getTimeoutSeconds()))
-                        .block();
-                
-                // 응답 파서를 사용하여 응답 처리
-                return responseParser.parseResponse(responseBody);
-                
-            } catch (Exception e) {
-                lastException = e;
-                
-                if (attempt > retryPolicy.getMaxRetries() || 
-                    !retryPolicy.shouldRetry(attempt, e)) {
-                    break;
-                }
-                
-                long delayMs = retryPolicy.calculateDelayMs(attempt);
-                log.warn("Groq API call failed - attempt: {}/{}, retrying after {}ms. Error: {}", 
-                        attempt, retryPolicy.getMaxRetries() + 1, delayMs, e.getMessage());
-                
-                try {
-                    Thread.sleep(delayMs);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new AiClientException("Retry interrupted", ie);
-                }
-                
-                attempt++;
-            }
+        log.debug("Generating text with Groq - model: {}, contentTypeHint: {}", model, contentTypeHint);
+        
+        // 시스템 프롬프트와 사용자 프롬프트 분리
+        // prompt는 TextPromptBuilder에서 이미 시스템 프롬프트와 사용자 프롬프트가 합쳐진 형태이므로
+        // 현재는 단일 메시지로 전송 (하위 호환성 유지)
+        // 향후 TextPromptBuilder가 분리된 형태를 제공하면 새로운 생성자 사용 가능
+        GroqChatRequest request = new GroqChatRequest(
+                model,
+                new GroqMessage(ROLE_USER, prompt)
+        );
+        
+        // 공통 RetryExecutor를 사용하여 재시도 로직 실행
+        GroqChatResponse response = retryExecutor.executeWithRetry(
+                () -> {
+                    String responseBody = getWebClient()
+                            .post()
+                            .uri(CHAT_COMPLETIONS_ENDPOINT)
+                            .bodyValue(request)
+                            .retrieve()
+                            .bodyToMono(String.class)
+                            .timeout(Duration.ofSeconds(properties.getTimeoutSeconds()))
+                            .block();
+                    
+                    // 응답 파서를 사용하여 응답 처리
+                    return responseParser.parseResponse(responseBody);
+                },
+                retryPolicy,
+                "Groq API call"
+        );
+        
+        if (response == null || response.getChoices() == null || response.getChoices().isEmpty()) {
+            throw new AiClientException("Groq API returned empty response");
         }
         
-        // 모든 재시도 실패
-        throw new AiClientException(
-                String.format("Groq API call failed after %d attempts", attempt), 
-                lastException);
+        GroqMessage message = response.getChoices().get(0).getMessage();
+        if (message == null) {
+            throw new AiClientException("Groq API returned choice with null message");
+        }
+        
+        String generatedText = message.getContent();
+        
+        if (generatedText == null || generatedText.isBlank()) {
+            throw new AiClientException("Generated text is empty");
+        }
+        
+        log.debug("Text generation completed - length: {}", generatedText.length());
+        return generatedText;
     }
 }
 

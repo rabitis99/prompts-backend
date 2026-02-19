@@ -1,12 +1,14 @@
 package org.example.sharedprompts.module.domain.production.service.ai.strategy;
 
 import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.module.domain.production.service.ai.ContentType;
 import org.example.sharedprompts.module.domain.production.service.ai.config.properties.GroqProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
  * Groq 모델 전략
+ * 텍스트 생성용 AI 모델 전략
  */
 @Component
 @RequiredArgsConstructor
@@ -17,12 +19,17 @@ public class GroqModelStrategy implements AIModelStrategy {
     
     @Override
     public String getModelName() {
-        return groqProperties.getDefaultModel();
+        return groqProperties.getDefaultModelId();
     }
     
     @Override
     public boolean isDefault() {
         return true;
+    }
+    
+    @Override
+    public ContentType getSupportedContentType() {
+        return ContentType.TEXT;
     }
 }
 

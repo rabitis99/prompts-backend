@@ -23,9 +23,14 @@ public class AIServiceRegistry {
     public AIServiceRegistry(List<AIService> aiServices) {
         // 모든 AIService 구현체를 등록
         for (AIService service : aiServices) {
-            ContentType supportedType = findSupportedType(service);
+            ContentType supportedType = service.getSupportedContentType();
             if (supportedType != null) {
-                serviceMap.put(supportedType, service);
+                AIService existing = serviceMap.put(supportedType, service);
+                if (existing != null) {
+                    log.warn("Overwriting AIService for ContentType {}: {} -> {}",
+                            supportedType, existing.getClass().getSimpleName(),
+                            service.getClass().getSimpleName());
+                }
                 log.info("Registered AIService: {} for ContentType: {}", 
                         service.getClass().getSimpleName(), supportedType);
             }
@@ -41,18 +46,6 @@ public class AIServiceRegistry {
             throw new UnsupportedContentTypeException(contentType);
         }
         return service;
-    }
-    
-    /**
-     * 서비스가 지원하는 ContentType 찾기
-     */
-    private ContentType findSupportedType(AIService service) {
-        for (ContentType type : ContentType.values()) {
-            if (service.supports(type)) {
-                return type;
-            }
-        }
-        return null;
     }
     
     /**

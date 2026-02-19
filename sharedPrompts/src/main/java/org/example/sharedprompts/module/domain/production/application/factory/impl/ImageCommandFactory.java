@@ -37,10 +37,13 @@ public class ImageCommandFactory implements ProductionCommandFactory {
         log.debug("Creating ImageCommand from request - size: {}x{}", 
                 imageRequest.width(), imageRequest.height());
         
-        // prompt는 나중에 PromptTemplateService에서 병합된 프롬프트로 설정됨
-        // 여기서는 null로 설정하고, ImageCommandValidator는 나중에 검증
+        // prompt는 JobProcessor에서 PromptTemplateService.mergePrompt()로 생성되어
+        // AIJobExecutor에 별도 파라미터로 전달됩니다.
+        // ImageCommand의 prompt 필드는 FileNameGenerator에서만 사용되며,
+        // null일 경우 기본값("image-output")을 사용합니다.
+        // 여기서는 빈 문자열로 초기화하여 validator를 통과시킵니다.
         return new ImageCommand(
-                null, // prompt는 나중에 설정됨
+                "", // prompt는 JobProcessor에서 별도로 생성되어 전달됨
                 imageRequest.width(),
                 imageRequest.height()
         );

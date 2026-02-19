@@ -3,17 +3,20 @@ package org.example.sharedprompts.module.domain.production.service.ai.config.pro
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
 /**
  * Groq AI 설정 Properties
+ * 
+ * <p>@ConfigurationPropertiesScan을 통해 자동으로 스캔되어 빈으로 등록됩니다.
+ * SharedPromptsApplication에 @ConfigurationPropertiesScan이 선언되어 있습니다.
  */
 @Getter
 @Setter
-@Component
+@ToString(exclude = "secretKey")
 @Validated
 @ConditionalOnProperty(name = "ai.provider.groq.enabled", havingValue = "true")
 @ConfigurationProperties(prefix = "ai.provider.groq")
@@ -31,9 +34,9 @@ public class GroqProperties {
     private String baseUrl = "https://api.groq.com/openai/v1";
 
     /**
-     * 기본 모델 이름 (기본값: llama-3.3-70b-versatile)
+     * 기본 모델 ID (기본값: llama-3.3-70b-versatile)
      */
-    private String defaultModel = "llama-3.3-70b-versatile";
+    private String defaultModelId = "llama-3.3-70b-versatile";
 
     /**
      * 요청 타임아웃 (초, 기본값: 30)

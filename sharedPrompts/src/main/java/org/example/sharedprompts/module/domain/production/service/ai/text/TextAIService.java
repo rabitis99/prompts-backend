@@ -1,6 +1,5 @@
 package org.example.sharedprompts.module.domain.production.service.ai.text;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.model.ai.AIContentRequest;
 import org.example.sharedprompts.module.domain.production.model.ai.AIContentResult;
@@ -8,8 +7,8 @@ import org.example.sharedprompts.module.domain.production.service.ai.AIService;
 import org.example.sharedprompts.module.domain.production.service.ai.ContentType;
 import org.example.sharedprompts.module.domain.production.service.ai.prompt.TextPromptBuilder;
 import org.example.sharedprompts.module.domain.production.service.ai.strategy.AIModelStrategy;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -19,7 +18,6 @@ import java.util.Optional;
  * 블로그 글, 시, 요약 등 다양한 텍스트 콘텐츠 생성 지원
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class TextAIService implements AIService {
     
@@ -27,10 +25,23 @@ public class TextAIService implements AIService {
     
     private final TextAiClient textAiClient;
     private final TextPromptBuilder promptBuilder;
+    private final AIModelStrategy modelStrategy;
     
-    @Autowired(required = false)
-    @Qualifier("groqModelStrategy")
-    private AIModelStrategy modelStrategy;
+    /**
+     * 생성자
+     * 
+     * @param textAiClient 텍스트 AI 클라이언트 (필수)
+     * @param promptBuilder 프롬프트 빌더 (필수)
+     * @param modelStrategy 모델 전략 (선택적, null 가능)
+     */
+    public TextAIService(
+            TextAiClient textAiClient,
+            TextPromptBuilder promptBuilder,
+            @Qualifier("groqModelStrategy") @Nullable AIModelStrategy modelStrategy) {
+        this.textAiClient = textAiClient;
+        this.promptBuilder = promptBuilder;
+        this.modelStrategy = modelStrategy;
+    }
     
     @Override
     public AIContentResult generateContent(AIContentRequest request) {
@@ -45,6 +56,8 @@ public class TextAIService implements AIService {
             String modelName = determineModelName(request);
             
             // AI 클라이언트를 통한 텍스트 생성
+            // 향후 개선: 시스템 프롬프트와 사용자 프롬프트를 분리하여 전달
+            // GroqChatRequest의 새로운 생성자(model, systemPrompt, userPrompt) 사용 가능
             String generatedText = textAiClient.generateText(
                     combinedPrompt,
                     modelName,
@@ -73,6 +86,11 @@ public class TextAIService implements AIService {
     @Override
     public boolean supports(ContentType contentType) {
         return contentType == ContentType.TEXT;
+    }
+    
+    @Override
+    public ContentType getSupportedContentType() {
+        return ContentType.TEXT;
     }
     
     @Override

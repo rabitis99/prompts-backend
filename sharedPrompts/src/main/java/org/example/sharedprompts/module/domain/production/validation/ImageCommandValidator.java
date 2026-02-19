@@ -23,8 +23,13 @@ public class ImageCommandValidator implements ProductionValidator {
                     "Command is not instance of ImageCommand: " + command.getClass().getName());
         }
 
+        // prompt는 JobProcessor에서 PromptTemplateService.mergePrompt()로 생성되어
+        // AIJobExecutor에 별도 파라미터로 전달됩니다.
+        // ImageCommand의 prompt 필드는 FileNameGenerator에서만 사용되며,
+        // null/blank일 경우 기본값("image-output")을 사용합니다.
+        // 따라서 여기서는 prompt 검증을 건너뜁니다.
         if (imageCommand.prompt() == null || imageCommand.prompt().isBlank()) {
-            throw new ValidationException("prompt must not be blank");
+            log.debug("ImageCommand prompt is null or blank - will use default filename in FileNameGenerator");
         }
         
         if (imageCommand.width() < MIN_SIZE || imageCommand.width() > MAX_SIZE) {

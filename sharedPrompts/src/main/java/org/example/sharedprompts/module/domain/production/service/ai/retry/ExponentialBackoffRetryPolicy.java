@@ -7,7 +7,19 @@ import java.io.IOException;
 
 /**
  * 지수 백오프 재시도 정책
- * 5xx 에러만 재시도, 4xx는 재시도하지 않음
+ * 
+ * <p>재시도 대상:
+ * <ul>
+ *   <li>429 Too Many Requests (Rate Limit) - 재시도</li>
+ *   <li>5xx 서버 오류 - 재시도</li>
+ *   <li>네트워크 오류 (IOException) - 재시도</li>
+ * </ul>
+ * 
+ * <p>재시도하지 않음:
+ * <ul>
+ *   <li>403 FORBIDDEN (Content Filter 오류) - 재시도하지 않음</li>
+ *   <li>기타 4xx 클라이언트 오류 - 재시도하지 않음</li>
+ * </ul>
  */
 @RequiredArgsConstructor
 public class ExponentialBackoffRetryPolicy implements RetryPolicy {
@@ -22,7 +34,8 @@ public class ExponentialBackoffRetryPolicy implements RetryPolicy {
     
     @Override
     public boolean shouldRetry(int attempt, Throwable throwable) {
-        if (attempt > maxRetries) {
+        // attempt는 0-based이므로, attempt >= maxRetries이면 재시도하지 않음
+        if (attempt >= maxRetries) {
             return false;
         }
         
@@ -30,6 +43,11 @@ public class ExponentialBackoffRetryPolicy implements RetryPolicy {
         WebClientResponseException webClientException = unwrapWebClientException(throwable);
         if (webClientException != null) {
             int statusCode = webClientException.getStatusCode().value();
+            
+            // 429 Too Many Requests는 Rate Limit 오류이므로 재시도
+            if (statusCode == 429) {
+                return true;
+            }
             
             // 4xx 클라이언트 오류는 재시도하지 않음 (특히 403 FORBIDDEN)
             if (statusCode >= 400 && statusCode < 500) {
@@ -87,8 +105,22 @@ public class ExponentialBackoffRetryPolicy implements RetryPolicy {
     
     @Override
     public long calculateDelayMs(int attempt) {
-        // 지수 백오프: initialDelay * 2^(attempt-1)
-        return initialDelayMs * (1L << (attempt - 1));
+        // 방어 코드: attempt가 0 이하이면 기본 지연 시간 반환
+        if (attempt <= 0) {
+            return initialDelayMs;
+        }
+        
+        // 지수 백오프: initialDelay * 2^attempt (attempt는 0-based)
+        // attempt = 0: initialDelay * 2^0 = initialDelay (방어 코드로 처리)
+        // attempt = 1: initialDelay * 2^1 = initialDelay * 2
+        // attempt = 2: initialDelay * 2^2 = initialDelay * 4
+        
+        // 시프트 연산 오버플로우 방지: attempt가 63 이상이면 Long.MAX_VALUE 반환
+        if (attempt >= 63) {
+            return Long.MAX_VALUE;
+        }
+        
+        return initialDelayMs * (1L << attempt);
     }
 }
 

@@ -1,6 +1,5 @@
 package org.example.sharedprompts.module.domain.production.service.ai.image;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.model.ai.AIContentRequest;
 import org.example.sharedprompts.module.domain.production.model.ai.AIContentResult;
@@ -11,8 +10,8 @@ import org.example.sharedprompts.module.domain.production.service.ai.prompt.Imag
 import org.example.sharedprompts.module.domain.production.service.ai.strategy.AIModelStrategy;
 import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategy;
 import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategyFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -27,7 +26,6 @@ import java.util.UUID;
  * 다양한 이미지 생성 모델 지원
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ImageAIService implements AIService {
     
@@ -42,18 +40,39 @@ public class ImageAIService implements AIService {
     private final ImagePromptBuilder promptBuilder;
     private final StorageStrategyFactory storageStrategyFactory;
     private final WebClient.Builder webClientBuilder;
+    private final AIModelStrategy modelStrategy;
     
-    @Autowired(required = false)
-    @Qualifier("leonardoModelStrategy")
-    private AIModelStrategy modelStrategy;
+    /**
+     * 생성자
+     * 
+     * @param imageAIClient 이미지 AI 클라이언트 (필수)
+     * @param promptBuilder 프롬프트 빌더 (필수)
+     * @param storageStrategyFactory 스토리지 전략 팩토리 (필수)
+     * @param webClientBuilder WebClient 빌더 (필수)
+     * @param modelStrategy 모델 전략 (선택적, null 가능)
+     */
+    public ImageAIService(
+            ImageAIClient imageAIClient,
+            ImagePromptBuilder promptBuilder,
+            StorageStrategyFactory storageStrategyFactory,
+            WebClient.Builder webClientBuilder,
+            @Qualifier("leonardoModelStrategy") @Nullable AIModelStrategy modelStrategy) {
+        this.imageAIClient = imageAIClient;
+        this.promptBuilder = promptBuilder;
+        this.storageStrategyFactory = storageStrategyFactory;
+        this.webClientBuilder = webClientBuilder;
+        this.modelStrategy = modelStrategy;
+    }
     
     private volatile WebClient imageDownloadClient;
     
     @Override
     public AIContentResult generateContent(AIContentRequest request) {
         try {
+            // PII 보호: 프롬프트 전체를 로그에 남기지 않고 길이와 일부만 표시
+            String promptPreview = maskPrompt(request.getPrompt());
             log.info("Image AI generation started - prompt: {}, size: {}x{}, model: {}", 
-                    request.getPrompt(), request.getWidth(), request.getHeight(), request.getModelName());
+                    promptPreview, request.getWidth(), request.getHeight(), request.getModelName());
             
             // 프롬프트 빌더를 사용하여 최종 프롬프트 생성
             String combinedPrompt = promptBuilder.build(request);
@@ -110,6 +129,11 @@ public class ImageAIService implements AIService {
     @Override
     public boolean supports(ContentType contentType) {
         return contentType == ContentType.IMAGE;
+    }
+    
+    @Override
+    public ContentType getSupportedContentType() {
+        return ContentType.IMAGE;
     }
     
     @Override
@@ -196,6 +220,32 @@ public class ImageAIService implements AIService {
             }
             log.error("Unexpected error during image download and store", e);
             throw new AiClientException("Failed to download and store image", e);
+        }
+    }
+    
+    /**
+     * 프롬프트를 마스킹하여 PII 노출을 방지합니다.
+     * 프롬프트 길이와 처음 50자만 표시하고 나머지는 마스킹합니다.
+     * 
+     * @param prompt 원본 프롬프트
+     * @return 마스킹된 프롬프트 (예: "[150 chars] Create a beautiful landscape...")
+     */
+    private String maskPrompt(String prompt) {
+        if (prompt == null) {
+            return "null";
+        }
+        if (prompt.isBlank()) {
+            return "[empty]";
+        }
+        
+        int length = prompt.length();
+        int previewLength = Math.min(50, length);
+        String preview = prompt.substring(0, previewLength);
+        
+        if (length <= previewLength) {
+            return String.format("[%d chars] %s", length, preview);
+        } else {
+            return String.format("[%d chars] %s...", length, preview);
         }
     }
 }
