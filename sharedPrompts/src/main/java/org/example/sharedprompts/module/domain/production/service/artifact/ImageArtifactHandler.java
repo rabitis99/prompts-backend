@@ -71,31 +71,16 @@ public class ImageArtifactHandler implements ArtifactHandler {
             contentType = ArtifactMetadataHelper.determineContentType(filePath);
         }
 
-        // contentType 기반으로 artifactType 결정 (IMAGE는 image/*인 경우만)
-        ArtifactType artifactType = determineArtifactTypeFromContentType(contentType);
-
         // S3에 업로드된 실제 key와 contentType을 그대로 사용하여 Entity 생성
+        // ImageArtifactHandler는 항상 IMAGE 타입을 반환합니다.
         return ProductionArtifactDetailEntity.builder()
-                .artifactType(artifactType)
+                .artifactType(ArtifactType.IMAGE)
                 .storageType(ArtifactMetadataHelper.determineStorageFormat(filePath))
                 .filePath(filePath) // S3에 업로드된 실제 key
                 .fileName(fileName) // S3 key에서 추출한 파일명
                 .contentType(contentType) // 실제 파일 내용에서 감지한 contentType
                 .storageLocation(StorageType.S3.name())
                 .build();
-    }
-
-    /**
-     * contentType을 기반으로 ArtifactType을 결정합니다.
-     * IMAGE 타입은 contentType이 image/*인 경우에만 설정합니다.
-     */
-    private ArtifactType determineArtifactTypeFromContentType(String contentType) {
-        if (contentType != null && contentType.toLowerCase().startsWith("image/")) {
-            return ArtifactType.IMAGE;
-        }
-        // 이미지가 아닌 경우 기본 타입 사용 (요청 타입에 따라 결정되지만, 실제로는 IMAGE가 아닐 수 있음)
-        // 하지만 이 메서드는 ImageArtifactHandler에서만 호출되므로 IMAGE를 반환
-        return ArtifactType.IMAGE;
     }
 
     /**
