@@ -22,7 +22,9 @@ public enum ModuleErrorCode {
     RECOVERY_ERROR("PD01006", HttpStatus.INTERNAL_SERVER_ERROR, "작업 복구 중 오류가 발생했습니다."),
     VALIDATION_ERROR("PD00404", HttpStatus.BAD_REQUEST, "검증에 실패했습니다."),
     COMMAND_FACTORY_NOT_FOUND("PD00702", HttpStatus.NOT_FOUND, "지원하지 않는 Production 타입입니다."),
-    IDEMPOTENCY_KEY_ERROR("PD01007", HttpStatus.INTERNAL_SERVER_ERROR, "멱등성 키 생성 중 오류가 발생했습니다.");
+    IDEMPOTENCY_KEY_ERROR("PD01007", HttpStatus.INTERNAL_SERVER_ERROR, "멱등성 키 생성 중 오류가 발생했습니다."),
+    AI_CLIENT_ERROR("PD01008", HttpStatus.INTERNAL_SERVER_ERROR, "AI 클라이언트 호출 중 오류가 발생했습니다."),
+    UNSUPPORTED_CONTENT_TYPE("PD00405", HttpStatus.BAD_REQUEST, "지원하지 않는 콘텐츠 타입입니다.");
 
     private final String code;
     private final HttpStatus httpStatus;

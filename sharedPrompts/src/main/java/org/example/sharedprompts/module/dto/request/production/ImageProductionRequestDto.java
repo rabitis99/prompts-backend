@@ -4,7 +4,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
 public record ImageProductionRequestDto(
-    @NotNull String prompt,
     @NotNull @Min(1) Integer width,
     @NotNull @Min(1) Integer height,
     String userInput

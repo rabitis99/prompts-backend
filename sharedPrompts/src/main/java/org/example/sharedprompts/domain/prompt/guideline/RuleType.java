@@ -11,5 +11,3 @@ public enum RuleType {
     /** ~해도 된다 (다른 규칙이 금지해도 이 도메인에서는 허용) */
     ALLOW
 }
-
-

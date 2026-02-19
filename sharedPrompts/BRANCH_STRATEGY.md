@@ -347,3 +347,4 @@ foreach ($branch in $branches.Keys) {
 3. 위의 방법 중 하나를 선택하여 브랜치를 생성하고 푸시하세요.
 4. 각 브랜치에 대해 Pull Request를 생성하여 코드 리뷰를 진행하세요.
 
+
