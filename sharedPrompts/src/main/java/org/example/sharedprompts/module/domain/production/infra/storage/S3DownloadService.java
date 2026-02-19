@@ -86,16 +86,19 @@ public class S3DownloadService {
      * @param startByteRange 시작 바이트 위치 (0-based, inclusive)
      * @param endByteRange 종료 바이트 위치 (inclusive)
      * @return 파일의 일부 내용 (byte 배열)
+     * @throws IllegalArgumentException 잘못된 byte range 입력 시
      * @throws S3StorageException 다운로드 실패 시
      */
     public byte[] downloadRange(String s3Key, long startByteRange, long endByteRange) {
         log.debug("Reading range from S3 - bucket: {}, key: {}, range: {}-{}", bucket, s3Key, startByteRange, endByteRange);
-        try {
-            if (startByteRange < 0 || endByteRange < startByteRange) {
-                throw new IllegalArgumentException(
-                        String.format("Invalid byte range: start=%d, end=%d", startByteRange, endByteRange));
-            }
+        
+        // 입력 검증: try 블록 밖에서 수행하여 IllegalArgumentException이 S3StorageException으로 래핑되지 않도록 함
+        if (startByteRange < 0 || endByteRange < startByteRange) {
+            throw new IllegalArgumentException(
+                    String.format("Invalid byte range: start=%d, end=%d", startByteRange, endByteRange));
+        }
 
+        try {
             String range = String.format("bytes=%d-%d", startByteRange, endByteRange);
             ResponseBytes<GetObjectResponse> responseBytes = s3Client.getObjectAsBytes(
                     GetObjectRequest.builder()
