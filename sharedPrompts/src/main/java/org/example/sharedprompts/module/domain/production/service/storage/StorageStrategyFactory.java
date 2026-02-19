@@ -35,8 +35,25 @@ public class StorageStrategyFactory {
             log.info("Registered StorageStrategy: {} for type: {}", 
                     strategy.getClass().getSimpleName(), strategy.getStorageType());
         }
-        log.info("StorageStrategyFactory initialized with {} strategies: {}", 
-                strategyMap.size(), strategyMap.keySet());
+        
+        // 설정된 기본 전략 타입이 유효한지 조기 검증
+        StorageType defaultType;
+        try {
+            defaultType = StorageType.valueOf(storageType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException(
+                    String.format("Invalid storage type configured: '%s'. Valid types: %s",
+                            storageType, java.util.Arrays.toString(StorageType.values())), e);
+        }
+        
+        if (!strategyMap.containsKey(defaultType)) {
+            throw new IllegalStateException(
+                    String.format("Configured storage type '%s' has no registered strategy. Available strategies: %s",
+                            defaultType, strategyMap.keySet()));
+        }
+        
+        log.info("StorageStrategyFactory initialized with {} strategies: {}. Default type: {}",
+                strategyMap.size(), strategyMap.keySet(), defaultType);
     }
 
     /**

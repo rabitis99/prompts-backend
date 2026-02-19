@@ -9,6 +9,7 @@ import org.example.sharedprompts.module.domain.production.model.contract.result.
 import org.example.sharedprompts.module.domain.production.service.production.ArtifactAccessService;
 import org.example.sharedprompts.module.domain.production.application.storage.StorageFacade;
 import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategy;
+import org.example.sharedprompts.module.domain.production.service.storage.StorageType;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.example.sharedprompts.module.dto.response.production.ArtifactDto;
 import org.example.sharedprompts.module.dto.response.production.ImageArtifactDto;
@@ -48,23 +49,25 @@ public class ImageArtifactHandler implements ArtifactHandler {
         String fileName = ArtifactMetadataHelper.extractFileName(filePath);
         String contentType;
 
-        // 실제 파일을 읽어서 올바른 content type 결정
+        // 이미지 포맷 감지를 위해 파일의 시작 부분만 읽기 (최대 12바이트)
+        // 전체 파일을 다운로드하지 않아 네트워크 I/O와 메모리 사용을 최소화합니다.
         try {
-            byte[] fileContent = storageFacade.download(filePath);
-            if (fileContent != null && fileContent.length > 0) {
-                String detectedFormat = detectImageFormat(fileContent);
+            // WebP 포맷 감지를 위해 최대 12바이트 필요
+            byte[] fileHeader = storageFacade.downloadRange(filePath, 0, 11);
+            if (fileHeader != null && fileHeader.length > 0) {
+                String detectedFormat = detectImageFormat(fileHeader);
                 contentType = getContentTypeFromFormat(detectedFormat);
                 
-                log.info("Detected image format from file content - filePath: {}, format: {}, contentType: {}, fileName: {}", 
+                log.info("Detected image format from file header - filePath: {}, format: {}, contentType: {}, fileName: {}", 
                         filePath, detectedFormat, contentType, fileName);
             } else {
                 // 파일을 읽을 수 없는 경우 파일명에서 추론
-                log.warn("Could not read file content, inferring from filePath - filePath: {}", filePath);
+                log.warn("Could not read file header, inferring from filePath - filePath: {}", filePath);
                 contentType = ArtifactMetadataHelper.determineContentType(filePath);
             }
         } catch (Exception e) {
             // 파일 읽기 실패 시 파일명에서 추론
-            log.warn("Failed to read file content, inferring from filePath - filePath: {}, error: {}", filePath, e.getMessage());
+            log.warn("Failed to read file header, inferring from filePath - filePath: {}, error: {}", filePath, e.getMessage());
             contentType = ArtifactMetadataHelper.determineContentType(filePath);
         }
 
@@ -78,7 +81,7 @@ public class ImageArtifactHandler implements ArtifactHandler {
                 .filePath(filePath) // S3에 업로드된 실제 key
                 .fileName(fileName) // S3 key에서 추출한 파일명
                 .contentType(contentType) // 실제 파일 내용에서 감지한 contentType
-                .storageLocation(storageStrategy.getStorageType().name())
+                .storageLocation(StorageType.S3.name())
                 .build();
     }
 

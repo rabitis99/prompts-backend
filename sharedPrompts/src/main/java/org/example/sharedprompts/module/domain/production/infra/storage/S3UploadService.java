@@ -11,6 +11,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 /**
  * S3 업로드 서비스
@@ -28,9 +29,33 @@ public class S3UploadService {
     private String bucket;
 
     /**
+     * Content-Type에서 파일 확장자로의 매핑
+     */
+    private static final Map<String, String> CONTENT_TYPE_TO_EXTENSION = Map.ofEntries(
+            Map.entry("image/png", "png"),
+            Map.entry("image/jpeg", "jpg"),
+            Map.entry("image/jpg", "jpg"),
+            Map.entry("image/gif", "gif"),
+            Map.entry("image/webp", "webp"),
+            Map.entry("image/bmp", "bmp"),
+            Map.entry("image/svg+xml", "svg"),
+            Map.entry("application/pdf", "pdf"),
+            Map.entry("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx"),
+            Map.entry("application/vnd.ms-excel", "xls"),
+            Map.entry("text/csv", "csv"),
+            Map.entry("text/html", "html"),
+            Map.entry("text/markdown", "md"),
+            Map.entry("application/json", "json"),
+            Map.entry("text/plain", "txt")
+    );
+
+    /**
      * 문자열 콘텐츠를 S3에 업로드합니다.
      */
     public String upload(String content, String tenantId, Long userId, String jobId, String fileName) {
+        if (content == null) {
+            throw new S3StorageException("Upload content must not be null");
+        }
         byte[] data = content.getBytes(StandardCharsets.UTF_8);
         String contentType = ContentTypeUtils.guessContentType(fileName);
         return upload(data, contentType, tenantId, userId, jobId, fileName);
@@ -40,6 +65,9 @@ public class S3UploadService {
      * 바이너리 데이터를 S3에 업로드합니다.
      */
     public String upload(byte[] data, String contentType, String tenantId, Long userId, String jobId, String fileName) {
+        if (data == null) {
+            throw new S3StorageException("Upload data must not be null");
+        }
         String correctedFileName = ensureCorrectExtension(fileName, contentType);
         String s3Key = keyGenerator.generateKey(tenantId, userId, jobId, correctedFileName);
 
@@ -94,42 +122,15 @@ public class S3UploadService {
         }
 
         String lowerContentType = contentType.toLowerCase();
+        String extension = CONTENT_TYPE_TO_EXTENSION.get(lowerContentType);
         
+        if (extension != null) {
+            return extension;
+        }
+        
+        // 알려지지 않은 image 타입에 대한 기본값
         if (lowerContentType.startsWith("image/")) {
-            return switch (lowerContentType) {
-                case "image/png" -> "png";
-                case "image/jpeg", "image/jpg" -> "jpg";
-                case "image/gif" -> "gif";
-                case "image/webp" -> "webp";
-                case "image/bmp" -> "bmp";
-                case "image/svg+xml" -> "svg";
-                default -> "jpg";
-            };
-        }
-        
-        if (lowerContentType.equals("application/pdf")) {
-            return "pdf";
-        }
-        if (lowerContentType.equals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) {
-            return "xlsx";
-        }
-        if (lowerContentType.equals("application/vnd.ms-excel")) {
-            return "xls";
-        }
-        if (lowerContentType.equals("text/csv")) {
-            return "csv";
-        }
-        if (lowerContentType.equals("text/html")) {
-            return "html";
-        }
-        if (lowerContentType.equals("text/markdown")) {
-            return "md";
-        }
-        if (lowerContentType.equals("application/json")) {
-            return "json";
-        }
-        if (lowerContentType.equals("text/plain")) {
-            return "txt";
+            return "jpg";
         }
 
         return null;

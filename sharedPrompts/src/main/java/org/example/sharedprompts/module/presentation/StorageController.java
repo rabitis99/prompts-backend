@@ -1,7 +1,9 @@
 package org.example.sharedprompts.module.presentation;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,13 +38,13 @@ public class StorageController {
             @CurrentUser AuthUser authUser
     ) {
         log.info("Upload presigned URL requested - userId: {}, fileName: {}, contentType: {}",
-                authUser.getId(), request.getFileName(), request.getContentType());
+                authUser.getId(), request.fileName(), request.contentType());
 
         String presignedUrl = storageCommandService.generateUploadPresignedUrl(
                 authUser.getId(),
-                request.getJobId(),
-                request.getFileName(),
-                request.getContentType()
+                request.jobId(),
+                request.fileName(),
+                request.contentType()
         );
 
         PresignedUrlResponse response = new PresignedUrlResponse(presignedUrl);
@@ -52,16 +54,18 @@ public class StorageController {
     /**
      * 다운로드용 Presigned URL 생성
      * POST /storage/download-url
+     * 아티팩트 ID를 통해 소유권을 검증한 후 Presigned URL을 생성합니다.
      */
     @PostMapping("/download-url")
     public ResponseEntity<CustomResponse<PresignedUrlResponse>> generateDownloadUrl(
             @Valid @RequestBody DownloadUrlRequest request,
             @CurrentUser AuthUser authUser
     ) {
-        log.info("Download presigned URL requested - userId: {}, s3Key: {}",
-                authUser.getId(), request.getS3Key());
+        log.info("Download presigned URL requested - userId: {}, artifactId: {}",
+                authUser.getId(), request.artifactId());
 
-        String presignedUrl = storageCommandService.generateDownloadPresignedUrl(request.getS3Key());
+        String presignedUrl = storageCommandService.generateDownloadPresignedUrl(
+                request.artifactId(), authUser.getId());
         PresignedUrlResponse response = new PresignedUrlResponse(presignedUrl);
         return CustomResponseHelper.ok(response);
     }
@@ -69,42 +73,58 @@ public class StorageController {
     /**
      * 미리보기용 Presigned URL 생성
      * POST /storage/preview-url
+     * 아티팩트 ID를 통해 소유권을 검증한 후 Presigned URL을 생성합니다.
      */
     @PostMapping("/preview-url")
     public ResponseEntity<CustomResponse<PresignedUrlResponse>> generatePreviewUrl(
             @Valid @RequestBody PreviewUrlRequest request,
             @CurrentUser AuthUser authUser
     ) {
-        log.info("Preview presigned URL requested - userId: {}, s3Key: {}",
-                authUser.getId(), request.getS3Key());
+        log.info("Preview presigned URL requested - userId: {}, artifactId: {}",
+                authUser.getId(), request.artifactId());
 
-        String presignedUrl = storageCommandService.generatePreviewPresignedUrl(request.getS3Key());
+        String presignedUrl = storageCommandService.generatePreviewPresignedUrl(
+                request.artifactId(), authUser.getId());
         PresignedUrlResponse response = new PresignedUrlResponse(presignedUrl);
         return CustomResponseHelper.ok(response);
     }
 
-    @Data
-    public static class UploadUrlRequest {
-        @NotBlank(message = "jobId is required")
-        private String jobId;
+    /**
+     * 업로드용 Presigned URL 생성 요청 DTO
+     */
+    public record UploadUrlRequest(
+            @JsonProperty("jobId")
+            @NotBlank(message = "jobId is required")
+            String jobId,
 
-        @NotBlank(message = "fileName is required")
-        private String fileName;
+            @JsonProperty("fileName")
+            @NotBlank(message = "fileName is required")
+            String fileName,
 
-        @NotBlank(message = "contentType is required")
-        private String contentType;
+            @JsonProperty("contentType")
+            @NotBlank(message = "contentType is required")
+            String contentType
+    ) {
     }
 
-    @Data
-    public static class DownloadUrlRequest {
-        @NotBlank(message = "s3Key is required")
-        private String s3Key;
+    /**
+     * 다운로드용 Presigned URL 생성 요청 DTO
+     */
+    public record DownloadUrlRequest(
+            @JsonProperty("artifactId")
+            @NotNull(message = "artifactId is required")
+            Long artifactId
+    ) {
     }
 
-    @Data
-    public static class PreviewUrlRequest {
-        @NotBlank(message = "s3Key is required")
-        private String s3Key;
+    /**
+     * 미리보기용 Presigned URL 생성 요청 DTO
+     */
+    public record PreviewUrlRequest(
+            @JsonProperty("artifactId")
+            @NotNull(message = "artifactId is required")
+            Long artifactId
+    ) {
     }
 
     @Data

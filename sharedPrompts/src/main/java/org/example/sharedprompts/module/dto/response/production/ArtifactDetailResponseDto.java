@@ -1,5 +1,6 @@
 package org.example.sharedprompts.module.dto.response.production;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
 
@@ -46,11 +47,11 @@ public record ArtifactDetailResponseDto(
     String presignedUrl,
     
     @JsonProperty("cdn_url")
-    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     String cdnUrl,
     
     @JsonProperty("thumbnail_urls")
-    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     Map<String, String> thumbnailUrls,
     
     @JsonProperty("created_at")

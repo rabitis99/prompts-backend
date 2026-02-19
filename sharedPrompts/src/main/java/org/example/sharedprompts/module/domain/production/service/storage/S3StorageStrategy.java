@@ -21,7 +21,6 @@ public class S3StorageStrategy implements StorageStrategy {
 
     public S3StorageStrategy(StorageFacade storageFacade) {
         this.storageFacade = storageFacade;
-        log.info("S3StorageStrategy bean created - using StorageFacade");
     }
 
     @PostConstruct
@@ -41,12 +40,12 @@ public class S3StorageStrategy implements StorageStrategy {
 
     @Override
     public String store(String content, String tenantId, Long userId, String jobId, String fileName) {
-        return storageFacade.upload(content, userId, jobId, fileName);
+        return storageFacade.upload(content, tenantId, userId, jobId, fileName);
     }
 
     @Override
     public String store(byte[] data, String contentType, String tenantId, Long userId, String jobId, String fileName) {
-        return storageFacade.upload(data, contentType, userId, jobId, fileName);
+        return storageFacade.upload(data, contentType, tenantId, userId, jobId, fileName);
     }
 
     @Override

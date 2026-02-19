@@ -6,6 +6,7 @@ import org.example.sharedprompts.module.domain.production.model.contract.result.
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.module.domain.production.application.storage.StorageFacade;
 import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategy;
+import org.example.sharedprompts.module.domain.production.service.storage.StorageType;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.example.sharedprompts.module.dto.response.production.ArtifactDto;
 import org.example.sharedprompts.module.dto.response.production.TextArtifactDto;
@@ -38,7 +39,7 @@ public class TextArtifactHandler implements ArtifactHandler {
                 .filePath(filePath)
                 .fileName(ArtifactMetadataHelper.extractFileName(filePath))
                 .contentType(ArtifactMetadataHelper.determineContentType(filePath))
-                .storageLocation(storageStrategy.getStorageType().name())
+                .storageLocation(StorageType.S3.name())
                 .build();
     }
 
