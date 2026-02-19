@@ -23,12 +23,21 @@ public class DocumentPresignedStrategy implements PresignedStrategy {
             return false;
         }
         String lower = contentType.toLowerCase();
-        return lower.startsWith("text/") ||
-               lower.equals("application/json") ||
-               lower.equals("application/xml") ||
-               lower.equals("application/xhtml+xml") ||
-               lower.contains("html") ||
-               lower.contains("markdown");
+        // text/* 타입 (text/html, text/markdown, text/plain 등 포함)
+        if (lower.startsWith("text/")) {
+            return true;
+        }
+        // 명시적 애플리케이션 타입
+        if (lower.equals("application/json") ||
+            lower.equals("application/xml") ||
+            lower.equals("application/xhtml+xml")) {
+            return true;
+        }
+        // 비표준 markdown 타입 지원 (application/markdown 등)
+        if (lower.contains("markdown")) {
+            return true;
+        }
+        return false;
     }
 
     @Override

@@ -26,7 +26,8 @@ public class ImagePresignedStrategy implements PresignedStrategy {
 
     @Override
     public String generatePresignedUrl(String bucket, String key, String contentType, Duration ttl) {
-        log.debug("Generating presigned URL for image - bucket: {}, key: {}", bucket, key);
+        log.debug("Generating presigned URL for image - bucket: {}, key: {}, contentType: {}", 
+                bucket, key, contentType);
         return presignedUrlGenerator.generate(bucket, key, ttl);
     }
 }

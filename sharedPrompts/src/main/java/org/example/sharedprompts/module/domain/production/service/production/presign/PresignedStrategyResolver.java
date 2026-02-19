@@ -20,20 +20,21 @@ public class PresignedStrategyResolver {
      * Content-Type에 맞는 PresignedStrategy 반환
      * 
      * @param contentType 파일의 Content-Type
-     * @return 적합한 PresignedStrategy, 없으면 기본 전략 반환
-     * @throws IllegalStateException 전략이 없을 때 발생
+     * @return 적합한 PresignedStrategy
+     * @throws IllegalArgumentException 지원되지 않는 Content-Type이거나 null일 때 발생
      */
     public PresignedStrategy resolve(String contentType) {
+        if (contentType == null) {
+            log.warn("ContentType is null");
+            throw new IllegalArgumentException("Content type cannot be null");
+        }
         return strategies.stream()
                 .filter(strategy -> strategy.supports(contentType))
                 .findFirst()
-                .orElseGet(() -> {
-                    log.warn("No PresignedStrategy found for contentType: {}, using default", contentType);
-                    if (strategies.isEmpty()) {
-                        throw new IllegalStateException("No PresignedStrategy implementations found");
-                    }
-                    // 기본 전략: 첫 번째 전략 사용 (일반적으로 DocumentPresignedStrategy)
-                    return strategies.get(0);
+                .orElseThrow(() -> {
+                    log.warn("No PresignedStrategy found for contentType: {}", contentType);
+                    return new IllegalArgumentException(
+                        "Unsupported content type for presigned URL generation: " + contentType);
                 });
     }
 }
