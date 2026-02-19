@@ -3,6 +3,8 @@ package org.example.sharedprompts.module.domain.production.service.ai;
 import org.example.sharedprompts.module.domain.production.model.ai.AIContentRequest;
 import org.example.sharedprompts.module.domain.production.model.ai.AIContentResult;
 
+import java.util.Optional;
+
 /**
  * AI 콘텐츠 생성 서비스 인터페이스
  * Text, Image 생성만 담당하며, 여러 AI 모델을 지원할 수 있도록 확장 가능
@@ -32,15 +34,15 @@ public interface AIService {
      * <p>기본 구현은 {@link #supports(ContentType)}를 사용하여 모든 ContentType을 순회합니다.
      * 구현체에서 이 메서드를 오버라이드하면 성능을 개선할 수 있습니다.
      * 
-     * @return 이 서비스가 지원하는 ContentType, 지원하는 타입이 없으면 null
+     * @return 이 서비스가 지원하는 ContentType을 포함한 Optional, 지원하는 타입이 없으면 Optional.empty()
      */
-    default ContentType getSupportedContentType() {
+    default Optional<ContentType> getSupportedContentType() {
         for (ContentType type : ContentType.values()) {
             if (supports(type)) {
-                return type;
+                return Optional.of(type);
             }
         }
-        return null;
+        return Optional.empty();
     }
     
     /**

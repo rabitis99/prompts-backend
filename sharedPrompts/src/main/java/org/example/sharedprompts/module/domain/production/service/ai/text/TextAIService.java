@@ -50,14 +50,18 @@ public class TextAIService implements AIService {
                     request.getContentTypeHint(), request.getModelName());
             
             // 프롬프트 빌더를 사용하여 최종 프롬프트 생성
+            // 현재: 시스템 프롬프트와 사용자 프롬프트가 병합되어 단일 문자열로 전달됨
             String combinedPrompt = promptBuilder.build(request);
             
             // 모델 이름 결정 (요청에 없으면 전략에서 가져옴, 없으면 기본값)
             String modelName = determineModelName(request);
             
             // AI 클라이언트를 통한 텍스트 생성
-            // 향후 개선: 시스템 프롬프트와 사용자 프롬프트를 분리하여 전달
-            // GroqChatRequest의 새로운 생성자(model, systemPrompt, userPrompt) 사용 가능
+            // TODO: 시스템 프롬프트와 사용자 프롬프트 분리 전달 개선
+            // - 목적: Groq Chat Completion API에서 system/user 역할 분리로 모델 응답 품질 향상
+            // - 방법: TextPromptBuilder.getSystemPrompt()를 별도로 전달
+            // - 구현: GroqChatRequest(model, systemPrompt, userPrompt) 생성자 사용
+            // - 참고: GroqTextAiClient.generateText() 시그니처 변경 필요
             String generatedText = textAiClient.generateText(
                     combinedPrompt,
                     modelName,
@@ -89,8 +93,8 @@ public class TextAIService implements AIService {
     }
     
     @Override
-    public ContentType getSupportedContentType() {
-        return ContentType.TEXT;
+    public Optional<ContentType> getSupportedContentType() {
+        return Optional.of(ContentType.TEXT);
     }
     
     @Override

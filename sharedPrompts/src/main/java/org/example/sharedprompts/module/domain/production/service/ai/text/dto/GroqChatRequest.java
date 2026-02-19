@@ -1,6 +1,6 @@
 package org.example.sharedprompts.module.domain.production.service.ai.text.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,16 +12,15 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class GroqChatRequest {
     private String model;
     private GroqMessage[] messages;
     
-    @JsonProperty("temperature")
     private Double temperature;
     
-    @JsonProperty("max_tokens")
-    private Integer maxTokens;
+    @JsonProperty("max_completion_tokens")
+    private Integer maxCompletionTokens;
     
     /**
      * 단일 메시지를 받는 생성자 (하위 호환성 유지)
@@ -54,17 +53,17 @@ public class GroqChatRequest {
      * @param systemPrompt 시스템 프롬프트
      * @param userPrompt 사용자 프롬프트
      * @param temperature 생성 온도 (0.0 ~ 2.0, null이면 모델 기본값 사용)
-     * @param maxTokens 최대 토큰 수 (null이면 모델 기본값 사용)
+     * @param maxCompletionTokens 최대 완성 토큰 수 (null이면 모델 기본값 사용)
      */
     public GroqChatRequest(String model, String systemPrompt, String userPrompt, 
-                          Double temperature, Integer maxTokens) {
+                          Double temperature, Integer maxCompletionTokens) {
         this.model = model;
         this.messages = new GroqMessage[]{
                 new GroqMessage("system", systemPrompt),
                 new GroqMessage("user", userPrompt)
         };
         this.temperature = temperature;
-        this.maxTokens = maxTokens;
+        this.maxCompletionTokens = maxCompletionTokens;
     }
 }
 

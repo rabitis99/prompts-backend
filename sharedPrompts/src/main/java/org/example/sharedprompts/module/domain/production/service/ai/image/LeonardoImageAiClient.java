@@ -168,15 +168,10 @@ public class LeonardoImageAiClient implements ImageAIClient {
     private LeonardoGenerationResponse createGeneration(LeonardoGenerationRequest request) {
         try {
             // 요청 로깅 (PII 보호: 프롬프트는 마스킹)
-            try {
-                String requestInfo = String.format("modelId: %s, promptLength: %d, width: %d, height: %d", 
-                        request.getModelId(), 
-                        request.getPrompt() != null ? request.getPrompt().length() : 0, 
-                        request.getWidth(), request.getHeight());
-                log.debug("Leonardo API request: {}", requestInfo);
-            } catch (Exception e) {
-                log.warn("Failed to format request for logging", e);
-            }
+            log.debug("Leonardo API request - modelId: {}, promptLength: {}, width: {}, height: {}", 
+                    request.getModelId(), 
+                    request.getPrompt() != null ? request.getPrompt().length() : 0, 
+                    request.getWidth(), request.getHeight());
             
             String responseBody = getWebClient()
                     .post()

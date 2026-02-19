@@ -1,6 +1,7 @@
 package org.example.sharedprompts.module.domain.production.validation;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.global.util.SensitiveDataMasker;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommand;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
 import org.example.sharedprompts.module.domain.production.model.executor.image.ImageCommand;
@@ -47,7 +48,7 @@ public class ImageCommandValidator implements ProductionValidator {
         validateAspectRatio(imageCommand.width(), imageCommand.height());
         
         log.debug("ImageCommand validation passed - prompt: {}, size: {}x{}", 
-                imageCommand.prompt(), imageCommand.width(), imageCommand.height());
+                SensitiveDataMasker.mask(imageCommand.prompt()), imageCommand.width(), imageCommand.height());
     }
     
     @Override

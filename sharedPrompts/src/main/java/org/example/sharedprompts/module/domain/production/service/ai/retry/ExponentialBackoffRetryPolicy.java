@@ -17,8 +17,7 @@ import java.io.IOException;
  * 
  * <p>재시도하지 않음:
  * <ul>
- *   <li>403 FORBIDDEN (Content Filter 오류) - 재시도하지 않음</li>
- *   <li>기타 4xx 클라이언트 오류 - 재시도하지 않음</li>
+ *   <li>모든 4xx 클라이언트 오류 (429 제외) - 재시도하지 않음</li>
  * </ul>
  */
 @RequiredArgsConstructor
@@ -49,17 +48,8 @@ public class ExponentialBackoffRetryPolicy implements RetryPolicy {
                 return true;
             }
             
-            // 4xx 클라이언트 오류는 재시도하지 않음 (특히 403 FORBIDDEN)
+            // 4xx 클라이언트 오류는 재시도하지 않음 (429 제외)
             if (statusCode >= 400 && statusCode < 500) {
-                // 403 FORBIDDEN의 경우, content filter 오류인지 확인
-                if (statusCode == 403) {
-                    String responseBody = webClientException.getResponseBodyAsString();
-                    if (isContentFilterError(responseBody)) {
-                        // Content filter 오류는 재시도해도 성공하지 않으므로 재시도하지 않음
-                        return false;
-                    }
-                }
-                // 다른 4xx 오류도 재시도하지 않음
                 return false;
             }
             
@@ -89,19 +79,6 @@ public class ExponentialBackoffRetryPolicy implements RetryPolicy {
         return null;
     }
     
-    /**
-     * 응답 본문이 content filter 오류인지 확인합니다.
-     */
-    private boolean isContentFilterError(String responseBody) {
-        if (responseBody == null) {
-            return false;
-        }
-        String lowerBody = responseBody.toLowerCase();
-        return lowerBody.contains("filter") 
-                && (lowerBody.contains("inappropriate") 
-                    || lowerBody.contains("known person")
-                    || lowerBody.contains("blocked"));
-    }
     
     @Override
     public long calculateDelayMs(int attempt) {
@@ -120,7 +97,12 @@ public class ExponentialBackoffRetryPolicy implements RetryPolicy {
             return Long.MAX_VALUE;
         }
         
-        return initialDelayMs * (1L << attempt);
+        long shift = 1L << attempt;
+        // 곱셈 오버플로우 방지: initialDelayMs * shift가 Long.MAX_VALUE를 초과하지 않도록 검증
+        if (initialDelayMs > 0 && shift > Long.MAX_VALUE / initialDelayMs) {
+            return Long.MAX_VALUE;
+        }
+        return initialDelayMs * shift;
     }
 }
 

@@ -1,5 +1,6 @@
 package org.example.sharedprompts.module.domain.production.service.ai.config.properties;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
@@ -41,16 +42,19 @@ public class GroqProperties {
     /**
      * 요청 타임아웃 (초, 기본값: 30)
      */
+    @Min(value = 1, message = "타임아웃은 1초 이상이어야 합니다")
     private int timeoutSeconds = 30;
 
     /**
      * 최대 재시도 횟수 (기본값: 3)
      */
+    @Min(value = 0, message = "최대 재시도 횟수는 0 이상이어야 합니다")
     private int maxRetries = 3;
 
     /**
      * 재시도 초기 지연 시간 (밀리초, 기본값: 1000)
      */
+    @Min(value = 0, message = "초기 재시도 지연 시간은 0 이상이어야 합니다")
     private long initialRetryDelayMs = 1000L;
 }
 

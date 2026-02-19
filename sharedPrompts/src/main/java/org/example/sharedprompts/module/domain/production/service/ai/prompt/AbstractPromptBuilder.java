@@ -41,6 +41,18 @@ public abstract class AbstractPromptBuilder implements PromptBuilder {
         }
         
         String finalPrompt = promptBuilder.toString();
+        
+        // 빈 프롬프트 조기 검증: systemPrompt와 mergedPrompt가 모두 null/blank인 경우
+        if (finalPrompt.isBlank()) {
+            log.error("{} prompt is empty after building - promptId: {}, userId: {}, hasSystemPrompt: {}, hasMergedPrompt: {}", 
+                    contentTypeName, request.getPromptId(), maskUserId(request.getUserId()),
+                    systemPrompt != null && !systemPrompt.isBlank(),
+                    mergedPrompt != null && !mergedPrompt.isBlank());
+            throw new IllegalArgumentException(
+                    String.format("%s prompt cannot be empty. Both systemPrompt and mergedPrompt are null or blank.", 
+                            contentTypeName));
+        }
+        
         log.debug("Final {} prompt length: {}", contentTypeName, finalPrompt.length());
         return finalPrompt;
     }
