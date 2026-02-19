@@ -3,7 +3,9 @@ package org.example.sharedprompts.module.domain.production.service.artifact;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactDetailEntity;
 import org.example.sharedprompts.module.domain.production.entity.production.StorageFormat;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
-import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategy;
+import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.module.domain.production.application.storage.StorageFacade;
+import org.example.sharedprompts.module.domain.production.service.storage.StorageType;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.example.sharedprompts.module.dto.response.production.ArtifactDto;
 import org.example.sharedprompts.module.dto.response.production.TextArtifactDto;
@@ -12,7 +14,10 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 
 @Component
+@RequiredArgsConstructor
 public class TextArtifactHandler implements ArtifactHandler {
+
+    private final StorageFacade storageFacade;
 
     @Override
     public ArtifactType getSupportedType() {
@@ -21,10 +26,9 @@ public class TextArtifactHandler implements ArtifactHandler {
 
     @Override
     public ProductionArtifactDetailEntity createDetail(
-            String filePath,
-            StorageStrategy storageStrategy
+            String filePath
     ) {
-        String content = new String(storageStrategy.read(filePath), StandardCharsets.UTF_8);
+        String content = new String(storageFacade.download(filePath), StandardCharsets.UTF_8);
 
         return ProductionArtifactDetailEntity.builder()
                 .artifactType(getSupportedType())
@@ -33,7 +37,7 @@ public class TextArtifactHandler implements ArtifactHandler {
                 .filePath(filePath)
                 .fileName(ArtifactMetadataHelper.extractFileName(filePath))
                 .contentType(ArtifactMetadataHelper.determineContentType(filePath))
-                .storageLocation(storageStrategy.getStorageType().name())
+                .storageLocation(StorageType.S3.name())
                 .build();
     }
 

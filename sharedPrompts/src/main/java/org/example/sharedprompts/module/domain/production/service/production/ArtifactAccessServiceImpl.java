@@ -1,9 +1,8 @@
 package org.example.sharedprompts.module.domain.production.service.production;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.module.domain.production.config.condition.ConditionalOnStorageType;
+import org.example.sharedprompts.module.domain.production.application.storage.StorageFacade;
 import org.example.sharedprompts.module.domain.production.service.cdn.CdnUrlProvider;
-import org.example.sharedprompts.module.domain.production.service.production.presign.PresignedUrlGenerator;
 import org.example.sharedprompts.module.exception.BaseException;
 import org.example.sharedprompts.module.exception.ModuleErrorCode;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,28 +13,24 @@ import java.time.Duration;
 
 @Slf4j
 @Service
-@ConditionalOnStorageType("S3")
 public class ArtifactAccessServiceImpl implements ArtifactAccessService {
 
-    private final PresignedUrlGenerator presignedUrlGenerator;
+    private final StorageFacade storageFacade;
     private final StringRedisTemplate redisTemplate;
     private final CdnUrlProvider cdnUrlProvider;
-    private final String bucket;
     private final Duration presignedUrlTtl;
     private final Duration cacheTtl;
 
     private static final String CACHE_PREFIX = "presigned:";
 
     public ArtifactAccessServiceImpl(
-            PresignedUrlGenerator presignedUrlGenerator,
+            StorageFacade storageFacade,
             StringRedisTemplate redisTemplate,
             CdnUrlProvider cdnUrlProvider,
-            @Value("${production.storage.s3.bucket}") String bucket,
             @Value("${artifact.url.default-ttl:300}") int ttlSeconds) {
-        this.presignedUrlGenerator = presignedUrlGenerator;
+        this.storageFacade = storageFacade;
         this.redisTemplate = redisTemplate;
         this.cdnUrlProvider = cdnUrlProvider;
-        this.bucket = bucket;
         this.presignedUrlTtl = Duration.ofSeconds(ttlSeconds);
         this.cacheTtl = Duration.ofSeconds(Math.max(ttlSeconds - 30, ttlSeconds / 2));
     }
@@ -56,7 +51,7 @@ public class ArtifactAccessServiceImpl implements ArtifactAccessService {
         }
 
         try {
-            String url = presignedUrlGenerator.generate(bucket, key, presignedUrlTtl, "inline");
+            String url = storageFacade.generatePreviewUrl(key, presignedUrlTtl);
 
             try {
                 redisTemplate.opsForValue()
@@ -90,11 +85,7 @@ public class ArtifactAccessServiceImpl implements ArtifactAccessService {
         }
 
         try {
-            String fileName = extractFileName(key);
-            String contentDisposition = fileName != null 
-                    ? String.format("attachment; filename=\"%s\"", fileName)
-                    : "attachment";
-            String url = presignedUrlGenerator.generate(bucket, key, presignedUrlTtl, contentDisposition);
+            String url = storageFacade.generateDownloadUrl(key, presignedUrlTtl);
 
             try {
                 redisTemplate.opsForValue()
@@ -110,16 +101,6 @@ public class ArtifactAccessServiceImpl implements ArtifactAccessService {
             log.error("Presigned URL generation failed - key: {}", key, e);
             throw new BaseException(ModuleErrorCode.STORAGE_ERROR, e);
         }
-    }
-
-    private String extractFileName(String key) {
-        if (key == null || key.isBlank()) {
-            return null;
-        }
-        int lastSlash = key.lastIndexOf('/');
-        return lastSlash >= 0 && lastSlash < key.length() - 1 
-                ? key.substring(lastSlash + 1) 
-                : key;
     }
 
     @Override

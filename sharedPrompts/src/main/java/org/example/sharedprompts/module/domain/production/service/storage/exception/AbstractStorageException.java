@@ -7,7 +7,7 @@ import static org.example.sharedprompts.module.exception.ModuleErrorCode.STORAGE
 
 /**
  * 저장소 관련 예외의 공통 추상 클래스.
- * LocalStorageException과 S3StorageException의 중복 코드를 제거합니다.
+ * S3StorageException의 기본 클래스로 사용됩니다.
  */
 public abstract class AbstractStorageException extends BaseException {
     

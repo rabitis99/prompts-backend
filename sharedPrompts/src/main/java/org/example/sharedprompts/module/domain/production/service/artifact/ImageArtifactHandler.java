@@ -7,8 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactDetailEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
 import org.example.sharedprompts.module.domain.production.service.production.ArtifactAccessService;
-import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategy;
-import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategyFactory;
+import org.example.sharedprompts.module.domain.production.application.storage.StorageFacade;
+import org.example.sharedprompts.module.domain.production.service.storage.StorageType;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.example.sharedprompts.module.dto.response.production.ArtifactDto;
 import org.example.sharedprompts.module.dto.response.production.ImageArtifactDto;
@@ -27,7 +27,7 @@ public class ImageArtifactHandler implements ArtifactHandler {
 
     private final ArtifactAccessService artifactAccessService;
     private final ObjectMapper objectMapper;
-    private final StorageStrategyFactory storageStrategyFactory;
+    private final StorageFacade storageFacade;
     
     private static final Pattern IMG_SRC_PATTERN = Pattern.compile(
             "<img[^>]+src\\s*=\\s*[\"']([^\"']+)[\"']", 
@@ -41,58 +41,44 @@ public class ImageArtifactHandler implements ArtifactHandler {
 
     @Override
     public ProductionArtifactDetailEntity createDetail(
-            String filePath,
-            StorageStrategy storageStrategy
+            String filePath
     ) {
         // S3에 업로드된 실제 key를 그대로 사용 (filePath가 실제 S3 key)
         String fileName = ArtifactMetadataHelper.extractFileName(filePath);
         String contentType;
 
-        // 실제 파일을 읽어서 올바른 content type 결정
+        // 이미지 포맷 감지를 위해 파일의 시작 부분만 읽기 (최대 12바이트)
+        // 전체 파일을 다운로드하지 않아 네트워크 I/O와 메모리 사용을 최소화합니다.
         try {
-            byte[] fileContent = storageStrategy.read(filePath);
-            if (fileContent != null && fileContent.length > 0) {
-                String detectedFormat = detectImageFormat(fileContent);
+            // WebP 포맷 감지를 위해 최대 12바이트 필요
+            byte[] fileHeader = storageFacade.downloadRange(filePath, 0, 11);
+            if (fileHeader != null && fileHeader.length > 0) {
+                String detectedFormat = detectImageFormat(fileHeader);
                 contentType = getContentTypeFromFormat(detectedFormat);
                 
-                log.info("Detected image format from file content - filePath: {}, format: {}, contentType: {}, fileName: {}", 
+                log.info("Detected image format from file header - filePath: {}, format: {}, contentType: {}, fileName: {}", 
                         filePath, detectedFormat, contentType, fileName);
             } else {
                 // 파일을 읽을 수 없는 경우 파일명에서 추론
-                log.warn("Could not read file content, inferring from filePath - filePath: {}", filePath);
+                log.warn("Could not read file header, inferring from filePath - filePath: {}", filePath);
                 contentType = ArtifactMetadataHelper.determineContentType(filePath);
             }
         } catch (Exception e) {
             // 파일 읽기 실패 시 파일명에서 추론
-            log.warn("Failed to read file content, inferring from filePath - filePath: {}, error: {}", filePath, e.getMessage());
+            log.warn("Failed to read file header, inferring from filePath - filePath: {}, error: {}", filePath, e.getMessage());
             contentType = ArtifactMetadataHelper.determineContentType(filePath);
         }
 
-        // contentType 기반으로 artifactType 결정 (IMAGE는 image/*인 경우만)
-        ArtifactType artifactType = determineArtifactTypeFromContentType(contentType);
-
         // S3에 업로드된 실제 key와 contentType을 그대로 사용하여 Entity 생성
+        // ImageArtifactHandler는 항상 IMAGE 타입을 반환합니다.
         return ProductionArtifactDetailEntity.builder()
-                .artifactType(artifactType)
+                .artifactType(ArtifactType.IMAGE)
                 .storageType(ArtifactMetadataHelper.determineStorageFormat(filePath))
                 .filePath(filePath) // S3에 업로드된 실제 key
                 .fileName(fileName) // S3 key에서 추출한 파일명
                 .contentType(contentType) // 실제 파일 내용에서 감지한 contentType
-                .storageLocation(storageStrategy.getStorageType().name())
+                .storageLocation(StorageType.S3.name())
                 .build();
-    }
-
-    /**
-     * contentType을 기반으로 ArtifactType을 결정합니다.
-     * IMAGE 타입은 contentType이 image/*인 경우에만 설정합니다.
-     */
-    private ArtifactType determineArtifactTypeFromContentType(String contentType) {
-        if (contentType != null && contentType.toLowerCase().startsWith("image/")) {
-            return ArtifactType.IMAGE;
-        }
-        // 이미지가 아닌 경우 기본 타입 사용 (요청 타입에 따라 결정되지만, 실제로는 IMAGE가 아닐 수 있음)
-        // 하지만 이 메서드는 ImageArtifactHandler에서만 호출되므로 IMAGE를 반환
-        return ArtifactType.IMAGE;
     }
 
     /**
@@ -153,7 +139,6 @@ public class ImageArtifactHandler implements ArtifactHandler {
     @Override
     public ArtifactDto toDto(ProductionArtifactDetailEntity detail) {
         String filePath = detail.getFilePath();
-        String previewUrl;
         String actualImagePath = filePath;
         
         // HTML 파일인 경우 이미지 경로 추출
@@ -165,14 +150,12 @@ public class ImageArtifactHandler implements ArtifactHandler {
             }
         }
         
-        previewUrl = artifactAccessService.generatePreviewUrl(actualImagePath);
         String cdnUrl = artifactAccessService.generateCdnUrl(actualImagePath);
         Map<String, String> thumbnailUrls = buildThumbnailUrls(detail.getMetadata());
 
         return new ImageArtifactDto(
                 ArtifactType.IMAGE,
                 actualImagePath, // 실제 이미지 경로 사용
-                previewUrl,
                 detail.getFileName(),
                 detail.getContentType(),
                 detail.getStorageLocation(),
@@ -189,8 +172,7 @@ public class ImageArtifactHandler implements ArtifactHandler {
      */
     private String extractImagePathFromHtml(String htmlFilePath) {
         try {
-            StorageStrategy storageStrategy = storageStrategyFactory.getStorageStrategy();
-            byte[] htmlContent = storageStrategy.read(htmlFilePath);
+            byte[] htmlContent = storageFacade.download(htmlFilePath);
             String html = new String(htmlContent, StandardCharsets.UTF_8);
             
             Matcher matcher = IMG_SRC_PATTERN.matcher(html);

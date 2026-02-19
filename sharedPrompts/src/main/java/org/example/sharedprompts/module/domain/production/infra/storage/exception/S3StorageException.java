@@ -1,5 +1,6 @@
-package org.example.sharedprompts.module.domain.production.service.storage.exception;
+package org.example.sharedprompts.module.domain.production.infra.storage.exception;
 
+import org.example.sharedprompts.module.domain.production.service.storage.exception.AbstractStorageException;
 import org.example.sharedprompts.module.exception.ModuleErrorCode;
 
 /**
