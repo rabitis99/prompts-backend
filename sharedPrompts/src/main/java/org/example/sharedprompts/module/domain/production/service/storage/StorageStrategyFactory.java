@@ -21,7 +21,8 @@ public class StorageStrategyFactory {
     private String storageType;
 
     private final List<StorageStrategy> strategies;
-    private Map<StorageType, StorageStrategy> strategyMap;
+    private final Map<StorageType, StorageStrategy> strategyMap;
+    private StorageType resolvedStorageType;
 
     public StorageStrategyFactory(List<StorageStrategy> strategies) {
         this.strategies = strategies;
@@ -36,10 +37,11 @@ public class StorageStrategyFactory {
                     strategy.getClass().getSimpleName(), strategy.getStorageType());
         }
         
-        // 설정된 기본 전략 타입이 유효한지 조기 검증
+        // 설정된 기본 전략 타입이 유효한지 조기 검증 및 캐싱
         StorageType defaultType;
         try {
             defaultType = StorageType.valueOf(storageType.toUpperCase());
+            this.resolvedStorageType = defaultType;
         } catch (IllegalArgumentException e) {
             throw new IllegalStateException(
                     String.format("Invalid storage type configured: '%s'. Valid types: %s",
@@ -60,12 +62,11 @@ public class StorageStrategyFactory {
      * 설정된 저장 전략 조회
      */
     public StorageStrategy getStorageStrategy() {
-        StorageType type = StorageType.valueOf(storageType.toUpperCase());
-        StorageStrategy strategy = strategyMap.get(type);
+        StorageStrategy strategy = strategyMap.get(resolvedStorageType);
         if (strategy == null) {
             log.error("No storage strategy found for type: {}. Available strategies: {}", 
-                    type, strategyMap.keySet());
-            throw new IllegalArgumentException("No storage strategy found for type: " + type + 
+                    resolvedStorageType, strategyMap.keySet());
+            throw new IllegalArgumentException("No storage strategy found for type: " + resolvedStorageType + 
                     ". Available strategies: " + strategyMap.keySet());
         }
         return strategy;
