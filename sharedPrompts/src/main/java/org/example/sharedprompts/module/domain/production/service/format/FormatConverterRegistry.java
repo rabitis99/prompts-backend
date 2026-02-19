@@ -33,9 +33,22 @@ public class FormatConverterRegistry {
             return Optional.empty();
         }
         String lowerFormat = format.toLowerCase();
-        return converters.stream()
+        Optional<FormatConverter> converter = converters.stream()
                 .filter(c -> c.supports(lowerFormat))
                 .findFirst();
+        
+        if (converter.isEmpty()) {
+            log.warn("No converter found for format: {} (lowercase: {}). Available converters: {}", 
+                    format, lowerFormat, 
+                    converters.stream()
+                            .map(c -> c.getClass().getSimpleName())
+                            .toList());
+        } else {
+            log.debug("Found converter: {} for format: {}", 
+                    converter.get().getClass().getSimpleName(), format);
+        }
+        
+        return converter;
     }
 
     /**

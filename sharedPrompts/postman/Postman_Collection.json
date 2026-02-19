@@ -19,6 +19,11 @@
       "key": "refreshToken",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "tenantId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -37,7 +42,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Password123!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/signup",
@@ -74,7 +79,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"device_token\": \"device_token_value\"\n}"
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Password123!\",\n  \"device_token\": \"device_token_value\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
@@ -213,7 +218,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"current_password\": \"oldpassword123\",\n  \"new_password\": \"newpassword123\"\n}"
+              "raw": "{\n  \"current_password\": \"Password123!\",\n  \"new_password\": \"NewPassword123!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/users/me/password",
@@ -1927,6 +1932,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
               }
             ],
             "body": {
@@ -1952,6 +1961,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
               }
             ],
             "body": {
@@ -1977,6 +1990,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
               }
             ],
             "body": {
@@ -2002,6 +2019,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
               }
             ],
             "body": {
@@ -2027,6 +2048,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
               }
             ],
             "body": {
@@ -2048,6 +2073,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
               }
             ],
             "url": {
@@ -2065,6 +2094,10 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
               }
             ],
             "url": {
@@ -2082,12 +2115,58 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
               }
             ],
             "url": {
               "raw": "{{baseUrl}}/jobs/job-id-123/retry",
               "host": ["{{baseUrl}}"],
               "path": ["jobs", "job-id-123", "retry"]
+            }
+          }
+        },
+        {
+          "name": "아티팩트 목록 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/productions/1/artifacts",
+              "host": ["{{baseUrl}}"],
+              "path": ["productions", "1", "artifacts"]
+            }
+          }
+        },
+        {
+          "name": "아티팩트 상세 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/productions/1/artifacts/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["productions", "1", "artifacts", "1"]
             }
           }
         }

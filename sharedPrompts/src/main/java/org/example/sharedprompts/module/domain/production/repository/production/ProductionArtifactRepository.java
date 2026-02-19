@@ -13,5 +13,8 @@ public interface ProductionArtifactRepository extends JpaRepository<ProductionAr
     @EntityGraph(attributePaths = {"detail"})
     @Query("SELECT a FROM ProductionArtifactEntity a WHERE a.id = :id")
     Optional<ProductionArtifactEntity> findByIdWithDetail(@Param("id") Long id);
+    
+    @Query("SELECT p FROM ProductionArtifactEntity p LEFT JOIN FETCH p.artifacts WHERE p.id = :id")
+    Optional<ProductionArtifactEntity> findByIdWithArtifacts(@Param("id") Long id);
 }
 

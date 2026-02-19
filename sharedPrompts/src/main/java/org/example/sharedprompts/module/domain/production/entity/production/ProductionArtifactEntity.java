@@ -6,6 +6,7 @@ import org.example.sharedprompts.global.entity.BaseEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
 
 import java.time.Instant;
+import java.util.List;
 
 @Entity
 @Getter
@@ -45,12 +46,35 @@ public class ProductionArtifactEntity extends BaseEntity {
     @Column(name = "success", nullable = false)
     private boolean success;
 
-    @OneToOne(mappedBy = "artifact", cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = true)
-    private ProductionArtifactDetailEntity detail;
+    @OneToMany(mappedBy = "artifact", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<ProductionArtifactDetailEntity> artifacts = new java.util.ArrayList<>();
 
+    public void addArtifact(ProductionArtifactDetailEntity artifact) {
+        if (this.artifacts == null) {
+            this.artifacts = new java.util.ArrayList<>();
+        }
+        this.artifacts.add(artifact);
+        artifact.setArtifact(this);
+    }
+
+    @Deprecated
+    public ProductionArtifactDetailEntity getDetail() {
+        if (artifacts == null || artifacts.isEmpty()) {
+            return null;
+        }
+        return artifacts.stream()
+                .filter(ProductionArtifactDetailEntity::getIsPrimary)
+                .findFirst()
+                .orElse(artifacts.get(0));
+    }
+
+    @Deprecated
     public void setDetail(ProductionArtifactDetailEntity detail) {
-        this.detail = detail;
-        detail.setArtifact(this);
+        if (detail != null) {
+            detail.setIsPrimary(true);
+            addArtifact(detail);
+        }
     }
 }
 

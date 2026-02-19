@@ -44,8 +44,13 @@ public class ProductionResultApplicationService {
                 productionId, userId);
         
         ProductionArtifactEntity artifact = productionArtifactRepository
-                .findByIdWithDetail(productionId)
-                .orElseThrow(() -> new BaseException(ModuleErrorCode.PRODUCTION_NOT_FOUND));
+                .findByIdWithArtifacts(productionId)
+                .orElseGet(() -> {
+                    // 기존 호환성을 위해 detail로도 조회 시도
+                    return productionArtifactRepository
+                            .findByIdWithDetail(productionId)
+                            .orElseThrow(() -> new BaseException(ModuleErrorCode.PRODUCTION_NOT_FOUND));
+                });
         
         if (!artifact.getUserId().equals(userId)) {
             throw new BaseException(ModuleErrorCode.PRODUCTION_FORBIDDEN);

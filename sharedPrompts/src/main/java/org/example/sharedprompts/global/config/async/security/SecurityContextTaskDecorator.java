@@ -1,5 +1,6 @@
 package org.example.sharedprompts.global.config.async.security;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.model.tenant.TenantContext;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.core.task.TaskDecorator;
@@ -20,6 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
  *   <li>AsyncExecutorConfig.aiCallTaskExecutorWithSecurityContext: AI 호출 전용 (SecurityContext 필요)</li>
  * </ul>
  */
+@Slf4j
 public class SecurityContextTaskDecorator implements TaskDecorator {
 
     @NotNull
@@ -27,6 +29,20 @@ public class SecurityContextTaskDecorator implements TaskDecorator {
     public Runnable decorate(@NotNull Runnable runnable) {
         SecurityContext securityContext = SecurityContextHolder.getContext();
         String tenantId = TenantContext.getCurrentTenantId();
+        
+        // Log captured context - use INFO level if tenantId is null to help diagnose issues
+        if (tenantId != null) {
+            if (log.isDebugEnabled()) {
+                log.debug("SecurityContextTaskDecorator: Capturing context - thread: {}, tenantId: {}", 
+                        Thread.currentThread().getName(), tenantId);
+            }
+        } else {
+            // Warn if tenant context is null when it should be set (e.g., for job processing)
+            log.warn("SecurityContextTaskDecorator: Tenant context is null when capturing - thread: {}. " +
+                    "This may cause issues if the async task requires tenant context.", 
+                    Thread.currentThread().getName());
+        }
+        
         return () -> {
             SecurityContext previousSecurityContext = SecurityContextHolder.getContext();
             String previousTenantId = TenantContext.getCurrentTenantId();
@@ -34,8 +50,16 @@ public class SecurityContextTaskDecorator implements TaskDecorator {
                 SecurityContextHolder.setContext(securityContext);
                 if (tenantId != null) {
                     TenantContext.setCurrentTenantId(tenantId);
+                    if (log.isDebugEnabled()) {
+                        log.debug("SecurityContextTaskDecorator: Setting tenant context in async thread - thread: {}, tenantId: {}", 
+                                Thread.currentThread().getName(), tenantId);
+                    }
                 } else {
                     TenantContext.clear();
+                    if (log.isDebugEnabled()) {
+                        log.debug("SecurityContextTaskDecorator: Clearing tenant context in async thread - thread: {}", 
+                                Thread.currentThread().getName());
+                    }
                 }
                 runnable.run();
             } finally {

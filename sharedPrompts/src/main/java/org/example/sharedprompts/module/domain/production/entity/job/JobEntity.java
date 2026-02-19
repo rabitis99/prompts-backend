@@ -48,6 +48,9 @@ public class JobEntity extends BaseEntity {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    @Column(name = "tenant_id", length = 50)
+    private String tenantId;
+
     @Column(name = "command_type", nullable = false, length = 50)
     private String commandType;
 
@@ -134,13 +137,15 @@ public class JobEntity extends BaseEntity {
             String commandType,
             String commandJson,
             String userInput,
-            String idempotencyKey
+            String idempotencyKey,
+            String tenantId
     ) {
         return JobEntity.builder()
                 .jobId(UUID.randomUUID().toString())
                 .idempotencyKey(idempotencyKey)
                 .promptId(promptId)
                 .userId(userId)
+                .tenantId(tenantId)
                 .commandType(commandType)
                 .commandJson(commandJson)
                 .userInput(userInput)
