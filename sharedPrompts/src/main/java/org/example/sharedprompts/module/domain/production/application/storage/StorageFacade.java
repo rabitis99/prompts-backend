@@ -152,11 +152,13 @@ public class StorageFacade {
             return "attachment";
         }
 
-        // 위험한 문자 제거 (따옴표, 줄바꿈, 캐리지 리턴)
-        String sanitized = fileName.replaceAll("[\"\\r\\n]", "_");
+        // 위험한 문자 및 비-ASCII 문자 제거 (filename 파라미터는 ASCII 범위만 허용)
+        // RFC 7230 §3.2.6 및 RFC 6266 §4.1에 따르면 filename 값은 ISO-8859-1 출력 가능 범위(실질적으로 ASCII) 내에 있어야 함
+        String sanitized = fileName.replaceAll("[\"\\r\\n]", "_")
+                                   .replaceAll("[^\\x20-\\x7E]", "_");
 
         // RFC 6266 준수: filename과 filename* 모두 제공
-        // filename: ASCII-safe 버전 (호환성)
+        // filename: ASCII-safe 버전 (호환성 및 구형 클라이언트 지원)
         // filename*: UTF-8 인코딩 버전 (비-ASCII 문자 지원)
         // URLEncoder.encode(String, Charset)는 Java 10+에서 checked exception을 던지지 않습니다.
         String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
