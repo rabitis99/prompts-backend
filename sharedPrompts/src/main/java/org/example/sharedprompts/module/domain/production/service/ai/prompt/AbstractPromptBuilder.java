@@ -35,19 +35,16 @@ public abstract class AbstractPromptBuilder implements PromptBuilder {
             promptBuilder.append(mergedPrompt);
         } else {
             // PII 보호: userInput 내용을 로그에 기록하지 않고 존재 여부만 표시
-            log.warn("{} prompt is null or empty - promptId: {}, userId: {}, hasUserInput: {}", 
+            log.debug("{} mergedPrompt is null or empty - promptId: {}, userId: {}, hasUserInput: {}, hasSystemPrompt: {}", 
                     contentTypeName, request.getPromptId(), maskUserId(request.getUserId()), 
-                    request.getUserInput() != null && !request.getUserInput().isBlank());
+                    request.getUserInput() != null && !request.getUserInput().isBlank(),
+                    systemPrompt != null && !systemPrompt.isBlank());
         }
         
         String finalPrompt = promptBuilder.toString();
         
         // 빈 프롬프트 조기 검증: systemPrompt와 mergedPrompt가 모두 null/blank인 경우
         if (finalPrompt.isBlank()) {
-            log.error("{} prompt is empty after building - promptId: {}, userId: {}, hasSystemPrompt: {}, hasMergedPrompt: {}", 
-                    contentTypeName, request.getPromptId(), maskUserId(request.getUserId()),
-                    systemPrompt != null && !systemPrompt.isBlank(),
-                    mergedPrompt != null && !mergedPrompt.isBlank());
             throw new IllegalArgumentException(
                     String.format("%s prompt cannot be empty. Both systemPrompt and mergedPrompt are null or blank.", 
                             contentTypeName));
@@ -64,6 +61,14 @@ public abstract class AbstractPromptBuilder implements PromptBuilder {
      * @return 콘텐츠 타입 이름
      */
     protected abstract String getContentTypeName();
+    
+    /**
+     * 시스템 프롬프트 반환 (구현체에서 상수로 관리)
+     * 
+     * @return 시스템 프롬프트 문자열, 없으면 null
+     */
+    @Override
+    public abstract String getSystemPrompt();
     
     /**
      * userId를 마스킹합니다 (PII 보호).

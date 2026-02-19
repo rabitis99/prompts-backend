@@ -190,9 +190,9 @@ public class LeonardoImageAiClient implements ImageAIClient {
         } catch (JsonProcessingException e) {
             throw new AiClientException("Failed to parse Leonardo generation response", e);
         } catch (Exception e) {
-            // retryExecutor가 모든 예외를 AiClientException으로 래핑하므로,
-            // WebClientResponseException은 여기에 도달하지 않음
-            // 하지만 다른 예외(예: JsonProcessingException)는 여기서 처리
+            // createGeneration은 retryExecutor가 호출하는 작업(operation)이므로,
+            // WebClientResponseException 등 모든 비-AiClientException 예외를 AiClientException으로 래핑하여 반환.
+            // retryExecutor의 shouldRetry는 원인 체인(getCause())을 순회해 재시도 가능 여부를 판단함.
             if (e instanceof AiClientException) {
                 throw e;
             }
@@ -209,7 +209,7 @@ public class LeonardoImageAiClient implements ImageAIClient {
         int pollInterval = properties.getPollingIntervalSeconds() * 1000;
         
         // 연속 실패 횟수 제한 (executeWithRetry 내부 재시도 후에도 계속 실패하는 경우 조기 중단)
-        int maxConsecutiveFailures = 5;
+        int maxConsecutiveFailures = properties.getMaxConsecutivePollingFailures();
         int consecutiveFailures = 0;
         
         while (true) {
@@ -338,7 +338,7 @@ public class LeonardoImageAiClient implements ImageAIClient {
         @JsonProperty("prompt")
         private String prompt;
         
-        @JsonProperty("negativePrompt")
+        @JsonProperty("negative_prompt")
         private String negativePrompt;
         
         @JsonProperty("width")

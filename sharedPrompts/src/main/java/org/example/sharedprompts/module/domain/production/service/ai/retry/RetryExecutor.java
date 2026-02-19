@@ -1,6 +1,5 @@
 package org.example.sharedprompts.module.domain.production.service.ai.retry;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.service.ai.exception.AiClientException;
 import org.springframework.stereotype.Component;
@@ -24,7 +23,6 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Slf4j
-@RequiredArgsConstructor
 public class RetryExecutor {
     
     /**

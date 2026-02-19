@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * AIService 레지스트리
@@ -31,7 +30,7 @@ public class AIServiceRegistry {
         // 모든 AIService 구현체를 등록
         // putIfAbsent를 사용하여 첫 번째로 등록된 서비스만 유지 (덮어쓰기 방지)
         for (AIService service : aiServices) {
-            service.getSupportedContentType().ifPresent(supportedType -> {
+            service.getSupportedContentType().ifPresentOrElse(supportedType -> {
                 AIService existing = serviceMap.putIfAbsent(supportedType, service);
                 if (existing != null) {
                     log.warn("AIService for ContentType {} already registered: {}. Skipping: {}",
@@ -41,7 +40,8 @@ public class AIServiceRegistry {
                     log.info("Registered AIService: {} for ContentType: {}", 
                             service.getClass().getSimpleName(), supportedType);
                 }
-            });
+            }, () -> log.warn("AIService {} returned empty getSupportedContentType(); skipping registration.",
+                    service.getClass().getSimpleName()));
         }
     }
     
@@ -62,7 +62,7 @@ public class AIServiceRegistry {
     public List<String> getRegisteredServices() {
         return serviceMap.entrySet().stream()
                 .map(entry -> entry.getKey() + " -> " + entry.getValue().getClass().getSimpleName())
-                .collect(Collectors.toList());
+                .toList();
     }
 }
 

@@ -64,6 +64,12 @@ public class LeonardoProperties {
     private int pollingIntervalSeconds = 2;
 
     /**
+     * 폴링 중 연속 실패 허용 횟수 (기본값: 5)
+     * executeWithRetry 내부 재시도 후에도 계속 실패하는 경우 조기 중단을 위한 임계값입니다.
+     */
+    private int maxConsecutivePollingFailures = 5;
+
+    /**
      * Alchemy 기능 활성화 여부 (기본값: false)
      * Leonardo.AI의 Alchemy 기능은 이미지 품질을 향상시킵니다.
      */

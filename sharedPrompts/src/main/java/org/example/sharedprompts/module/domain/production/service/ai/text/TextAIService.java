@@ -5,6 +5,7 @@ import org.example.sharedprompts.module.domain.production.model.ai.AIContentRequ
 import org.example.sharedprompts.module.domain.production.model.ai.AIContentResult;
 import org.example.sharedprompts.module.domain.production.service.ai.AIService;
 import org.example.sharedprompts.module.domain.production.service.ai.ContentType;
+import org.example.sharedprompts.module.domain.production.service.ai.exception.AiClientException;
 import org.example.sharedprompts.module.domain.production.service.ai.prompt.TextPromptBuilder;
 import org.example.sharedprompts.module.domain.production.service.ai.strategy.AIModelStrategy;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -76,10 +77,15 @@ public class TextAIService implements AIService {
                     modelName
             );
             
-        } catch (RuntimeException e) {
-            // RuntimeException (AiClientException 포함)은 일시적 오류로 간주하여 예외로 전파 (retry 가능하도록)
+        } catch (AiClientException e) {
+            // AiClientException은 API 호출 실패로 인한 일시적 오류로 간주하여 예외로 전파 (retry 가능하도록)
             log.warn("Text AI generation failed with transient error, will retry", e);
             throw e;
+        } catch (RuntimeException e) {
+            // IllegalArgumentException, NullPointerException 등은 입력 검증 실패로 인한 영구적 오류
+            // 재시도해도 해결되지 않으므로 즉시 실패 처리
+            log.error("Text AI generation failed with permanent error (validation/configuration issue)", e);
+            return AIContentResult.failure("Text generation failed: " + e.getMessage());
         } catch (Exception e) {
             // 체크 예외는 영구적 오류로 간주하여 AIContentResult.failure()로 반환
             log.error("Text AI generation failed with permanent error", e);

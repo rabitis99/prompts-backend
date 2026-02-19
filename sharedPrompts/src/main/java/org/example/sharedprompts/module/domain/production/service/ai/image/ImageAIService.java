@@ -115,10 +115,15 @@ public class ImageAIService implements AIService {
                     modelName
             );
             
-        } catch (RuntimeException e) {
-            // RuntimeException (AiClientException 포함)은 일시적 오류로 간주하여 예외로 전파 (retry 가능하도록)
+        } catch (AiClientException e) {
+            // AiClientException은 API 호출 실패로 인한 일시적 오류로 간주하여 예외로 전파 (retry 가능하도록)
             log.warn("Image AI generation failed with transient error, will retry", e);
             throw e;
+        } catch (RuntimeException e) {
+            // IllegalArgumentException, NullPointerException 등은 입력 검증 실패로 인한 영구적 오류
+            // 재시도해도 해결되지 않으므로 즉시 실패 처리
+            log.error("Image AI generation failed with permanent error (validation/configuration issue)", e);
+            return AIContentResult.failure("Image generation failed: " + e.getMessage());
         } catch (Exception e) {
             // 체크 예외는 영구적 오류로 간주하여 AIContentResult.failure()로 반환
             log.error("Image AI generation failed with permanent error", e);
@@ -132,8 +137,8 @@ public class ImageAIService implements AIService {
     }
     
     @Override
-    public ContentType getSupportedContentType() {
-        return ContentType.IMAGE;
+    public Optional<ContentType> getSupportedContentType() {
+        return Optional.of(ContentType.IMAGE);
     }
     
     @Override

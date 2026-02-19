@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * Groq Chat API 요청 DTO
  */
@@ -14,8 +16,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GroqChatRequest {
+    private static final String ROLE_SYSTEM = "system";
+    private static final String ROLE_USER = "user";
+    
     private String model;
-    private GroqMessage[] messages;
+    private List<GroqMessage> messages;
     
     private Double temperature;
     
@@ -27,7 +32,7 @@ public class GroqChatRequest {
      */
     public GroqChatRequest(String model, GroqMessage message) {
         this.model = model;
-        this.messages = new GroqMessage[]{message};
+        this.messages = List.of(message);
     }
     
     /**
@@ -40,10 +45,10 @@ public class GroqChatRequest {
      */
     public GroqChatRequest(String model, String systemPrompt, String userPrompt) {
         this.model = model;
-        this.messages = new GroqMessage[]{
-                new GroqMessage("system", systemPrompt),
-                new GroqMessage("user", userPrompt)
-        };
+        this.messages = List.of(
+                new GroqMessage(ROLE_SYSTEM, systemPrompt),
+                new GroqMessage(ROLE_USER, userPrompt)
+        );
     }
     
     /**
@@ -58,10 +63,10 @@ public class GroqChatRequest {
     public GroqChatRequest(String model, String systemPrompt, String userPrompt, 
                           Double temperature, Integer maxCompletionTokens) {
         this.model = model;
-        this.messages = new GroqMessage[]{
-                new GroqMessage("system", systemPrompt),
-                new GroqMessage("user", userPrompt)
-        };
+        this.messages = List.of(
+                new GroqMessage(ROLE_SYSTEM, systemPrompt),
+                new GroqMessage(ROLE_USER, userPrompt)
+        );
         this.temperature = temperature;
         this.maxCompletionTokens = maxCompletionTokens;
     }
