@@ -7,16 +7,17 @@ import org.example.sharedprompts.module.domain.production.model.contract.result.
 
 import java.util.Map;
 
+/**
+ * 이미지 Artifact DTO
+ * S3 저장소를 사용하며, storageLocation은 항상 "S3"입니다.
+ * Presigned URL은 ArtifactDetailResponseDto의 presignedUrl 필드를 통해 제공됩니다.
+ */
 public record ImageArtifactDto(
     @JsonProperty("type")
     ArtifactType type,
 
     @JsonIgnore
     String filePath,
-
-    @JsonIgnore
-    @Deprecated
-    String previewUrl,
 
     @JsonProperty("file_name")
     String fileName,
@@ -35,12 +36,4 @@ public record ImageArtifactDto(
     @JsonInclude(JsonInclude.Include.NON_NULL)
     String cdnUrl
 ) implements FileBasedArtifactDto, ArtifactDto {
-
-    /**
-     * 하위 호환 생성자 - thumbnailUrls/cdnUrl 없이 생성
-     */
-    public ImageArtifactDto(ArtifactType type, String filePath, String previewUrl,
-                            String fileName, String contentType, String storageLocation) {
-        this(type, filePath, previewUrl, fileName, contentType, storageLocation, null, null);
-    }
 }

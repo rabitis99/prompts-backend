@@ -7,8 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactDetailEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
 import org.example.sharedprompts.module.domain.production.service.production.ArtifactAccessService;
+import org.example.sharedprompts.module.domain.production.application.storage.StorageFacade;
 import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategy;
-import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategyFactory;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.example.sharedprompts.module.dto.response.production.ArtifactDto;
 import org.example.sharedprompts.module.dto.response.production.ImageArtifactDto;
@@ -27,7 +27,7 @@ public class ImageArtifactHandler implements ArtifactHandler {
 
     private final ArtifactAccessService artifactAccessService;
     private final ObjectMapper objectMapper;
-    private final StorageStrategyFactory storageStrategyFactory;
+    private final StorageFacade storageFacade;
     
     private static final Pattern IMG_SRC_PATTERN = Pattern.compile(
             "<img[^>]+src\\s*=\\s*[\"']([^\"']+)[\"']", 
@@ -50,7 +50,7 @@ public class ImageArtifactHandler implements ArtifactHandler {
 
         // 실제 파일을 읽어서 올바른 content type 결정
         try {
-            byte[] fileContent = storageStrategy.read(filePath);
+            byte[] fileContent = storageFacade.download(filePath);
             if (fileContent != null && fileContent.length > 0) {
                 String detectedFormat = detectImageFormat(fileContent);
                 contentType = getContentTypeFromFormat(detectedFormat);
@@ -153,7 +153,6 @@ public class ImageArtifactHandler implements ArtifactHandler {
     @Override
     public ArtifactDto toDto(ProductionArtifactDetailEntity detail) {
         String filePath = detail.getFilePath();
-        String previewUrl;
         String actualImagePath = filePath;
         
         // HTML 파일인 경우 이미지 경로 추출
@@ -165,14 +164,12 @@ public class ImageArtifactHandler implements ArtifactHandler {
             }
         }
         
-        previewUrl = artifactAccessService.generatePreviewUrl(actualImagePath);
         String cdnUrl = artifactAccessService.generateCdnUrl(actualImagePath);
         Map<String, String> thumbnailUrls = buildThumbnailUrls(detail.getMetadata());
 
         return new ImageArtifactDto(
                 ArtifactType.IMAGE,
                 actualImagePath, // 실제 이미지 경로 사용
-                previewUrl,
                 detail.getFileName(),
                 detail.getContentType(),
                 detail.getStorageLocation(),
@@ -189,8 +186,7 @@ public class ImageArtifactHandler implements ArtifactHandler {
      */
     private String extractImagePathFromHtml(String htmlFilePath) {
         try {
-            StorageStrategy storageStrategy = storageStrategyFactory.getStorageStrategy();
-            byte[] htmlContent = storageStrategy.read(htmlFilePath);
+            byte[] htmlContent = storageFacade.download(htmlFilePath);
             String html = new String(htmlContent, StandardCharsets.UTF_8);
             
             Matcher matcher = IMG_SRC_PATTERN.matcher(html);

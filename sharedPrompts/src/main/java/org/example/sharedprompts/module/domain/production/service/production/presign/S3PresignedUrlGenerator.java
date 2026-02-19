@@ -1,7 +1,6 @@
 package org.example.sharedprompts.module.domain.production.service.production.presign;
 
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.module.domain.production.config.condition.ConditionalOnStorageType;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -12,7 +11,6 @@ import java.time.Duration;
 
 @Component
 @RequiredArgsConstructor
-@ConditionalOnStorageType("S3")
 public class S3PresignedUrlGenerator implements PresignedUrlGenerator {
 
     private final S3Presigner s3Presigner;

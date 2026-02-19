@@ -3,6 +3,8 @@ package org.example.sharedprompts.module.domain.production.service.artifact;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactDetailEntity;
 import org.example.sharedprompts.module.domain.production.entity.production.StorageFormat;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
+import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.module.domain.production.application.storage.StorageFacade;
 import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategy;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.example.sharedprompts.module.dto.response.production.ArtifactDto;
@@ -12,7 +14,10 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 
 @Component
+@RequiredArgsConstructor
 public class TextArtifactHandler implements ArtifactHandler {
+
+    private final StorageFacade storageFacade;
 
     @Override
     public ArtifactType getSupportedType() {
@@ -24,7 +29,7 @@ public class TextArtifactHandler implements ArtifactHandler {
             String filePath,
             StorageStrategy storageStrategy
     ) {
-        String content = new String(storageStrategy.read(filePath), StandardCharsets.UTF_8);
+        String content = new String(storageFacade.download(filePath), StandardCharsets.UTF_8);
 
         return ProductionArtifactDetailEntity.builder()
                 .artifactType(getSupportedType())

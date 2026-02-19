@@ -5,6 +5,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
 
+/**
+ * 파일 Artifact DTO
+ * S3 저장소를 사용하며, storageLocation은 항상 "S3"입니다.
+ * Presigned URL은 ArtifactDetailResponseDto의 presignedUrl 필드를 통해 제공됩니다.
+ */
 public record FileArtifactDto(
     @JsonProperty("type")
     ArtifactType type,
@@ -12,16 +17,15 @@ public record FileArtifactDto(
     @JsonIgnore
     String filePath,
 
-    @JsonIgnore
-    @Deprecated
-    String downloadUrl,
-
     @JsonProperty("file_name")
     String fileName,
 
     @JsonProperty("content_type")
     String contentType,
 
+    /**
+     * 저장소 위치 (항상 "S3")
+     */
     @JsonProperty("storage_location")
     String storageLocation,
 
@@ -29,12 +33,4 @@ public record FileArtifactDto(
     @JsonInclude(JsonInclude.Include.NON_NULL)
     String cdnUrl
 ) implements FileBasedArtifactDto, ArtifactDto {
-
-    /**
-     * 하위 호환 생성자 - cdnUrl 없이 생성
-     */
-    public FileArtifactDto(ArtifactType type, String filePath, String downloadUrl,
-                           String fileName, String contentType, String storageLocation) {
-        this(type, filePath, downloadUrl, fileName, contentType, storageLocation, null);
-    }
 }

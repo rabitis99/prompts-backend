@@ -22,13 +22,11 @@ public class FileArtifactHandler implements ArtifactHandler {
 
     @Override
     public ArtifactDto toDto(ProductionArtifactDetailEntity detail) {
-        String downloadUrl = artifactAccessService.generateDownloadUrl(detail.getFilePath());
         String cdnUrl = artifactAccessService.generateCdnUrl(detail.getFilePath());
 
         return new FileArtifactDto(
                 ArtifactType.FILE,
                 detail.getFilePath(),
-                downloadUrl,
                 detail.getFileName(),
                 detail.getContentType(),
                 detail.getStorageLocation(),

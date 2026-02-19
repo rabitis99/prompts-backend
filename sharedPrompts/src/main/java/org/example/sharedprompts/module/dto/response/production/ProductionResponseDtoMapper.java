@@ -3,7 +3,6 @@ package org.example.sharedprompts.module.dto.response.production;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactDetailEntity;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactEntity;
 import org.example.sharedprompts.module.domain.production.service.artifact.ArtifactHandlerRegistry;
-import org.example.sharedprompts.module.domain.production.service.production.ArtifactAccessService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,25 +48,6 @@ public final class ProductionResponseDtoMapper {
         return buildResponseDto(entity, status, artifact, artifacts);
     }
 
-    @Deprecated
-    public static ProductionResponseDto toDto(ProductionArtifactEntity entity) {
-        return toDto(entity, (ArtifactAccessService) null);
-    }
-
-    @Deprecated
-    public static ProductionResponseDto toDto(
-            ProductionArtifactEntity entity,
-            ArtifactAccessService artifactAccessService) {
-
-        ProductionStatus status = determineStatus(entity);
-
-        ArtifactDto artifact = null;
-        if (status == ProductionStatus.SUCCESS && entity.getDetail() != null) {
-            artifact = ArtifactDtoMapper.toDto(entity.getDetail(), artifactAccessService);
-        }
-
-        return buildResponseDto(entity, status, artifact, List.of());
-    }
 
     private static ProductionResponseDto buildResponseDto(
             ProductionArtifactEntity entity,
