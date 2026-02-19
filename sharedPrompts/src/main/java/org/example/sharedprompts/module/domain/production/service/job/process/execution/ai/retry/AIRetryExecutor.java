@@ -48,6 +48,13 @@ public class AIRetryExecutor {
 
             } catch (Exception e) {
                 lastException = e;
+                
+                // 영구적 오류(재시도 불가능)인지 확인
+                if (errorClassifier.isPermanentError(e)) {
+                    log.warn("AI call failed with permanent error, not retrying: {}", e.getMessage());
+                    throw e; // 예외를 그대로 전파하여 재시도하지 않음
+                }
+                
                 retryCount++;
                 if (retryCount <= MAX_AI_RETRY_COUNT) {
                     long backoffMs = retryPolicy.calculateBackoff(retryCount);

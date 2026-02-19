@@ -12,7 +12,8 @@ public record FileArtifactDto(
     @JsonIgnore
     String filePath,
 
-    @JsonProperty("download_url")
+    @JsonIgnore
+    @Deprecated
     String downloadUrl,
 
     @JsonProperty("file_name")

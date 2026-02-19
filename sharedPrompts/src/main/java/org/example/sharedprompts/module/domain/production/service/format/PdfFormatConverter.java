@@ -64,6 +64,8 @@ public class PdfFormatConverter implements FormatConverter {
     }
 
     private String wrapPlainTextInHtml(String text) {
+        // HTML 이스케이프 처리 (UTF-8 문자는 그대로 유지)
+        // 순서 중요: &를 먼저 처리해야 다른 이스케이프가 깨지지 않음
         String escaped = text
                 .replace("&", "&amp;")
                 .replace("<", "&lt;")
@@ -73,6 +75,8 @@ public class PdfFormatConverter implements FormatConverter {
                 .replace("\r", "<br>")
                 .replace("\n", "<br>");
         
+        // UTF-8 문자를 보존하기 위해 <p> 태그로 감싸서 반환
+        // OpenHtmlToPdfConverterImpl에서 UTF-8 meta 태그가 추가됨
         return "<p>" + escaped + "</p>";
     }
 

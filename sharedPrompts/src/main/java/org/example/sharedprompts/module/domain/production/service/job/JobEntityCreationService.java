@@ -3,6 +3,7 @@ package org.example.sharedprompts.module.domain.production.service.job;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.domain.production.model.tenant.TenantContext;
 import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommand;
 import org.example.sharedprompts.module.domain.production.repository.job.JobRepository;
@@ -33,13 +34,25 @@ public class JobEntityCreationService {
                     ? command.getCommandType().name()
                     : "UNKNOWN";
 
+            // Capture tenant ID from TenantContext when creating the job
+            // tenant_id must come from X-Tenant-Id header - DO NOT create or generate tenant_id
+            String tenantId = TenantContext.getCurrentTenantId();
+            if (tenantId == null || tenantId.isBlank()) {
+                log.error("Tenant context is REQUIRED when creating job - idempotencyKey: {}, userId: {}. " +
+                        "X-Tenant-Id header must be provided.", 
+                        idempotencyKey, userId);
+                throw new IllegalStateException(
+                        "Tenant context is required when creating job. X-Tenant-Id header must be provided.");
+            }
+
             JobEntity job = JobEntity.create(
                     promptId,
                     userId,
                     commandType,
                     commandJson,
                     userInput,
-                    idempotencyKey
+                    idempotencyKey,
+                    tenantId
             );
 
             JobEntity savedJob = jobRepository.save(job);

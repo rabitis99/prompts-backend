@@ -41,10 +41,11 @@ public class DocumentPresignedStrategy implements PresignedStrategy {
         if (key == null || key.isBlank()) {
             return null;
         }
-        int lastSlash = key.lastIndexOf('/');
-        return lastSlash >= 0 && lastSlash < key.length() - 1 
-                ? key.substring(lastSlash + 1) 
-                : key;
+        int lastSlashIndex = key.lastIndexOf('/');
+        if (lastSlashIndex >= 0 && lastSlashIndex < key.length() - 1) {
+            return key.substring(lastSlashIndex + 1);
+        }
+        return key;
     }
 }
 

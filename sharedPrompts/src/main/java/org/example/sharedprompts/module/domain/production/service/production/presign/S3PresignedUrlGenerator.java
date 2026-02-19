@@ -3,8 +3,10 @@ package org.example.sharedprompts.module.domain.production.service.production.pr
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.module.domain.production.config.condition.ConditionalOnStorageType;
 import org.springframework.stereotype.Component;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.*;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.time.Duration;
 
@@ -32,17 +34,22 @@ public class S3PresignedUrlGenerator implements PresignedUrlGenerator {
             throw new IllegalArgumentException("TTL must be a positive duration");
         }
         
-        var requestBuilder = GetObjectPresignRequest.builder()
+        // Build GetObjectRequest
+        GetObjectRequest.Builder requestBuilder = GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(key);
+        
+        if (contentDisposition != null && !contentDisposition.isBlank()) {
+            requestBuilder.responseContentDisposition(contentDisposition);
+        }
+        
+        // Build and execute presigned URL request
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
                 .signatureDuration(ttl)
-                .getObjectRequest(b -> {
-                    var getObjectBuilder = b.bucket(bucket).key(key);
-                    if (contentDisposition != null && !contentDisposition.isBlank()) {
-                        getObjectBuilder.responseContentDisposition(contentDisposition);
-                    }
-                    return getObjectBuilder;
-                });
+                .getObjectRequest(requestBuilder.build())
+                .build();
 
-        PresignedGetObjectRequest presigned = s3Presigner.presignGetObject(requestBuilder.build());
+        PresignedGetObjectRequest presigned = s3Presigner.presignGetObject(presignRequest);
         return presigned.url().toString();
     }
 }

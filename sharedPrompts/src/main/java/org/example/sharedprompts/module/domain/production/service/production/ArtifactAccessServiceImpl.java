@@ -1,12 +1,12 @@
 package org.example.sharedprompts.module.domain.production.service.production;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.domain.production.config.condition.ConditionalOnStorageType;
 import org.example.sharedprompts.module.domain.production.service.cdn.CdnUrlProvider;
 import org.example.sharedprompts.module.domain.production.service.production.presign.PresignedUrlGenerator;
 import org.example.sharedprompts.module.exception.BaseException;
 import org.example.sharedprompts.module.exception.ModuleErrorCode;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +14,7 @@ import java.time.Duration;
 
 @Slf4j
 @Service
-@ConditionalOnProperty(name = "production.storage.type", havingValue = "S3")
+@ConditionalOnStorageType("S3")
 public class ArtifactAccessServiceImpl implements ArtifactAccessService {
 
     private final PresignedUrlGenerator presignedUrlGenerator;

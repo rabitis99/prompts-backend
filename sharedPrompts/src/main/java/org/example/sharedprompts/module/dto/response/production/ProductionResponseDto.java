@@ -21,6 +21,10 @@ public record ProductionResponseDto(
     Instant completedAt,
     
     @JsonProperty("artifact")
-    ArtifactDto artifact
+    @Deprecated
+    ArtifactDto artifact,
+    
+    @JsonProperty("artifacts")
+    java.util.List<ArtifactSummaryDto> artifacts
 ) {
 }

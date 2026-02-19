@@ -12,6 +12,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +37,18 @@ public class ThumbnailService {
             log.info("Starting thumbnail generation - detailId: {}, path: {}, tenantId: {}", artifactDetailId, originalStoragePath, tenantId);
 
             byte[] originalImage = storageStrategy.read(originalStoragePath);
-            ImageMetadata metadata = imageProcessor.extractMetadata(originalImage);
+            if (originalImage == null || originalImage.length == 0) {
+                log.error("Failed to read image data - detailId: {}, path: {}", artifactDetailId, originalStoragePath);
+                return;
+            }
+
+            ImageMetadata metadata;
+            try {
+                metadata = imageProcessor.extractMetadata(originalImage);
+            } catch (IOException e) {
+                log.error("Failed to extract image metadata - detailId: {}, path: {}, error: {}", artifactDetailId, originalStoragePath, e.getMessage(), e);
+                return;
+            }
 
             Map<String, String> thumbnailKeys = new HashMap<>();
 
@@ -56,7 +68,7 @@ public class ThumbnailService {
             log.info("Thumbnail generation completed - detailId: {}, thumbnails: {}", artifactDetailId, thumbnailKeys.size());
 
         } catch (Exception e) {
-            log.error("Thumbnail generation failed - detailId: {}", artifactDetailId, e);
+            log.error("Thumbnail generation failed - detailId: {}, path: {}, error: {}", artifactDetailId, originalStoragePath, e.getMessage(), e);
         }
     }
 

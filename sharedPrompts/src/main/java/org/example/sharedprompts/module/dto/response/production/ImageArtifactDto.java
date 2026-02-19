@@ -14,7 +14,8 @@ public record ImageArtifactDto(
     @JsonIgnore
     String filePath,
 
-    @JsonProperty("preview_url")
+    @JsonIgnore
+    @Deprecated
     String previewUrl,
 
     @JsonProperty("file_name")
