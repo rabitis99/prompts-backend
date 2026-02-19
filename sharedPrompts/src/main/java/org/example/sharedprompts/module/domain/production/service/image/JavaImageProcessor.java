@@ -100,11 +100,27 @@ public class JavaImageProcessor implements ImageProcessor {
     }
 
     private BufferedImage readImage(byte[] imageBytes) throws IOException {
+        if (imageBytes == null || imageBytes.length == 0) {
+            throw new IOException("Image data is null or empty");
+        }
+
+        // Validate image format before attempting to read
+        String detectedFormat = detectFormat(imageBytes);
+        if (!isFormatSupported(detectedFormat)) {
+            throw new IOException("Unsupported image format: " + detectedFormat + ". Supported formats: JPEG, PNG, GIF");
+        }
+
         BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
         if (image == null) {
-            throw new IOException("Failed to read image: unsupported format or corrupted data");
+            throw new IOException("Failed to read image: unsupported format or corrupted data. Detected format: " + detectedFormat);
         }
         return image;
+    }
+
+    private boolean isFormatSupported(String format) {
+        // ImageIO.read() natively supports JPEG, PNG, GIF, BMP
+        // WebP is not natively supported without additional libraries
+        return "jpg".equals(format) || "jpeg".equals(format) || "png".equals(format) || "gif".equals(format) || "bmp".equals(format);
     }
 
     private void applyHighQualityRendering(Graphics2D g) {

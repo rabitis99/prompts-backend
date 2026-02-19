@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommand;
+import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
 import org.example.sharedprompts.module.domain.production.model.job.JobStatus;
+import org.example.sharedprompts.module.domain.production.model.tenant.TenantContext;
 import org.example.sharedprompts.module.domain.production.service.job.JobLockService;
 import org.example.sharedprompts.module.domain.production.service.job.JobStateService;
 import org.example.sharedprompts.module.domain.production.service.job.metrics.JobMetrics;
@@ -72,6 +74,22 @@ public class JobProcessor {
                 return;
             }
 
+            // Ensure tenant context is set at the beginning of async processing
+            // In multi-tenant SaaS, tenant_id is REQUIRED for all operations
+            // tenant_id must come from TenantContext (set by SecurityContextTaskDecorator from X-Tenant-Id header)
+            // DO NOT create or generate tenant_id - it must be provided in the request header
+            String tenantId = TenantContext.getCurrentTenantId();
+            if (tenantId == null || tenantId.isBlank()) {
+                log.error("Tenant context is REQUIRED but not available - jobId: {}, thread: {}. " +
+                        "Please ensure X-Tenant-Id header is provided when creating jobs.", 
+                        jobId, Thread.currentThread().getName());
+                // Throw exception early to fail fast rather than failing later
+                throw new IllegalStateException(
+                        "Tenant context is required but not set in async thread for jobId: " + jobId + 
+                        ". X-Tenant-Id header must be provided when creating jobs.");
+            }
+            log.debug("Tenant context verified - jobId: {}, tenantId: {}", jobId, tenantId);
+
             ProductionCommand command = commandDeserializer.deserialize(job);
             commandType = command.getCommandType().name();
 
@@ -93,12 +111,22 @@ public class JobProcessor {
             String renderedContent = contentRenderer.render(parsedResponse.jsonNode(), command.getCommandType());
             jobStateService.markRendered(job.getJobId(), renderedContent);
 
-            String outputFormat = command.getOutputFormat();
-            String baseFileName = fileNameGenerator.generate(command);
-            var converted = contentFormatter.format(renderedContent, outputFormat, baseFileName);
-
-            String filePath = contentStorageService.store(converted.data(), converted.contentType(), job, converted.fileName());
+            String filePath;
             StorageStrategy storageStrategy = storageStrategyFactory.getStorageStrategy();
+            
+            // 이미지 생성인 경우 이미 저장된 PNG 파일 경로를 그대로 사용
+            if (command.getCommandType() == ProductionCommandType.IMAGE) {
+                // ImageRenderer가 이미지 경로를 그대로 반환하므로 그대로 사용
+                filePath = renderedContent;
+                log.info("Using existing image path for IMAGE command - filePath: {}", filePath);
+            } else {
+                // 다른 타입은 기존 로직대로 포맷 변환 후 저장
+                String outputFormat = command.getOutputFormat();
+                String baseFileName = fileNameGenerator.generate(command);
+                var converted = contentFormatter.format(renderedContent, outputFormat, baseFileName);
+                filePath = contentStorageService.store(converted.data(), converted.contentType(), job, converted.fileName());
+            }
+            
             jobStateService.markStored(job.getJobId(), filePath, storageStrategy);
 
             jobStateService.markCompleted(job.getJobId());
@@ -122,6 +150,19 @@ public class JobProcessor {
     public void recoverJob(String jobId) {
         JobEntity job = jobStateService.getJob(jobId);
         JobStatus status = job.getStatus();
+
+        // Ensure tenant context is set for recovery process
+        // tenant_id must come from TenantContext (set by SecurityContextTaskDecorator from X-Tenant-Id header)
+        // DO NOT create or generate tenant_id - it must be provided in the request header
+        String tenantId = TenantContext.getCurrentTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            log.error("Tenant context is REQUIRED but not available for recovery - jobId: {}, thread: {}. " +
+                    "Please ensure X-Tenant-Id header is provided.", 
+                    jobId, Thread.currentThread().getName());
+            throw new IllegalStateException(
+                    "Tenant context is required but not set in async thread for recovery jobId: " + jobId + 
+                    ". X-Tenant-Id header must be provided.");
+        }
 
         log.info("Recovering job from status - jobId: {}, status: {}", jobId, status);
 

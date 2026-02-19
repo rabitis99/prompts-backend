@@ -70,6 +70,33 @@ public class JobStateService {
         JobEntity job = jobRepository.findByJobId(jobId)
                 .orElseThrow(() -> new IllegalArgumentException("Job not found: " + jobId));
 
+        // 이미지 생성 시 프롬프트 txt 파일은 artifact로 저장하지 않음
+        String estimatedContentType = org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper.determineContentType(filePath);
+        org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType commandType;
+        try {
+            commandType = org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType.valueOf(job.getCommandType());
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid command type: {}", job.getCommandType(), e);
+            commandType = null;
+        }
+        
+        if (commandType == org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType.IMAGE 
+                && estimatedContentType != null 
+                && estimatedContentType.equals("text/plain")) {
+            log.info("Skipping prompt txt file artifact creation for IMAGE command - jobId: {}, filePath: {}", jobId, filePath);
+            // 프롬프트 txt 파일은 S3에는 저장되지만 artifact로는 저장하지 않음
+            // 기존 production이 있으면 그 ID를 사용, 없으면 null 처리
+            if (job.getArtifactId() != null && !job.getArtifactId().isBlank()) {
+                jobUpdateHelper.updateJob(jobId, jobEntity -> jobEntity.markStored(job.getArtifactId()));
+                log.info("Using existing artifactId for prompt txt file - jobId: {}, artifactId: {}", jobId, job.getArtifactId());
+            } else {
+                // artifactId가 없으면 빈 문자열로 처리 (프롬프트 txt는 artifact로 저장하지 않음)
+                jobUpdateHelper.updateJob(jobId, jobEntity -> jobEntity.markStored(""));
+                log.info("No artifactId for prompt txt file - jobId: {}", jobId);
+            }
+            return;
+        }
+
         var artifact = productionArtifactService.createArtifact(job, filePath, storageStrategy);
         String artifactId = artifact.getId().toString();
 
