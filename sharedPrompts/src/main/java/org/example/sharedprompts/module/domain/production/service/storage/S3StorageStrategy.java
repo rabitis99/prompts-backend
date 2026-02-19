@@ -61,9 +61,14 @@ public class S3StorageStrategy implements StorageStrategy {
         storageFacade.delete(storagePath);
     }
 
+    /**
+     * 접근용 Presigned URL 생성
+     * 인라인 미리보기용 URL을 생성합니다 (Content-Disposition 헤더 없음).
+     * 브라우저에서 직접 콘텐츠를 표시할 수 있습니다.
+     */
     @Override
     public String generateAccessUrl(String storagePath, Duration ttl) {
-        return storageFacade.generateDownloadUrl(storagePath, ttl);
+        return storageFacade.generatePreviewUrl(storagePath, ttl);
     }
 
     @Override
