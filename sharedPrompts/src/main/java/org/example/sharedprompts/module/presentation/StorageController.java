@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.auth.AuthUser;
@@ -127,9 +127,9 @@ public class StorageController {
     ) {
     }
 
-    @Data
+    @Getter
     public static class PresignedUrlResponse {
-        private String presignedUrl;
+        private final String presignedUrl;
 
         public PresignedUrlResponse(String presignedUrl) {
             this.presignedUrl = presignedUrl;
