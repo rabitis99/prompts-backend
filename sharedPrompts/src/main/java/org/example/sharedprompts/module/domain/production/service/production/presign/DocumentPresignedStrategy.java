@@ -66,15 +66,10 @@ public class DocumentPresignedStrategy implements PresignedStrategy {
         // RFC 6266 준수: filename과 filename* 모두 제공
         // filename: ASCII-safe 버전 (호환성)
         // filename*: UTF-8 인코딩 버전 (비-ASCII 문자 지원)
-        try {
-            String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
-                    .replace("+", "%20"); // URLEncoder는 공백을 +로 인코딩하지만 RFC 6266은 %20을 선호
-            return String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s", sanitized, encoded);
-        } catch (Exception e) {
-            // 인코딩 실패 시 sanitized 버전만 사용
-            log.warn("Failed to encode filename for Content-Disposition: {}", fileName, e);
-            return String.format("attachment; filename=\"%s\"", sanitized);
-        }
+        // URLEncoder.encode(String, Charset)는 Java 10+에서 checked exception을 던지지 않습니다.
+        String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
+                .replace("+", "%20"); // URLEncoder는 공백을 +로 인코딩하지만 RFC 6266은 %20을 선호
+        return String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s", sanitized, encoded);
     }
 }
 
