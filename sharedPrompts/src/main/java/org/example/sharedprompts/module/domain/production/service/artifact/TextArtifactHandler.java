@@ -5,7 +5,6 @@ import org.example.sharedprompts.module.domain.production.entity.production.Stor
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.module.domain.production.application.storage.StorageFacade;
-import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategy;
 import org.example.sharedprompts.module.domain.production.service.storage.StorageType;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.example.sharedprompts.module.dto.response.production.ArtifactDto;
@@ -27,8 +26,7 @@ public class TextArtifactHandler implements ArtifactHandler {
 
     @Override
     public ProductionArtifactDetailEntity createDetail(
-            String filePath,
-            StorageStrategy storageStrategy
+            String filePath
     ) {
         String content = new String(storageFacade.download(filePath), StandardCharsets.UTF_8);
 

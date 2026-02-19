@@ -107,7 +107,7 @@ public class ProductionArtifactService {
                 .success(true)
                 .build();
 
-        ProductionArtifactDetailEntity detail = handler.createDetail(filePath, storageStrategy);
+        ProductionArtifactDetailEntity detail = handler.createDetail(filePath);
         
         // 실제 파일의 contentType을 확인하여 artifactType과 isPrimary 조정
         // handler.createDetail()에서 파일 내용을 읽어서 정확한 contentType을 결정했을 수 있음
@@ -134,7 +134,7 @@ public class ProductionArtifactService {
                     // artifactType을 FILE로 변경하려면 새로운 detail을 생성해야 함
                     // 하지만 detail은 이미 생성되었으므로, FileArtifactHandler를 사용하여 다시 생성
                     ArtifactHandler fileHandler = artifactHandlerRegistry.getHandler(ArtifactType.FILE);
-                    detail = fileHandler.createDetail(filePath, storageStrategy);
+                    detail = fileHandler.createDetail(filePath);
                 }
             }
         }

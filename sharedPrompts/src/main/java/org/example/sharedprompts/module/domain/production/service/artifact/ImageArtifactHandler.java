@@ -8,7 +8,6 @@ import org.example.sharedprompts.module.domain.production.entity.production.Prod
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
 import org.example.sharedprompts.module.domain.production.service.production.ArtifactAccessService;
 import org.example.sharedprompts.module.domain.production.application.storage.StorageFacade;
-import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategy;
 import org.example.sharedprompts.module.domain.production.service.storage.StorageType;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.example.sharedprompts.module.dto.response.production.ArtifactDto;
@@ -42,8 +41,7 @@ public class ImageArtifactHandler implements ArtifactHandler {
 
     @Override
     public ProductionArtifactDetailEntity createDetail(
-            String filePath,
-            StorageStrategy storageStrategy
+            String filePath
     ) {
         // S3에 업로드된 실제 key를 그대로 사용 (filePath가 실제 S3 key)
         String fileName = ArtifactMetadataHelper.extractFileName(filePath);
