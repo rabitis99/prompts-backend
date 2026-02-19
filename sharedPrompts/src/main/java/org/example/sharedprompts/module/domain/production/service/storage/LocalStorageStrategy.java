@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -39,7 +40,7 @@ public class LocalStorageStrategy implements StorageStrategy {
             Path filePath = directory.resolve(fileName);
             validateWithinBasePath(filePath);
             Files.createDirectories(directory);
-            Files.writeString(filePath, content);
+            Files.writeString(filePath, content, StandardCharsets.UTF_8);
             log.info("File stored successfully - path: {}", filePath);
             return filePath.toString();
         } catch (IOException e) {
@@ -66,12 +67,27 @@ public class LocalStorageStrategy implements StorageStrategy {
         }
     }
 
+    /**
+     * 경로 세그먼트에 경로 탐색 시도가 있는지 검증합니다.
+     * 
+     * @param value 검증할 값
+     * @param paramName 파라미터 이름 (에러 메시지용)
+     * @throws LocalStorageException 경로 탐색 시도가 감지된 경우
+     */
     private void validatePathSegment(String value, String paramName) {
         if (value != null && (value.contains("..") || value.contains("/") || value.contains("\\"))) {
             throw new LocalStorageException("Invalid " + paramName + ": path traversal detected");
         }
     }
 
+    /**
+     * 테넌트 인식 디렉토리 경로를 생성합니다.
+     * 
+     * @param tenantId 테넌트 ID (null 가능)
+     * @param userId 사용자 ID
+     * @param jobId 작업 ID
+     * @return 생성된 디렉토리 Path
+     */
     private Path buildDirectory(String tenantId, Long userId, String jobId) {
         validatePathSegment(jobId, "jobId");
         if (tenantId != null && !tenantId.isBlank()) {
@@ -81,6 +97,12 @@ public class LocalStorageStrategy implements StorageStrategy {
         return Paths.get(basePath, String.valueOf(userId), jobId);
     }
 
+    /**
+     * 파일 경로가 basePath 내에 있는지 검증합니다.
+     * 
+     * @param filePath 검증할 파일 경로
+     * @throws LocalStorageException basePath 밖의 경로인 경우
+     */
     private void validateWithinBasePath(Path filePath) {
         if (!filePath.normalize().toAbsolutePath().startsWith(
                 Paths.get(basePath).normalize().toAbsolutePath())) {
@@ -88,6 +110,14 @@ public class LocalStorageStrategy implements StorageStrategy {
         }
     }
 
+    /**
+     * 저장 경로를 검증하고 절대 경로로 변환합니다.
+     * basePath 밖의 경로는 접근을 거부합니다.
+     * 
+     * @param storagePath 검증할 저장 경로
+     * @return 검증된 절대 경로
+     * @throws LocalStorageException basePath 밖의 경로인 경우
+     */
     private Path validateAndResolvePath(String storagePath) {
         Path resolved = Paths.get(storagePath).normalize().toAbsolutePath();
         Path base = Paths.get(basePath).normalize().toAbsolutePath();
