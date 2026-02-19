@@ -42,23 +42,7 @@ public class StorageCommandService {
      */
     @Transactional(readOnly = true)
     public String generateDownloadPresignedUrl(Long artifactId, Long userId) {
-        ProductionArtifactDetailEntity artifact = artifactDetailRepository.findById(artifactId)
-                .orElseThrow(() -> new BaseException(ModuleErrorCode.PRODUCTION_NOT_FOUND));
-
-        ProductionArtifactEntity production = artifact.getArtifact();
-        if (production == null) {
-            throw new BaseException(ModuleErrorCode.PRODUCTION_NOT_FOUND);
-        }
-
-        if (!production.getUserId().equals(userId)) {
-            throw new BaseException(ModuleErrorCode.PRODUCTION_FORBIDDEN);
-        }
-
-        String s3Key = extractS3Key(artifact.getFilePath());
-        if (s3Key == null || s3Key.isBlank()) {
-            throw new BaseException(ModuleErrorCode.STORAGE_ERROR, null, "Artifact file path is not available");
-        }
-
+        String s3Key = resolveS3KeyWithOwnerCheck(artifactId, userId);
         // TTL은 S3PresignedUrlService의 기본값을 사용합니다.
         return presignedUrlService.generateDownloadUrl(s3Key, null);
     }
@@ -69,6 +53,21 @@ public class StorageCommandService {
      */
     @Transactional(readOnly = true)
     public String generatePreviewPresignedUrl(Long artifactId, Long userId) {
+        String s3Key = resolveS3KeyWithOwnerCheck(artifactId, userId);
+        // TTL은 S3PresignedUrlService의 기본값을 사용합니다.
+        return presignedUrlService.generatePreviewUrl(s3Key, null);
+    }
+
+    /**
+     * 아티팩트 ID와 사용자 ID를 기반으로 소유권을 검증하고 S3 키를 반환합니다.
+     *
+     * @param artifactId 아티팩트 ID
+     * @param userId 사용자 ID
+     * @return 검증된 S3 키
+     * @throws BaseException 아티팩트를 찾을 수 없거나 소유권이 없거나 파일 경로가 유효하지 않은 경우
+     */
+    @Transactional(readOnly = true)
+    private String resolveS3KeyWithOwnerCheck(Long artifactId, Long userId) {
         ProductionArtifactDetailEntity artifact = artifactDetailRepository.findById(artifactId)
                 .orElseThrow(() -> new BaseException(ModuleErrorCode.PRODUCTION_NOT_FOUND));
 
@@ -86,8 +85,7 @@ public class StorageCommandService {
             throw new BaseException(ModuleErrorCode.STORAGE_ERROR, null, "Artifact file path is not available");
         }
 
-        // TTL은 S3PresignedUrlService의 기본값을 사용합니다.
-        return presignedUrlService.generatePreviewUrl(s3Key, null);
+        return s3Key;
     }
 
     /**
