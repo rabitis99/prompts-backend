@@ -20,7 +20,6 @@ import org.example.sharedprompts.module.domain.production.service.job.process.ex
 import org.example.sharedprompts.module.domain.production.service.job.process.execution.content.ContentFormatter;
 import org.example.sharedprompts.module.domain.production.service.job.process.execution.content.ContentRenderer;
 import org.example.sharedprompts.module.domain.production.service.job.process.execution.content.ContentStorageService;
-import org.example.sharedprompts.module.domain.production.service.job.process.recovery.ProcessJobRecoveryService;
 import org.example.sharedprompts.module.domain.production.service.job.process.util.CommandDeserializer;
 import org.example.sharedprompts.module.domain.production.service.job.process.util.FileNameGenerator;
 import org.example.sharedprompts.module.domain.production.service.parser.ParsedResponse;
@@ -48,7 +47,6 @@ public class JobProcessor {
     private final ContentFormatter contentFormatter;
     private final ContentStorageService contentStorageService;
     private final StorageStrategyFactory storageStrategyFactory;
-    private final ProcessJobRecoveryService processJobRecoveryService;
     private final JobExceptionHandler exceptionHandler;
     private final CommandDeserializer commandDeserializer;
     private final FileNameGenerator fileNameGenerator;
@@ -103,13 +101,11 @@ public class JobProcessor {
             jobStateService.updateJobPromptVersion(job.getJobId(), mergedPrompt.version());
 
             AIJobExecutor.AIExecutionResult aiResult = aiJobExecutor.execute(job, command, mergedPrompt.content());
-            jobStateService.markAiCalled(job.getJobId(), aiResult.rawResponse(), aiResult.modelName(), aiResult.tokenUsage());
+            // AI 모델 정보 설정
+            jobStateService.setModelInfo(job.getJobId(), aiResult.modelName(), aiResult.tokenUsage());
 
             ParsedResponse parsedResponse = aiResponseHandler.parse(aiResult.rawResponse(), command.getCommandType());
-            jobStateService.markParsed(job.getJobId(), parsedResponse.jsonString());
-
             String renderedContent = contentRenderer.render(parsedResponse.jsonNode(), command.getCommandType());
-            jobStateService.markRendered(job.getJobId(), renderedContent);
 
             String filePath;
             StorageStrategy storageStrategy = storageStrategyFactory.getStorageStrategy();
@@ -146,14 +142,19 @@ public class JobProcessor {
         }
     }
 
+    /**
+     * Job 복구 (FAILED 상태에서 재시도)
+     * 
+     * 설계 원칙:
+     * - 중간 상태 복구 제거
+     * - FAILED 상태에서만 retry()를 통해 처음부터 다시 처리
+     */
     @Async
     public void recoverJob(String jobId) {
         JobEntity job = jobStateService.getJob(jobId);
         JobStatus status = job.getStatus();
 
         // Ensure tenant context is set for recovery process
-        // tenant_id must come from TenantContext (set by SecurityContextTaskDecorator from X-Tenant-Id header)
-        // DO NOT create or generate tenant_id - it must be provided in the request header
         String tenantId = TenantContext.getCurrentTenantId();
         if (tenantId == null || tenantId.isBlank()) {
             log.error("Tenant context is REQUIRED but not available for recovery - jobId: {}, thread: {}. " +
@@ -164,18 +165,19 @@ public class JobProcessor {
                     ". X-Tenant-Id header must be provided.");
         }
 
-        log.info("Recovering job from status - jobId: {}, status: {}", jobId, status);
+        // FAILED 상태에서만 복구 가능
+        if (status != JobStatus.FAILED) {
+            log.warn("Cannot recover job - only FAILED status can be recovered. jobId: {}, status: {}", jobId, status);
+            return;
+        }
+
+        log.info("Recovering failed job - jobId: {}, status: {}", jobId, status);
 
         try {
-            switch (status) {
-                case AI_CALLED -> processJobRecoveryService.recoverFromAiCalled(jobId);
-                case PARSED -> processJobRecoveryService.recoverFromParsed(jobId);
-                case RENDERED -> processJobRecoveryService.recoverFromRendered(jobId);
-                case STORED -> processJobRecoveryService.recoverFromStored(jobId);
-                default -> {
-                    log.warn("Cannot recover job from status - jobId: {}, status: {}", jobId, status);
-                }
-            }
+            // retry()를 통해 FAILED → PENDING으로 전이 후 처음부터 다시 처리
+            jobStateService.retryJob(jobId);
+            // 처음부터 다시 처리
+            processJobAsync(jobId);
         } catch (Exception e) {
             log.error("Failed to recover job - jobId: {}, status: {}", jobId, status, e);
             ProductionCommand command = commandDeserializer.deserialize(job);

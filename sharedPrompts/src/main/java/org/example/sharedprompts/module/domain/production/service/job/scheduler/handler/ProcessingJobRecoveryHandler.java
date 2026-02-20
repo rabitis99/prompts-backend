@@ -27,13 +27,13 @@ public class ProcessingJobRecoveryHandler implements JobRecoveryHandler {
     
     @Override
     public void recover(JobEntity job) {
-        // PROCESSING 상태는 PENDING으로 리셋 후 재처리 (AI 호출 전이므로 전체 재시작)
-        job.resetToRetry();
-        jobRepository.save(job);
-        
-        log.info("Reset PROCESSING job to retry - jobId: {}, retryCount: {}", 
+        // PROCESSING 상태는 FAILED로 표시 후 retry()를 통해 재처리
+        // 또는 그냥 재처리 (PROCESSING 상태는 이미 처리 중이므로 재처리만)
+        log.info("Recovering PROCESSING job - jobId: {}, retryCount: {}", 
             job.getJobId(), job.getRetryCount());
         
+        // PROCESSING 상태는 이미 처리 중이므로, 그냥 재처리
+        // (다른 스레드가 처리 중일 수 있으므로, 재처리만 시도)
         jobProcessor.processJobAsync(job.getJobId());
     }
 }

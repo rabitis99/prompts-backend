@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.model.tenant.TenantContext;
+import org.example.sharedprompts.module.domain.production.entity.factory.JobEntityFactory;
 import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommand;
 import org.example.sharedprompts.module.domain.production.repository.job.JobRepository;
@@ -45,7 +46,7 @@ public class JobEntityCreationService {
                         "Tenant context is required when creating job. X-Tenant-Id header must be provided.");
             }
 
-            JobEntity job = JobEntity.create(
+            JobEntity job = JobEntityFactory.create(
                     promptId,
                     userId,
                     commandType,

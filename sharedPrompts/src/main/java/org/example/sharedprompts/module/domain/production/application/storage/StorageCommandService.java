@@ -86,12 +86,13 @@ public class StorageCommandService {
             throw new BaseException(ModuleErrorCode.PRODUCTION_FORBIDDEN);
         }
 
-        String s3Key = extractS3Key(artifact.getFilePath());
+        String s3Key = artifact.getS3Key();
         if (s3Key == null || s3Key.isBlank()) {
-            throw new BaseException(ModuleErrorCode.STORAGE_ERROR, null, "Artifact file path is not available");
+            throw new BaseException(ModuleErrorCode.STORAGE_ERROR, null, "Artifact s3Key is not available");
         }
 
-        return s3Key;
+        // s3Key가 s3:// 형식일 수 있으므로 처리
+        return extractS3Key(s3Key);
     }
 
     /**

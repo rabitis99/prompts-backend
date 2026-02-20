@@ -8,15 +8,28 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 
+/**
+ * Production Artifact Detail Entity
+ * 
+ * 책임:
+ * - 실제 저장 단위 (Physical Result)
+ * - S3 저장 정보 및 파일/이미지/텍스트 물리적 표현
+ * - Primary 플래그 관리
+ * 
+ * 불변 조건:
+ * - TEXT 타입: content 필수, s3Key는 null
+ * - FILE/IMAGE 타입: s3Key 필수, content는 null
+ * - 무결성은 생성 시점 factory에서만 보장 (JPA lifecycle hook 제거)
+ */
 @Entity
 @Getter
-@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@Builder
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "production_artifact_details")
 public class ProductionArtifactDetailEntity {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,29 +41,17 @@ public class ProductionArtifactDetailEntity {
 
     @Column(name = "is_primary", nullable = false)
     @Builder.Default
-    private Boolean isPrimary = false;
-
-    public Boolean getIsPrimary() {
-        return isPrimary != null ? isPrimary : false;
-    }
-
-    public void setIsPrimary(Boolean isPrimary) {
-        this.isPrimary = isPrimary != null ? isPrimary : false;
-    }
+    private boolean primary = false;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "artifact_type", length = 50)
+    @Column(name = "artifact_type", nullable = false, length = 50)
     private ArtifactType artifactType;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "storage_type", length = 50)
-    private StorageFormat storageType;
 
     @Column(name = "content", columnDefinition = "LONGTEXT")
     private String content;
 
-    @Column(name = "file_path", columnDefinition = "TEXT")
-    private String filePath;
+    @Column(name = "s3_key", length = 512)
+    private String s3Key;
 
     @Column(name = "file_name", length = 255)
     private String fileName;
@@ -58,11 +59,8 @@ public class ProductionArtifactDetailEntity {
     @Column(name = "content_type", length = 100)
     private String contentType;
 
-    @Column(name = "storage_location", length = 20)
-    private String storageLocation;
-
-    @Column(name = "error_message", columnDefinition = "TEXT")
-    private String errorMessage;
+    @Column(name = "file_size")
+    private Long fileSize;
 
     @Column(name = "metadata", columnDefinition = "TEXT")
     private String metadata;
@@ -71,8 +69,37 @@ public class ProductionArtifactDetailEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    /* =========================
+       Domain Behavior
+       ========================= */
+
+    /**
+     * Primary 플래그 설정
+     * Aggregate Root에서 통제되어야 하므로 package-private
+     */
+    void markPrimary() {
+        this.primary = true;
+    }
+
+    /**
+     * Primary 플래그 해제
+     * Aggregate Root에서 통제되어야 하므로 package-private
+     */
+    void unmarkPrimary() {
+        this.primary = false;
+    }
+
+    /**
+     * Primary 여부 확인
+     */
+    public boolean isPrimary() {
+        return primary;
+    }
+
+    /**
+     * 메타데이터 업데이트
+     */
     public void updateMetadata(String metadata) {
         this.metadata = metadata;
     }
 }
-

@@ -6,10 +6,11 @@ import org.example.sharedprompts.module.domain.production.entity.production.Prod
 import org.example.sharedprompts.module.domain.production.model.job.Job;
 import org.example.sharedprompts.module.domain.production.model.job.JobStatus;
 import org.example.sharedprompts.module.domain.production.repository.production.ProductionArtifactRepository;
-import org.example.sharedprompts.module.domain.production.service.job.process.recovery.ProcessJobRecoveryService;
+import org.example.sharedprompts.module.domain.production.service.job.process.JobProcessor;
 import org.example.sharedprompts.module.domain.production.service.job.queue.JobQueueService;
 import org.example.sharedprompts.module.domain.production.service.artifact.ArtifactHandlerRegistry;
 import org.example.sharedprompts.module.dto.response.production.JobResponseDto;
+import org.example.sharedprompts.module.dto.response.production.JobResponseDtoMapper;
 import org.example.sharedprompts.module.dto.response.production.ProductionResponseDto;
 import org.example.sharedprompts.module.dto.response.production.ProductionResponseDtoMapper;
 import org.example.sharedprompts.module.exception.BaseException;
@@ -24,7 +25,7 @@ public class ProductionResultApplicationService {
 
     private final ProductionArtifactRepository productionArtifactRepository;
     private final JobQueueService jobQueueService;
-    private final ProcessJobRecoveryService processJobRecoveryService;
+    private final JobProcessor jobProcessor;
     private final ArtifactHandlerRegistry artifactHandlerRegistry;
 
     private Job getJobOrThrow(String jobId, Long userId) {
@@ -63,7 +64,7 @@ public class ProductionResultApplicationService {
     public JobResponseDto getJobStatus(String jobId, Long userId) {
         log.info("Job status requested - jobId: {}, userId: {}", jobId, userId);
         Job job = getJobOrThrow(jobId, userId);
-        return JobResponseDto.from(job);
+        return JobResponseDtoMapper.toDto(job);
     }
 
     @Transactional
@@ -73,14 +74,16 @@ public class ProductionResultApplicationService {
         
         // 실패한 Job만 retry 가능
         JobStatus status = job.getStatus();
-        if (status == JobStatus.COMPLETED) {
+        if (status == JobStatus.SUCCEEDED) {
             throw new BaseException(ModuleErrorCode.JOB_ALREADY_COMPLETED);
         }
-        if (status != JobStatus.FAILED && status != JobStatus.PARSE_FAILED) {
+        if (status != JobStatus.FAILED) {
             throw new BaseException(ModuleErrorCode.JOB_INVALID_STATUS);
         }
         
-        processJobRecoveryService.recoverFromParsed(jobId);
+        // FAILED 상태에서만 재시도 가능
+        // JobProcessor.recoverJob()이 retry() 후 처음부터 다시 처리
+        jobProcessor.recoverJob(jobId);
     }
 }
 

@@ -6,6 +6,7 @@ import org.example.sharedprompts.module.exception.BaseException;
 import org.example.sharedprompts.module.exception.ModuleErrorCode;
 import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactDetailEntity;
+import org.example.sharedprompts.module.domain.production.entity.factory.ProductionArtifactEntityFactory;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
@@ -21,9 +22,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-
-import java.time.Instant;
-import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
@@ -81,15 +79,6 @@ public class ProductionArtifactService {
                     e);
         }
 
-        Instant startedAt;
-        if (job.getStartedAt() != null) {
-            startedAt = job.getStartedAt();
-        } else if (job.getCreatedAt() != null) {
-            startedAt = job.getCreatedAt().atZone(ZoneId.of("Asia/Seoul")).toInstant();
-        } else {
-            startedAt = Instant.now();
-        }
-
         String tenantId = TenantContext.getCurrentTenantId();
         if (tenantId == null) {
             throw new BaseException(
@@ -98,14 +87,12 @@ public class ProductionArtifactService {
                     "Tenant context is not set");
         }
 
-        ProductionArtifactEntity artifact = ProductionArtifactEntity.builder()
-                .tenantId(tenantId)
-                .userId(job.getUserId())
-                .commandType(commandType)
-                .startedAt(startedAt)
-                .completedAt(Instant.now())
-                .success(true)
-                .build();
+        ProductionArtifactEntity artifact = ProductionArtifactEntityFactory.create(
+                job.getId(),
+                tenantId,
+                job.getUserId(),
+                commandType
+        );
 
         ProductionArtifactDetailEntity detail = handler.createDetail(filePath);
         
@@ -142,9 +129,13 @@ public class ProductionArtifactService {
         // 이미지 파일(contentType이 image/*)인 경우만 primary로 설정
         // 프롬프트 txt 파일(text/plain)은 primary=false로 설정
         boolean isPrimary = contentType != null && contentType.toLowerCase().startsWith("image/");
-        detail.setIsPrimary(isPrimary);
         
         artifact.addArtifact(detail);
+        
+        // Primary 지정은 Aggregate Root에서 통제
+        if (isPrimary) {
+            artifact.markAsPrimary(detail);
+        }
 
         ProductionArtifactEntity saved = productionArtifactRepository.save(artifact);
 
@@ -154,7 +145,7 @@ public class ProductionArtifactService {
         if (actualArtifactType == ArtifactType.IMAGE && saved.getArtifacts() != null && !saved.getArtifacts().isEmpty()) {
             // primary artifact 또는 첫 번째 artifact 사용
             ProductionArtifactDetailEntity savedDetail = saved.getArtifacts().stream()
-                    .filter(ProductionArtifactDetailEntity::getIsPrimary)
+                    .filter(ProductionArtifactDetailEntity::isPrimary)
                     .findFirst()
                     .orElse(saved.getArtifacts().get(0));
             Long detailId = savedDetail.getId();

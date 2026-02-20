@@ -4,11 +4,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.domain.production.entity.factory.ProductionArtifactDetailEntityFactory;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactDetailEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
 import org.example.sharedprompts.module.domain.production.service.production.ArtifactAccessService;
 import org.example.sharedprompts.module.domain.production.application.storage.StorageFacade;
-import org.example.sharedprompts.module.domain.production.service.storage.StorageType;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.example.sharedprompts.module.dto.response.production.ArtifactDto;
 import org.example.sharedprompts.module.dto.response.production.ImageArtifactDto;
@@ -71,14 +71,13 @@ public class ImageArtifactHandler implements ArtifactHandler {
 
         // S3에 업로드된 실제 key와 contentType을 그대로 사용하여 Entity 생성
         // ImageArtifactHandler는 항상 IMAGE 타입을 반환합니다.
-        return ProductionArtifactDetailEntity.builder()
-                .artifactType(ArtifactType.IMAGE)
-                .storageType(ArtifactMetadataHelper.determineStorageFormat(filePath))
-                .filePath(filePath) // S3에 업로드된 실제 key
-                .fileName(fileName) // S3 key에서 추출한 파일명
-                .contentType(contentType) // 실제 파일 내용에서 감지한 contentType
-                .storageLocation(StorageType.S3.name())
-                .build();
+        return ProductionArtifactDetailEntityFactory.createImage(
+                filePath, // s3Key
+                fileName,
+                contentType,
+                null, // fileSize는 나중에 설정 가능
+                false // primary는 Aggregate Root에서 설정
+        );
     }
 
     /**
@@ -138,15 +137,15 @@ public class ImageArtifactHandler implements ArtifactHandler {
 
     @Override
     public ArtifactDto toDto(ProductionArtifactDetailEntity detail) {
-        String filePath = detail.getFilePath();
-        String actualImagePath = filePath;
+        String s3Key = detail.getS3Key();
+        String actualImagePath = s3Key;
         
         // HTML 파일인 경우 이미지 경로 추출
         if (detail.getContentType() != null && detail.getContentType().contains("html")) {
-            actualImagePath = extractImagePathFromHtml(filePath);
+            actualImagePath = extractImagePathFromHtml(s3Key);
             if (actualImagePath == null) {
-                log.warn("Could not extract image path from HTML file - filePath: {}", filePath);
-                actualImagePath = filePath; // fallback to original path
+                log.warn("Could not extract image path from HTML file - s3Key: {}", s3Key);
+                actualImagePath = s3Key; // fallback to original path
             }
         }
         
@@ -158,7 +157,7 @@ public class ImageArtifactHandler implements ArtifactHandler {
                 actualImagePath, // 실제 이미지 경로 사용
                 detail.getFileName(),
                 detail.getContentType(),
-                detail.getStorageLocation(),
+                "S3", // storageLocation은 항상 S3
                 thumbnailUrls,
                 cdnUrl
         );

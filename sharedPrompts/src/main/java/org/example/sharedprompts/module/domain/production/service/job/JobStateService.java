@@ -19,50 +19,18 @@ public class JobStateService {
     private final JobRepository jobRepository;
     private final JobUpdateHelper jobUpdateHelper;
     private final ProductionArtifactService productionArtifactService;
-    private final JobEntityCreationService jobEntityCreationService;
-    private final JobLockService jobLockService;
-
-    @Deprecated
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public JobEntity createJob(
-            Long promptId,
-            Long userId,
-            org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommand command,
-            String userInput,
-            String idempotencyKey
-    ) {
-        return jobEntityCreationService.createJob(promptId, userId, command, userInput, idempotencyKey);
-    }
-
-    @Deprecated
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public java.util.Optional<JobEntity> acquireJobLock(String jobId) {
-        return jobLockService.acquireJobLock(jobId);
-    }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updateJobPromptVersion(String jobId, String promptVersion) {
         jobUpdateHelper.updateJob(jobId, job -> job.setPromptVersion(promptVersion));
     }
 
+    /**
+     * AI 모델 정보 설정
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markAiCalled(String jobId, String rawResponse, String modelName, String tokenUsage) {
-        jobUpdateHelper.updateJob(jobId, job -> job.markAiCalled(rawResponse, modelName, tokenUsage));
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markParsed(String jobId, String parsedResponse) {
-        jobUpdateHelper.updateJob(jobId, job -> job.markParsed(parsedResponse));
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markParseFailed(String jobId, String errorMessage) {
-        jobUpdateHelper.updateJob(jobId, job -> job.markParseFailed(errorMessage));
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markRendered(String jobId, String aiGeneratedContent) {
-        jobUpdateHelper.updateJob(jobId, job -> job.markRendered(aiGeneratedContent));
+    public void setModelInfo(String jobId, String modelName, String tokenUsage) {
+        jobUpdateHelper.updateJob(jobId, job -> job.setModelInfo(modelName, tokenUsage));
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -85,14 +53,11 @@ public class JobStateService {
                 && estimatedContentType.equals("text/plain")) {
             log.info("Skipping prompt txt file artifact creation for IMAGE command - jobId: {}, filePath: {}", jobId, filePath);
             // 프롬프트 txt 파일은 S3에는 저장되지만 artifact로는 저장하지 않음
-            // 기존 production이 있으면 그 ID를 사용, 없으면 null 처리
+            // 기존 artifactId가 있으면 그대로 유지, 없으면 Job은 완료하지 않음 (이미지가 생성될 때까지 대기)
             if (job.getArtifactId() != null && !job.getArtifactId().isBlank()) {
-                jobUpdateHelper.updateJob(jobId, jobEntity -> jobEntity.markStored(job.getArtifactId()));
                 log.info("Using existing artifactId for prompt txt file - jobId: {}, artifactId: {}", jobId, job.getArtifactId());
             } else {
-                // artifactId가 없으면 빈 문자열로 처리 (프롬프트 txt는 artifact로 저장하지 않음)
-                jobUpdateHelper.updateJob(jobId, jobEntity -> jobEntity.markStored(""));
-                log.info("No artifactId for prompt txt file - jobId: {}", jobId);
+                log.info("No artifactId for prompt txt file - jobId: {} (waiting for image artifact)", jobId);
             }
             return;
         }
@@ -100,15 +65,27 @@ public class JobStateService {
         var artifact = productionArtifactService.createArtifact(job, filePath, storageStrategy);
         String artifactId = artifact.getId().toString();
 
-        jobUpdateHelper.updateJob(jobId, jobEntity -> jobEntity.markStored(artifactId));
+        // Job 완료 처리 (PROCESSING → SUCCEEDED)
+        jobUpdateHelper.updateJob(jobId, jobEntity -> jobEntity.complete(artifactId));
 
-        log.info("ProductionArtifact created - jobId: {}, artifactId: {}, filePath: {}",
+        log.info("ProductionArtifact created and job completed - jobId: {}, artifactId: {}, filePath: {}",
                 jobId, artifactId, filePath);
     }
 
+    /**
+     * Job 완료 처리 (artifact가 이미 생성된 경우)
+     * 일반적으로는 markStored()에서 자동으로 호출됨
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markCompleted(String jobId) {
-        jobUpdateHelper.updateJob(jobId, JobEntity::complete);
+        JobEntity job = jobRepository.findByJobId(jobId)
+                .orElseThrow(() -> new IllegalArgumentException("Job not found: " + jobId));
+        
+        if (job.getArtifactId() == null || job.getArtifactId().isBlank()) {
+            throw new IllegalStateException("Cannot complete job without artifactId - jobId: " + jobId);
+        }
+        
+        jobUpdateHelper.updateJob(jobId, jobEntity -> jobEntity.complete(job.getArtifactId()));
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -121,9 +98,15 @@ public class JobStateService {
         }
     }
 
+
+    /**
+     * Job 재시도 (FAILED → PENDING)
+     * 재시도 횟수 증가 후 처음부터 다시 처리
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void resetToParsable(String jobId) {
-        jobUpdateHelper.updateJob(jobId, JobEntity::resetToParsable);
+    public void retryJob(String jobId) {
+        jobUpdateHelper.updateJob(jobId, JobEntity::retry);
+        log.info("Job retried - jobId: {}", jobId);
     }
 
     @Transactional(readOnly = true)

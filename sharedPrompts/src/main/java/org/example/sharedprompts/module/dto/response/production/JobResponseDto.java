@@ -1,6 +1,5 @@
 package org.example.sharedprompts.module.dto.response.production;
 
-import org.example.sharedprompts.module.domain.production.model.job.Job;
 import org.example.sharedprompts.module.domain.production.model.job.JobStatus;
 
 import java.time.Instant;
@@ -16,16 +15,6 @@ public record JobResponseDto(
     Instant createdAt,
     Instant completedAt
 ) {
-    public static JobResponseDto from(Job job) {
-        return new JobResponseDto(
-            job.getJobId(),
-            job.getStatus(),
-            job.getArtifactId(),
-            job.getErrorMessage(),
-            job.getCreatedAt(),
-            job.getCompletedAt()
-        );
-    }
 }
 
 

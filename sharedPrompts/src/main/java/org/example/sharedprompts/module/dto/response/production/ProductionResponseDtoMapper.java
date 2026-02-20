@@ -16,7 +16,10 @@ public final class ProductionResponseDtoMapper {
             ProductionArtifactEntity entity,
             ArtifactHandlerRegistry artifactHandlerRegistry) {
 
-        ProductionStatus status = determineStatus(entity);
+        // Artifact는 Job 성공 시에만 생성되므로, Artifact가 존재하면 SUCCESS
+        ProductionStatus status = (entity.getArtifacts() != null && !entity.getArtifacts().isEmpty())
+                ? ProductionStatus.SUCCESS
+                : ProductionStatus.PROCESSING;
 
         ArtifactDto artifact = null;
         List<ArtifactSummaryDto> artifacts = new ArrayList<>();
@@ -24,7 +27,7 @@ public final class ProductionResponseDtoMapper {
         if (status == ProductionStatus.SUCCESS && entity.getArtifacts() != null && !entity.getArtifacts().isEmpty()) {
             // primary artifact만 반환 (이미지 생성 시 PNG 이미지만 반환)
             ProductionArtifactDetailEntity primaryDetail = entity.getArtifacts().stream()
-                    .filter(ProductionArtifactDetailEntity::getIsPrimary)
+                    .filter(ProductionArtifactDetailEntity::isPrimary)
                     .findFirst()
                     .orElse(null);
             
@@ -34,15 +37,7 @@ public final class ProductionResponseDtoMapper {
             }
             
             // 모든 artifacts를 summary로 변환
-            artifacts = entity.getArtifacts().stream()
-                    .map(detail -> new ArtifactSummaryDto(
-                            detail.getId(),
-                            detail.getArtifactType(),
-                            detail.getIsPrimary(),
-                            detail.getFileName(),
-                            detail.getContentType()
-                    ))
-                    .toList();
+            artifacts = ArtifactSummaryDtoMapper.toDtoList(entity.getArtifacts());
         }
 
         return buildResponseDto(entity, status, artifact, artifacts);
@@ -54,36 +49,18 @@ public final class ProductionResponseDtoMapper {
             ProductionStatus status,
             ArtifactDto artifact,
             List<ArtifactSummaryDto> artifacts) {
-        String errorMessage = null;
-        if (status == ProductionStatus.FAILED && entity.getArtifacts() != null && !entity.getArtifacts().isEmpty()) {
-            errorMessage = entity.getArtifacts().get(0).getErrorMessage();
-        } else if (status == ProductionStatus.FAILED && entity.getDetail() != null) {
-            errorMessage = entity.getDetail().getErrorMessage();
-        }
+        // errorMessage는 JobFailureLog에서 관리 (Artifact는 결과 의미 단위이므로 에러 정보 보유하지 않음)
+        // startedAt, completedAt은 Job에서 관리 (Artifact는 createdAt만 보유)
         
         return new ProductionResponseDto(
                 entity.getId(),
                 status,
-                errorMessage,
-                entity.getStartedAt(),
-                entity.getCompletedAt(),
+                null, // errorMessage는 Job에서 관리
+                null, // startedAt은 Job에서 관리
+                null, // completedAt은 Job에서 관리
                 artifact,
                 artifacts
         );
-    }
-
-    private static ProductionStatus determineStatus(ProductionArtifactEntity entity) {
-        if (!entity.isSuccess()) {
-            return ProductionStatus.FAILED;
-        }
-        if (entity.getArtifacts() != null && !entity.getArtifacts().isEmpty()) {
-            return ProductionStatus.SUCCESS;
-        }
-        // 기존 호환성
-        if (entity.getDetail() != null && entity.getDetail().getArtifactType() != null) {
-            return ProductionStatus.SUCCESS;
-        }
-        return ProductionStatus.PROCESSING;
     }
 }
 
