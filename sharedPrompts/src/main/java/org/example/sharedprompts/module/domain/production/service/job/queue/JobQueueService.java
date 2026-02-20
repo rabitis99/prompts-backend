@@ -13,13 +13,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class JobQueueService {
 
     private final JobCreationService jobCreationService;
-    private final JobAsyncScheduler jobAsyncScheduler;
+    private final JobQueuePublisher jobQueuePublisher;
     private final JobMapper jobMapper;
 
     @Transactional
     public String enqueueJob(Long promptId, Long userId, ProductionCommand command, String userInput) {
         var jobEntity = jobCreationService.createJob(promptId, userId, command, userInput);
-        jobAsyncScheduler.schedule(jobEntity.getJobId());
+        jobQueuePublisher.publishJob(jobEntity.getJobId(), 3);
         return jobEntity.getJobId();
     }
 

@@ -18,24 +18,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class JobStateService {
 
-    private static final int MAX_RETRY_COUNT = 3;
-
     private final JobRepository jobRepository;
     private final JobUpdateHelper jobUpdateHelper;
     private final ProductionArtifactService productionArtifactService;
 
-    /**
-     * Job 프롬프트 버전 업데이트
-     * JobUpdateHelper에서 트랜잭션을 관리하므로 여기서는 트랜잭션 제거
-     */
     public void updateJobPromptVersion(String jobId, String promptVersion) {
         jobUpdateHelper.updateJob(jobId, job -> job.setPromptVersion(promptVersion));
     }
 
-    /**
-     * AI 모델 정보 설정
-     * JobUpdateHelper에서 트랜잭션을 관리하므로 여기서는 트랜잭션 제거
-     */
     public void setModelInfo(String jobId, String modelName, String tokenUsage) {
         jobUpdateHelper.updateJob(jobId, job -> job.setModelInfo(modelName, tokenUsage));
     }
@@ -43,7 +33,6 @@ public class JobStateService {
     public void markStored(String jobId, String s3Key) {
         JobEntity job = getJob(jobId);
 
-        // 이미지 생성 시 프롬프트 txt 파일은 artifact로 저장하지 않음
         String estimatedContentType = ArtifactMetadataHelper.determineContentType(s3Key);
         ProductionCommandType commandType;
         try {
@@ -68,22 +57,26 @@ public class JobStateService {
             return;
         }
 
-        // createArtifact는 별도 트랜잭션에서 실행 (S3 I/O 포함 가능)
         var artifact = productionArtifactService.createArtifact(job, s3Key);
         String artifactId = artifact.getId().toString();
 
-        // Job 완료 처리 (PROCESSING → SUCCEEDED) - 별도 트랜잭션
-        jobUpdateHelper.updateJob(jobId, jobEntity -> jobEntity.complete(artifactId));
-
-        log.info("ProductionArtifact created and job completed - jobId: {}, artifactId: {}, s3Key: {}",
-                jobId, artifactId, s3Key);
+        try {
+            jobUpdateHelper.updateJob(jobId, jobEntity -> jobEntity.complete(artifactId));
+            log.info("ProductionArtifact created and job completed - jobId: {}, artifactId: {}, s3Key: {}",
+                    jobId, artifactId, s3Key);
+        } catch (Exception e) {
+            log.error("Failed to complete job after artifact creation - jobId: {}, artifactId: {}. Cleaning up orphaned artifact.",
+                    jobId, artifactId, e);
+            try {
+                productionArtifactService.deleteArtifact(artifactId);
+                log.info("Orphaned artifact deleted - jobId: {}, artifactId: {}", jobId, artifactId);
+            } catch (Exception cleanupException) {
+                log.error("Failed to cleanup orphaned artifact - jobId: {}, artifactId: {}", jobId, artifactId, cleanupException);
+            }
+            throw e;
+        }
     }
 
-    /**
-     * Job 완료 처리 (artifact가 이미 생성된 경우)
-     * 일반적으로는 markStored()에서 자동으로 호출됨
-     * JobUpdateHelper에서 트랜잭션을 관리하므로 여기서는 트랜잭션 제거
-     */
     public void markCompleted(String jobId) {
         jobUpdateHelper.updateJob(jobId, jobEntity -> {
             if (jobEntity.getArtifactId() == null || jobEntity.getArtifactId().isBlank()) {
@@ -96,10 +89,6 @@ public class JobStateService {
         });
     }
 
-    /**
-     * Job 실패 저장
-     * JobUpdateHelper에서 트랜잭션을 관리하므로 여기서는 트랜잭션 제거
-     */
     public void saveJobFailure(String jobId, String errorMessage) {
         try {
             jobUpdateHelper.updateJob(jobId, job -> job.fail(errorMessage));
@@ -112,27 +101,14 @@ public class JobStateService {
             } else {
                 throw e;
             }
+        } catch (IllegalStateException e) {
+            log.warn("Could not mark job as failed (already in final state) - jobId: {}, error: {}", jobId, e.getMessage());
         }
     }
 
 
-    /**
-     * Job 재시도 (FAILED → PENDING)
-     * 재시도 횟수 증가 후 처음부터 다시 처리
-     * JobUpdateHelper에서 트랜잭션을 관리하므로 여기서는 트랜잭션 제거
-     */
     public void retryJob(String jobId) {
-        // 재시도 횟수 체크를 트랜잭션 내부로 이동하여 TOCTOU 경합 조건 방지
-        jobUpdateHelper.updateJob(jobId, job -> {
-            if (job.getRetryCount() >= MAX_RETRY_COUNT) {
-                log.warn("Max retry count reached - jobId: {}, retryCount: {}", jobId, job.getRetryCount());
-                throw new JobProcessingException(
-                        ModuleErrorCode.JOB_INVALID_STATUS,
-                        "Max retry count exceeded for job: " + jobId
-                );
-            }
-            job.retry();
-        });
+        jobUpdateHelper.updateJob(jobId, job -> job.retry());
         log.info("Job retried - jobId: {}", jobId);
     }
 
