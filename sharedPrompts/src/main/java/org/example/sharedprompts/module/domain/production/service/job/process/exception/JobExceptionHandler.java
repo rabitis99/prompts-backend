@@ -25,7 +25,7 @@ public class JobExceptionHandler {
     public void handleParseException(String jobId, String commandType, ParseException e) {
         log.error("Parse exception - jobId: {}, commandType: {}, errorCode: {}",
                 jobId, commandType, e.getErrorCode(), e);
-        jobStateService.markParseFailed(jobId, e.getMessage());
+        jobStateService.saveJobFailure(jobId, "Parse failed: " + e.getMessage());
         jobMetrics.recordJobFailed(commandType, "PARSE_FAILED");
     }
 

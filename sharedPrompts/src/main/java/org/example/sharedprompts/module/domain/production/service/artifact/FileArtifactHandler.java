@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 public class FileArtifactHandler implements ArtifactHandler {
 
     private final ArtifactAccessService artifactAccessService;
+    
+    private static final String STORAGE_LOCATION_S3 = "S3";
 
     @Override
     public ArtifactType getSupportedType() {
@@ -22,14 +24,15 @@ public class FileArtifactHandler implements ArtifactHandler {
 
     @Override
     public ArtifactDto toDto(ProductionArtifactDetailEntity detail) {
-        String cdnUrl = artifactAccessService.generateCdnUrl(detail.getFilePath());
+        String s3Key = detail.getS3Key();
+        String cdnUrl = artifactAccessService.generateCdnUrl(s3Key);
 
         return new FileArtifactDto(
                 ArtifactType.FILE,
-                detail.getFilePath(),
+                s3Key,
                 detail.getFileName(),
                 detail.getContentType(),
-                detail.getStorageLocation(),
+                STORAGE_LOCATION_S3,
                 cdnUrl
         );
     }

@@ -10,6 +10,7 @@ import org.example.sharedprompts.module.domain.production.service.job.queue.JobQ
 import org.example.sharedprompts.module.domain.production.validation.ValidatorRegistry;
 import org.example.sharedprompts.module.dto.request.production.ProductionRequest;
 import org.example.sharedprompts.module.dto.response.production.JobResponseDto;
+import org.example.sharedprompts.module.dto.response.production.JobResponseDtoMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,7 +60,7 @@ public class ProductionApplicationService {
         
         // Job 조회하여 응답 생성
         Job job = jobQueueService.getJob(jobId);
-        return JobResponseDto.from(job);
+        return JobResponseDtoMapper.toDto(job);
     }
 }
 

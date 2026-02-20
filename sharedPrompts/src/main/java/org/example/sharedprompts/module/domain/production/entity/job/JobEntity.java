@@ -6,10 +6,18 @@ import org.example.sharedprompts.global.entity.BaseEntity;
 import org.example.sharedprompts.module.domain.production.model.job.JobStatus;
 
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * AI 콘텐츠 생성을 위한 비동기 Job 엔티티
+ * 
+ * 책임:
+ * - Job의 생명주기 관리 (생성 → 처리 → 완료/실패)
+ * - 상태 전이 통제 (단순화된 상태 머신)
+ * - 재시도 정책 (retryCount 증가 + FAILED → PENDING 전이만 허용)
+ * 
+ * 제거된 책임:
+ * - 로그 저장 (rawResponse, parsedResponse 등은 별도 로그 엔티티로 분리 고려)
+ * - 세부 단계 추적 (AI_CALLED, PARSED, RENDERED 등)
  */
 @Entity
 @Getter
@@ -75,27 +83,7 @@ public class JobEntity extends BaseEntity {
     private Instant completedAt;
 
     /**
-     * AI가 생성한 원본 응답 (rawResponse) - 반드시 저장
-     * 큰 데이터이므로 LONGTEXT 타입 사용
-     */
-    @Column(name = "raw_response", columnDefinition = "LONGTEXT")
-    private String rawResponse;
-
-    /**
-     * 파싱된 응답 (parsedResponse) - JSON 형태
-     */
-    @Column(name = "parsed_response", columnDefinition = "LONGTEXT")
-    private String parsedResponse;
-
-    /**
-     * AI가 생성한 최종 콘텐츠 (렌더링 전)
-     * 큰 데이터이므로 LONGTEXT 타입 사용
-     */
-    @Column(name = "ai_generated_content", columnDefinition = "LONGTEXT")
-    private String aiGeneratedContent;
-
-    /**
-     * 생성된 Artifact ID
+     * 생성된 Artifact ID (연관관계로 변경 고려)
      */
     @Column(name = "artifact_id", length = 50)
     private String artifactId;
@@ -130,28 +118,9 @@ public class JobEntity extends BaseEntity {
     @Builder.Default
     private Long version = 0L;
 
-
-    public static JobEntity create(
-            Long promptId,
-            Long userId,
-            String commandType,
-            String commandJson,
-            String userInput,
-            String idempotencyKey,
-            String tenantId
-    ) {
-        return JobEntity.builder()
-                .jobId(UUID.randomUUID().toString())
-                .idempotencyKey(idempotencyKey)
-                .promptId(promptId)
-                .userId(userId)
-                .tenantId(tenantId)
-                .commandType(commandType)
-                .commandJson(commandJson)
-                .userInput(userInput)
-                .status(JobStatus.PENDING)
-                .build();
-    }
+    /* =========================
+       State Transition Methods
+       ========================= */
 
     /**
      * Job 처리 시작 (PENDING → PROCESSING)
@@ -167,196 +136,74 @@ public class JobEntity extends BaseEntity {
     }
 
     /**
-     * AI 호출 완료 (PROCESSING → AI_CALLED)
+     * Job 성공 처리 (PROCESSING → SUCCESS)
      */
-    public void markAiCalled(String rawResponse, String modelName, String tokenUsage) {
+    public void complete(String artifactId) {
         if (this.status != JobStatus.PROCESSING) {
             throw new IllegalStateException(
-                String.format("Cannot mark AI called: expected PROCESSING, but was %s", this.status)
+                String.format("Cannot complete job: expected PROCESSING, but was %s", this.status)
             );
         }
-        this.status = JobStatus.AI_CALLED;
-        this.rawResponse = rawResponse;
-        this.modelName = modelName;
-        this.tokenUsage = tokenUsage;
-    }
-
-    /**
-     * 파싱 완료 (AI_CALLED → PARSED)
-     */
-    public void markParsed(String parsedResponse) {
-        if (this.status != JobStatus.AI_CALLED) {
-            throw new IllegalStateException(
-                String.format("Cannot mark parsed: expected AI_CALLED, but was %s", this.status)
-            );
-        }
-        this.status = JobStatus.PARSED;
-        this.parsedResponse = parsedResponse;
-    }
-
-    /**
-     * 파싱 실패 (AI_CALLED → PARSE_FAILED)
-     */
-    public void markParseFailed(String errorMessage) {
-        if (this.status != JobStatus.AI_CALLED) {
-            throw new IllegalStateException(
-                String.format("Cannot mark parse failed: expected AI_CALLED, but was %s", this.status)
-            );
-        }
-        this.status = JobStatus.PARSE_FAILED;
-        this.errorMessage = errorMessage;
-        this.completedAt = Instant.now();
-    }
-
-    /**
-     * 렌더링 완료 (PARSED → RENDERED)
-     */
-    public void markRendered(String aiGeneratedContent) {
-        if (this.status != JobStatus.PARSED) {
-            throw new IllegalStateException(
-                String.format("Cannot mark rendered: expected PARSED, but was %s", this.status)
-            );
-        }
-        this.status = JobStatus.RENDERED;
-        this.aiGeneratedContent = aiGeneratedContent;
-    }
-
-    /**
-     * 파일 저장 완료 (RENDERED → STORED)
-     */
-    public void markStored(String artifactId) {
-        if (this.status != JobStatus.RENDERED) {
-            throw new IllegalStateException(
-                String.format("Cannot mark stored: expected RENDERED, but was %s", this.status)
-            );
-        }
-        this.status = JobStatus.STORED;
+        this.status = JobStatus.SUCCEEDED;
         this.artifactId = artifactId;
-    }
-
-    /**
-     * Job 완료 처리 (STORED → COMPLETED)
-     */
-    public void complete() {
-        if (this.status != JobStatus.STORED) {
-            throw new IllegalStateException(
-                String.format("Cannot complete job: expected STORED, but was %s", this.status)
-            );
-        }
-        this.status = JobStatus.COMPLETED;
         this.completedAt = Instant.now();
     }
 
     /**
-     * Job 실패 처리 (어떤 상태에서든 → FAILED)
+     * Job 실패 처리 (PROCESSING → FAILED)
      */
     public void fail(String errorMessage) {
-        if (this.status == JobStatus.COMPLETED || this.status == JobStatus.FAILED || this.status == JobStatus.PARSE_FAILED) {
+        if (this.status != JobStatus.PROCESSING) {
             throw new IllegalStateException(
-                String.format("Cannot fail job: job is already in final state %s", this.status)
+                String.format("Cannot fail job: expected PROCESSING, but was %s", this.status)
             );
         }
         this.status = JobStatus.FAILED;
-        this.completedAt = Instant.now();
         this.errorMessage = errorMessage;
+        this.completedAt = Instant.now();
     }
 
     /**
-     * 재시도 횟수 증가
+     * 재시도를 위한 상태 전이 (FAILED → PENDING)
+     * 재시도 횟수도 함께 증가
      */
-    public void incrementRetryCount() {
+    public void retry() {
+        if (this.status != JobStatus.FAILED) {
+            throw new IllegalStateException(
+                String.format("Cannot retry job: expected FAILED, but was %s", this.status)
+            );
+        }
+        this.status = JobStatus.PENDING;
+        this.startedAt = null;
+        this.completedAt = null;
+        this.errorMessage = null;
+        this.artifactId = null;
         this.retryCount++;
     }
 
-    /**
-     * Artifact ID 설정
-     */
-    public void setArtifactId(String artifactId) {
-        this.artifactId = artifactId;
-    }
-
-    public void resetToPending() {
-        if (this.status != JobStatus.PROCESSING && this.status != JobStatus.AI_CALLED) {
-            throw new IllegalStateException(
-                String.format("Cannot reset job to PENDING: expected PROCESSING or AI_CALLED, but was %s", this.status)
-            );
-        }
-        this.status = JobStatus.PENDING;
-        this.startedAt = null;
-    }
-
-    public void resetToRetry() {
-        if (this.status == JobStatus.COMPLETED || this.status == JobStatus.FAILED
-                || this.status == JobStatus.PARSE_FAILED || this.status == JobStatus.PENDING) {
-            throw new IllegalStateException(
-                String.format("Cannot reset job to retry: job is in state %s", this.status)
-            );
-        }
-        this.status = JobStatus.PENDING;
-        this.startedAt = null;
-        incrementRetryCount();
-    }
-
-    /**
-     * 멱등성 키 재제출로 인한 실패 Job 재시도 (FAILED/PARSE_FAILED → PENDING)
-     */
-    public void resetForIdempotencyRetry() {
-        if (this.status != JobStatus.FAILED && this.status != JobStatus.PARSE_FAILED) {
-            throw new IllegalStateException(
-                String.format("Cannot reset for retry: expected FAILED or PARSE_FAILED, but was %s", this.status)
-            );
-        }
-        this.status = JobStatus.PENDING;
-        this.startedAt = null;
-        this.completedAt = null;
-        this.errorMessage = null;
-        this.rawResponse = null;
-        this.parsedResponse = null;
-        this.aiGeneratedContent = null;
-        this.artifactId = null;
-        incrementRetryCount();
-    }
-
-    /**
-     * PARSE_FAILED → AI_CALLED 복원 (재파싱 허용)
-     */
-    public void resetToParsable() {
-        if (this.status != JobStatus.PARSE_FAILED) {
-            throw new IllegalStateException(
-                String.format("Cannot reset to parsable: expected PARSE_FAILED, but was %s", this.status)
-            );
-        }
-        this.status = JobStatus.AI_CALLED;
-        this.errorMessage = null;
-        this.completedAt = null;
-    }
-
-    /**
-     * Prompt 버전 설정
-     */
-    public void setPromptVersion(String promptVersion) {
-        this.promptVersion = promptVersion;
-    }
+    /* =========================
+       Query Methods
+       ========================= */
 
     /**
      * 완료 여부 확인
      */
     public boolean isCompleted() {
-        return status == JobStatus.COMPLETED;
+        return status == JobStatus.SUCCEEDED;
     }
 
     /**
      * 실패 여부 확인
      */
     public boolean isFailed() {
-        return status == JobStatus.FAILED || status == JobStatus.PARSE_FAILED;
+        return status == JobStatus.FAILED;
     }
 
     /**
      * 최종 상태 여부 확인 (재처리 불가능)
      */
     public boolean isFinalState() {
-        return status == JobStatus.COMPLETED || status == JobStatus.FAILED || status == JobStatus.PARSE_FAILED;
+        return status == JobStatus.SUCCEEDED || status == JobStatus.FAILED;
     }
 
     /**
@@ -372,5 +219,30 @@ public class JobEntity extends BaseEntity {
     public boolean isPending() {
         return status == JobStatus.PENDING;
     }
-}
 
+    /* =========================
+       Business Methods
+       ========================= */
+
+    /**
+     * Artifact ID 설정
+     */
+    public void setArtifactId(String artifactId) {
+        this.artifactId = artifactId;
+    }
+
+    /**
+     * Prompt 버전 설정
+     */
+    public void setPromptVersion(String promptVersion) {
+        this.promptVersion = promptVersion;
+    }
+
+    /**
+     * AI 모델 정보 설정
+     */
+    public void setModelInfo(String modelName, String tokenUsage) {
+        this.modelName = modelName;
+        this.tokenUsage = tokenUsage;
+    }
+}

@@ -72,10 +72,9 @@ public class StorageCommandService {
      * @return 검증된 S3 키
      * @throws BaseException 아티팩트를 찾을 수 없거나 소유권이 없거나 파일 경로가 유효하지 않은 경우
      */
-    @Transactional(readOnly = true)
     private String resolveS3KeyWithOwnerCheck(Long artifactId, Long userId) {
         ProductionArtifactDetailEntity artifact = artifactDetailRepository.findById(artifactId)
-                .orElseThrow(() -> new BaseException(ModuleErrorCode.PRODUCTION_NOT_FOUND));
+                .orElseThrow(() -> new BaseException(ModuleErrorCode.ARTIFACT_NOT_FOUND));
 
         ProductionArtifactEntity production = artifact.getArtifact();
         if (production == null) {
@@ -86,12 +85,13 @@ public class StorageCommandService {
             throw new BaseException(ModuleErrorCode.PRODUCTION_FORBIDDEN);
         }
 
-        String s3Key = extractS3Key(artifact.getFilePath());
+        String s3Key = artifact.getS3Key();
         if (s3Key == null || s3Key.isBlank()) {
-            throw new BaseException(ModuleErrorCode.STORAGE_ERROR, null, "Artifact file path is not available");
+            throw new BaseException(ModuleErrorCode.STORAGE_ERROR, null, "Artifact s3Key is not available");
         }
 
-        return s3Key;
+        // s3Key가 s3:// 형식일 수 있으므로 처리
+        return extractS3Key(s3Key);
     }
 
     /**
@@ -124,9 +124,14 @@ public class StorageCommandService {
         if (filePath.startsWith("s3://")) {
             String withoutPrefix = filePath.substring(5);
             int slashIndex = withoutPrefix.indexOf('/');
-            if (slashIndex > 0) {
-                return withoutPrefix.substring(slashIndex + 1);
+            if (slashIndex > 0 && slashIndex < withoutPrefix.length() - 1) {
+                String key = withoutPrefix.substring(slashIndex + 1);
+                if (key.isBlank()) {
+                    return null;
+                }
+                return key;
             }
+            return null;
         }
         return filePath;
     }

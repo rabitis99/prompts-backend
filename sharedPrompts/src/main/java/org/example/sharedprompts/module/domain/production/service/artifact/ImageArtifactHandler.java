@@ -4,11 +4,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.domain.production.entity.factory.ProductionArtifactDetailEntityFactory;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactDetailEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
 import org.example.sharedprompts.module.domain.production.service.production.ArtifactAccessService;
 import org.example.sharedprompts.module.domain.production.application.storage.StorageFacade;
-import org.example.sharedprompts.module.domain.production.service.storage.StorageType;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.example.sharedprompts.module.dto.response.production.ArtifactDto;
 import org.example.sharedprompts.module.dto.response.production.ImageArtifactDto;
@@ -33,6 +33,8 @@ public class ImageArtifactHandler implements ArtifactHandler {
             "<img[^>]+src\\s*=\\s*[\"']([^\"']+)[\"']", 
             Pattern.CASE_INSENSITIVE
     );
+    
+    private static final String STORAGE_LOCATION_S3 = "S3";
 
     @Override
     public ArtifactType getSupportedType() {
@@ -41,44 +43,57 @@ public class ImageArtifactHandler implements ArtifactHandler {
 
     @Override
     public ProductionArtifactDetailEntity createDetail(
-            String filePath
+            String s3Key
     ) {
-        // S3에 업로드된 실제 key를 그대로 사용 (filePath가 실제 S3 key)
-        String fileName = ArtifactMetadataHelper.extractFileName(filePath);
+        // S3에 업로드된 실제 key를 그대로 사용
+        String fileName = ArtifactMetadataHelper.extractFileName(s3Key);
         String contentType;
 
         // 이미지 포맷 감지를 위해 파일의 시작 부분만 읽기 (최대 12바이트)
         // 전체 파일을 다운로드하지 않아 네트워크 I/O와 메모리 사용을 최소화합니다.
         try {
             // WebP 포맷 감지를 위해 최대 12바이트 필요
-            byte[] fileHeader = storageFacade.downloadRange(filePath, 0, 11);
+            byte[] fileHeader = storageFacade.downloadRange(s3Key, 0, 11);
             if (fileHeader != null && fileHeader.length > 0) {
                 String detectedFormat = detectImageFormat(fileHeader);
                 contentType = getContentTypeFromFormat(detectedFormat);
                 
-                log.info("Detected image format from file header - filePath: {}, format: {}, contentType: {}, fileName: {}", 
-                        filePath, detectedFormat, contentType, fileName);
+                log.info("Detected image format from file header - s3Key: {}, format: {}, contentType: {}, fileName: {}", 
+                        s3Key, detectedFormat, contentType, fileName);
             } else {
                 // 파일을 읽을 수 없는 경우 파일명에서 추론
-                log.warn("Could not read file header, inferring from filePath - filePath: {}", filePath);
-                contentType = ArtifactMetadataHelper.determineContentType(filePath);
+                log.warn("Could not read file header, inferring from s3Key - s3Key: {}", s3Key);
+                contentType = ArtifactMetadataHelper.determineContentType(s3Key);
             }
         } catch (Exception e) {
             // 파일 읽기 실패 시 파일명에서 추론
-            log.warn("Failed to read file header, inferring from filePath - filePath: {}, error: {}", filePath, e.getMessage());
-            contentType = ArtifactMetadataHelper.determineContentType(filePath);
+            log.warn("Failed to read file header, inferring from s3Key - s3Key: {}, error: {}", s3Key, e.getMessage());
+            contentType = ArtifactMetadataHelper.determineContentType(s3Key);
+        }
+
+        // HTML 파일인 경우 이미지 경로를 미리 추출하여 저장
+        // DTO 매핑 시점에 S3 I/O가 발생하지 않도록 엔티티 생성 시점에 처리합니다.
+        String actualImagePath = null;
+        if (contentType != null && contentType.contains("html")) {
+            actualImagePath = extractImagePathFromHtml(s3Key);
+            if (actualImagePath == null) {
+                log.warn("Could not extract image path from HTML file during entity creation - s3Key: {}", s3Key);
+                // 추출 실패 시 s3Key 사용 (Factory에서 null이면 s3Key로 설정됨)
+            } else {
+                log.info("Extracted image path from HTML during entity creation - s3Key: {}, actualImagePath: {}", 
+                        s3Key, actualImagePath);
+            }
         }
 
         // S3에 업로드된 실제 key와 contentType을 그대로 사용하여 Entity 생성
         // ImageArtifactHandler는 항상 IMAGE 타입을 반환합니다.
-        return ProductionArtifactDetailEntity.builder()
-                .artifactType(ArtifactType.IMAGE)
-                .storageType(ArtifactMetadataHelper.determineStorageFormat(filePath))
-                .filePath(filePath) // S3에 업로드된 실제 key
-                .fileName(fileName) // S3 key에서 추출한 파일명
-                .contentType(contentType) // 실제 파일 내용에서 감지한 contentType
-                .storageLocation(StorageType.S3.name())
-                .build();
+        return ProductionArtifactDetailEntityFactory.createImage(
+                s3Key,
+                fileName,
+                contentType,
+                null, // fileSize는 나중에 설정 가능
+                actualImagePath // HTML 파일인 경우 추출한 이미지 경로, 아니면 null
+        );
     }
 
     /**
@@ -138,16 +153,12 @@ public class ImageArtifactHandler implements ArtifactHandler {
 
     @Override
     public ArtifactDto toDto(ProductionArtifactDetailEntity detail) {
-        String filePath = detail.getFilePath();
-        String actualImagePath = filePath;
-        
-        // HTML 파일인 경우 이미지 경로 추출
-        if (detail.getContentType() != null && detail.getContentType().contains("html")) {
-            actualImagePath = extractImagePathFromHtml(filePath);
-            if (actualImagePath == null) {
-                log.warn("Could not extract image path from HTML file - filePath: {}", filePath);
-                actualImagePath = filePath; // fallback to original path
-            }
+        // 엔티티에 저장된 actualImagePath 사용 (엔티티 생성 시점에 미리 추출됨)
+        // DTO 매핑은 메모리 기반 연산만 수행하므로 S3 I/O가 발생하지 않습니다.
+        String actualImagePath = detail.getActualImagePath();
+        if (actualImagePath == null || actualImagePath.isBlank()) {
+            // 하위 호환성을 위해 actualImagePath가 없는 경우 s3Key 사용
+            actualImagePath = detail.getS3Key();
         }
         
         String cdnUrl = artifactAccessService.generateCdnUrl(actualImagePath);
@@ -158,7 +169,7 @@ public class ImageArtifactHandler implements ArtifactHandler {
                 actualImagePath, // 실제 이미지 경로 사용
                 detail.getFileName(),
                 detail.getContentType(),
-                detail.getStorageLocation(),
+                STORAGE_LOCATION_S3,
                 thumbnailUrls,
                 cdnUrl
         );
@@ -166,6 +177,10 @@ public class ImageArtifactHandler implements ArtifactHandler {
     
     /**
      * HTML 파일에서 이미지 경로를 추출합니다.
+     * 
+     * 이 메서드는 엔티티 생성 시점(createDetail)에만 호출되며,
+     * 추출된 이미지 경로는 엔티티의 actualImagePath 필드에 저장됩니다.
+     * DTO 매핑 시점에는 저장된 값을 사용하므로 S3 I/O가 발생하지 않습니다.
      * 
      * @param htmlFilePath HTML 파일의 S3 경로
      * @return 추출된 이미지 파일 경로, 추출 실패 시 null

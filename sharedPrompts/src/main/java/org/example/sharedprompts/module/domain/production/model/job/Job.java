@@ -44,7 +44,7 @@ public class Job {
     }
 
     public void complete(String aiGeneratedContent) {
-        this.status = JobStatus.COMPLETED;
+        this.status = JobStatus.SUCCEEDED;
         this.completedAt = Instant.now();
         this.aiGeneratedContent = aiGeneratedContent;
     }
@@ -60,7 +60,7 @@ public class Job {
     }
 
     public boolean isCompleted() {
-        return status == JobStatus.COMPLETED;
+        return status == JobStatus.SUCCEEDED;
     }
 
     public boolean isFailed() {

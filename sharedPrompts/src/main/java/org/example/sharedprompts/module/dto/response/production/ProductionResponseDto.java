@@ -1,6 +1,7 @@
 package org.example.sharedprompts.module.dto.response.production;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.example.sharedprompts.module.domain.production.model.production.ProductionStatus;
 
 import java.time.Instant;
 

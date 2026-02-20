@@ -14,6 +14,7 @@ public enum ModuleErrorCode {
     JOB_FORBIDDEN("PD00601", HttpStatus.FORBIDDEN, "해당 작업에 대한 접근 권한이 없습니다."),
     PRODUCTION_NOT_FOUND("PD00703", HttpStatus.NOT_FOUND, "Production 결과를 찾을 수 없습니다."),
     PRODUCTION_FORBIDDEN("PD00602", HttpStatus.FORBIDDEN, "해당 Production 결과에 대한 접근 권한이 없습니다."),
+    ARTIFACT_NOT_FOUND("PD00704", HttpStatus.NOT_FOUND, "아티팩트를 찾을 수 없습니다."),
     AI_SERVICE_ERROR("PD01001", HttpStatus.INTERNAL_SERVER_ERROR, "AI 서비스 호출 중 오류가 발생했습니다."),
     AI_PARSE_ERROR("PD01002", HttpStatus.INTERNAL_SERVER_ERROR, "AI 응답 파싱 중 오류가 발생했습니다."),
     CONTENT_RENDER_ERROR("PD01003", HttpStatus.INTERNAL_SERVER_ERROR, "콘텐츠 렌더링 중 오류가 발생했습니다."),
