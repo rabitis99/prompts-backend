@@ -98,11 +98,5 @@ public interface JobRepository extends JpaRepository<JobEntity, Long> {
     );
 
     List<JobEntity> findTop10ByStatusOrderByCreatedAtAsc(JobStatus status);
-
-    /**
-     * 락 획득 후 Job 조회
-     */
-    @Query("SELECT j FROM JobEntity j WHERE j.jobId = :jobId AND j.status = 'PROCESSING'")
-    Optional<JobEntity> findLockedJob(@Param("jobId") String jobId);
 }
 

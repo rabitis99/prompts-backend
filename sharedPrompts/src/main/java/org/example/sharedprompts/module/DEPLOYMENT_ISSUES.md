@@ -8,30 +8,28 @@
 
 ## 🚨 배포 시 즉시 발생 가능한 문제점
 
-### 0. 🔴 긴급: JobProcessor의 중복 완료 처리 버그
+### 0. ✅ 해결됨: JobProcessor의 중복 완료 처리 버그
 
-**위치**: `JobProcessor.processJobAsync()` (114번 라인)
+**위치**: `JobProcessorDelegate.processJobAsync()` (116번 라인)
 
-**문제점**:
+**문제점** (이미 해결됨):
 ```java
-jobStateService.markStored(job.getJobId(), filePath);  // 이미 내부에서 complete() 호출
-jobStateService.markCompleted(job.getJobId());  // ❌ 중복 호출!
+jobStateService.markStored(job.getJobId(), s3Key);  // 이미 내부에서 complete() 호출
+// jobStateService.markCompleted(job.getJobId());  // ❌ 중복 호출! (이미 제거됨)
 ```
 
 - `markStored()` 내부에서 이미 `jobEntity.complete(artifactId)`를 호출함
-- 그런데 바로 다음에 `markCompleted()`를 또 호출함
-- `markCompleted()`는 `PROCESSING` 상태를 기대하지만, 이미 `SUCCEEDED` 상태가 되어 `IllegalStateException` 발생
+- 이전에는 바로 다음에 `markCompleted()`를 또 호출하여 중복 완료 처리 버그 발생
+- `markCompleted()`는 `PROCESSING` 상태를 기대하지만, 이미 `SUCCEEDED` 상태가 되어 `IllegalStateException` 발생 가능
 
-**영향**:
+**영향** (해결 전):
 - **즉시 발생**: 모든 Job 완료 시 예외 발생
 - Job이 완료되지 않고 실패 상태로 남을 수 있음
 - 사용자 요청이 실패로 처리됨
 
-**권장 조치**:
-```java
-// JobProcessor.java 114번 라인 제거
-// jobStateService.markCompleted(job.getJobId());  // ❌ 제거 필요
-```
+**해결 상태**:
+- ✅ **수정 완료**: `JobProcessorDelegate.java` 116번 라인에서 `markStored()`만 호출하고, 118번 라인에 주석으로 중복 호출이 제거되었음을 명시
+- `markCompleted()` 호출이 제거되어 중복 완료 처리 문제 해결됨
 
 ### 1. 트랜잭션 관리 문제
 
