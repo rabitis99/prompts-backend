@@ -19,7 +19,11 @@ spring:
   datasource:
     hikari:
       # 운영 환경: 높은 부하 대응을 위한 큰 풀 크기
-      maximum-pool-size: ${HIKARI_MAXIMUM_POOL_SIZE:30}  # 최대 커넥션 수
+      # REQUIRES_NEW 전파 사용으로 인한 커넥션 풀 고갈 위험 대응
+      # ⚠️ 주의: 애플리케이션 인스턴스 수 × maximum-pool-size가 DB 서버의 max_connections를 초과하지 않도록 확인 필요
+      # REQUIRES_NEW 전파 패턴 특성상 피크 시 단일 요청에서 동시에 2개의 커넥션을 점유할 수 있으므로,
+      # 유효 최대 동시 사용 커넥션 수는 단순 pool size보다 높을 수 있습니다.
+      maximum-pool-size: ${HIKARI_MAXIMUM_POOL_SIZE:50}  # 최대 커넥션 수 (기본값 50으로 증가)
       minimum-idle: ${HIKARI_MINIMUM_IDLE:10}  # 최소 유휴 커넥션
       connection-timeout: ${HIKARI_CONNECTION_TIMEOUT:30000}  # 커넥션 획득 타임아웃 (30초)
       idle-timeout: ${HIKARI_IDLE_TIMEOUT:600000}  # 유휴 커넥션 타임아웃 (10분)
@@ -80,4 +84,26 @@ logging:
     org.springframework.web: INFO
     org.springframework.security: WARN
     # 운영 환경에서는 DEBUG 로깅 비활성화
+
+# =========================
+# Actuator 메트릭 노출 (운영 모니터링)
+# =========================
+management:
+  metrics:
+    tags:
+      application: ${spring.application.name:sharedprompts}
+      environment: prod
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
 

@@ -8,34 +8,32 @@
 
 ## 🚨 배포 시 즉시 발생 가능한 문제점
 
-### 0. 🔴 긴급: JobProcessor의 중복 완료 처리 버그
+### 0. ✅ 해결됨: JobProcessor의 중복 완료 처리 버그
 
-**위치**: `JobProcessor.processJobAsync()` (114번 라인)
+**위치**: `JobProcessorDelegate.processJobAsync()` (116번 라인)
 
-**문제점**:
+**문제점** (이미 해결됨):
 ```java
-jobStateService.markStored(job.getJobId(), filePath);  // 이미 내부에서 complete() 호출
-jobStateService.markCompleted(job.getJobId());  // ❌ 중복 호출!
+jobStateService.markStored(job.getJobId(), s3Key);  // 이미 내부에서 complete() 호출
+// jobStateService.markCompleted(job.getJobId());  // ❌ 중복 호출! (이미 제거됨)
 ```
 
 - `markStored()` 내부에서 이미 `jobEntity.complete(artifactId)`를 호출함
-- 그런데 바로 다음에 `markCompleted()`를 또 호출함
-- `markCompleted()`는 `PROCESSING` 상태를 기대하지만, 이미 `SUCCEEDED` 상태가 되어 `IllegalStateException` 발생
+- 이전에는 바로 다음에 `markCompleted()`를 또 호출하여 중복 완료 처리 버그 발생
+- `markCompleted()`는 `PROCESSING` 상태를 기대하지만, 이미 `SUCCEEDED` 상태가 되어 `IllegalStateException` 발생 가능
 
-**영향**:
+**영향** (해결 전):
 - **즉시 발생**: 모든 Job 완료 시 예외 발생
 - Job이 완료되지 않고 실패 상태로 남을 수 있음
 - 사용자 요청이 실패로 처리됨
 
-**권장 조치**:
-```java
-// JobProcessor.java 114번 라인 제거
-// jobStateService.markCompleted(job.getJobId());  // ❌ 제거 필요
-```
+**해결 상태**:
+- ✅ **수정 완료**: `JobProcessorDelegate.java` 116번 라인에서 `markStored()`만 호출하고, 118번 라인에 주석으로 중복 호출이 제거되었음을 명시
+- `markCompleted()` 호출이 제거되어 중복 완료 처리 문제 해결됨
 
 ### 1. 트랜잭션 관리 문제
 
-#### 1.1 REQUIRES_NEW 전파로 인한 커넥션 풀 고갈 위험
+#### 1.1 ✅ 완료: REQUIRES_NEW 전파로 인한 커넥션 풀 고갈 위험
 
 **위치**: `JobStateService`, `JobLockService` 등
 
@@ -64,7 +62,11 @@ spring:
 - `REQUIRES_NEW` 사용을 최소화하고, 필요한 경우에만 사용
 - 트랜잭션 범위를 재검토하여 불필요한 분리 제거
 
-#### 1.2 중복 트랜잭션 전파로 인한 불필요한 커넥션 사용
+**해결 상태**:
+- ✅ **수정 완료**: `application-prod.yml`에서 `maximum-pool-size: 50`으로 설정 완료
+- ✅ DB max_connections 검증 주석 추가 완료
+
+#### 1.2 ✅ 완료: 중복 트랜잭션 전파로 인한 불필요한 커넥션 사용
 
 **위치**: `JobStateService` + `JobUpdateHelper`
 
@@ -93,7 +95,12 @@ public void updateJobPromptVersion(String jobId, String promptVersion) {
 - `JobUpdateHelper`의 `@Transactional` 제거 (이미 상위에서 트랜잭션 관리)
 - 또는 `JobStateService`의 `@Transactional` 제거하고 `JobUpdateHelper`에서만 관리
 
-#### 1.3 Optimistic Locking 누락으로 인한 동시성 문제
+**해결 상태**:
+- ✅ **수정 완료**: `JobStateService`에서 `@Transactional` 제거 완료
+- ✅ `JobUpdateHelper`에서 `JobUpdateTransactionService`를 통해 `REQUIRES_NEW`로 트랜잭션 관리
+- ✅ 중복 트랜잭션 전파 문제 해결됨
+
+#### 1.3 ✅ 완료: Optimistic Locking 누락으로 인한 동시성 문제
 
 **위치**: `JobUpdateHelper.updateJob()`
 
@@ -142,7 +149,13 @@ public void updateJob(String jobId, Consumer<JobEntity> updater) {
 }
 ```
 
-#### 1.4 findLockedJob()에 Lock 없음
+**해결 상태**:
+- ✅ **수정 완료**: `JobUpdateHelper.executeWithRetry()`에서 `OptimisticLockingFailureException` 처리 및 재시도 로직 구현 완료
+- ✅ 지수 백오프(10ms, 20ms)로 재시도 구현
+- ✅ 최대 3회 시도 후 실패 처리
+- ✅ 메트릭 기록 기능 추가 (`JobMetrics`)
+
+#### 1.4 ✅ 완료: findLockedJob()에 Lock 없음
 
 **위치**: `JobRepository.findLockedJob()`
 
@@ -162,7 +175,12 @@ public void updateJob(String jobId, Consumer<JobEntity> updater) {
 Optional<JobEntity> findLockedJob(@Param("jobId") String jobId);
 ```
 
-#### 1.5 트랜잭션 타임아웃 미설정
+**해결 상태**:
+- ✅ **확인 완료**: `JobRepository`에 `findLockedJob()` 메서드가 존재하지 않음
+- ✅ `JobLockService.acquireJobLock()`에서 native query로 lock을 획득하고, 그 후 `findByJobId()`를 사용
+- ✅ 해당 메서드는 더 이상 사용되지 않거나 처음부터 존재하지 않았음
+
+#### 1.5 ✅ 완료: 트랜잭션 타임아웃 미설정
 
 **문제점**:
 - 대부분의 `@Transactional`에 타임아웃 설정 없음
@@ -179,6 +197,11 @@ public void markStored(String jobId, String filePath) {
     // ...
 }
 ```
+
+**해결 상태**:
+- ✅ **수정 완료**: `JobUpdateTransactionService`에서 `transactionTemplate.setTimeout(30)` 설정 완료
+- ✅ `JobLockService.acquireJobLock()`에서 `@Transactional(timeout = 30)` 설정 완료
+- ✅ 모든 REQUIRES_NEW 트랜잭션에 타임아웃 적용됨
 
 ### 2. 비동기 처리 및 스레드 풀 관리
 
