@@ -112,12 +112,6 @@ public class ProductionArtifactService {
         final ProductionArtifactDetailEntity finalDetail = detail;
         boolean isPrimary = contentType != null && contentType.toLowerCase().startsWith("image/");
         
-        if (finalDetail == null) {
-            throw new BaseException(
-                    ModuleErrorCode.VALIDATION_ERROR,
-                    null,
-                    "Detail cannot be null");
-        }
         if (finalDetail.getArtifact() != null && finalDetail.getArtifact() != artifact) {
             throw new BaseException(
                     ModuleErrorCode.VALIDATION_ERROR,

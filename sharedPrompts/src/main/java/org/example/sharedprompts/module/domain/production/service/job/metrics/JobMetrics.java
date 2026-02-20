@@ -38,7 +38,7 @@ public class JobMetrics {
             .increment();
     }
 
-    public void recordOptimisticLockRetry(String jobId, int attempt) {
+    public void recordOptimisticLockRetry(int attempt) {
         Counter.builder("job.update.optimistic_lock.retry")
             .description("Optimistic Lock 재시도 횟수")
             .tag("attempt", String.valueOf(attempt))
@@ -46,7 +46,7 @@ public class JobMetrics {
             .increment();
     }
 
-    public void recordOptimisticLockFailure(String jobId) {
+    public void recordOptimisticLockFailure() {
         Counter.builder("job.update.optimistic_lock.failure")
             .description("Optimistic Lock 재시도 실패 (최대 재시도 횟수 초과)")
             .register(registry)

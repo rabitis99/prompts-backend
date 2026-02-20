@@ -49,8 +49,11 @@ public class JobStateService {
         try {
             commandType = ProductionCommandType.valueOf(job.getCommandType());
         } catch (IllegalArgumentException e) {
-            log.error("Invalid command type: {}", job.getCommandType(), e);
-            commandType = null;
+            log.error("Invalid command type: {} - jobId: {}", job.getCommandType(), jobId, e);
+            throw new JobProcessingException(
+                    ModuleErrorCode.JOB_INVALID_STATUS,
+                    "Invalid command type: " + job.getCommandType() + " for job: " + jobId
+            );
         }
         
         if (commandType == ProductionCommandType.IMAGE 
@@ -119,16 +122,17 @@ public class JobStateService {
      * JobUpdateHelper에서 트랜잭션을 관리하므로 여기서는 트랜잭션 제거
      */
     public void retryJob(String jobId) {
-        // 재시도 횟수 체크는 트랜잭션 밖에서 수행 (읽기 전용)
-        JobEntity job = getJob(jobId);
-        if (job.getRetryCount() >= MAX_RETRY_COUNT) {
-            log.warn("Max retry count reached - jobId: {}, retryCount: {}", jobId, job.getRetryCount());
-            throw new JobProcessingException(
-                    ModuleErrorCode.JOB_INVALID_STATUS,
-                    "Max retry count exceeded for job: " + jobId
-            );
-        }
-        jobUpdateHelper.updateJob(jobId, JobEntity::retry);
+        // 재시도 횟수 체크를 트랜잭션 내부로 이동하여 TOCTOU 경합 조건 방지
+        jobUpdateHelper.updateJob(jobId, job -> {
+            if (job.getRetryCount() >= MAX_RETRY_COUNT) {
+                log.warn("Max retry count reached - jobId: {}, retryCount: {}", jobId, job.getRetryCount());
+                throw new JobProcessingException(
+                        ModuleErrorCode.JOB_INVALID_STATUS,
+                        "Max retry count exceeded for job: " + jobId
+                );
+            }
+            job.retry();
+        });
         log.info("Job retried - jobId: {}", jobId);
     }
 

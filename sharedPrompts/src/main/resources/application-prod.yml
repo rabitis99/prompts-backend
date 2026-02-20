@@ -93,6 +93,10 @@ management:
     tags:
       application: ${spring.application.name:sharedprompts}
       environment: prod
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
   endpoint:
     metrics:
       enabled: true

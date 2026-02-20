@@ -43,12 +43,12 @@
 
 ### 4. HikariCP 커넥션 풀 메트릭 (자동 노출)
 
-**메트릭명**: `hikari.connections.*`
+**메트릭명**: `hikaricp.connections.*`
 - **주요 메트릭**:
-  - `hikari.connections.active`: 활성 커넥션 수
-  - `hikari.connections.idle`: 유휴 커넥션 수
-  - `hikari.connections.pending`: 대기 중인 스레드 수
-  - `hikari.connections.acquisition`: 커넥션 획득 시간
+  - `hikaricp.connections.active`: 활성 커넥션 수
+  - `hikaricp.connections.idle`: 유휴 커넥션 수
+  - `hikaricp.connections.pending`: 대기 중인 스레드 수
+  - `hikaricp.connections.acquisition`: 커넥션 획득 시간
 - **모니터링 포인트**:
   - `active`가 `maximum-pool-size`에 근접하면 커넥션 풀 부족
   - `pending`이 증가하면 커넥션 획득 대기 중인 요청 증가
@@ -68,7 +68,7 @@ rate(job_transaction_timeout_total[5m])
 
 ### 커넥션 풀 사용률
 ```promql
-hikari_connections_active / hikari_connections_max * 100
+hikaricp_connections_active / hikaricp_connections_max * 100
 ```
 
 ### Job 업데이트 평균 소요 시간
@@ -90,7 +90,7 @@ rate(job_update_duration_seconds_sum[5m]) / rate(job_update_duration_seconds_cou
 ```
 GET /api/actuator/metrics/job.update.optimistic_lock.retry
 GET /api/actuator/metrics/job.transaction.timeout
-GET /api/actuator/metrics/hikari.connections.active
+GET /api/actuator/metrics/hikaricp.connections.active
 ```
 
 ### Prometheus 엔드포인트
