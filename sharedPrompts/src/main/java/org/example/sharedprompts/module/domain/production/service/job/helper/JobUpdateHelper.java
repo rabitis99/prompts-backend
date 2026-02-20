@@ -18,7 +18,7 @@ import java.util.function.Function;
 @Slf4j
 public class JobUpdateHelper {
 
-    private static final int MAX_RETRIES = 3;
+    private static final int MAX_ATTEMPTS = 3;
     private static final int INITIAL_RETRY_DELAY_MS = 10;
 
     private final JobUpdateTransactionService transactionService;
@@ -57,26 +57,29 @@ public class JobUpdateHelper {
         boolean success = false;
         
         try {
-            for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
                 try {
                     T result = operation.execute();
                     success = true;
                     return result;
                 } catch (OptimisticLockingFailureException e) {
-                    if (attempt == MAX_RETRIES - 1) {
-                        log.error("Failed to update job after {} retries - jobId: {}", MAX_RETRIES, jobId, e);
+                    if (attempt == MAX_ATTEMPTS - 1) {
+                        int retryCount = MAX_ATTEMPTS - 1;
+                        log.error("Failed to update job after {} retries - jobId: {}", retryCount, jobId, e);
                         jobMetrics.recordOptimisticLockFailure();
                         throw new JobProcessingException(
                                 ModuleErrorCode.RECOVERY_ERROR,
-                                String.format("Failed to update job after %d retries due to optimistic lock conflict - jobId: %s", MAX_RETRIES, jobId),
+                                String.format("Failed to update job after %d retries due to optimistic lock conflict - jobId: %s", retryCount, jobId),
                                 e
                         );
                     }
-                    log.warn("Optimistic lock conflict, retrying - jobId: {}, attempt: {}/{}", jobId, attempt + 1, MAX_RETRIES);
-                    jobMetrics.recordOptimisticLockRetry(attempt + 1);
+                    log.warn("Optimistic lock conflict, retrying - jobId: {}, attempt: {}/{}", jobId, attempt + 1, MAX_ATTEMPTS);
                     sleepWithExponentialBackoff(attempt, jobId);
+                    jobMetrics.recordOptimisticLockRetry(attempt + 1);
                 }
             }
+            // 컴파일러 요구사항: MAX_ATTEMPTS > 0인 경우 이 지점에는 도달하지 않습니다.
+            // 마지막 반복(attempt == MAX_ATTEMPTS - 1)에서 항상 return 또는 throw가 발생합니다.
             throw new JobProcessingException(
                     ModuleErrorCode.RECOVERY_ERROR,
                     "Unexpected error: retry loop completed without success - jobId: " + jobId
@@ -88,7 +91,8 @@ public class JobUpdateHelper {
 
     /**
      * 지수 백오프로 대기: INITIAL_RETRY_DELAY_MS * 2^attempt
-     * attempt 0: 10ms, attempt 1: 20ms, attempt 2: 40ms
+     * 마지막 시도(attempt == MAX_ATTEMPTS - 1)에서는 호출되지 않습니다.
+     * attempt 0: 10ms, attempt 1: 20ms
      */
     private void sleepWithExponentialBackoff(int attempt, String jobId) {
         try {

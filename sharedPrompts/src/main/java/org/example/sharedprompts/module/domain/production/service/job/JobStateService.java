@@ -58,7 +58,7 @@ public class JobStateService {
         
         if (commandType == ProductionCommandType.IMAGE 
                 && estimatedContentType != null 
-                && estimatedContentType.equals("text/plain")) {
+                && "text/plain".equals(estimatedContentType)) {
             log.info("Skipping prompt txt file artifact creation for IMAGE command - jobId: {}, s3Key: {}", jobId, s3Key);
             if (job.getArtifactId() != null && !job.getArtifactId().isBlank()) {
                 log.info("Using existing artifactId for prompt txt file - jobId: {}, artifactId: {}", jobId, job.getArtifactId());

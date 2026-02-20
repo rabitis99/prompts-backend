@@ -48,17 +48,22 @@
   - `hikaricp.connections.active`: 활성 커넥션 수
   - `hikaricp.connections.idle`: 유휴 커넥션 수
   - `hikaricp.connections.pending`: 대기 중인 스레드 수
-  - `hikaricp.connections.acquisition`: 커넥션 획득 시간
+  - `hikaricp.connections.acquire`: 커넥션 획득 시간
 - **모니터링 포인트**:
   - `active`가 `maximum-pool-size`에 근접하면 커넥션 풀 부족
   - `pending`이 증가하면 커넥션 획득 대기 중인 요청 증가
-  - `acquisition` 시간이 길면 DB 성능 저하
+  - `acquire` 시간이 길면 DB 성능 저하
 
 ## 🔍 Prometheus 쿼리 예시
 
 ### Optimistic Lock 재시도율
 ```promql
 rate(job_update_optimistic_lock_retry_total[5m])
+```
+
+### Optimistic Lock 최대 재시도(attempt=3) 도달 빈도
+```promql
+rate(job_update_optimistic_lock_retry_total{attempt="3"}[5m])
 ```
 
 ### 트랜잭션 타임아웃 발생률

@@ -92,12 +92,15 @@ public class ProductionArtifactService {
         String contentType = detail.getContentType();
         
         // 실제 contentType을 기반으로 artifactType 재조정
+        // 참고: image/* 타입 불일치는 경고만 기록 (이미지 핸들러가 다양한 형식 처리 가능)
+        // text/plain 타입 불일치는 보정 수행 (텍스트 파일은 FILE 타입으로 명확히 처리 필요)
         if (contentType != null) {
             String lowerContentType = contentType.toLowerCase();
             if (lowerContentType.startsWith("image/")) {
                 if (detail.getArtifactType() != ArtifactType.IMAGE) {
                     log.warn("ContentType is image/* but artifactType is not IMAGE - s3Key: {}, artifactType: {}", 
                             s3Key, detail.getArtifactType());
+                    // 이미지 핸들러는 다양한 이미지 형식을 처리할 수 있으므로 보정하지 않음
                 }
             } else if (lowerContentType.equals("text/plain")) {
                 if (detail.getArtifactType() != ArtifactType.FILE) {
@@ -122,17 +125,8 @@ public class ProductionArtifactService {
         artifact.addArtifact(finalDetail);
         
         if (isPrimary) {
-            boolean belongsToThis = finalDetail.getId() != null
-                    ? artifact.getArtifacts().stream().anyMatch(a -> a.getId() != null && a.getId().equals(finalDetail.getId()))
-                    : artifact.getArtifacts().contains(finalDetail);
-            
-            if (!belongsToThis) {
-                throw new BaseException(
-                        ModuleErrorCode.VALIDATION_ERROR,
-                        null,
-                        "Detail does not belong to this artifact");
-            }
-            
+            // addArtifact()는 항상 성공하므로 finalDetail은 artifact.getArtifacts()에 포함됨
+            // belongsToThis 검사는 항상 true이므로 불필요한 검증 제거
             artifact.markAsPrimary(finalDetail);
         }
 
