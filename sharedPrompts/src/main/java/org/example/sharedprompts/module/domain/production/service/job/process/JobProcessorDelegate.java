@@ -6,7 +6,6 @@ import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommand;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
 import org.example.sharedprompts.module.domain.production.service.job.JobLockService;
-import org.example.sharedprompts.module.domain.production.util.TenantContextValidator;
 import org.example.sharedprompts.module.domain.production.service.job.JobStateService;
 import org.example.sharedprompts.module.domain.production.service.job.metrics.JobMetrics;
 import org.example.sharedprompts.module.domain.production.service.job.process.exception.AIServiceException;
@@ -22,19 +21,13 @@ import org.example.sharedprompts.module.domain.production.service.job.process.ut
 import org.example.sharedprompts.module.domain.production.service.job.process.util.FileNameGenerator;
 import org.example.sharedprompts.module.domain.production.service.parser.ParsedResponse;
 import org.example.sharedprompts.module.domain.production.service.prompt.PromptTemplateService;
-import org.springframework.scheduling.annotation.Async;
+import org.example.sharedprompts.module.domain.production.util.TenantContextValidator;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
-/**
- * Job 처리 비동기 실행을 담당하는 Delegate 클래스
- * 
- * @Async 메서드를 별도 컴포넌트로 분리하여 자기 참조(self-proxy) 문제를 해결하고
- * 생성자 주입만 사용하도록 합니다.
- */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -53,8 +46,10 @@ public class JobProcessorDelegate {
     private final FileNameGenerator fileNameGenerator;
     private final JobMetrics jobMetrics;
 
-    @Async
-    public void processJobAsync(String jobId) {
+    /**
+     * Job 처리 실행
+     */
+    public void processJob(String jobId) {
         Instant startTime = Instant.now();
         String commandType = "UNKNOWN";
 

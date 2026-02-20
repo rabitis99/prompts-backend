@@ -155,5 +155,21 @@ public class ProductionArtifactService {
 
         return saved;
     }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW, timeout = 30)
+    public void deleteArtifact(String artifactId) {
+        try {
+            Long id = Long.parseLong(artifactId);
+            productionArtifactRepository.deleteById(id);
+            log.info("Artifact deleted - artifactId: {}", artifactId);
+        } catch (NumberFormatException e) {
+            log.error("Invalid artifactId format - artifactId: {}", artifactId, e);
+            throw new BaseException(
+                    ModuleErrorCode.VALIDATION_ERROR,
+                    null,
+                    "Invalid artifactId format: " + artifactId,
+                    e);
+        }
+    }
 }
 

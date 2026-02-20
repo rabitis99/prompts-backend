@@ -52,6 +52,24 @@ public class RabbitMQConfig {
     // SSE Dead Letter Queue 이름
     public static final String SSE_DLQ = "sse.dlq";
 
+    // =========================
+    // Job Processing Queue 설정
+    // =========================
+    // Job Exchange 이름
+    public static final String JOB_EXCHANGE = "job.exchange";
+
+    // Job Queue 이름
+    public static final String JOB_QUEUE = "job.queue";
+
+    // Job Routing Key
+    public static final String JOB_ROUTING_KEY = "job.routing.key";
+
+    // Job Dead Letter Exchange 이름
+    public static final String JOB_DLX = "job.dlx";
+
+    // Job Dead Letter Queue 이름
+    public static final String JOB_DLQ = "job.dlq";
+
     /**
      * Topic Exchange 생성
      * - 알림 메시지를 라우팅하기 위한 Exchange
@@ -240,6 +258,59 @@ public class RabbitMQConfig {
         factory.setConcurrentConsumers(3);
         factory.setMaxConcurrentConsumers(10);
         factory.setDefaultRequeueRejected(false);
+        return factory;
+    }
+
+    @Bean
+    public TopicExchange jobExchange() {
+        return new TopicExchange(JOB_EXCHANGE, true, false);
+    }
+
+    @Bean
+    public DirectExchange jobDlx() {
+        return new DirectExchange(JOB_DLX, true, false);
+    }
+
+    @Bean
+    public Queue jobDlq() {
+        return QueueBuilder.durable(JOB_DLQ).build();
+    }
+
+    @Bean
+    public Binding jobDlqBinding() {
+        return BindingBuilder
+                .bind(jobDlq())
+                .to(jobDlx())
+                .with(JOB_DLQ);
+    }
+
+    @Bean
+    public Queue jobQueue() {
+        return QueueBuilder.durable(JOB_QUEUE)
+                .withArgument("x-dead-letter-exchange", JOB_DLX)
+                .withArgument("x-dead-letter-routing-key", JOB_DLQ)
+                .withArgument("x-message-ttl", 86400000L)
+                .build();
+    }
+
+    @Bean
+    public Binding jobBinding() {
+        return BindingBuilder
+                .bind(jobQueue())
+                .to(jobExchange())
+                .with(JOB_ROUTING_KEY);
+    }
+
+    @Bean("jobWorkerContainerFactory")
+    public SimpleRabbitListenerContainerFactory jobWorkerContainerFactory(ConnectionFactory connectionFactory) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        factory.setMessageConverter(jsonMessageConverter());
+        factory.setPrefetchCount(1);
+        factory.setConcurrentConsumers(3);
+        factory.setMaxConcurrentConsumers(10);
+        factory.setDefaultRequeueRejected(false);
+        factory.setAcknowledgeMode(org.springframework.amqp.core.AcknowledgeMode.MANUAL);
         return factory;
     }
 }
