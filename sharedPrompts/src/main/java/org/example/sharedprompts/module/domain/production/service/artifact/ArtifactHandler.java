@@ -15,19 +15,17 @@ public interface ArtifactHandler {
      * TEXT 타입은 TextArtifactHandler에서 오버라이드
      */
     default ProductionArtifactDetailEntity createDetail(
-            String filePath
+            String s3Key
     ) {
-        // filePath는 S3 key로 사용
-        String fileName = ArtifactMetadataHelper.extractFileName(filePath);
-        String contentType = ArtifactMetadataHelper.determineContentType(filePath);
+        String fileName = ArtifactMetadataHelper.extractFileName(s3Key);
+        String contentType = ArtifactMetadataHelper.determineContentType(s3Key);
         
         return ProductionArtifactDetailEntityFactory.createFile(
                 getSupportedType(),
-                filePath, // s3Key
+                s3Key,
                 fileName,
                 contentType,
-                null, // fileSize는 나중에 설정 가능
-                false // primary는 Aggregate Root에서 설정
+                null // fileSize는 나중에 설정 가능
         );
     }
 

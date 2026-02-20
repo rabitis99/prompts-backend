@@ -5,6 +5,6 @@ package org.example.sharedprompts.module.domain.production.model.production;
  */
 public enum ProductionStatus {
     PROCESSING,  // 처리 중
-    SUCCESS,     // 성공
+    SUCCEEDED,   // 성공
     FAILED       // 실패
 }

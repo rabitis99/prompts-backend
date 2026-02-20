@@ -34,7 +34,7 @@ class ProductionResponseDtoTest {
 
         ProductionResponseDto dto = ProductionResponseDtoMapper.toDto(entity);
 
-        assertThat(dto.status()).isEqualTo(ProductionStatus.SUCCESS);
+        assertThat(dto.status()).isEqualTo(ProductionStatus.SUCCEEDED);
         assertThat(dto.errorMessage()).isNull();
         assertThat(dto.artifact()).isNotNull();
         assertThat(dto.artifact().type()).isEqualTo(ArtifactType.TEXT);

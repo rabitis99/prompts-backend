@@ -40,6 +40,7 @@ public class ProductionArtifactDetailEntity {
     private ProductionArtifactEntity artifact;
 
     @Column(name = "is_primary", nullable = false)
+    @Getter(AccessLevel.NONE)
     @Builder.Default
     private boolean primary = false;
 

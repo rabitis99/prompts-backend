@@ -6,8 +6,8 @@ import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommand;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
 import org.example.sharedprompts.module.domain.production.model.job.JobStatus;
-import org.example.sharedprompts.module.domain.production.model.tenant.TenantContext;
 import org.example.sharedprompts.module.domain.production.service.job.JobLockService;
+import org.example.sharedprompts.module.domain.production.util.TenantContextValidator;
 import org.example.sharedprompts.module.domain.production.service.job.JobStateService;
 import org.example.sharedprompts.module.domain.production.service.job.metrics.JobMetrics;
 import org.example.sharedprompts.module.domain.production.service.job.process.exception.AIServiceException;
@@ -24,8 +24,8 @@ import org.example.sharedprompts.module.domain.production.service.job.process.ut
 import org.example.sharedprompts.module.domain.production.service.job.process.util.FileNameGenerator;
 import org.example.sharedprompts.module.domain.production.service.parser.ParsedResponse;
 import org.example.sharedprompts.module.domain.production.service.prompt.PromptTemplateService;
-import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategy;
-import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategyFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -46,11 +46,21 @@ public class JobProcessor {
     private final ContentRenderer contentRenderer;
     private final ContentFormatter contentFormatter;
     private final ContentStorageService contentStorageService;
-    private final StorageStrategyFactory storageStrategyFactory;
     private final JobExceptionHandler exceptionHandler;
     private final CommandDeserializer commandDeserializer;
     private final FileNameGenerator fileNameGenerator;
     private final JobMetrics jobMetrics;
+    
+    @Autowired
+    private ApplicationContext applicationContext;
+    
+    /**
+     * 자기 자신의 프록시를 가져와서 @Async가 동작하도록 합니다.
+     * recoverJob에서 processJobAsync를 호출할 때 사용됩니다.
+     */
+    private JobProcessor getSelf() {
+        return applicationContext.getBean(JobProcessor.class);
+    }
 
     @Async
     public void processJobAsync(String jobId) {
@@ -76,17 +86,7 @@ public class JobProcessor {
             // In multi-tenant SaaS, tenant_id is REQUIRED for all operations
             // tenant_id must come from TenantContext (set by SecurityContextTaskDecorator from X-Tenant-Id header)
             // DO NOT create or generate tenant_id - it must be provided in the request header
-            String tenantId = TenantContext.getCurrentTenantId();
-            if (tenantId == null || tenantId.isBlank()) {
-                log.error("Tenant context is REQUIRED but not available - jobId: {}, thread: {}. " +
-                        "Please ensure X-Tenant-Id header is provided when creating jobs.", 
-                        jobId, Thread.currentThread().getName());
-                // Throw exception early to fail fast rather than failing later
-                throw new IllegalStateException(
-                        "Tenant context is required but not set in async thread for jobId: " + jobId + 
-                        ". X-Tenant-Id header must be provided when creating jobs.");
-            }
-            log.debug("Tenant context verified - jobId: {}, tenantId: {}", jobId, tenantId);
+            TenantContextValidator.requireTenantContextForJob(jobId);
 
             ProductionCommand command = commandDeserializer.deserialize(job);
             commandType = command.getCommandType().name();
@@ -108,7 +108,6 @@ public class JobProcessor {
             String renderedContent = contentRenderer.render(parsedResponse.jsonNode(), command.getCommandType());
 
             String filePath;
-            StorageStrategy storageStrategy = storageStrategyFactory.getStorageStrategy();
             
             // 이미지 생성인 경우 이미 저장된 PNG 파일 경로를 그대로 사용
             if (command.getCommandType() == ProductionCommandType.IMAGE) {
@@ -123,7 +122,7 @@ public class JobProcessor {
                 filePath = contentStorageService.store(converted.data(), converted.contentType(), job, converted.fileName());
             }
             
-            jobStateService.markStored(job.getJobId(), filePath, storageStrategy);
+            jobStateService.markStored(job.getJobId(), filePath);
 
             jobStateService.markCompleted(job.getJobId());
 
@@ -154,17 +153,6 @@ public class JobProcessor {
         JobEntity job = jobStateService.getJob(jobId);
         JobStatus status = job.getStatus();
 
-        // Ensure tenant context is set for recovery process
-        String tenantId = TenantContext.getCurrentTenantId();
-        if (tenantId == null || tenantId.isBlank()) {
-            log.error("Tenant context is REQUIRED but not available for recovery - jobId: {}, thread: {}. " +
-                    "Please ensure X-Tenant-Id header is provided.", 
-                    jobId, Thread.currentThread().getName());
-            throw new IllegalStateException(
-                    "Tenant context is required but not set in async thread for recovery jobId: " + jobId + 
-                    ". X-Tenant-Id header must be provided.");
-        }
-
         // FAILED 상태에서만 복구 가능
         if (status != JobStatus.FAILED) {
             log.warn("Cannot recover job - only FAILED status can be recovered. jobId: {}, status: {}", jobId, status);
@@ -176,8 +164,9 @@ public class JobProcessor {
         try {
             // retry()를 통해 FAILED → PENDING으로 전이 후 처음부터 다시 처리
             jobStateService.retryJob(jobId);
-            // 처음부터 다시 처리
-            processJobAsync(jobId);
+            // 처음부터 다시 처리 - 프록시를 통해 호출하여 @Async가 동작하도록 함
+            // recoverJob은 이미 비동기 스레드에서 실행되지만, processJobAsync도 별도 스레드에서 실행되도록 함
+            getSelf().processJobAsync(jobId);
         } catch (Exception e) {
             log.error("Failed to recover job - jobId: {}, status: {}", jobId, status, e);
             ProductionCommand command = commandDeserializer.deserialize(job);

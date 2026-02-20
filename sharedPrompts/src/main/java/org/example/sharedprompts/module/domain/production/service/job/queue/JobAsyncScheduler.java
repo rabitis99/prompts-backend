@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.model.tenant.TenantContext;
 import org.example.sharedprompts.module.domain.production.service.job.process.JobProcessor;
+import org.example.sharedprompts.module.domain.production.util.TenantContextValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -20,14 +21,7 @@ public class JobAsyncScheduler {
         // This is critical because TenantContextFilter may clear it in its finally block
         // which runs after the request completes, potentially before afterCommit
         // tenant_id must come from X-Tenant-Id header - DO NOT create or generate tenant_id
-        String tenantId = TenantContext.getCurrentTenantId();
-        
-        if (tenantId == null || tenantId.isBlank()) {
-            log.error("Tenant context is REQUIRED when scheduling job - jobId: {}. " +
-                    "X-Tenant-Id header must be provided when creating jobs.", jobId);
-            throw new IllegalStateException(
-                    "Tenant context is required when scheduling job. X-Tenant-Id header must be provided when creating jobs.");
-        }
+        String tenantId = TenantContextValidator.requireTenantContextForJob(jobId);
         
         log.debug("Captured tenant context for async job - jobId: {}, tenantId: {}", jobId, tenantId);
         

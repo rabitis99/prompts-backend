@@ -103,42 +103,56 @@ public class ArtifactApplicationService {
         }
         
         // s3Key가 s3:// 형식일 수 있으므로 처리
-        String s3Key = extractS3Key(artifact.getS3Key());
-        String bucket = getBucketFromPath(artifact.getS3Key());
-        
+        S3Location location = parseS3Path(artifact.getS3Key());
+        if (location == null) {
+            return null;
+        }
+
         return strategy.generatePresignedUrl(
-                bucket,
-                s3Key,
+                location.bucket(),
+                location.key(),
                 contentType,
                 Duration.ofSeconds(presignedUrlTtlSeconds)
         );
     }
 
+    /**
+     * S3 경로 정보를 담는 record
+     */
+    private record S3Location(String bucket, String key) {}
 
-    private String extractS3Key(String s3Key) {
+    /**
+     * S3 경로 문자열을 파싱하여 bucket과 key를 추출합니다.
+     * 
+     * @param s3Key S3 경로 (s3://bucket/key 형식 또는 key만 있는 형식)
+     * @return S3Location (bucket, key), 파싱 실패 시 null
+     */
+    private S3Location parseS3Path(String s3Key) {
         if (s3Key == null || s3Key.isBlank()) {
             return null;
         }
+
         if (s3Key.startsWith("s3://")) {
             String withoutPrefix = s3Key.substring(5);
             int slashIndex = withoutPrefix.indexOf('/');
-            if (slashIndex > 0) {
-                return withoutPrefix.substring(slashIndex + 1);
+            if (slashIndex > 0 && slashIndex < withoutPrefix.length() - 1) {
+                String bucket = withoutPrefix.substring(0, slashIndex);
+                String key = withoutPrefix.substring(slashIndex + 1);
+                if (key.isBlank()) {
+                    return null;
+                }
+                return new S3Location(bucket, key);
             }
+            // s3://bucket 또는 s3://bucket/ 형식은 유효하지 않음
+            return null;
         }
-        return s3Key;
-    }
 
-    private String getBucketFromPath(String s3Key) {
-        if (s3Key != null && s3Key.startsWith("s3://")) {
-            String withoutPrefix = s3Key.substring(5);
-            int slashIndex = withoutPrefix.indexOf('/');
-            if (slashIndex > 0) {
-                return withoutPrefix.substring(0, slashIndex);
-            }
+        // s3:// 접두사가 없는 경우 defaultBucket 사용
+        if (defaultBucket == null || defaultBucket.isBlank()) {
+            log.error("Cannot determine S3 bucket - s3Key: {}, defaultBucket is not configured", s3Key);
+            return null;
         }
-        // 경로에서 추출할 수 없으면 설정값 사용
-        return defaultBucket;
+        return new S3Location(defaultBucket, s3Key);
     }
 }
 

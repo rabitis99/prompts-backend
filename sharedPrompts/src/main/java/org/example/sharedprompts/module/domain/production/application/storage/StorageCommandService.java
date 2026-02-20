@@ -72,7 +72,6 @@ public class StorageCommandService {
      * @return 검증된 S3 키
      * @throws BaseException 아티팩트를 찾을 수 없거나 소유권이 없거나 파일 경로가 유효하지 않은 경우
      */
-    @Transactional(readOnly = true)
     private String resolveS3KeyWithOwnerCheck(Long artifactId, Long userId) {
         ProductionArtifactDetailEntity artifact = artifactDetailRepository.findById(artifactId)
                 .orElseThrow(() -> new BaseException(ModuleErrorCode.PRODUCTION_NOT_FOUND));
@@ -125,9 +124,14 @@ public class StorageCommandService {
         if (filePath.startsWith("s3://")) {
             String withoutPrefix = filePath.substring(5);
             int slashIndex = withoutPrefix.indexOf('/');
-            if (slashIndex > 0) {
-                return withoutPrefix.substring(slashIndex + 1);
+            if (slashIndex > 0 && slashIndex < withoutPrefix.length() - 1) {
+                String key = withoutPrefix.substring(slashIndex + 1);
+                if (key.isBlank()) {
+                    return null;
+                }
+                return key;
             }
+            return null;
         }
         return filePath;
     }

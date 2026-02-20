@@ -15,7 +15,6 @@ import org.example.sharedprompts.module.domain.production.service.artifact.Artif
 import org.example.sharedprompts.module.domain.production.service.artifact.ArtifactHandlerRegistry;
 import org.example.sharedprompts.module.domain.production.model.tenant.TenantContext;
 import org.example.sharedprompts.module.domain.production.service.image.ThumbnailService;
-import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategy;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -32,11 +31,10 @@ public class ProductionArtifactService {
     private final ArtifactHandlerRegistry artifactHandlerRegistry;
     private final ThumbnailService thumbnailService;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.REQUIRED)
     public ProductionArtifactEntity createArtifact(
             JobEntity job,
-            String filePath,
-            StorageStrategy storageStrategy
+            String s3Key
     ) {
         ProductionCommandType commandType;
         try {
@@ -52,7 +50,7 @@ public class ProductionArtifactService {
 
         // 실제 파일의 contentType을 확인하여 올바른 handler 선택
         // 파일명이나 파일 내용을 기반으로 contentType 추정
-        String estimatedContentType = ArtifactMetadataHelper.determineContentType(filePath);
+        String estimatedContentType = ArtifactMetadataHelper.determineContentType(s3Key);
         
         // 실제 파일의 contentType을 기반으로 artifactType 결정
         ArtifactType artifactType;
@@ -94,7 +92,7 @@ public class ProductionArtifactService {
                 commandType
         );
 
-        ProductionArtifactDetailEntity detail = handler.createDetail(filePath);
+        ProductionArtifactDetailEntity detail = handler.createDetail(s3Key);
         
         // 실제 파일의 contentType을 확인하여 artifactType과 isPrimary 조정
         // handler.createDetail()에서 파일 내용을 읽어서 정확한 contentType을 결정했을 수 있음
@@ -109,19 +107,19 @@ public class ProductionArtifactService {
                 // 하지만 확실하게 하기 위해 재설정
                 if (detail.getArtifactType() != ArtifactType.IMAGE) {
                     // ImageArtifactHandler를 사용했지만 실제로는 이미지가 아닌 경우는 없어야 함
-                    log.warn("ContentType is image/* but artifactType is not IMAGE - filePath: {}, artifactType: {}", 
-                            filePath, detail.getArtifactType());
+                    log.warn("ContentType is image/* but artifactType is not IMAGE - s3Key: {}, artifactType: {}", 
+                            s3Key, detail.getArtifactType());
                 }
             } else if (lowerContentType.equals("text/plain")) {
                 // 텍스트 파일인 경우: FILE 타입, primary=false
                 // FileArtifactHandler를 사용했어야 하지만, 혹시 ImageArtifactHandler를 사용한 경우를 대비
                 if (detail.getArtifactType() != ArtifactType.FILE) {
-                    log.warn("ContentType is text/plain but artifactType is not FILE - filePath: {}, artifactType: {}. Correcting to FILE.", 
-                            filePath, detail.getArtifactType());
+                    log.warn("ContentType is text/plain but artifactType is not FILE - s3Key: {}, artifactType: {}. Correcting to FILE.", 
+                            s3Key, detail.getArtifactType());
                     // artifactType을 FILE로 변경하려면 새로운 detail을 생성해야 함
                     // 하지만 detail은 이미 생성되었으므로, FileArtifactHandler를 사용하여 다시 생성
                     ArtifactHandler fileHandler = artifactHandlerRegistry.getHandler(ArtifactType.FILE);
-                    detail = fileHandler.createDetail(filePath);
+                    detail = fileHandler.createDetail(s3Key);
                 }
             }
         }
@@ -156,7 +154,11 @@ public class ProductionArtifactService {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    thumbnailService.generateThumbnailsAsync(detailId, filePath, tenantId, userId, jobId);
+                    try {
+                        thumbnailService.generateThumbnailsAsync(detailId, s3Key, tenantId, userId, jobId);
+                    } catch (Exception e) {
+                        log.warn("Failed to trigger async thumbnail generation - detailId: {}, jobId: {}", detailId, jobId, e);
+                    }
                 }
             });
         }

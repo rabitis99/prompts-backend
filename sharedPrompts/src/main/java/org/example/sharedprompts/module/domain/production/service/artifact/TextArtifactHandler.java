@@ -24,14 +24,13 @@ public class TextArtifactHandler implements ArtifactHandler {
 
     @Override
     public ProductionArtifactDetailEntity createDetail(
-            String filePath
+            String s3Key
     ) {
-        String content = new String(storageFacade.download(filePath), StandardCharsets.UTF_8);
+        String content = new String(storageFacade.download(s3Key), StandardCharsets.UTF_8);
 
         // TEXT 타입은 content를 직접 저장, s3Key는 null
         return ProductionArtifactDetailEntityFactory.createText(
-                content,
-                false // primary는 Aggregate Root에서 설정
+                content
         );
     }
 

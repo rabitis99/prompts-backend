@@ -15,10 +15,10 @@ public final class ProductionArtifactDetailEntityFactory {
     /**
      * TEXT 타입 전용 생성 메서드
      * 불변 조건: content 필수, s3Key는 null
+     * primary는 항상 false로 생성되며, Aggregate Root(ProductionArtifactEntity.markAsPrimary())에서만 설정됩니다.
      */
     public static ProductionArtifactDetailEntity createText(
-            String content,
-            boolean primary
+            String content
     ) {
         if (content == null || content.isBlank()) {
             throw new IllegalArgumentException("Content cannot be null or blank for TEXT type");
@@ -28,21 +28,20 @@ public final class ProductionArtifactDetailEntityFactory {
                 .artifactType(ArtifactType.TEXT)
                 .content(content)
                 .s3Key(null)
-                .primary(primary)
                 .build();
     }
 
     /**
      * FILE/IMAGE 타입 전용 생성 메서드
-     * 불변 조건: s3Key 필수, content는 null
+     * 불변 조건: s3Key 필수, contentType 필수, content는 null
+     * primary는 항상 false로 생성되며, Aggregate Root(ProductionArtifactEntity.markAsPrimary())에서만 설정됩니다.
      */
     public static ProductionArtifactDetailEntity createFile(
             ArtifactType artifactType,
             String s3Key,
             String fileName,
             String contentType,
-            Long fileSize,
-            boolean primary
+            Long fileSize
     ) {
         if (artifactType != ArtifactType.FILE && artifactType != ArtifactType.IMAGE) {
             throw new IllegalArgumentException(
@@ -52,6 +51,9 @@ public final class ProductionArtifactDetailEntityFactory {
         if (s3Key == null || s3Key.isBlank()) {
             throw new IllegalArgumentException("S3Key cannot be null or blank for FILE/IMAGE type");
         }
+        if (contentType == null || contentType.isBlank()) {
+            throw new IllegalArgumentException("ContentType cannot be null or blank for FILE/IMAGE type");
+        }
         
         return ProductionArtifactDetailEntity.builder()
                 .artifactType(artifactType)
@@ -60,7 +62,6 @@ public final class ProductionArtifactDetailEntityFactory {
                 .contentType(contentType)
                 .fileSize(fileSize)
                 .content(null)
-                .primary(primary)
                 .build();
     }
 
@@ -71,10 +72,9 @@ public final class ProductionArtifactDetailEntityFactory {
             String s3Key,
             String fileName,
             String contentType,
-            Long fileSize,
-            boolean primary
+            Long fileSize
     ) {
-        return createFile(ArtifactType.IMAGE, s3Key, fileName, contentType, fileSize, primary);
+        return createFile(ArtifactType.IMAGE, s3Key, fileName, contentType, fileSize);
     }
 }
 

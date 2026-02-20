@@ -3,10 +3,11 @@ package org.example.sharedprompts.module.domain.production.service.job;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
+import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
 import org.example.sharedprompts.module.domain.production.repository.job.JobRepository;
 import org.example.sharedprompts.module.domain.production.service.job.helper.JobUpdateHelper;
 import org.example.sharedprompts.module.domain.production.service.production.ProductionArtifactService;
-import org.example.sharedprompts.module.domain.production.service.storage.StorageStrategy;
+import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class JobStateService {
+
+    private static final int MAX_RETRY_COUNT = 3;
 
     private final JobRepository jobRepository;
     private final JobUpdateHelper jobUpdateHelper;
@@ -34,21 +37,21 @@ public class JobStateService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markStored(String jobId, String filePath, StorageStrategy storageStrategy) {
+    public void markStored(String jobId, String filePath) {
         JobEntity job = jobRepository.findByJobId(jobId)
                 .orElseThrow(() -> new IllegalArgumentException("Job not found: " + jobId));
 
         // 이미지 생성 시 프롬프트 txt 파일은 artifact로 저장하지 않음
-        String estimatedContentType = org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper.determineContentType(filePath);
-        org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType commandType;
+        String estimatedContentType = ArtifactMetadataHelper.determineContentType(filePath);
+        ProductionCommandType commandType;
         try {
-            commandType = org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType.valueOf(job.getCommandType());
+            commandType = ProductionCommandType.valueOf(job.getCommandType());
         } catch (IllegalArgumentException e) {
             log.error("Invalid command type: {}", job.getCommandType(), e);
             commandType = null;
         }
         
-        if (commandType == org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType.IMAGE 
+        if (commandType == ProductionCommandType.IMAGE 
                 && estimatedContentType != null 
                 && estimatedContentType.equals("text/plain")) {
             log.info("Skipping prompt txt file artifact creation for IMAGE command - jobId: {}, filePath: {}", jobId, filePath);
@@ -62,7 +65,7 @@ public class JobStateService {
             return;
         }
 
-        var artifact = productionArtifactService.createArtifact(job, filePath, storageStrategy);
+        var artifact = productionArtifactService.createArtifact(job, filePath);
         String artifactId = artifact.getId().toString();
 
         // Job 완료 처리 (PROCESSING → SUCCEEDED)
@@ -78,14 +81,12 @@ public class JobStateService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markCompleted(String jobId) {
-        JobEntity job = jobRepository.findByJobId(jobId)
-                .orElseThrow(() -> new IllegalArgumentException("Job not found: " + jobId));
-        
-        if (job.getArtifactId() == null || job.getArtifactId().isBlank()) {
-            throw new IllegalStateException("Cannot complete job without artifactId - jobId: " + jobId);
-        }
-        
-        jobUpdateHelper.updateJob(jobId, jobEntity -> jobEntity.complete(job.getArtifactId()));
+        jobUpdateHelper.updateJob(jobId, jobEntity -> {
+            if (jobEntity.getArtifactId() == null || jobEntity.getArtifactId().isBlank()) {
+                throw new IllegalStateException("Cannot complete job without artifactId - jobId: " + jobId);
+            }
+            jobEntity.complete(jobEntity.getArtifactId());
+        });
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -105,6 +106,12 @@ public class JobStateService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void retryJob(String jobId) {
+        JobEntity job = jobRepository.findByJobId(jobId)
+                .orElseThrow(() -> new IllegalArgumentException("Job not found: " + jobId));
+        if (job.getRetryCount() >= MAX_RETRY_COUNT) {
+            log.warn("Max retry count reached - jobId: {}, retryCount: {}", jobId, job.getRetryCount());
+            throw new IllegalStateException("Max retry count exceeded for job: " + jobId);
+        }
         jobUpdateHelper.updateJob(jobId, JobEntity::retry);
         log.info("Job retried - jobId: {}", jobId);
     }

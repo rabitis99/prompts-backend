@@ -2,9 +2,11 @@ package org.example.sharedprompts.module.domain.production.application;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactEntity;
 import org.example.sharedprompts.module.domain.production.model.job.Job;
 import org.example.sharedprompts.module.domain.production.model.job.JobStatus;
+import org.example.sharedprompts.module.domain.production.repository.job.JobRepository;
 import org.example.sharedprompts.module.domain.production.repository.production.ProductionArtifactRepository;
 import org.example.sharedprompts.module.domain.production.service.job.process.JobProcessor;
 import org.example.sharedprompts.module.domain.production.service.job.queue.JobQueueService;
@@ -18,12 +20,15 @@ import org.example.sharedprompts.module.exception.ModuleErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ProductionResultApplicationService {
 
     private final ProductionArtifactRepository productionArtifactRepository;
+    private final JobRepository jobRepository;
     private final JobQueueService jobQueueService;
     private final JobProcessor jobProcessor;
     private final ArtifactHandlerRegistry artifactHandlerRegistry;
@@ -57,7 +62,11 @@ public class ProductionResultApplicationService {
             throw new BaseException(ModuleErrorCode.PRODUCTION_FORBIDDEN);
         }
         
-        return ProductionResponseDtoMapper.toDto(artifact, artifactHandlerRegistry);
+        // Job 정보 조회 (errorMessage, startedAt, completedAt, status를 위해)
+        // ProductionArtifactEntity.jobId는 JobEntity.id (PK)를 참조
+        Optional<JobEntity> jobEntity = jobRepository.findById(artifact.getJobId());
+        
+        return ProductionResponseDtoMapper.toDto(artifact, jobEntity, artifactHandlerRegistry);
     }
 
     @Transactional(readOnly = true)

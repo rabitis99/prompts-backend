@@ -90,10 +90,14 @@ public class ProductionArtifactEntity extends BaseEntity {
     /**
      * Artifact Detail 제거
      * 양방향 정합성 보장
+     * primary로 지정된 detail을 제거하는 경우 primary 상태를 먼저 해제합니다.
      */
     public void removeArtifact(ProductionArtifactDetailEntity detail) {
         if (detail == null) {
             throw new IllegalArgumentException("Detail cannot be null");
+        }
+        if (detail.isPrimary()) {
+            detail.unmarkPrimary();
         }
         if (artifacts.remove(detail)) {
             detail.setArtifact(null);
@@ -108,7 +112,13 @@ public class ProductionArtifactEntity extends BaseEntity {
         if (detail == null) {
             throw new IllegalArgumentException("Detail cannot be null");
         }
-        if (!artifacts.contains(detail)) {
+        
+        // ID 기반 검증 (detached 엔티티나 새로 생성된 엔티티도 처리)
+        boolean belongsToThis = detail.getId() != null
+                ? artifacts.stream().anyMatch(a -> a.getId() != null && a.getId().equals(detail.getId()))
+                : artifacts.contains(detail);
+        
+        if (!belongsToThis) {
             throw new IllegalStateException("Detail does not belong to this artifact");
         }
         
