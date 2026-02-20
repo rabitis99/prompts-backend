@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 public class FileArtifactHandler implements ArtifactHandler {
 
     private final ArtifactAccessService artifactAccessService;
+    
+    private static final String STORAGE_LOCATION_S3 = "S3";
 
     @Override
     public ArtifactType getSupportedType() {
@@ -30,7 +32,7 @@ public class FileArtifactHandler implements ArtifactHandler {
                 s3Key,
                 detail.getFileName(),
                 detail.getContentType(),
-                "S3", // storageLocation은 항상 S3
+                STORAGE_LOCATION_S3,
                 cdnUrl
         );
     }

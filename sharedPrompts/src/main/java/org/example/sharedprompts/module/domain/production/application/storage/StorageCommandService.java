@@ -74,7 +74,7 @@ public class StorageCommandService {
      */
     private String resolveS3KeyWithOwnerCheck(Long artifactId, Long userId) {
         ProductionArtifactDetailEntity artifact = artifactDetailRepository.findById(artifactId)
-                .orElseThrow(() -> new BaseException(ModuleErrorCode.PRODUCTION_NOT_FOUND));
+                .orElseThrow(() -> new BaseException(ModuleErrorCode.ARTIFACT_NOT_FOUND));
 
         ProductionArtifactEntity production = artifact.getArtifact();
         if (production == null) {

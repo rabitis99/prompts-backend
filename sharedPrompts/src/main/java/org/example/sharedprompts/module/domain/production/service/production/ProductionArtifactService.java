@@ -13,9 +13,9 @@ import org.example.sharedprompts.module.domain.production.model.contract.result.
 import org.example.sharedprompts.module.domain.production.repository.production.ProductionArtifactRepository;
 import org.example.sharedprompts.module.domain.production.service.artifact.ArtifactHandler;
 import org.example.sharedprompts.module.domain.production.service.artifact.ArtifactHandlerRegistry;
-import org.example.sharedprompts.module.domain.production.model.tenant.TenantContext;
 import org.example.sharedprompts.module.domain.production.service.image.ThumbnailService;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
+import org.example.sharedprompts.module.domain.production.util.TenantContextValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -77,13 +77,8 @@ public class ProductionArtifactService {
                     e);
         }
 
-        String tenantId = TenantContext.getCurrentTenantId();
-        if (tenantId == null) {
-            throw new BaseException(
-                    ModuleErrorCode.VALIDATION_ERROR,
-                    null,
-                    "Tenant context is not set");
-        }
+        String tenantId = TenantContextValidator.requireTenantContext(
+                "creating artifact - jobId: " + job.getJobId());
 
         ProductionArtifactEntity artifact = ProductionArtifactEntityFactory.create(
                 job.getId(),
@@ -128,10 +123,37 @@ public class ProductionArtifactService {
         // 프롬프트 txt 파일(text/plain)은 primary=false로 설정
         boolean isPrimary = contentType != null && contentType.toLowerCase().startsWith("image/");
         
+        // 검증: detail이 null이 아니고, 다른 artifact에 속해있지 않은지 확인
+        if (detail == null) {
+            throw new BaseException(
+                    ModuleErrorCode.VALIDATION_ERROR,
+                    null,
+                    "Detail cannot be null");
+        }
+        if (detail.getArtifact() != null && detail.getArtifact() != artifact) {
+            throw new BaseException(
+                    ModuleErrorCode.VALIDATION_ERROR,
+                    null,
+                    "Detail already belongs to another artifact");
+        }
+        
         artifact.addArtifact(detail);
         
         // Primary 지정은 Aggregate Root에서 통제
         if (isPrimary) {
+            // 검증: detail이 이 artifact에 속해있는지 확인
+            // addArtifact() 호출 직후이므로 일반적으로 포함되어 있지만, 방어적 프로그래밍을 위해 검증
+            boolean belongsToThis = detail.getId() != null
+                    ? artifact.getArtifacts().stream().anyMatch(a -> a.getId() != null && a.getId().equals(detail.getId()))
+                    : artifact.getArtifacts().contains(detail);
+            
+            if (!belongsToThis) {
+                throw new BaseException(
+                        ModuleErrorCode.VALIDATION_ERROR,
+                        null,
+                        "Detail does not belong to this artifact");
+            }
+            
             artifact.markAsPrimary(detail);
         }
 

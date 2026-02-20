@@ -64,7 +64,10 @@ public class ProductionResultApplicationService {
         
         // Job 정보 조회 (errorMessage, startedAt, completedAt, status를 위해)
         // ProductionArtifactEntity.jobId는 JobEntity.id (PK)를 참조
-        Optional<JobEntity> jobEntity = jobRepository.findById(artifact.getJobId());
+        // jobId가 null인 레거시 아티팩트를 고려하여 null 체크
+        JobEntity jobEntity = Optional.ofNullable(artifact.getJobId())
+                .flatMap(jobRepository::findById)
+                .orElse(null);
         
         return ProductionResponseDtoMapper.toDto(artifact, jobEntity, artifactHandlerRegistry);
     }
@@ -86,7 +89,16 @@ public class ProductionResultApplicationService {
         if (status == JobStatus.SUCCEEDED) {
             throw new BaseException(ModuleErrorCode.JOB_ALREADY_COMPLETED);
         }
+        if (status == JobStatus.PROCESSING) {
+            // 처리 중인 Job에 재시도 요청: 아직 완료되지 않은 상태에서 재시도는 불가능
+            throw new BaseException(ModuleErrorCode.JOB_INVALID_STATUS);
+        }
+        if (status == JobStatus.PENDING) {
+            // 대기 중인 Job에 재시도 요청: 아직 시작되지 않은 상태에서 재시도는 불가능
+            throw new BaseException(ModuleErrorCode.JOB_INVALID_STATUS);
+        }
         if (status != JobStatus.FAILED) {
+            // FAILED 상태가 아닌 다른 상태 (방어적 프로그래밍)
             throw new BaseException(ModuleErrorCode.JOB_INVALID_STATUS);
         }
         

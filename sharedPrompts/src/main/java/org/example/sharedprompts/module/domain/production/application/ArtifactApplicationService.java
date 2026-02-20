@@ -67,11 +67,16 @@ public class ArtifactApplicationService {
         ProductionArtifactDetailEntity artifact = production.getArtifacts().stream()
                 .filter(detail -> detail.getId().equals(artifactId))
                 .findFirst()
-                .orElseThrow(() -> new BaseException(ModuleErrorCode.PRODUCTION_NOT_FOUND));
+                .orElseThrow(() -> new BaseException(ModuleErrorCode.ARTIFACT_NOT_FOUND));
         
         // Presigned URL 생성
         String presignedUrl = generatePresignedUrl(artifact);
-        String cdnUrl = artifactAccessService.generateCdnUrl(artifact.getS3Key());
+        
+        // CDN URL 생성 (TEXT 타입은 s3Key가 null일 수 있음)
+        String s3Key = artifact.getS3Key();
+        String cdnUrl = (s3Key != null && !s3Key.isBlank())
+                ? artifactAccessService.generateCdnUrl(s3Key)
+                : null;
         
         return ArtifactDetailResponseDtoMapper.toDto(
                 production,
@@ -105,6 +110,8 @@ public class ArtifactApplicationService {
         // s3Key가 s3:// 형식일 수 있으므로 처리
         S3Location location = parseS3Path(artifact.getS3Key());
         if (location == null) {
+            log.warn("Failed to parse S3 path for artifact - artifactId: {}, s3Key: {}",
+                    artifact.getId(), artifact.getS3Key());
             return null;
         }
 
@@ -148,7 +155,8 @@ public class ArtifactApplicationService {
         }
 
         // s3:// 접두사가 없는 경우 defaultBucket 사용
-        if (defaultBucket == null || defaultBucket.isBlank()) {
+        // @Value("${...:}")는 빈 문자열을 기본값으로 주입하므로 null이 될 수 없음
+        if (defaultBucket.isBlank()) {
             log.error("Cannot determine S3 bucket - s3Key: {}, defaultBucket is not configured", s3Key);
             return null;
         }

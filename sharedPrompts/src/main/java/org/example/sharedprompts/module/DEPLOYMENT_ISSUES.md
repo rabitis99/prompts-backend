@@ -367,9 +367,9 @@ public void markStored(String jobId, String filePath) {
 **위치**: 전역
 
 **문제점**:
-- `extractS3Key()` 메서드가 여러 곳에 중복
-- `IMPROVEMENT_PLAN.md`에 이미 언급된 문제
-- Presigned URL 생성 로직 중복
+- `extractS3Key()`, `extractFileName()`, `parseS3Path()` 등 S3 경로 파싱 로직이 여러 곳에 중복
+- Presigned URL 생성 로직이 여러 곳에 분산되어 있음
+- 소유권 검증 로직이 중복되어 있음
 
 **영향**:
 - 버그 수정 시 여러 곳 수정 필요
@@ -377,9 +377,13 @@ public void markStored(String jobId, String filePath) {
 - 코드 복잡도 증가
 
 **권장 조치**:
-- `IMPROVEMENT_PLAN.md`의 Phase 1 실행
-- 공통 유틸리티 클래스 생성
+- [IMPROVEMENT_PLAN.md](./IMPROVEMENT_PLAN.md)의 Phase 1 실행
+  - `S3PathUtils` 유틸리티 클래스 생성
+  - `PresignedStrategy` 패턴을 통한 Presigned URL 생성 로직 통합
+  - 소유권 검증 로직 통합
 - 코드 리뷰 시 중복 체크
+
+**상세 내용**: [IMPROVEMENT_PLAN.md](./IMPROVEMENT_PLAN.md)의 "4. S3 경로 파싱 로직 중복", "2. Presigned URL 생성 로직 중복 및 불일치", "3. 소유권 검증 중복" 섹션 참조
 
 #### 1.2 복잡한 의존성 구조
 
@@ -402,23 +406,25 @@ public void markStored(String jobId, String filePath) {
 
 ### 2. 성능 및 확장성
 
-#### 2.1 DTO 매핑 시 S3 I/O 발생
+#### 2.1 DTO 매핑 시 S3 I/O 발생 ✅ 해결됨
 
 **위치**: `ImageArtifactHandler.toDto()`
 
-**문제점**:
-- DTO 매핑 시점에 S3에서 HTML 파일을 다운로드하여 이미지 경로 추출
-- 응답 지연 및 장애 전파 위험
-- 코드 주석에 이미 언급됨
+**문제점** (해결됨):
+- ~~DTO 매핑 시점에 S3에서 HTML 파일을 다운로드하여 이미지 경로 추출~~
+- ~~응답 지연 및 장애 전파 위험~~
+- ~~코드 주석에 이미 언급됨~~
 
-**영향**:
-- API 응답 시간 증가
-- S3 장애 시 전체 API 장애로 전파
-- 동시 요청 시 S3 부하 증가
+**영향** (해결됨):
+- ~~API 응답 시간 증가~~
+- ~~S3 장애 시 전체 API 장애로 전파~~
+- ~~동시 요청 시 S3 부하 증가~~
 
-**권장 조치**:
-- 엔티티 생성 시점에 이미지 경로 미리 추출하여 저장
-- DTO 매핑은 메모리 기반 연산만 수행
+**해결 조치** (완료):
+- ✅ 엔티티 생성 시점(`createDetail()`)에 이미지 경로 미리 추출하여 `actualImagePath` 필드에 저장
+- ✅ DTO 매핑(`toDto()`)은 메모리 기반 연산만 수행 (엔티티의 `actualImagePath` 필드 사용)
+- ✅ `ProductionArtifactDetailEntity`에 `actualImagePath` 필드 추가
+- ✅ `ProductionArtifactDetailEntityFactory`에 `actualImagePath` 파라미터 추가
 
 #### 2.2 N+1 쿼리 문제
 
@@ -502,14 +508,17 @@ public void markStored(String jobId, String filePath) {
 **문제점**:
 - `generateDownloadPresignedUrl(String s3Key)` 등 Deprecated 메서드가 여전히 존재
 - 소유권 검증 없이 Presigned URL 생성 가능
+- 보안 취약점으로 인한 무단 접근 가능
 
 **영향**:
 - 보안 취약점
 - 무단 접근 가능
 
 **권장 조치**:
-- Deprecated 메서드 제거
-- 또는 완전히 차단
+- Deprecated 메서드 제거 또는 완전히 차단
+- [IMPROVEMENT_PLAN.md](./IMPROVEMENT_PLAN.md)의 Phase 1에서 보안 검증이 포함된 메서드로 대체
+
+**상세 내용**: [IMPROVEMENT_PLAN.md](./IMPROVEMENT_PLAN.md)의 "5. Deprecated 메서드" 섹션 참조
 
 #### 4.2 입력 검증 부족
 
@@ -627,7 +636,7 @@ public void markStored(String jobId, String filePath) {
    - 관리자 대시보드
 
 3. **코드 중복 제거**
-   - `IMPROVEMENT_PLAN.md` Phase 1 실행
+   - [IMPROVEMENT_PLAN.md](./IMPROVEMENT_PLAN.md) Phase 1 실행
    - 공통 유틸리티 클래스 생성
 
 4. **DTO 매핑 시 S3 I/O 제거**

@@ -37,12 +37,12 @@ public class JobStateService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markStored(String jobId, String filePath) {
+    public void markStored(String jobId, String s3Key) {
         JobEntity job = jobRepository.findByJobId(jobId)
                 .orElseThrow(() -> new IllegalArgumentException("Job not found: " + jobId));
 
         // 이미지 생성 시 프롬프트 txt 파일은 artifact로 저장하지 않음
-        String estimatedContentType = ArtifactMetadataHelper.determineContentType(filePath);
+        String estimatedContentType = ArtifactMetadataHelper.determineContentType(s3Key);
         ProductionCommandType commandType;
         try {
             commandType = ProductionCommandType.valueOf(job.getCommandType());
@@ -54,7 +54,7 @@ public class JobStateService {
         if (commandType == ProductionCommandType.IMAGE 
                 && estimatedContentType != null 
                 && estimatedContentType.equals("text/plain")) {
-            log.info("Skipping prompt txt file artifact creation for IMAGE command - jobId: {}, filePath: {}", jobId, filePath);
+            log.info("Skipping prompt txt file artifact creation for IMAGE command - jobId: {}, s3Key: {}", jobId, s3Key);
             // 프롬프트 txt 파일은 S3에는 저장되지만 artifact로는 저장하지 않음
             // 기존 artifactId가 있으면 그대로 유지, 없으면 Job은 완료하지 않음 (이미지가 생성될 때까지 대기)
             if (job.getArtifactId() != null && !job.getArtifactId().isBlank()) {
@@ -65,14 +65,14 @@ public class JobStateService {
             return;
         }
 
-        var artifact = productionArtifactService.createArtifact(job, filePath);
+        var artifact = productionArtifactService.createArtifact(job, s3Key);
         String artifactId = artifact.getId().toString();
 
         // Job 완료 처리 (PROCESSING → SUCCEEDED)
         jobUpdateHelper.updateJob(jobId, jobEntity -> jobEntity.complete(artifactId));
 
-        log.info("ProductionArtifact created and job completed - jobId: {}, artifactId: {}, filePath: {}",
-                jobId, artifactId, filePath);
+        log.info("ProductionArtifact created and job completed - jobId: {}, artifactId: {}, s3Key: {}",
+                jobId, artifactId, s3Key);
     }
 
     /**

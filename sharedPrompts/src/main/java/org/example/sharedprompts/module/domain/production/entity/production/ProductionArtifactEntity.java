@@ -75,14 +75,11 @@ public class ProductionArtifactEntity extends BaseEntity {
     /**
      * Artifact Detail 추가
      * 양방향 정합성 보장
+     * 
+     * 검증은 서비스 레이어에서 수행해야 합니다.
+     * 이 메서드는 단순히 상태 변경만 담당합니다.
      */
     public void addArtifact(ProductionArtifactDetailEntity detail) {
-        if (detail == null) {
-            throw new IllegalArgumentException("Detail cannot be null");
-        }
-        if (detail.getArtifact() != null && detail.getArtifact() != this) {
-            throw new IllegalStateException("Detail already belongs to another artifact");
-        }
         artifacts.add(detail);
         detail.setArtifact(this);
     }
@@ -91,15 +88,17 @@ public class ProductionArtifactEntity extends BaseEntity {
      * Artifact Detail 제거
      * 양방향 정합성 보장
      * primary로 지정된 detail을 제거하는 경우 primary 상태를 먼저 해제합니다.
+     * 
+     * 검증은 서비스 레이어에서 수행해야 합니다.
+     * 이 메서드는 단순히 상태 변경만 담당합니다.
      */
     public void removeArtifact(ProductionArtifactDetailEntity detail) {
-        if (detail == null) {
-            throw new IllegalArgumentException("Detail cannot be null");
-        }
-        if (detail.isPrimary()) {
-            detail.unmarkPrimary();
-        }
+        // 제거 성공 여부를 먼저 확인한 후 primary를 해제해야 함
+        // 제거 실패 시 primary 플래그가 조기 해제되는 것을 방지
         if (artifacts.remove(detail)) {
+            if (detail.isPrimary()) {
+                detail.unmarkPrimary();
+            }
             detail.setArtifact(null);
         }
     }
@@ -107,28 +106,32 @@ public class ProductionArtifactEntity extends BaseEntity {
     /**
      * Primary Artifact 지정
      * Aggregate Root에서 통제하여 반드시 하나만 존재하도록 보장
+     * 
+     * 검증은 서비스 레이어에서 수행해야 합니다.
+     * 이 메서드는 단순히 상태 변경만 담당합니다.
      */
     public void markAsPrimary(ProductionArtifactDetailEntity detail) {
-        if (detail == null) {
-            throw new IllegalArgumentException("Detail cannot be null");
-        }
-        
-        // ID 기반 검증 (detached 엔티티나 새로 생성된 엔티티도 처리)
-        boolean belongsToThis = detail.getId() != null
-                ? artifacts.stream().anyMatch(a -> a.getId() != null && a.getId().equals(detail.getId()))
-                : artifacts.contains(detail);
-        
-        if (!belongsToThis) {
-            throw new IllegalStateException("Detail does not belong to this artifact");
-        }
-        
         // 기존 primary 제거
         artifacts.stream()
                 .filter(ProductionArtifactDetailEntity::isPrimary)
                 .forEach(ProductionArtifactDetailEntity::unmarkPrimary);
         
         // 새로운 primary 설정
-        detail.markPrimary();
+        // detached 엔티티 전달 시 컬렉션 내의 managed 엔티티를 찾아서 설정해야 함
+        // ID가 일치하는 경우 컬렉션 내의 managed 엔티티에 markPrimary()를 호출
+        ProductionArtifactDetailEntity managedDetail = detail.getId() != null
+                ? artifacts.stream()
+                        .filter(a -> a.getId() != null && a.getId().equals(detail.getId()))
+                        .findFirst()
+                        .orElse(detail)
+                : artifacts.contains(detail)
+                        ? artifacts.stream()
+                                .filter(a -> a == detail)
+                                .findFirst()
+                                .orElse(detail)
+                        : detail;
+        
+        managedDetail.markPrimary();
     }
 
     /**

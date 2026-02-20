@@ -4,6 +4,8 @@
 
 현재 `ProductionResultController`의 Artifact 조회 엔드포인트와 `StorageController`의 Presigned URL 생성 엔드포인트 간에 기능 중복과 일관성 문제가 있습니다. 또한 내부적으로 Presigned URL 생성 로직이 여러 곳에 분산되어 있고, S3 경로 파싱 로직이 중복되어 있습니다. 이 문서는 실제 코드베이스를 분석하여 배포를 고려한 개선 계획을 제시합니다.
 
+> **참고**: 배포 시 즉시 발생할 수 있는 긴급 문제점과 장기적 이슈는 [DEPLOYMENT_ISSUES.md](./DEPLOYMENT_ISSUES.md)를 참조하세요.
+
 ## 🔍 현재 문제점 분석
 
 ### 1. API 엔드포인트 중복 및 일관성 부족
@@ -1201,6 +1203,7 @@ public class ProductionResultController {
 
 ## 🔗 참고
 
+- [DEPLOYMENT_ISSUES.md](./DEPLOYMENT_ISSUES.md) - 배포 시 문제점 및 장기적 이슈 분석
 - [FILE_STRUCTURE.md](./FILE_STRUCTURE.md) - 전체 파일 구조 및 기존 개선 제안
 - RESTful API 설계 원칙
 - Spring Boot Best Practices

@@ -3,7 +3,6 @@ package org.example.sharedprompts.module.domain.production.service.job;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.module.domain.production.model.tenant.TenantContext;
 import org.example.sharedprompts.module.domain.production.entity.factory.JobEntityFactory;
 import org.example.sharedprompts.module.domain.production.util.TenantContextValidator;
 import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;

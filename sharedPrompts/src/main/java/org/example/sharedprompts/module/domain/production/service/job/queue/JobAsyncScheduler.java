@@ -21,12 +21,9 @@ public class JobAsyncScheduler {
         // This is critical because TenantContextFilter may clear it in its finally block
         // which runs after the request completes, potentially before afterCommit
         // tenant_id must come from X-Tenant-Id header - DO NOT create or generate tenant_id
-        String tenantId = TenantContextValidator.requireTenantContextForJob(jobId);
+        final String capturedTenantId = TenantContextValidator.requireTenantContextForJob(jobId);
         
-        log.debug("Captured tenant context for async job - jobId: {}, tenantId: {}", jobId, tenantId);
-        
-        // Capture tenantId as final variable for use in the lambda
-        final String capturedTenantId = tenantId;
+        log.debug("Captured tenant context for async job - jobId: {}, tenantId: {}", jobId, capturedTenantId);
         
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override

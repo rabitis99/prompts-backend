@@ -54,6 +54,14 @@ public class ProductionArtifactDetailEntity {
     @Column(name = "s3_key", length = 512)
     private String s3Key;
 
+    /**
+     * 실제 이미지 파일 경로 (HTML 파일인 경우 내부 이미지 경로)
+     * HTML 파일이 아닌 경우 null이며, s3Key와 동일한 값을 가집니다.
+     * 엔티티 생성 시점에 미리 추출하여 저장하여 DTO 매핑 시 S3 I/O를 방지합니다.
+     */
+    @Column(name = "actual_image_path", length = 512)
+    private String actualImagePath;
+
     @Column(name = "file_name", length = 255)
     private String fileName;
 

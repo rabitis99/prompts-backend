@@ -33,6 +33,8 @@ public class ImageArtifactHandler implements ArtifactHandler {
             "<img[^>]+src\\s*=\\s*[\"']([^\"']+)[\"']", 
             Pattern.CASE_INSENSITIVE
     );
+    
+    private static final String STORAGE_LOCATION_S3 = "S3";
 
     @Override
     public ArtifactType getSupportedType() {
@@ -69,13 +71,28 @@ public class ImageArtifactHandler implements ArtifactHandler {
             contentType = ArtifactMetadataHelper.determineContentType(s3Key);
         }
 
+        // HTML 파일인 경우 이미지 경로를 미리 추출하여 저장
+        // DTO 매핑 시점에 S3 I/O가 발생하지 않도록 엔티티 생성 시점에 처리합니다.
+        String actualImagePath = null;
+        if (contentType != null && contentType.contains("html")) {
+            actualImagePath = extractImagePathFromHtml(s3Key);
+            if (actualImagePath == null) {
+                log.warn("Could not extract image path from HTML file during entity creation - s3Key: {}", s3Key);
+                // 추출 실패 시 s3Key 사용 (Factory에서 null이면 s3Key로 설정됨)
+            } else {
+                log.info("Extracted image path from HTML during entity creation - s3Key: {}, actualImagePath: {}", 
+                        s3Key, actualImagePath);
+            }
+        }
+
         // S3에 업로드된 실제 key와 contentType을 그대로 사용하여 Entity 생성
         // ImageArtifactHandler는 항상 IMAGE 타입을 반환합니다.
         return ProductionArtifactDetailEntityFactory.createImage(
                 s3Key,
                 fileName,
                 contentType,
-                null // fileSize는 나중에 설정 가능
+                null, // fileSize는 나중에 설정 가능
+                actualImagePath // HTML 파일인 경우 추출한 이미지 경로, 아니면 null
         );
     }
 
@@ -136,19 +153,12 @@ public class ImageArtifactHandler implements ArtifactHandler {
 
     @Override
     public ArtifactDto toDto(ProductionArtifactDetailEntity detail) {
-        String s3Key = detail.getS3Key();
-        String actualImagePath = s3Key;
-        
-        // HTML 파일인 경우 이미지 경로 추출
-        // TODO: 성능 개선 - DTO 매핑 시점에 S3 I/O가 발생하면 응답 지연과 장애 전파 위험이 있습니다.
-        //       이미지 경로를 엔티티 생성 시점(createDetail)에 미리 추출하여 별도 필드(예: actualImagePath)로
-        //       저장하는 방식을 검토하면 좋겠습니다. 이렇게 하면 DTO 매핑은 메모리 기반 연산만 수행하게 됩니다.
-        if (detail.getContentType() != null && detail.getContentType().contains("html")) {
-            actualImagePath = extractImagePathFromHtml(s3Key);
-            if (actualImagePath == null) {
-                log.warn("Could not extract image path from HTML file - s3Key: {}", s3Key);
-                actualImagePath = s3Key; // fallback to original path
-            }
+        // 엔티티에 저장된 actualImagePath 사용 (엔티티 생성 시점에 미리 추출됨)
+        // DTO 매핑은 메모리 기반 연산만 수행하므로 S3 I/O가 발생하지 않습니다.
+        String actualImagePath = detail.getActualImagePath();
+        if (actualImagePath == null || actualImagePath.isBlank()) {
+            // 하위 호환성을 위해 actualImagePath가 없는 경우 s3Key 사용
+            actualImagePath = detail.getS3Key();
         }
         
         String cdnUrl = artifactAccessService.generateCdnUrl(actualImagePath);
@@ -159,7 +169,7 @@ public class ImageArtifactHandler implements ArtifactHandler {
                 actualImagePath, // 실제 이미지 경로 사용
                 detail.getFileName(),
                 detail.getContentType(),
-                "S3", // storageLocation은 항상 S3
+                STORAGE_LOCATION_S3,
                 thumbnailUrls,
                 cdnUrl
         );
@@ -168,9 +178,9 @@ public class ImageArtifactHandler implements ArtifactHandler {
     /**
      * HTML 파일에서 이미지 경로를 추출합니다.
      * 
-     * 주의: 이 메서드는 S3에서 전체 HTML 파일을 다운로드하므로 I/O 비용이 발생합니다.
-     * DTO 매핑 시점에 호출되면 응답 지연과 장애 전파 위험이 있으므로,
-     * 향후 엔티티 생성 시점에 이미지 경로를 미리 추출하여 저장하는 방식으로 개선을 고려해야 합니다.
+     * 이 메서드는 엔티티 생성 시점(createDetail)에만 호출되며,
+     * 추출된 이미지 경로는 엔티티의 actualImagePath 필드에 저장됩니다.
+     * DTO 매핑 시점에는 저장된 값을 사용하므로 S3 I/O가 발생하지 않습니다.
      * 
      * @param htmlFilePath HTML 파일의 S3 경로
      * @return 추출된 이미지 파일 경로, 추출 실패 시 null

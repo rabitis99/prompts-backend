@@ -25,7 +25,8 @@ public interface ArtifactHandler {
                 s3Key,
                 fileName,
                 contentType,
-                null // fileSize는 나중에 설정 가능
+                null, // fileSize는 나중에 설정 가능
+                null  // actualImagePath는 null (s3Key 사용)
         );
     }
 

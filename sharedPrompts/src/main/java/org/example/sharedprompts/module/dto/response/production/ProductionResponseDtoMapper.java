@@ -4,12 +4,13 @@ import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactDetailEntity;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactEntity;
 import org.example.sharedprompts.module.domain.production.model.job.JobStatus;
+import org.example.sharedprompts.module.domain.production.model.production.ProductionStatus;
 import org.example.sharedprompts.module.domain.production.service.artifact.ArtifactHandlerRegistry;
+import org.springframework.lang.Nullable;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public final class ProductionResponseDtoMapper {
 
@@ -19,12 +20,12 @@ public final class ProductionResponseDtoMapper {
     public static ProductionResponseDto toDto(
             ProductionArtifactEntity entity,
             ArtifactHandlerRegistry artifactHandlerRegistry) {
-        return toDto(entity, Optional.empty(), artifactHandlerRegistry);
+        return toDto(entity, null, artifactHandlerRegistry);
     }
 
     public static ProductionResponseDto toDto(
             ProductionArtifactEntity entity,
-            Optional<JobEntity> jobEntity,
+            @Nullable JobEntity jobEntity,
             ArtifactHandlerRegistry artifactHandlerRegistry) {
 
         // Job 정보가 있으면 Job 상태를 기반으로 결정, 없으면 Artifact 존재 여부로 결정
@@ -33,8 +34,8 @@ public final class ProductionResponseDtoMapper {
         Instant startedAt = null;
         Instant completedAt = null;
 
-        if (jobEntity.isPresent()) {
-            JobEntity job = jobEntity.get();
+        if (jobEntity != null) {
+            JobEntity job = jobEntity;
             JobStatus jobStatus = job.getStatus();
             
             // Job 상태를 ProductionStatus로 매핑
