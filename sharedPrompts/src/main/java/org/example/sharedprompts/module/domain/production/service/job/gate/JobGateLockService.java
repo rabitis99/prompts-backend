@@ -70,6 +70,9 @@ public class JobGateLockService {
         if (tenantId == null || tenantId.isBlank()) {
             throw new IllegalArgumentException("tenantId must not be null or blank for gate lock key");
         }
+        if (jobId == null || jobId.isBlank()) {
+            throw new IllegalArgumentException("jobId must not be null or blank for gate lock key");
+        }
         return KEY_PREFIX + tenantId + ":" + jobId;
     }
 }

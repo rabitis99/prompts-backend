@@ -116,5 +116,7 @@ class EmailCommandValidatorTest {
     void supports_non_email_returns_false() {
         assertThat(validator.supports(ProductionCommandType.TEXT)).isFalse();
         assertThat(validator.supports(ProductionCommandType.BLOG)).isFalse();
+        assertThat(validator.supports(ProductionCommandType.DOCUMENT)).isFalse();
+        assertThat(validator.supports(ProductionCommandType.IMAGE)).isFalse();
     }
 }

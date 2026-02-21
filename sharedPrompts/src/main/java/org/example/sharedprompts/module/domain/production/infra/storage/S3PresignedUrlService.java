@@ -13,7 +13,12 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+import java.net.URI;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 
 /**
  * S3 Presigned URL 서비스
@@ -33,6 +38,45 @@ public class S3PresignedUrlService {
 
     private int defaultTtlSeconds() {
         return productionS3Properties.getPresignedUrl().getTtlSeconds();
+    }
+
+    /**
+     * Presigned URL 생성 시 서버 시간 진단 로그 출력.
+     * "Request has expired" 발생 시 S3 응답의 ServerTime과 X-Amz-Date를 비교해 클록 드리프트 여부를 확인하세요.
+     */
+    private void logPresignTimeDiagnostics(String presignedUrl, String operation) {
+        Instant now = Instant.now();
+        ZonedDateTime utcNow = ZonedDateTime.now(ZoneOffset.UTC);
+        ZoneId systemZone = ZoneId.systemDefault();
+        String xAmzDate = extractXAmzDateFromPresignedUrl(presignedUrl);
+        log.info("[Presign time diagnostic] operation={} | Instant.now()={} | ZonedDateTime.now(UTC)={} | systemDefaultZone={} | X-Amz-Date(in URL)={}",
+                operation, now, utcNow, systemZone, xAmzDate != null ? xAmzDate : "N/A");
+    }
+
+    /**
+     * Presigned URL 쿼리 스트링에서 X-Amz-Date 값을 추출합니다.
+     * 형식: yyyyMMddTHHmmssZ (ISO 8601, UTC).
+     */
+    private String extractXAmzDateFromPresignedUrl(String presignedUrl) {
+        if (presignedUrl == null || presignedUrl.isBlank()) {
+            return null;
+        }
+        try {
+            URI uri = URI.create(presignedUrl);
+            String query = uri.getQuery();
+            if (query == null) {
+                return null;
+            }
+            for (String param : query.split("&")) {
+                int eq = param.indexOf('=');
+                if (eq > 0 && "X-Amz-Date".equals(param.substring(0, eq))) {
+                    return param.substring(eq + 1);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to extract X-Amz-Date from presigned URL: {}", e.getMessage());
+        }
+        return null;
     }
 
     /**
@@ -78,7 +122,9 @@ public class S3PresignedUrlService {
                     .build();
             
             PresignedGetObjectRequest presigned = s3Presigner.presignGetObject(presignRequest);
-            return presigned.url().toString();
+            String url = presigned.url().toString();
+            logPresignTimeDiagnostics(url, "download");
+            return url;
         } catch (Exception e) {
             log.error("S3 presigned download URL generation failed - key: {}", s3Key, e);
             throw new S3StorageException("Presigned URL generation failed: " + e.getMessage(), e);
@@ -116,7 +162,9 @@ public class S3PresignedUrlService {
                     .build();
             
             PresignedGetObjectRequest presigned = s3Presigner.presignGetObject(presignRequest);
-            return presigned.url().toString();
+            String url = presigned.url().toString();
+            logPresignTimeDiagnostics(url, "preview");
+            return url;
         } catch (Exception e) {
             log.error("S3 presigned preview URL generation failed - key: {}", s3Key, e);
             throw new S3StorageException("Presigned URL generation failed: " + e.getMessage(), e);
@@ -155,7 +203,9 @@ public class S3PresignedUrlService {
                     .build();
             
             PresignedPutObjectRequest presigned = s3Presigner.presignPutObject(presignRequest);
-            return presigned.url().toString();
+            String url = presigned.url().toString();
+            logPresignTimeDiagnostics(url, "upload");
+            return url;
         } catch (Exception e) {
             log.error("S3 presigned upload URL generation failed - key: {}", s3Key, e);
             throw new S3StorageException("Presigned upload URL generation failed: " + e.getMessage(), e);

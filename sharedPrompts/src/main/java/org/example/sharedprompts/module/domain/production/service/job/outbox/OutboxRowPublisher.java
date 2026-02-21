@@ -55,7 +55,13 @@ public class OutboxRowPublisher {
                         row.getId(), row.getJobId(), row.getRetryCount(), row.getMaxRetryCount(), e);
                 row.recordRetryFailure(message);
             }
-            jobOutboxRepository.save(row);
+            try {
+                jobOutboxRepository.save(row);
+            } catch (Exception saveEx) {
+                log.error("Failed to persist outbox row failure state - id: {}, jobId: {}; row will be retried as PENDING",
+                        row.getId(), row.getJobId(), saveEx);
+                // 트랜잭션이 롤백되어 행은 PENDING 상태로 복원됨
+            }
         }
         return true;
     }

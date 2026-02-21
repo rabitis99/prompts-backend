@@ -49,7 +49,8 @@ public class OutboxTableInitializer {
             }
             log.info("Outbox table created successfully");
         } catch (Exception e) {
-            log.error("Failed to initialize outbox table", e);
+            log.error("Failed to initialize outbox table — outbox publishing will be unavailable", e);
+            throw new IllegalStateException("Outbox table initialization failed", e);
         }
     }
 

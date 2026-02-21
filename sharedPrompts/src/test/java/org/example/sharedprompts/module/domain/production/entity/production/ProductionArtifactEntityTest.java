@@ -2,6 +2,7 @@ package org.example.sharedprompts.module.domain.production.entity.production;
 
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -63,6 +64,18 @@ class ProductionArtifactEntityTest {
         assertThat(artifact.getArtifacts()).hasSize(2);
     }
 
+    @Test
+    @DisplayName("동일한 detail을 addArtifact()로 두 번 추가하면 컬렉션에 중복이 발생하지 않는다")
+    void addArtifact_with_duplicate_detail_is_idempotent() {
+        ProductionArtifactEntity artifact = emptyArtifact();
+        ProductionArtifactDetailEntity detail = textDetail();
+
+        artifact.addArtifact(detail);
+        artifact.addArtifact(detail);
+
+        assertThat(artifact.getArtifacts()).hasSize(1);
+    }
+
     // ===== removeArtifact() =====
 
     @Test
@@ -85,7 +98,7 @@ class ProductionArtifactEntityTest {
         ProductionArtifactDetailEntity detail = textDetail();
         artifact.addArtifact(detail);
         artifact.markAsPrimary(detail);
-        assertThat(detail.isPrimary()).isTrue();
+        Assumptions.assumeTrue(detail.isPrimary(), "precondition: detail이 primary여야 함");
 
         artifact.removeArtifact(detail);
 
@@ -131,6 +144,21 @@ class ProductionArtifactEntityTest {
 
         assertThat(detail1.isPrimary()).isFalse();
         assertThat(detail2.isPrimary()).isTrue();
+    }
+
+    @Test
+    @DisplayName("컬렉션에 없는 detail을 markAsPrimary()로 지정해도 artifact의 primary 상태에 영향을 주지 않는다")
+    void markAsPrimary_with_non_member_detail_does_not_corrupt_state() {
+        ProductionArtifactEntity artifact = emptyArtifact();
+        ProductionArtifactDetailEntity member = textDetail();
+        ProductionArtifactDetailEntity outsider = imageDetail();
+        artifact.addArtifact(member);
+        artifact.markAsPrimary(member);
+
+        artifact.markAsPrimary(outsider);
+
+        assertThat(member.isPrimary()).isTrue();
+        assertThat(outsider.isPrimary()).isFalse();
     }
 
     @Test

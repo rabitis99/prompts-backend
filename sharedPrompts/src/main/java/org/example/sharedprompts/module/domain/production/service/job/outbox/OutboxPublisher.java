@@ -21,7 +21,7 @@ public class OutboxPublisher {
 
     private final OutboxRowPublisher rowPublisher;
 
-    @Scheduled(fixedDelayString = "${production.job.outbox.publisher-interval-ms:2000}")
+    @Scheduled(fixedDelayString = "${production.job.outbox.publisher-interval-ms:5000}")
     public void publishPending() {
         for (int i = 0; i < MAX_ROWS_PER_POLL; i++) {
             if (!rowPublisher.publishOne()) {

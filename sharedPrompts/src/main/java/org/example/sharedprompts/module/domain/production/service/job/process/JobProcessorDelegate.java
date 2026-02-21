@@ -23,7 +23,6 @@ import org.example.sharedprompts.module.domain.production.service.job.process.ut
 import org.example.sharedprompts.module.domain.production.service.parser.ParsedResponse;
 import org.example.sharedprompts.module.domain.production.service.prompt.PromptTemplateService;
 import org.example.sharedprompts.module.domain.production.util.TenantContextValidator;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -47,8 +46,7 @@ public class JobProcessorDelegate {
     private final CommandDeserializer commandDeserializer;
     private final FileNameGenerator fileNameGenerator;
     private final JobMetrics jobMetrics;
-    @Autowired(required = false)
-    private JobGateLockService jobGateLockService;
+    private final Optional<JobGateLockService> jobGateLockService;
 
     /**
      * Job 처리 실행
@@ -56,43 +54,35 @@ public class JobProcessorDelegate {
     public void processJob(String jobId) {
         Instant startTime = Instant.now();
 
+        log.info("Processing job - jobId: {}", jobId);
+
+        Optional<JobEntity> lockResult = jobLockService.acquireJobLock(jobId);
+        if (lockResult.isEmpty()) {
+            log.info("Could not acquire lock for job - jobId: {} (another thread is processing)", jobId);
+            return;
+        }
+
+        JobEntity job = lockResult.get();
+        if (job.isFinalState()) {
+            log.info("Job already finished - jobId: {}, status: {}", jobId, job.getStatus());
+            return;
+        }
+
+        // Ensure tenant context is set at the beginning of async processing
+        // In multi-tenant SaaS, tenant_id is REQUIRED for all operations
+        // tenant_id must come from TenantContext (set by SecurityContextTaskDecorator from X-Tenant-Id header)
+        // DO NOT create or generate tenant_id - it must be provided in the request header
+        String tenantId = TenantContextValidator.requireTenantContextForJob(jobId);
+
+        // Gate Lock: 외부 호출(AI/S3) 중복 방지. 획득 실패 시 재큐를 위해 처리하지 않고 반환 (DEPLOYMENT_ISSUES 4.1)
+        if (jobGateLockService.map(s -> !s.tryLock(tenantId, jobId)).orElse(false)) {
+            log.info("Job gate lock not acquired - jobId: {} (will retry via queue)", jobId);
+            return;
+        }
         try {
-            log.info("Processing job - jobId: {}", jobId);
-
-            Optional<JobEntity> lockResult = jobLockService.acquireJobLock(jobId);
-            if (lockResult.isEmpty()) {
-                log.info("Could not acquire lock for job - jobId: {} (another thread is processing)", jobId);
-                return;
-            }
-
-            JobEntity job = lockResult.get();
-            if (job.isFinalState()) {
-                log.info("Job already finished - jobId: {}, status: {}", jobId, job.getStatus());
-                return;
-            }
-
-            // Ensure tenant context is set at the beginning of async processing
-            // In multi-tenant SaaS, tenant_id is REQUIRED for all operations
-            // tenant_id must come from TenantContext (set by SecurityContextTaskDecorator from X-Tenant-Id header)
-            // DO NOT create or generate tenant_id - it must be provided in the request header
-            String tenantId = TenantContextValidator.requireTenantContextForJob(jobId);
-
-            // Gate Lock: 외부 호출(AI/S3) 중복 방지. 획득 실패 시 재큐를 위해 처리하지 않고 반환 (DEPLOYMENT_ISSUES 4.1)
-            if (jobGateLockService != null) {
-                if (!jobGateLockService.tryLock(tenantId, jobId)) {
-                    log.info("Job gate lock not acquired - jobId: {} (will retry via queue)", jobId);
-                    return;
-                }
-            }
-            try {
-                doProcessJob(jobId, job, startTime, tenantId);
-            } finally {
-                if (jobGateLockService != null) {
-                    jobGateLockService.unlock(tenantId, jobId);
-                }
-            }
+            doProcessJob(jobId, job, startTime, tenantId);
         } finally {
-            // 예외는 doProcessJob 내부에서 한 번만 핸들링되며, 여기서는 전파만 함
+            jobGateLockService.ifPresent(s -> s.unlock(tenantId, jobId));
         }
     }
 

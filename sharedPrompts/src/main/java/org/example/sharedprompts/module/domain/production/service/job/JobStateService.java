@@ -170,11 +170,18 @@ public class JobStateService {
 
     /**
      * Stuck PROCESSING 복구: FAILED 전이 후 즉시 PENDING으로 전이하여 재큐 가능하게 합니다.
-     * 두 전이를 한 트랜잭션으로 묶어, retryJob 실패 시 saveJobFailure도 롤백되도록 합니다.
+     * 두 전이를 한 트랜잭션으로 묶어, retryJob 실패 시 fail 전이도 롤백되도록 합니다.
+     * fail 전이 실패 시 예외를 전파하여 retryJob을 호출하지 않고, 호출자가 복구 실패를 인지할 수 있게 합니다.
      */
     @Transactional
     public void recoverStuckProcessingJob(String jobId, String failureReason) {
-        saveJobFailure(jobId, failureReason);
+        try {
+            jobUpdateHelper.updateJob(jobId, job -> stateMachine.fail(job, failureReason));
+            log.info("Stuck processing job failure saved - jobId: {}", jobId);
+        } catch (BaseException | IllegalStateException e) {
+            log.error("Failed to transition stuck PROCESSING job to FAILED - jobId: {}", jobId, e);
+            throw e;
+        }
         retryJob(jobId);
     }
 

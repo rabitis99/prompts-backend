@@ -5,12 +5,12 @@ import org.example.sharedprompts.module.domain.production.entity.production.Prod
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
-import org.example.sharedprompts.module.domain.production.model.job.JobStatus;
 import org.example.sharedprompts.module.domain.production.model.production.ProductionStatus;
 import org.example.sharedprompts.module.domain.production.service.artifact.ArtifactHandlerRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("ProductionResponseDtoMapper 테스트")
 class ProductionResponseDtoTest {
 
-    @Mock
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private ArtifactHandlerRegistry artifactHandlerRegistry;
 
     private ProductionArtifactEntity artifactWithPrimaryTextDetail() {
@@ -142,6 +142,23 @@ class ProductionResponseDtoTest {
 
         ProductionResponseDto dto = ProductionResponseDtoMapper.toDto(
                 emptyArtifact(), unknownJob, artifactHandlerRegistry);
+
+        assertThat(dto.status()).isEqualTo(ProductionStatus.PROCESSING);
+    }
+
+    @Test
+    @DisplayName("RETRYING Job은 status=PROCESSING으로 매핑된다")
+    void toDto_retrying_job_maps_to_processing() {
+        JobEntity retryingJob = JobEntity.builder()
+                .jobId("j-retrying").idempotencyKey("k-retrying").promptId(1L)
+                .userId(1L).tenantId("t").commandType("TEXT").commandJson("{}")
+                .build();
+        retryingJob.start();
+        retryingJob.fail("일시 오류");
+        retryingJob.markAsRetrying();
+
+        ProductionResponseDto dto = ProductionResponseDtoMapper.toDto(
+                emptyArtifact(), retryingJob, artifactHandlerRegistry);
 
         assertThat(dto.status()).isEqualTo(ProductionStatus.PROCESSING);
     }

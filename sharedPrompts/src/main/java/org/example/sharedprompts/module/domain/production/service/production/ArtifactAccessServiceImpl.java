@@ -28,7 +28,7 @@ public class ArtifactAccessServiceImpl implements ArtifactAccessService {
             StorageFacade storageFacade,
             StringRedisTemplate redisTemplate,
             CdnUrlProvider cdnUrlProvider,
-            @Value("${artifact.url.default-ttl:300}") int ttlSeconds) {
+            @Value("${artifact.url.default-ttl:900}") int ttlSeconds) {
         this.storageFacade = storageFacade;
         this.redisTemplate = redisTemplate;
         this.cdnUrlProvider = cdnUrlProvider;

@@ -111,11 +111,19 @@ public class ProductionArtifactEntity extends BaseEntity {
      * 이 메서드는 단순히 상태 변경만 담당합니다.
      */
     public void markAsPrimary(ProductionArtifactDetailEntity detail) {
+        // 컬렉션에 없는 detail은 무시 (removeArtifact와 동일한 no-op 정책)
+        boolean isMember = detail.getId() != null
+                ? artifacts.stream().anyMatch(a -> a.getId() != null && a.getId().equals(detail.getId()))
+                : artifacts.contains(detail);
+        if (!isMember) {
+            return;
+        }
+
         // 기존 primary 제거
         artifacts.stream()
                 .filter(ProductionArtifactDetailEntity::isPrimary)
                 .forEach(ProductionArtifactDetailEntity::unmarkPrimary);
-        
+
         // 새로운 primary 설정
         // detached 엔티티 전달 시 컬렉션 내의 managed 엔티티를 찾아서 설정해야 함
         // ID가 일치하는 경우 컬렉션 내의 managed 엔티티에 markPrimary()를 호출
@@ -124,13 +132,11 @@ public class ProductionArtifactEntity extends BaseEntity {
                         .filter(a -> a.getId() != null && a.getId().equals(detail.getId()))
                         .findFirst()
                         .orElse(detail)
-                : artifacts.contains(detail)
-                        ? artifacts.stream()
-                                .filter(a -> a == detail)
-                                .findFirst()
-                                .orElse(detail)
-                        : detail;
-        
+                : artifacts.stream()
+                        .filter(a -> a == detail)
+                        .findFirst()
+                        .orElse(detail);
+
         managedDetail.markPrimary();
     }
 

@@ -22,11 +22,18 @@ public class JobFailureHandler {
                 : failureReason;
         try {
             jobStateService.saveJobFailure(jobId, errorMessage);
-        } finally {
-            metricsRecorder.recordFailure(jobId, commandType, failureReason);
+        } catch (Exception e) {
+            log.error("Failed to persist job failure state - jobId: {}", jobId, e);
         }
+
+        try {
+            metricsRecorder.recordFailure(jobId, commandType, failureReason);
+        } catch (Exception e) {
+            log.error("Failed to record failure metrics - jobId: {}", jobId, e);
+        }
+
         if (escalationPolicy.isPermanentFailure(jobId, failureReason)) {
-            log.error("Job permanent failure - jobId: {}, commandType: {}, reason: {}", 
+            log.error("Job permanent failure - jobId: {}, commandType: {}, reason: {}",
                     jobId, commandType, failureReason, exception);
         }
     }

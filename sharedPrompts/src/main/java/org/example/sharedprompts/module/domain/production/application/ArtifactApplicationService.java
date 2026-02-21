@@ -28,7 +28,7 @@ public class ArtifactApplicationService {
     private final ArtifactAccessService artifactAccessService;
     private final ArtifactOwnershipValidator ownershipValidator;
 
-    @Value("${artifact.url.default-ttl:300}")
+    @Value("${artifact.url.default-ttl:900}")
     private int presignedUrlTtlSeconds;
     
     @Transactional(readOnly = true)

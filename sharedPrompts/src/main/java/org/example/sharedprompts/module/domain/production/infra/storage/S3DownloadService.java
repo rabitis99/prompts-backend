@@ -130,16 +130,18 @@ public class S3DownloadService {
                             .bucket(bucket)
                             .key(s3Key)
                             .build());
-            return Optional.ofNullable(headResponse.contentLength());
-        } catch (NoSuchKeyException e) {
-            return Optional.empty();
-        } catch (S3Exception e) {
-            if (e.statusCode() == 404) {
+            Long contentLength = headResponse.contentLength();
+            if (contentLength == null) {
+                log.warn("S3 headObject returned null contentLength - bucket: {}, key: {}", bucket, s3Key);
                 return Optional.empty();
             }
-            log.warn("S3 headObject failed - bucket: {}, key: {}", bucket, s3Key, e);
+            return Optional.of(contentLength);
+        } catch (NoSuchKeyException e) {
             return Optional.empty();
         } catch (Exception e) {
+            if (e instanceof S3Exception s3e && s3e.statusCode() == 404) {
+                return Optional.empty();
+            }
             log.warn("S3 headObject failed - bucket: {}, key: {}", bucket, s3Key, e);
             return Optional.empty();
         }

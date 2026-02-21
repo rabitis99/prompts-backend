@@ -547,6 +547,9 @@ production:
     s3:
       bucket: ${AWS_S3_BUCKET:}
       prefix: ${AWS_S3_PREFIX:production}
+      # Presigned URL TTL(초). 15~60분 권장. 서버-S3 클록 드리프트 시 만료 오류 완화.
+      presigned-url:
+        ttl-seconds: ${PRODUCTION_STORAGE_S3_PRESIGNED_URL_TTL_SECONDS:900}
   # Job 처리 시 외부 호출(AI/S3) 중복 방지용 Redis Gate Lock (DEPLOYMENT_ISSUES 4.1)
   job:
     gate-lock:
@@ -555,14 +558,17 @@ production:
     # Transactional Outbox: Job 생성과 동일 TX에 outbox 기록 후 스케줄러가 RabbitMQ 발행 (발행 실패 시 재시도 가능)
     outbox:
       enabled: ${PRODUCTION_JOB_OUTBOX_ENABLED:true}
-      publisher-interval-ms: ${PRODUCTION_JOB_OUTBOX_PUBLISHER_INTERVAL_MS:2000}
+      publisher-interval-ms: ${PRODUCTION_JOB_OUTBOX_PUBLISHER_INTERVAL_MS:5000}  # 5초 (과도한 outbox SELECT 방지)
+    # Stale job 복구 스케줄러 주기 (production_jobs 조회 간격)
+    recovery:
+      interval-ms: ${PRODUCTION_JOB_RECOVERY_INTERVAL_MS:120000}  # 2분
 
 # =========================
 # Artifact URL 설정
 # =========================
 artifact:
   url:
-    default-ttl: ${ARTIFACT_URL_DEFAULT_TTL:300}  # Presigned URL 기본 TTL (초, 기본값: 5분)
+    default-ttl: ${ARTIFACT_URL_DEFAULT_TTL:900}  # Presigned URL 기본 TTL (초, 기본값: 15분, 클록 드리프트 완화)
 
 # =========================
 # 썸네일 설정

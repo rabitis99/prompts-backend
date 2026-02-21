@@ -19,10 +19,10 @@ public class JobRecoveryScheduler {
 
     private final SchedulerJobRecoveryService schedulerJobRecoveryService;
 
-    /**`
-     * 만료된 Job 복구 스케줄러
+    /**
+     * 만료된 Job 복구 스케줄러 (production_jobs 조회 간격)
      */
-    @Scheduled(fixedDelay = 60000)
+    @Scheduled(fixedDelayString = "${production.job.recovery.interval-ms:120000}")
     @SchedulerLock(
             name = "JobRecoveryScheduler",
             lockAtMostFor = "5m",

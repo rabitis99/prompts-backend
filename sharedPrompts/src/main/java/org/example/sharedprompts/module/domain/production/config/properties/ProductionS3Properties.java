@@ -47,7 +47,7 @@ public class ProductionS3Properties {
     public static class PresignedUrl {
 
         @Min(value = 1, message = "presigned URL ttl-seconds는 1 이상이어야 합니다")
-        private int ttlSeconds = 300;
+        private int ttlSeconds = 900;  // 15분. SigV4 클록 드리프트 완화 및 AWS 권장(15분~60분) 준수
     }
 
     @Getter

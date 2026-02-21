@@ -44,18 +44,24 @@ public class ImageArtifactHandler implements ArtifactHandler {
         // 이미지 포맷 감지를 위해 파일의 시작 부분만 읽기 (최대 12바이트)
         // 전체 파일을 다운로드하지 않아 네트워크 I/O와 메모리 사용을 최소화합니다.
         try {
-            // WebP 포맷 감지를 위해 최대 12바이트 필요
-            byte[] fileHeader = storageFacade.downloadRange(s3Key, 0, 11);
-            if (fileHeader != null && fileHeader.length > 0) {
-                String detectedFormat = detectImageFormat(fileHeader);
-                contentType = getContentTypeFromFormat(detectedFormat);
-                
-                log.info("Detected image format from file header - s3Key: {}, format: {}, contentType: {}, fileName: {}", 
-                        s3Key, detectedFormat, contentType, fileName);
+            // HTML 파일 여부를 파일명으로 먼저 확인 (매직 바이트로는 HTML 감지 불가)
+            String filenameContentType = ArtifactMetadataHelper.determineContentType(s3Key);
+            if (filenameContentType != null && filenameContentType.contains("html")) {
+                contentType = filenameContentType;
+                log.info("HTML file detected by filename - s3Key: {}, contentType: {}", s3Key, contentType);
             } else {
-                // 파일을 읽을 수 없는 경우 파일명에서 추론
-                log.warn("Could not read file header, inferring from s3Key - s3Key: {}", s3Key);
-                contentType = ArtifactMetadataHelper.determineContentType(s3Key);
+                // WebP 포맷 감지를 위해 최대 12바이트 필요
+                byte[] fileHeader = storageFacade.downloadRange(s3Key, 0, 11);
+                if (fileHeader != null && fileHeader.length > 0) {
+                    String detectedFormat = detectImageFormat(fileHeader);
+                    contentType = getContentTypeFromFormat(detectedFormat);
+                    log.info("Detected image format from file header - s3Key: {}, format: {}, contentType: {}, fileName: {}",
+                            s3Key, detectedFormat, contentType, fileName);
+                } else {
+                    // 파일을 읽을 수 없는 경우 파일명에서 추론
+                    log.warn("Could not read file header, inferring from s3Key - s3Key: {}", s3Key);
+                    contentType = ArtifactMetadataHelper.determineContentType(s3Key);
+                }
             }
         } catch (Exception e) {
             // 파일 읽기 실패 시 파일명에서 추론
@@ -96,11 +102,13 @@ public class ImageArtifactHandler implements ArtifactHandler {
         );
     }
 
+    /**
+     * @deprecated S3 I/O가 트랜잭션 안에서 실행됩니다.
+     *             {@link #prepareDetailData(String)} + {@link #createDetailFromData(ImageDetailData)} 사용을 권장합니다.
+     */
+    @Deprecated(since = "production-job-refactor", forRemoval = false)
     @Override
     public ProductionArtifactDetailEntity createDetail(String s3Key) {
-        // P1-3: 기존 메서드는 하위 호환성을 위해 유지하되, 내부적으로 prepareDetailData + createDetailFromData 사용
-        // 하지만 이 메서드가 트랜잭션 안에서 호출되므로 S3 I/O가 트랜잭션 안에서 실행됨
-        // 호출하는 쪽에서 prepareDetailData()를 먼저 호출하고 createDetailFromData()를 사용하도록 변경 권장
         ImageDetailData data = prepareDetailData(s3Key);
         return createDetailFromData(data);
     }

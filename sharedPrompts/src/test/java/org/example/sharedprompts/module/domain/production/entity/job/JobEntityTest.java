@@ -186,6 +186,7 @@ class JobEntityTest {
         assertThat(job.getErrorMessage()).isNull();
         assertThat(job.getArtifactId()).isNull();
         assertThat(job.getStartedAt()).isNotNull();
+        assertThat(job.getCompletedAt()).isNull();
         assertThat(job.isProcessing()).isTrue();
     }
 
@@ -303,18 +304,27 @@ class JobEntityTest {
     }
 
     @Test
-    @DisplayName("PENDING, PROCESSING, RETRYING은 최종 상태가 아니다")
-    void isFinalState_returns_false_for_non_terminal_states() {
+    @DisplayName("PENDING 상태는 최종 상태가 아니다")
+    void isFinalState_returns_false_for_pending() {
+        assertThat(pendingJob().isFinalState()).isFalse();
+    }
+
+    @Test
+    @DisplayName("PROCESSING 상태는 최종 상태가 아니다")
+    void isFinalState_returns_false_for_processing() {
         JobEntity job = pendingJob();
-        assertThat(job.isFinalState()).isFalse(); // PENDING
-        assertThat(job.isPending()).isTrue();
-
         job.start();
-        assertThat(job.isFinalState()).isFalse(); // PROCESSING
+        assertThat(job.isFinalState()).isFalse();
+    }
 
+    @Test
+    @DisplayName("RETRYING 상태는 최종 상태가 아니다")
+    void isFinalState_returns_false_for_retrying() {
+        JobEntity job = pendingJob();
+        job.start();
         job.fail("error");
         job.markAsRetrying();
-        assertThat(job.isFinalState()).isFalse(); // RETRYING
+        assertThat(job.isFinalState()).isFalse();
     }
 
     // ===== resetForIdempotencyRetry() =====
@@ -331,6 +341,17 @@ class JobEntityTest {
         assertThat(job.getStatus()).isEqualTo(JobStatus.PENDING);
         assertThat(job.getRetryCount()).isEqualTo(1);
         assertThat(job.getErrorMessage()).isNull();
+    }
+
+    @Test
+    @DisplayName("PROCESSING 상태에서 resetForIdempotencyRetry() 호출 시 예외가 발생한다")
+    void resetForIdempotencyRetry_from_processing_throws_exception() {
+        JobEntity job = pendingJob();
+        job.start();
+
+        assertThatThrownBy(job::resetForIdempotencyRetry)
+                .isInstanceOf(BaseException.class)
+                .hasMessageContaining("FAILED");
     }
 
     // ===== 전체 정상 시나리오 =====

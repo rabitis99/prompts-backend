@@ -106,5 +106,7 @@ class DocumentCommandValidatorTest {
     void supports_non_document_returns_false() {
         assertThat(validator.supports(ProductionCommandType.TEXT)).isFalse();
         assertThat(validator.supports(ProductionCommandType.BLOG)).isFalse();
+        assertThat(validator.supports(ProductionCommandType.EMAIL)).isFalse();
+        assertThat(validator.supports(ProductionCommandType.IMAGE)).isFalse();
     }
 }
