@@ -40,6 +40,15 @@ public class S3PresignedUrlService {
         return productionS3Properties.getPresignedUrl().getTtlSeconds();
     }
 
+    private void validateBucketAndKey(String bucket, String s3Key) {
+        if (bucket == null || bucket.isBlank()) {
+            throw new S3StorageException("S3 bucket is not configured");
+        }
+        if (s3Key == null || s3Key.isBlank()) {
+            throw new S3StorageException("S3 key is blank");
+        }
+    }
+
     /**
      * Presigned URL 생성 시 서버 시간 진단 로그 출력.
      * "Request has expired" 발생 시 S3 응답의 ServerTime과 X-Amz-Date를 비교해 클록 드리프트 여부를 확인하세요.
@@ -49,7 +58,7 @@ public class S3PresignedUrlService {
         ZonedDateTime utcNow = ZonedDateTime.now(ZoneOffset.UTC);
         ZoneId systemZone = ZoneId.systemDefault();
         String xAmzDate = extractXAmzDateFromPresignedUrl(presignedUrl);
-        log.info("[Presign time diagnostic] operation={} | Instant.now()={} | ZonedDateTime.now(UTC)={} | systemDefaultZone={} | X-Amz-Date(in URL)={}",
+        log.debug("[Presign time diagnostic] operation={} | Instant.now()={} | ZonedDateTime.now(UTC)={} | systemDefaultZone={} | X-Amz-Date(in URL)={}",
                 operation, now, utcNow, systemZone, xAmzDate != null ? xAmzDate : "N/A");
     }
 
@@ -101,12 +110,7 @@ public class S3PresignedUrlService {
      */
     public String generateDownloadUrl(String bucket, String s3Key, Duration ttl, String contentDisposition) {
         log.debug("Generating presigned download URL - bucket: {}, key: {}, ttl: {}", bucket, s3Key, ttl);
-        if (bucket == null || bucket.isBlank()) {
-            throw new S3StorageException("S3 bucket is not configured");
-        }
-        if (s3Key == null || s3Key.isBlank()) {
-            throw new S3StorageException("S3 key is blank");
-        }
+        validateBucketAndKey(bucket, s3Key);
         try {
             GetObjectRequest.Builder requestBuilder = GetObjectRequest.builder()
                     .bucket(bucket)
@@ -143,12 +147,7 @@ public class S3PresignedUrlService {
      */
     public String generatePreviewUrl(String bucket, String s3Key, Duration ttl) {
         log.debug("Generating presigned preview URL - bucket: {}, key: {}, ttl: {}", bucket, s3Key, ttl);
-        if (bucket == null || bucket.isBlank()) {
-            throw new S3StorageException("S3 bucket is not configured");
-        }
-        if (s3Key == null || s3Key.isBlank()) {
-            throw new S3StorageException("S3 key is blank");
-        }
+        validateBucketAndKey(bucket, s3Key);
         try {
             GetObjectRequest request = GetObjectRequest.builder()
                     .bucket(bucket)
@@ -184,12 +183,7 @@ public class S3PresignedUrlService {
     public String generateUploadUrl(String bucket, String s3Key, String contentType, Duration ttl) {
         log.debug("Generating presigned upload URL - bucket: {}, key: {}, contentType: {}, ttl: {}",
                 bucket, s3Key, contentType, ttl);
-        if (bucket == null || bucket.isBlank()) {
-            throw new S3StorageException("S3 bucket is not configured");
-        }
-        if (s3Key == null || s3Key.isBlank()) {
-            throw new S3StorageException("S3 key is blank");
-        }
+        validateBucketAndKey(bucket, s3Key);
         try {
             PutObjectRequest request = PutObjectRequest.builder()
                     .bucket(bucket)

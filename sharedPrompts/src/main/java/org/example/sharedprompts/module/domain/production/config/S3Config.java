@@ -1,5 +1,6 @@
 package org.example.sharedprompts.module.domain.production.config;
 
+import org.example.sharedprompts.module.domain.production.config.condition.ConditionalOnStorageType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import jakarta.annotation.PostConstruct;
@@ -13,6 +14,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 @Configuration
+@ConditionalOnStorageType("S3")
 public class S3Config {
 
     private static final Logger log = LoggerFactory.getLogger(S3Config.class);

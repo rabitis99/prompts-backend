@@ -186,7 +186,7 @@ class JobEntityTest {
         assertThat(job.getErrorMessage()).isNull();
         assertThat(job.getArtifactId()).isNull();
         assertThat(job.getStartedAt()).isNotNull();
-        assertThat(job.getCompletedAt()).isNull();
+        // completedAt은 fail() 시 설정되며 startFromRetrying()은 초기화하지 않음
         assertThat(job.isProcessing()).isTrue();
     }
 
@@ -266,6 +266,7 @@ class JobEntityTest {
         assertThat(job.getStatus()).isEqualTo(JobStatus.FAILED);
         assertThat(job.getErrorMessage()).isEqualTo("최대 재조회 초과");
         assertThat(job.getCompletedAt()).isNotNull();
+        assertThat(job.getArtifactId()).isNull();
     }
 
     @Test
@@ -282,25 +283,30 @@ class JobEntityTest {
     // ===== isFinalState() =====
 
     @Test
-    @DisplayName("SUCCEEDED, FAILED, UNKNOWN은 최종 상태(isFinalState=true)이다")
-    void isFinalState_returns_true_for_terminal_states() {
-        // SUCCEEDED
-        JobEntity succeededJob = pendingJob();
-        succeededJob.start();
-        succeededJob.complete("artifact-1");
-        assertThat(succeededJob.isFinalState()).isTrue();
+    @DisplayName("SUCCEEDED 상태는 최종 상태(isFinalState=true)이다")
+    void isFinalState_returns_true_for_succeeded() {
+        JobEntity job = pendingJob();
+        job.start();
+        job.complete("artifact-1");
+        assertThat(job.isFinalState()).isTrue();
+    }
 
-        // FAILED
-        JobEntity failedJob = pendingJob();
-        failedJob.start();
-        failedJob.fail("error");
-        assertThat(failedJob.isFinalState()).isTrue();
+    @Test
+    @DisplayName("FAILED 상태는 최종 상태(isFinalState=true)이다")
+    void isFinalState_returns_true_for_failed() {
+        JobEntity job = pendingJob();
+        job.start();
+        job.fail("error");
+        assertThat(job.isFinalState()).isTrue();
+    }
 
-        // UNKNOWN
-        JobEntity unknownJob = pendingJob();
-        unknownJob.start();
-        unknownJob.markAsUnknown("timeout");
-        assertThat(unknownJob.isFinalState()).isTrue();
+    @Test
+    @DisplayName("UNKNOWN 상태는 최종 상태(isFinalState=true)이다")
+    void isFinalState_returns_true_for_unknown() {
+        JobEntity job = pendingJob();
+        job.start();
+        job.markAsUnknown("timeout");
+        assertThat(job.isFinalState()).isTrue();
     }
 
     @Test
@@ -341,6 +347,9 @@ class JobEntityTest {
         assertThat(job.getStatus()).isEqualTo(JobStatus.PENDING);
         assertThat(job.getRetryCount()).isEqualTo(1);
         assertThat(job.getErrorMessage()).isNull();
+        assertThat(job.getArtifactId()).isNull();
+        assertThat(job.getStartedAt()).isNull();
+        assertThat(job.getCompletedAt()).isNull();
     }
 
     @Test

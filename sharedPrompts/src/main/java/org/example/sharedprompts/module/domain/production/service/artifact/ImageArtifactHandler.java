@@ -198,6 +198,10 @@ public class ImageArtifactHandler implements ArtifactHandler {
         try {
             // P1-3: S3 I/O (prepareDetailData에서 호출 시 트랜잭션 밖, 레거시 createDetail에서 호출 시 트랜잭션 안)
             byte[] htmlContent = storageFacade.download(htmlFilePath);
+            if (htmlContent == null || htmlContent.length == 0) {
+                log.warn("Downloaded empty or null content from HTML file - filePath: {}", htmlFilePath);
+                return null;
+            }
             String html = new String(htmlContent, StandardCharsets.UTF_8);
             
             Matcher matcher = IMG_SRC_PATTERN.matcher(html);

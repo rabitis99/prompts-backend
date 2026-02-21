@@ -196,12 +196,12 @@ public class JobStateService {
         } catch (BaseException e) {
             if (e.getErrorCode() == ModuleErrorCode.JOB_INVALID_STATUS) {
                 log.warn("Could not retry job (invalid state) - jobId: {}", jobId);
+                throw e; // 호출자(recoverStuckProcessingJob)의 롤백 보장을 위해 전파
             } else {
                 throw e;
             }
-        } catch (IllegalStateException e) {
-            log.warn("Could not retry job - jobId: {}, error: {}", jobId, e.getMessage());
         }
+        // IllegalStateException은 예상치 못한 에러이므로 호출자에게 전파
     }
 
     @Transactional(readOnly = true)

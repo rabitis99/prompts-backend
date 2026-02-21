@@ -25,6 +25,7 @@ public class JobMapper {
                 // JobEntity에는 aiGeneratedContent가 영속화되지 않습니다(artifact로 저장/관리).
                 .aiGeneratedContent(null)
                 .artifactId(jobEntity.getArtifactId())
+                .productionId(jobEntity.getProductionId())
                 .build();
     }
 }

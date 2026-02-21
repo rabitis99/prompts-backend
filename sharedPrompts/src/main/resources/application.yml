@@ -163,6 +163,7 @@ ai:
       timeout-seconds: ${AI_PROVIDER_GROQ_TIMEOUT_SECONDS:30}
       # P2-1: 기본 0 = 인라인 Thread.sleep 없음, 메시지 레벨 재시도(ReactiveJobRetryService)만 사용
       max-retries: ${AI_PROVIDER_GROQ_MAX_RETRIES:0}
+      # max-retries가 0이면 인라인 재시도 없음. initial-retry-delay-ms는 메시지 레벨 재시도(ReactiveJobRetryService) 초기 지연 참고용.
       initial-retry-delay-ms: ${AI_PROVIDER_GROQ_INITIAL_RETRY_DELAY_MS:1000}
     leonardo:
       enabled: ${AI_PROVIDER_LEONARDO_ENABLED:false}
@@ -172,6 +173,7 @@ ai:
       timeout-seconds: ${AI_PROVIDER_LEONARDO_TIMEOUT_SECONDS:30}
       # P2-1: 기본 0 = 인라인 Thread.sleep 없음, 메시지 레벨 재시도만 사용
       max-retries: ${AI_PROVIDER_LEONARDO_MAX_RETRIES:0}
+      # max-retries가 0이면 인라인 재시도 없음. initial-retry-delay-ms는 메시지 레벨 재시도 참고용.
       initial-retry-delay-ms: ${AI_PROVIDER_LEONARDO_INITIAL_RETRY_DELAY_MS:1000}
       max-polling-wait-seconds: ${AI_PROVIDER_LEONARDO_MAX_POLLING_WAIT_SECONDS:60}
       polling-interval-seconds: ${AI_PROVIDER_LEONARDO_POLLING_INTERVAL_SECONDS:2}
@@ -548,6 +550,7 @@ production:
       bucket: ${AWS_S3_BUCKET:}
       prefix: ${AWS_S3_PREFIX:production}
       # Presigned URL TTL(초). 15~60분 권장. 서버-S3 클록 드리프트 시 만료 오류 완화.
+      # artifact.url.default-ttl과 동일 값 유지 권장 (한쪽만 변경 시 URL 만료 불일치 가능).
       presigned-url:
         ttl-seconds: ${PRODUCTION_STORAGE_S3_PRESIGNED_URL_TTL_SECONDS:900}
   # Job 처리 시 외부 호출(AI/S3) 중복 방지용 Redis Gate Lock (DEPLOYMENT_ISSUES 4.1)
@@ -568,7 +571,8 @@ production:
 # =========================
 artifact:
   url:
-    default-ttl: ${ARTIFACT_URL_DEFAULT_TTL:900}  # Presigned URL 기본 TTL (초, 기본값: 15분, 클록 드리프트 완화)
+    # Presigned URL 기본 TTL (초). production.storage.s3.presigned-url.ttl-seconds와 동일 값 유지 권장.
+    default-ttl: ${ARTIFACT_URL_DEFAULT_TTL:900}
 
 # =========================
 # 썸네일 설정

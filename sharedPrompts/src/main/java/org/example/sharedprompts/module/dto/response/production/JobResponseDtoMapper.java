@@ -24,6 +24,7 @@ public final class JobResponseDtoMapper {
                 job.getJobId(),
                 job.getStatus(),
                 job.getArtifactId(),
+                job.getProductionId(),
                 job.getErrorMessage(),
                 job.getCreatedAt(),
                 job.getCompletedAt()

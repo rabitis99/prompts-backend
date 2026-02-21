@@ -133,5 +133,23 @@ class UserTierServiceTest {
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.USER_NOT_FOUND);
     }
+
+    @Test
+    @DisplayName("티어 변경 시 사용자 없음 예외 발생")
+    void changeTier_UserNotFound() {
+        // given
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        TierChangeRequestDto request = TierChangeRequestDto.builder()
+                .tier(UserTier.PRO)
+                .reason("업그레이드")
+                .build();
+
+        // when & then
+        assertThatThrownBy(() -> userTierService.changeTier(1L, request, 999L))
+                .isInstanceOf(ApiException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.USER_NOT_FOUND);
+    }
 }
 

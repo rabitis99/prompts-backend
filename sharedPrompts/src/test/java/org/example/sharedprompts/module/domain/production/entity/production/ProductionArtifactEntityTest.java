@@ -65,15 +65,16 @@ class ProductionArtifactEntityTest {
     }
 
     @Test
-    @DisplayName("동일한 detail을 addArtifact()로 두 번 추가하면 컬렉션에 중복이 발생하지 않는다")
-    void addArtifact_with_duplicate_detail_is_idempotent() {
+    @DisplayName("addArtifact()는 중복 방지 없이 단순 추가 — 중복 방지는 서비스 레이어 책임")
+    void addArtifact_does_not_deduplicate() {
         ProductionArtifactEntity artifact = emptyArtifact();
         ProductionArtifactDetailEntity detail = textDetail();
 
         artifact.addArtifact(detail);
         artifact.addArtifact(detail);
 
-        assertThat(artifact.getArtifacts()).hasSize(1);
+        // ArrayList 기반이므로 중복 허용 — 서비스 레이어에서 방지해야 함
+        assertThat(artifact.getArtifacts()).hasSize(2);
     }
 
     // ===== removeArtifact() =====

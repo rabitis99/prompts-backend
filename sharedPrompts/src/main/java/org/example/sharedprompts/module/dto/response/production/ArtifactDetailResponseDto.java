@@ -54,6 +54,14 @@ public record ArtifactDetailResponseDto(
     @JsonInclude(JsonInclude.Include.NON_NULL)
     Map<String, String> thumbnailUrls,
     
+    /**
+     * 인라인 텍스트/HTML 본문. TEXT 타입 등 DB content를 사용하는 아티팩트에서만 채워집니다.
+     * S3에만 저장된 경우(예: HTML 파일)는 presigned_url로 접근하고, 이 필드는 null입니다.
+     */
+    @JsonProperty("content")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    String content,
+    
     @JsonProperty("created_at")
     Instant createdAt
 ) {

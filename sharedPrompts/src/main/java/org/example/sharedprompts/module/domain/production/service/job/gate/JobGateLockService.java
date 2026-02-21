@@ -1,6 +1,5 @@
 package org.example.sharedprompts.module.domain.production.service.job.gate;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -15,19 +14,23 @@ import java.time.Duration;
  * <p>DEPLOYMENT_ISSUES 4.1 / DEPLOYMENT_RISK_REVIEW 5-2: 락 키 job:gate:{tenantId}:{jobId}, TTL로 자동 해제.
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class JobGateLockService {
 
     private static final String KEY_PREFIX = "job:gate:";
 
     private final StringRedisTemplate redisTemplate;
+    private final boolean enabled;
+    private final int ttlSeconds;
 
-    @Value("${production.job.gate-lock.enabled:true}")
-    private boolean enabled;
-
-    @Value("${production.job.gate-lock.ttl-seconds:120}")
-    private int ttlSeconds;
+    public JobGateLockService(
+            StringRedisTemplate redisTemplate,
+            @Value("${production.job.gate-lock.enabled:true}") boolean enabled,
+            @Value("${production.job.gate-lock.ttl-seconds:120}") int ttlSeconds) {
+        this.redisTemplate = redisTemplate;
+        this.enabled = enabled;
+        this.ttlSeconds = ttlSeconds;
+    }
 
     /**
      * Gate Lock 획득 시도. 성공 시에만 외부 호출(AI/S3)을 수행해야 합니다.

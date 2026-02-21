@@ -75,7 +75,10 @@ public class JobProcessorDelegate {
         String tenantId = TenantContextValidator.requireTenantContextForJob(jobId);
 
         // Gate Lock: 외부 호출(AI/S3) 중복 방지. 획득 실패 시 재큐를 위해 처리하지 않고 반환 (DEPLOYMENT_ISSUES 4.1)
-        if (jobGateLockService.map(s -> !s.tryLock(tenantId, jobId)).orElse(false)) {
+        boolean gateLockAcquired = jobGateLockService
+                .map(s -> s.tryLock(tenantId, jobId))
+                .orElse(true);
+        if (!gateLockAcquired) {
             log.info("Job gate lock not acquired - jobId: {} (will retry via queue)", jobId);
             return;
         }

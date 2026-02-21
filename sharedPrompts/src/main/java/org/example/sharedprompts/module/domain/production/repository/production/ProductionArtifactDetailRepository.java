@@ -16,5 +16,11 @@ public interface ProductionArtifactDetailRepository extends JpaRepository<Produc
     @EntityGraph(attributePaths = {"artifact"})
     @Query("SELECT d FROM ProductionArtifactDetailEntity d WHERE d.id = :id")
     Optional<ProductionArtifactDetailEntity> findByIdWithArtifact(@Param("id") Long id);
+
+    /**
+     * productionId·artifactId로 단일 detail 직접 조회 (아티팩트 전체 로드 없이 조회).
+     */
+    @EntityGraph(attributePaths = {"artifact"})
+    Optional<ProductionArtifactDetailEntity> findByIdAndArtifact_Id(Long id, Long artifactId);
 }
 

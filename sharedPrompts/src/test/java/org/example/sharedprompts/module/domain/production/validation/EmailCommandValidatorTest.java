@@ -78,7 +78,8 @@ class EmailCommandValidatorTest {
         EmailCommand command = new EmailCommand("제목", invalidEmail);
 
         assertThatThrownBy(() -> validator.validate(command))
-                .isInstanceOf(ValidationException.class);
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("Invalid email format");
     }
 
     @ParameterizedTest

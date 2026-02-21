@@ -25,6 +25,7 @@ public class Job {
     private Instant completedAt;
     private String aiGeneratedContent; // AI가 생성한 원본 콘텐츠 (Text/Image)
     private String artifactId; // 생성된 Artifact ID
+    private Long productionId; // 생성된 Production(Artifact) ID (N+1 방지용으로 Job에 보관)
 
     public static Job create(Long promptId, Long userId, ProductionCommand command, String userInput) {
         return Job.builder()

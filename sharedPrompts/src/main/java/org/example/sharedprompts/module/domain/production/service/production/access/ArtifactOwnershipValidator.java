@@ -58,6 +58,19 @@ public class ArtifactOwnershipValidator {
 
         return artifact;
     }
+
+    /**
+     * productionId·artifactId로 아티팩트 디테일을 직접 조회하고 소유권 검증 후 반환합니다.
+     * 프로덕션 전체 아티팩트를 로드하지 않아 메모리·DB 부하를 줄입니다.
+     */
+    @Transactional(readOnly = true)
+    public ProductionArtifactDetailEntity getArtifactByProductionAndId(Long productionId, Long artifactId, Long userId) {
+        ProductionArtifactDetailEntity detail = artifactDetailRepository
+                .findByIdAndArtifact_Id(artifactId, productionId)
+                .orElseThrow(() -> new BaseException(ModuleErrorCode.ARTIFACT_NOT_FOUND));
+        validateProductionOwner(detail.getArtifact(), userId);
+        return detail;
+    }
 }
 
 

@@ -76,6 +76,13 @@ public class JobEntity extends BaseEntity {
     private String artifactId;
 
     /**
+     * Production(Artifact) ID. Job 완료 시 생성된 production_artifacts.id와 동일하게 설정하여
+     * N+1 없이 Job 상태 응답에 production_id를 포함할 수 있게 합니다.
+     */
+    @Column(name = "production_id")
+    private Long productionId;
+
+    /**
      * 재시도 횟수. 메시지 레벨 재시도(markAsRetrying)와 수동 복구(retry) 모두에서 증가합니다.
      * 한 실패 사이클에서 두 경로가 겹치지 않지만, 생명주기 전체로 보면 둘 다 반영된 총 시도 횟수입니다.
      */
@@ -119,6 +126,9 @@ public class JobEntity extends BaseEntity {
         }
         this.status = JobStatus.SUCCEEDED;
         this.artifactId = artifactId;
+        this.productionId = (artifactId != null && !artifactId.isBlank())
+                ? Long.valueOf(artifactId)
+                : null;
         this.completedAt = Instant.now();
     }
 

@@ -1,6 +1,8 @@
 package org.example.sharedprompts.module.domain.production.service.storage;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.domain.production.config.condition.ConditionalOnStorageType;
+import org.example.sharedprompts.module.domain.production.config.properties.ProductionS3Properties;
 import org.example.sharedprompts.module.exception.BaseException;
 import org.example.sharedprompts.module.exception.ModuleErrorCode;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,12 +20,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 @ConditionalOnProperty(name = "storage.lifecycle.enabled", havingValue = "true")
+@ConditionalOnStorageType("S3")
 @Slf4j
 public class StorageLifecycleService {
 
     private final S3Client s3Client;
-    private final String bucket;
-    private final String prefix;
+    private final ProductionS3Properties productionS3Properties;
     private final int glacierDays;
     private final int deepArchiveDays;
     // NOTE: AtomicBoolean은 단일 JVM 인스턴스 내에서만 중복 실행을 방지합니다.
@@ -39,8 +41,7 @@ public class StorageLifecycleService {
     // TODO: lifecycle 관련 설정을 @ConfigurationProperties로 이동하고 @Validated 적용
     public StorageLifecycleService(
             S3Client s3Client,
-            @Value("${production.storage.s3.bucket}") String bucket,
-            @Value("${production.storage.s3.prefix:production}") String prefix,
+            ProductionS3Properties productionS3Properties,
             @Value("${storage.lifecycle.glacier-days:30}") int glacierDays,
             @Value("${storage.lifecycle.deep-archive-days:90}") int deepArchiveDays) {
         if (glacierDays <= 0 || deepArchiveDays <= 0) {
@@ -56,8 +57,7 @@ public class StorageLifecycleService {
                     "glacierDays (" + glacierDays + ") must be less than deepArchiveDays (" + deepArchiveDays + ")");
         }
         this.s3Client = s3Client;
-        this.bucket = bucket;
-        this.prefix = prefix;
+        this.productionS3Properties = productionS3Properties;
         this.glacierDays = glacierDays;
         this.deepArchiveDays = deepArchiveDays;
     }
@@ -67,6 +67,8 @@ public class StorageLifecycleService {
             log.warn("Storage lifecycle processing is already running - skipping this invocation");
             return 0;
         }
+        String bucket = productionS3Properties.getBucket();
+        String prefix = productionS3Properties.getPrefix();
         log.info("Starting storage lifecycle processing - bucket: {}, prefix: {}", bucket, prefix);
         int processedCount = 0;
 
@@ -138,7 +140,7 @@ public class StorageLifecycleService {
                     .toList();
 
             s3Client.putObjectTagging(PutObjectTaggingRequest.builder()
-                    .bucket(bucket)
+                    .bucket(productionS3Properties.getBucket())
                     .key(key)
                     .tagging(Tagging.builder().tagSet(tagList).build())
                     .build());
@@ -155,7 +157,7 @@ public class StorageLifecycleService {
         try {
             GetObjectTaggingResponse response = s3Client.getObjectTagging(
             GetObjectTaggingRequest.builder()
-                    .bucket(bucket)
+                    .bucket(productionS3Properties.getBucket())
                     .key(key)
                     .build());
 

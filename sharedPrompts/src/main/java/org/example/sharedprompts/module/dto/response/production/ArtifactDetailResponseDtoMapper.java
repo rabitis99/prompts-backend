@@ -21,6 +21,7 @@ public final class ArtifactDetailResponseDtoMapper {
      * @param presignedUrl Presigned URL (null 가능)
      * @param cdnUrl CDN URL (null 가능)
      * @param thumbnailUrls 썸네일 URL 맵 (null 가능)
+     * @param content 인라인 본문 (TEXT 등 DB content 사용 시, null 가능)
      * @return 변환된 ArtifactDetailResponseDto
      */
     public static ArtifactDetailResponseDto toDto(
@@ -28,7 +29,8 @@ public final class ArtifactDetailResponseDtoMapper {
             ProductionArtifactDetailEntity detail,
             String presignedUrl,
             String cdnUrl,
-            Map<String, String> thumbnailUrls
+            Map<String, String> thumbnailUrls,
+            String content
     ) {
         if (detail == null) {
             return null;
@@ -48,6 +50,7 @@ public final class ArtifactDetailResponseDtoMapper {
                 presignedUrl,
                 cdnUrl,
                 thumbnailUrls,
+                content,
                 detail.getCreatedAt()
         );
     }
