@@ -161,7 +161,8 @@ ai:
       base-url: ${AI_PROVIDER_GROQ_BASE_URL:https://api.groq.com/openai/v1}
       default-model: ${AI_PROVIDER_GROQ_DEFAULT_MODEL:llama-3.3-70b-versatile}
       timeout-seconds: ${AI_PROVIDER_GROQ_TIMEOUT_SECONDS:30}
-      max-retries: ${AI_PROVIDER_GROQ_MAX_RETRIES:3}
+      # P2-1: 기본 0 = 인라인 Thread.sleep 없음, 메시지 레벨 재시도(ReactiveJobRetryService)만 사용
+      max-retries: ${AI_PROVIDER_GROQ_MAX_RETRIES:0}
       initial-retry-delay-ms: ${AI_PROVIDER_GROQ_INITIAL_RETRY_DELAY_MS:1000}
     leonardo:
       enabled: ${AI_PROVIDER_LEONARDO_ENABLED:false}
@@ -169,7 +170,8 @@ ai:
       base-url: ${AI_PROVIDER_LEONARDO_BASE_URL:https://cloud.leonardo.ai/api/rest/v1}
       default-model-id: ${AI_PROVIDER_LEONARDO_DEFAULT_MODEL_ID:7b592283-e8a7-4c5a-9ba6-d18c31f258b9}
       timeout-seconds: ${AI_PROVIDER_LEONARDO_TIMEOUT_SECONDS:30}
-      max-retries: ${AI_PROVIDER_LEONARDO_MAX_RETRIES:3}
+      # P2-1: 기본 0 = 인라인 Thread.sleep 없음, 메시지 레벨 재시도만 사용
+      max-retries: ${AI_PROVIDER_LEONARDO_MAX_RETRIES:0}
       initial-retry-delay-ms: ${AI_PROVIDER_LEONARDO_INITIAL_RETRY_DELAY_MS:1000}
       max-polling-wait-seconds: ${AI_PROVIDER_LEONARDO_MAX_POLLING_WAIT_SECONDS:60}
       polling-interval-seconds: ${AI_PROVIDER_LEONARDO_POLLING_INTERVAL_SECONDS:2}
@@ -538,12 +540,22 @@ payment:
 # =========================
 production:
   storage:
-    type: ${PRODUCTION_STORAGE_TYPE:LOCAL}
+    # 현재 StorageType은 S3만 지원합니다. (LOCAL 등 미지원 값은 바인딩 단계에서 실패하여 조기 탐지됩니다)
+    type: ${PRODUCTION_STORAGE_TYPE:S3}
     local:
       base-path: ${PRODUCTION_STORAGE_LOCAL_BASE_PATH:./storage/production}
     s3:
       bucket: ${AWS_S3_BUCKET:}
       prefix: ${AWS_S3_PREFIX:production}
+  # Job 처리 시 외부 호출(AI/S3) 중복 방지용 Redis Gate Lock (DEPLOYMENT_ISSUES 4.1)
+  job:
+    gate-lock:
+      enabled: ${PRODUCTION_JOB_GATE_LOCK_ENABLED:true}
+      ttl-seconds: ${PRODUCTION_JOB_GATE_LOCK_TTL_SECONDS:120}
+    # Transactional Outbox: Job 생성과 동일 TX에 outbox 기록 후 스케줄러가 RabbitMQ 발행 (발행 실패 시 재시도 가능)
+    outbox:
+      enabled: ${PRODUCTION_JOB_OUTBOX_ENABLED:true}
+      publisher-interval-ms: ${PRODUCTION_JOB_OUTBOX_PUBLISHER_INTERVAL_MS:2000}
 
 # =========================
 # Artifact URL 설정

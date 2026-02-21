@@ -11,3 +11,4 @@ public interface GuidelinePolicy {
     List<GuidelineRule> qualityStandards();
     List<GuidelineRule> outputConstraints();
 }
+

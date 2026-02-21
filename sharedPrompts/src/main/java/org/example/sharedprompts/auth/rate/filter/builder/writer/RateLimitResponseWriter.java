@@ -82,9 +82,7 @@ public final class RateLimitResponseWriter {
         response.setStatus(code.getHttpStatus().value());
         
         // RateLimit 헤더 추가 (요구사항: X-RateLimit-*, Retry-After)
-        RateLimitHeaderUtil.addRateLimitExceededHeaders(
-                response, rule, result, redisTemplate, rateLimitKey
-        );
+        RateLimitHeaderUtil.addRateLimitExceededHeaders(response, rule, result);
         
         // Content-Type 및 인코딩 설정
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

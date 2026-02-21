@@ -128,14 +128,10 @@ public abstract class AbstractRateLimitFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             RateLimitResultWithKey result
     ) {
-        // Redis 키를 사용하여 정확한 TTL 조회
-        String rateLimitKey = result.getKey() != null ? result.getKey().value() : null;
         RateLimitHeaderUtil.addRateLimitHeaders(
                 response,
                 result.getRule(),
-                result.getResult(),
-                redisTemplate,
-                rateLimitKey
+                result.getResult()
         );
     }
 

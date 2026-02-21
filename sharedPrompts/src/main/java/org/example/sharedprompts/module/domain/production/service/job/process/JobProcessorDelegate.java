@@ -7,6 +7,7 @@ import org.example.sharedprompts.module.domain.production.model.contract.command
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
 import org.example.sharedprompts.module.domain.production.service.job.JobLockService;
 import org.example.sharedprompts.module.domain.production.service.job.JobStateService;
+import org.example.sharedprompts.module.domain.production.service.job.gate.JobGateLockService;
 import org.example.sharedprompts.module.domain.production.service.job.metrics.JobMetrics;
 import org.example.sharedprompts.module.domain.production.service.job.process.exception.AIServiceException;
 import org.example.sharedprompts.module.domain.production.service.job.process.exception.ContentRenderException;
@@ -22,6 +23,7 @@ import org.example.sharedprompts.module.domain.production.service.job.process.ut
 import org.example.sharedprompts.module.domain.production.service.parser.ParsedResponse;
 import org.example.sharedprompts.module.domain.production.service.prompt.PromptTemplateService;
 import org.example.sharedprompts.module.domain.production.util.TenantContextValidator;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -45,13 +47,14 @@ public class JobProcessorDelegate {
     private final CommandDeserializer commandDeserializer;
     private final FileNameGenerator fileNameGenerator;
     private final JobMetrics jobMetrics;
+    @Autowired(required = false)
+    private JobGateLockService jobGateLockService;
 
     /**
      * Job 처리 실행
      */
     public void processJob(String jobId) {
         Instant startTime = Instant.now();
-        String commandType = "UNKNOWN";
 
         try {
             log.info("Processing job - jobId: {}", jobId);
@@ -72,8 +75,36 @@ public class JobProcessorDelegate {
             // In multi-tenant SaaS, tenant_id is REQUIRED for all operations
             // tenant_id must come from TenantContext (set by SecurityContextTaskDecorator from X-Tenant-Id header)
             // DO NOT create or generate tenant_id - it must be provided in the request header
-            TenantContextValidator.requireTenantContextForJob(jobId);
+            String tenantId = TenantContextValidator.requireTenantContextForJob(jobId);
 
+            // Gate Lock: 외부 호출(AI/S3) 중복 방지. 획득 실패 시 재큐를 위해 처리하지 않고 반환 (DEPLOYMENT_ISSUES 4.1)
+            if (jobGateLockService != null) {
+                if (!jobGateLockService.tryLock(tenantId, jobId)) {
+                    log.info("Job gate lock not acquired - jobId: {} (will retry via queue)", jobId);
+                    return;
+                }
+            }
+            try {
+                doProcessJob(jobId, job, startTime, tenantId);
+            } finally {
+                if (jobGateLockService != null) {
+                    jobGateLockService.unlock(tenantId, jobId);
+                }
+            }
+        } catch (AIServiceException e) {
+            exceptionHandler.handleAIException(jobId, "UNKNOWN", e);
+        } catch (ContentRenderException e) {
+            exceptionHandler.handleRenderException(jobId, "UNKNOWN", e);
+        } catch (StorageException e) {
+            exceptionHandler.handleStorageException(jobId, "UNKNOWN", e);
+        } catch (Exception e) {
+            exceptionHandler.handleGeneralException(jobId, "UNKNOWN", e);
+        }
+    }
+
+    private void doProcessJob(String jobId, JobEntity job, Instant startTime, String tenantId) {
+        String commandType = "UNKNOWN";
+        try {
             ProductionCommand command = commandDeserializer.deserialize(job);
             commandType = command.getCommandType().name();
 
@@ -109,13 +140,11 @@ public class JobProcessorDelegate {
             }
             
             jobStateService.markStored(job.getJobId(), s3Key);
-            
             // markStored() 내부에서 이미 complete()를 호출하므로 중복 호출 제거
 
             Duration duration = Duration.between(startTime, Instant.now());
             jobMetrics.recordJobCompleted(commandType, duration);
             log.info("Job completed successfully - jobId: {}, duration: {}ms", jobId, duration.toMillis());
-
         } catch (AIServiceException e) {
             exceptionHandler.handleAIException(jobId, commandType, e);
         } catch (ContentRenderException e) {

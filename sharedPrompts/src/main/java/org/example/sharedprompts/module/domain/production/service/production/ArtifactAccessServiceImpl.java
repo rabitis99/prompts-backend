@@ -3,6 +3,7 @@ package org.example.sharedprompts.module.domain.production.service.production;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.application.storage.StorageFacade;
 import org.example.sharedprompts.module.domain.production.service.cdn.CdnUrlProvider;
+import org.example.sharedprompts.module.domain.production.util.s3.S3PathUtils;
 import org.example.sharedprompts.module.exception.BaseException;
 import org.example.sharedprompts.module.exception.ModuleErrorCode;
 import org.springframework.beans.factory.annotation.Value;
@@ -118,23 +119,10 @@ public class ArtifactAccessServiceImpl implements ArtifactAccessService {
     }
 
     private String extractS3Key(String filePath) {
-        if (filePath == null || filePath.isBlank()) {
-            throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, "filePath", "File path cannot be null or empty");
+        try {
+            return S3PathUtils.extractKey(filePath);
+        } catch (IllegalArgumentException e) {
+            throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, "filePath", e.getMessage(), e);
         }
-
-        if (filePath.startsWith("s3://")) {
-            String withoutPrefix = filePath.substring(5);
-            int slashIndex = withoutPrefix.indexOf('/');
-            if (slashIndex <= 0) {
-                throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, "filePath", "Invalid S3 path - missing object key: " + filePath);
-            }
-            String objectKey = withoutPrefix.substring(slashIndex + 1);
-            if (objectKey.isBlank()) {
-                throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, "filePath", "Invalid S3 path - missing object key: " + filePath);
-            }
-            return objectKey;
-        }
-
-        return filePath;
     }
 }

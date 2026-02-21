@@ -2,10 +2,11 @@ package org.example.sharedprompts.module.domain.production.service.production.pr
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.domain.production.infra.storage.S3PresignedUrlService;
+import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
+import org.example.sharedprompts.module.domain.production.util.ContentDispositionBuilder;
 import org.springframework.stereotype.Component;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 @Slf4j
@@ -13,7 +14,7 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class DocumentPresignedStrategy implements PresignedStrategy {
 
-    private final PresignedUrlGenerator presignedUrlGenerator;
+    private final S3PresignedUrlService presignedUrlService;
 
     @Override
     public boolean supports(String contentType) {
@@ -32,46 +33,9 @@ public class DocumentPresignedStrategy implements PresignedStrategy {
     public String generatePresignedUrl(String bucket, String key, String contentType, Duration ttl) {
         log.debug("Generating presigned URL for document - bucket: {}, key: {}, contentType: {}", 
                 bucket, key, contentType);
-        String fileName = extractFileName(key);
-        String contentDisposition = buildContentDisposition(fileName);
-        return presignedUrlGenerator.generate(bucket, key, ttl, contentDisposition);
-    }
-
-    private String extractFileName(String key) {
-        if (key == null || key.isBlank()) {
-            return null;
-        }
-        int lastSlashIndex = key.lastIndexOf('/');
-        if (lastSlashIndex >= 0 && lastSlashIndex < key.length() - 1) {
-            return key.substring(lastSlashIndex + 1);
-        }
-        return key;
-    }
-
-    /**
-     * RFC 6266 준수 Content-Disposition 헤더를 안전하게 생성합니다.
-     * 파일명의 위험한 문자를 제거하고 UTF-8 인코딩을 지원합니다.
-     *
-     * @param fileName 파일명 (null 가능)
-     * @return 안전한 Content-Disposition 헤더 값
-     */
-    private String buildContentDisposition(String fileName) {
-        if (fileName == null || fileName.isBlank()) {
-            return "attachment";
-        }
-
-        // 위험한 문자 및 비-ASCII 문자 제거 (filename 파라미터는 ASCII 범위만 허용)
-        // RFC 7230 §3.2.6 및 RFC 6266 §4.1에 따르면 filename 값은 ISO-8859-1 출력 가능 범위(실질적으로 ASCII) 내에 있어야 함
-        String sanitized = fileName.replaceAll("[\"\\r\\n]", "_")
-                                   .replaceAll("[^\\x20-\\x7E]", "_");
-
-        // RFC 6266 준수: filename과 filename* 모두 제공
-        // filename: ASCII-safe 버전 (호환성 및 구형 클라이언트 지원)
-        // filename*: UTF-8 인코딩 버전 (비-ASCII 문자 지원)
-        // URLEncoder.encode(String, Charset)는 Java 10+에서 checked exception을 던지지 않습니다.
-        String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
-                .replace("+", "%20"); // URLEncoder는 공백을 +로 인코딩하지만 RFC 6266은 %20을 선호
-        return String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s", sanitized, encoded);
+        String fileName = ArtifactMetadataHelper.extractFileName(key);
+        String contentDisposition = ContentDispositionBuilder.attachment(fileName);
+        return presignedUrlService.generateDownloadUrl(bucket, key, ttl, contentDisposition);
     }
 }
 

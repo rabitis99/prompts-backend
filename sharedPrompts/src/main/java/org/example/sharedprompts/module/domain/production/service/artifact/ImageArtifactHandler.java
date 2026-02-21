@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,11 +42,11 @@ public class ImageArtifactHandler implements ArtifactHandler {
         return ArtifactType.IMAGE;
     }
 
-    @Override
-    public ProductionArtifactDetailEntity createDetail(
-            String s3Key
-    ) {
-        // S3에 업로드된 실제 key를 그대로 사용
+    /**
+     * P1-3: S3 I/O를 트랜잭션 밖에서 수행하기 위한 메서드
+     * format 감지와 HTML 파싱을 먼저 수행하고, 결과를 파라미터로 전달하여 entity 생성
+     */
+    public ImageDetailData prepareDetailData(String s3Key) {
         String fileName = ArtifactMetadataHelper.extractFileName(s3Key);
         String contentType;
 
@@ -85,16 +86,40 @@ public class ImageArtifactHandler implements ArtifactHandler {
             }
         }
 
-        // S3에 업로드된 실제 key와 contentType을 그대로 사용하여 Entity 생성
-        // ImageArtifactHandler는 항상 IMAGE 타입을 반환합니다.
+        return new ImageDetailData(s3Key, fileName, contentType, actualImagePath);
+    }
+
+    /**
+     * P1-3: 준비된 데이터로부터 엔티티 생성 (트랜잭션 안에서 실행)
+     */
+    public ProductionArtifactDetailEntity createDetailFromData(ImageDetailData data) {
         return ProductionArtifactDetailEntityFactory.createImage(
-                s3Key,
-                fileName,
-                contentType,
+                data.s3Key(),
+                data.fileName(),
+                data.contentType(),
                 null, // fileSize는 나중에 설정 가능
-                actualImagePath // HTML 파일인 경우 추출한 이미지 경로, 아니면 null
+                data.actualImagePath()
         );
     }
+
+    @Override
+    public ProductionArtifactDetailEntity createDetail(String s3Key) {
+        // P1-3: 기존 메서드는 하위 호환성을 위해 유지하되, 내부적으로 prepareDetailData + createDetailFromData 사용
+        // 하지만 이 메서드가 트랜잭션 안에서 호출되므로 S3 I/O가 트랜잭션 안에서 실행됨
+        // 호출하는 쪽에서 prepareDetailData()를 먼저 호출하고 createDetailFromData()를 사용하도록 변경 권장
+        ImageDetailData data = prepareDetailData(s3Key);
+        return createDetailFromData(data);
+    }
+
+    /**
+     * P1-3: S3 I/O 결과를 담는 데이터 클래스
+     */
+    public record ImageDetailData(
+            String s3Key,
+            String fileName,
+            String contentType,
+            String actualImagePath
+    ) {}
 
     /**
      * 파일 내용의 magic bytes를 확인하여 이미지 포맷을 감지합니다.
@@ -153,26 +178,8 @@ public class ImageArtifactHandler implements ArtifactHandler {
 
     @Override
     public ArtifactDto toDto(ProductionArtifactDetailEntity detail) {
-        // 엔티티에 저장된 actualImagePath 사용 (엔티티 생성 시점에 미리 추출됨)
-        // DTO 매핑은 메모리 기반 연산만 수행하므로 S3 I/O가 발생하지 않습니다.
-        String actualImagePath = detail.getActualImagePath();
-        if (actualImagePath == null || actualImagePath.isBlank()) {
-            // 하위 호환성을 위해 actualImagePath가 없는 경우 s3Key 사용
-            actualImagePath = detail.getS3Key();
-        }
-        
-        String cdnUrl = artifactAccessService.generateCdnUrl(actualImagePath);
-        Map<String, String> thumbnailUrls = buildThumbnailUrls(detail.getMetadata());
-
-        return new ImageArtifactDto(
-                ArtifactType.IMAGE,
-                actualImagePath, // 실제 이미지 경로 사용
-                detail.getFileName(),
-                detail.getContentType(),
-                STORAGE_LOCATION_S3,
-                thumbnailUrls,
-                cdnUrl
-        );
+        return new org.example.sharedprompts.module.domain.production.service.artifact.mapper.ImageArtifactMapper(
+                artifactAccessService, objectMapper).toDto(detail);
     }
     
     /**
@@ -187,6 +194,7 @@ public class ImageArtifactHandler implements ArtifactHandler {
      */
     private String extractImagePathFromHtml(String htmlFilePath) {
         try {
+            // P1-3: S3 I/O (트랜잭션 안에서 실행됨)
             byte[] htmlContent = storageFacade.download(htmlFilePath);
             String html = new String(htmlContent, StandardCharsets.UTF_8);
             
@@ -225,9 +233,17 @@ public class ImageArtifactHandler implements ArtifactHandler {
             });
             Map<String, String> thumbnailUrls = new HashMap<>();
 
-            thumbnailKeys.forEach((size, key) ->
-                    thumbnailUrls.put(size, artifactAccessService.generatePreviewUrl(key))
-            );
+            // P1-4: batch presign URL 생성으로 개선 - 여러 thumbnail에 대한 URL을 일괄 생성
+            List<String> keys = thumbnailKeys.values().stream().toList();
+            Map<String, String> batchUrls = artifactAccessService.generatePreviewUrls(keys);
+            
+            // size를 키로 하는 맵으로 변환
+            thumbnailKeys.forEach((size, key) -> {
+                String url = batchUrls.get(key);
+                if (url != null) {
+                    thumbnailUrls.put(size, url);
+                }
+            });
 
             return thumbnailUrls.isEmpty() ? null : thumbnailUrls;
         } catch (Exception e) {

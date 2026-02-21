@@ -93,6 +93,9 @@ public class GroqTextAiClient implements TextAiClient {
         );
         
         // 공통 RetryExecutor를 사용하여 재시도 로직 실행
+        // P1-1: WebClient.block()은 calling thread를 블로킹함
+        // RabbitMQ consumer 스레드에서 실행되므로 스레드 점유 문제 발생 가능
+        // TODO: 장기적으로 reactive pipeline 전환 (P2-1)
         GroqChatResponse response = retryExecutor.executeWithRetry(
                 () -> {
                     String responseBody = getWebClient()
@@ -102,7 +105,7 @@ public class GroqTextAiClient implements TextAiClient {
                             .retrieve()
                             .bodyToMono(String.class)
                             .timeout(Duration.ofSeconds(properties.getTimeoutSeconds()))
-                            .block();
+                            .block(); // BLOCKING: Consumer thread is held during API call
                     
                     // 응답 파서를 사용하여 응답 처리
                     return responseParser.parseResponse(responseBody);

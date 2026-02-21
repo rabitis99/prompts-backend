@@ -10,6 +10,7 @@ import org.example.sharedprompts.module.domain.production.service.job.JobStateSe
 import org.example.sharedprompts.module.domain.production.service.job.process.JobProcessorDelegate;
 import org.example.sharedprompts.module.domain.production.service.job.queue.message.JobMessage;
 import org.example.sharedprompts.module.domain.production.service.job.queue.retry.ReactiveJobRetryService;
+import org.slf4j.MDC;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.messaging.handler.annotation.Header;
@@ -39,6 +40,9 @@ public class JobQueueConsumer {
         String jobId = message.getJobId();
         String tenantId = null;
 
+        // P2-3: MDC 키 표준화 - 로그 추적을 위해 jobId와 tenantId를 MDC에 설정
+        MDC.put("jobId", jobId);
+
         try {
             log.info("Consuming job message - jobId: {}, retryCount: {}/{}",
                     jobId, message.getRetryCount(), message.getMaxRetryCount());
@@ -54,6 +58,7 @@ public class JobQueueConsumer {
             tenantId = job.getTenantId();
             if (tenantId != null && !tenantId.isBlank()) {
                 TenantContext.setCurrentTenantId(tenantId);
+                MDC.put("tenantId", tenantId); // P2-3: tenantId를 MDC에 설정
                 log.debug("Tenant context set - jobId: {}, tenantId: {}", jobId, tenantId);
             }
 
@@ -66,6 +71,9 @@ public class JobQueueConsumer {
             handleJobProcessingException(jobId, message, e, channel, deliveryTag);
         } finally {
             TenantContext.clear();
+            // P2-3: MDC 정리
+            MDC.remove("jobId");
+            MDC.remove("tenantId");
         }
     }
 
@@ -90,15 +98,27 @@ public class JobQueueConsumer {
                 log.info("Scheduling retry - jobId: {}, retryCount: {}/{}",
                         jobId, message.getRetryCount(), message.getMaxRetryCount());
 
-                reactiveJobRetryService.scheduleRetry(message)
-                        .doOnSuccess(unused -> log.debug("Retry scheduled successfully - jobId: {}", jobId))
-                        .doOnError(error -> {
-                            log.error("Failed to schedule retry - jobId: {}", jobId, error);
-                            updateJobToFailed(jobId, "Retry scheduling failed: " + error.getMessage());
-                        })
-                        .subscribe();
-                
-                nackMessage(channel, deliveryTag, false);
+                // 재시도 전에 job을 FAILED 상태로 전이 (일관된 상태 보장)
+                updateJobToFailed(jobId, "Transient failure, scheduling retry: " + e.getMessage());
+
+                // P0-5: retry 발행 성공/실패 확정 후 ack/nack 수행 (fire-and-forget 금지)
+                try {
+                    reactiveJobRetryService.scheduleRetry(message)
+                            .doOnSuccess(unused -> log.debug("Retry scheduled successfully - jobId: {}", jobId))
+                            .doOnError(error -> {
+                                log.error("Failed to schedule retry - jobId: {}", jobId, error);
+                                // retry 발행 실패 시 FAILED 상태 유지 (이미 설정됨)
+                            })
+                            .block(); // P0-5: retry 발행 확정 후 nack
+
+                    // P2-2: retry 발행 성공 시 RETRYING 상태로 전이 (운영 가시성)
+                    jobStateService.markJobAsRetrying(jobId);
+                    nackMessage(channel, deliveryTag, false);
+                } catch (Exception retryException) {
+                    log.error("Exception during retry scheduling - jobId: {}", jobId, retryException);
+                    // retry 발행 실패 → FAILED 상태 유지, DLQ 이동
+                    nackMessage(channel, deliveryTag, false);
+                }
             }
         } catch (Exception handlerException) {
             log.error("Exception handler failed - jobId: {}", jobId, handlerException);

@@ -34,6 +34,9 @@ public class StorageLifecycleService {
     private static final String TAG_GLACIER = "glacier";
     private static final String TAG_DEEP_ARCHIVE = "deep-archive";
 
+    // P2-6: lifecycle 관련 설정을 @Value로 읽으며 기본값 의존
+    // 환경변수 미설정 시 기본값으로 동작하여 의도치 않은 lifecycle 전환 가능
+    // TODO: lifecycle 관련 설정을 @ConfigurationProperties로 이동하고 @Validated 적용
     public StorageLifecycleService(
             S3Client s3Client,
             @Value("${production.storage.s3.bucket}") String bucket,

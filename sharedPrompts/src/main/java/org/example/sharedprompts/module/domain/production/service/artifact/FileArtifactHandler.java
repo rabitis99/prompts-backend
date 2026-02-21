@@ -24,16 +24,7 @@ public class FileArtifactHandler implements ArtifactHandler {
 
     @Override
     public ArtifactDto toDto(ProductionArtifactDetailEntity detail) {
-        String s3Key = detail.getS3Key();
-        String cdnUrl = artifactAccessService.generateCdnUrl(s3Key);
-
-        return new FileArtifactDto(
-                ArtifactType.FILE,
-                s3Key,
-                detail.getFileName(),
-                detail.getContentType(),
-                STORAGE_LOCATION_S3,
-                cdnUrl
-        );
+        return new org.example.sharedprompts.module.domain.production.service.artifact.mapper.FileArtifactMapper(
+                artifactAccessService).toDto(detail);
     }
 }

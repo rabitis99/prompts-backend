@@ -8,6 +8,13 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
+/**
+ * P2-4: Job 레벨 메트릭만 존재. S3 호출 latency, AI 호출 latency, presigned URL 캐시 적중률 등 인프라 메트릭 부재.
+ * TODO: S3PresignedUrlService, LeonardoImageAiClient, ArtifactAccessServiceImpl에 Micrometer Timer 추가
+ * - S3 호출 latency: s3.operation.duration (tag: operation=download/upload/presign)
+ * - AI 호출 latency: ai.call.duration (tag: provider=leonardo/groq)
+ * - Presigned URL 캐시 적중률: presigned.url.cache.hit/miss
+ */
 @Component
 @RequiredArgsConstructor
 public class JobMetrics {

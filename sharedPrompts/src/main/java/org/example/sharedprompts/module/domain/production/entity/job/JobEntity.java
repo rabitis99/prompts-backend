@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.example.sharedprompts.global.entity.BaseEntity;
 import org.example.sharedprompts.module.domain.production.model.job.JobStatus;
+import org.example.sharedprompts.module.exception.BaseException;
+import org.example.sharedprompts.module.exception.ModuleErrorCode;
 
 import java.time.Instant;
 
@@ -93,8 +95,10 @@ public class JobEntity extends BaseEntity {
 
     public void start() {
         if (this.status != JobStatus.PENDING) {
-            throw new IllegalStateException(
-                String.format("Cannot start job: expected PENDING, but was %s", this.status)
+            throw new BaseException(
+                    ModuleErrorCode.JOB_INVALID_STATUS,
+                    null,
+                    String.format("Cannot start job: expected PENDING, but was %s", this.status)
             );
         }
         this.status = JobStatus.PROCESSING;
@@ -103,8 +107,10 @@ public class JobEntity extends BaseEntity {
 
     public void complete(String artifactId) {
         if (this.status != JobStatus.PROCESSING) {
-            throw new IllegalStateException(
-                String.format("Cannot complete job: expected PROCESSING, but was %s", this.status)
+            throw new BaseException(
+                    ModuleErrorCode.JOB_INVALID_STATUS,
+                    null,
+                    String.format("Cannot complete job: expected PROCESSING, but was %s", this.status)
             );
         }
         this.status = JobStatus.SUCCEEDED;
@@ -114,8 +120,10 @@ public class JobEntity extends BaseEntity {
 
     public void fail(String errorMessage) {
         if (this.status != JobStatus.PROCESSING) {
-            throw new IllegalStateException(
-                String.format("Cannot fail job: expected PROCESSING, but was %s", this.status)
+            throw new BaseException(
+                    ModuleErrorCode.JOB_INVALID_STATUS,
+                    null,
+                    String.format("Cannot fail job: expected PROCESSING, but was %s", this.status)
             );
         }
         this.status = JobStatus.FAILED;
@@ -125,8 +133,10 @@ public class JobEntity extends BaseEntity {
 
     public void retry() {
         if (this.status != JobStatus.FAILED) {
-            throw new IllegalStateException(
-                String.format("Cannot retry job: expected FAILED, but was %s", this.status)
+            throw new BaseException(
+                    ModuleErrorCode.JOB_INVALID_STATUS,
+                    null,
+                    String.format("Cannot retry job: expected FAILED, but was %s", this.status)
             );
         }
         this.status = JobStatus.PENDING;
@@ -137,6 +147,97 @@ public class JobEntity extends BaseEntity {
         this.retryCount++;
     }
 
+    /**
+     * P2-2: 메시지 레벨 retry 발행 성공 시 RETRYING 상태로 전이
+     * FAILED → RETRYING
+     */
+    public void markAsRetrying() {
+        if (this.status != JobStatus.FAILED) {
+            throw new BaseException(
+                    ModuleErrorCode.JOB_INVALID_STATUS,
+                    null,
+                    String.format("Cannot mark as retrying: expected FAILED, but was %s", this.status)
+            );
+        }
+        this.status = JobStatus.RETRYING;
+        this.retryCount++;
+    }
+
+    /**
+     * P2-2: RETRYING 상태의 job을 consumer가 소비할 때 PROCESSING으로 전이
+     * RETRYING → PROCESSING
+     */
+    public void startFromRetrying() {
+        if (this.status != JobStatus.RETRYING) {
+            throw new BaseException(
+                    ModuleErrorCode.JOB_INVALID_STATUS,
+                    null,
+                    String.format("Cannot start from retrying: expected RETRYING, but was %s", this.status)
+            );
+        }
+        this.status = JobStatus.PROCESSING;
+        this.startedAt = Instant.now();
+        this.errorMessage = null;
+        this.artifactId = null;
+    }
+
+    /**
+     * P3-1: AI/S3 호출 timeout 시 UNKNOWN 상태로 전이
+     * PROCESSING → UNKNOWN
+     * 즉시 재호출 금지 - UnknownJobRecoveryScheduler가 5분 주기로 복구
+     */
+    public void markAsUnknown(String reason) {
+        if (this.status != JobStatus.PROCESSING) {
+            throw new BaseException(
+                    ModuleErrorCode.JOB_INVALID_STATUS,
+                    null,
+                    String.format("Cannot mark as unknown: expected PROCESSING, but was %s", this.status)
+            );
+        }
+        this.status = JobStatus.UNKNOWN;
+        this.errorMessage = reason;
+    }
+
+    /**
+     * P3-1: 복구 스케줄러가 UNKNOWN → SUCCEEDED 전이
+     */
+    public void recoverAsSucceeded(String artifactId) {
+        if (this.status != JobStatus.UNKNOWN) {
+            throw new BaseException(
+                    ModuleErrorCode.JOB_INVALID_STATUS,
+                    null,
+                    String.format("Cannot recover as succeeded: expected UNKNOWN, but was %s", this.status)
+            );
+        }
+        this.status = JobStatus.SUCCEEDED;
+        this.artifactId = artifactId;
+        this.completedAt = Instant.now();
+        this.errorMessage = null;
+    }
+
+    /**
+     * P3-1: 복구 스케줄러가 UNKNOWN → FAILED 전이
+     */
+    public void recoverAsFailed(String errorMessage) {
+        if (this.status != JobStatus.UNKNOWN) {
+            throw new BaseException(
+                    ModuleErrorCode.JOB_INVALID_STATUS,
+                    null,
+                    String.format("Cannot recover as failed: expected UNKNOWN, but was %s", this.status)
+            );
+        }
+        this.status = JobStatus.FAILED;
+        this.errorMessage = errorMessage;
+        this.completedAt = Instant.now();
+    }
+
+    /**
+     * 멱등성 키 중복(DataIntegrityViolationException) 발생 후, 기존 FAILED job을 재시도 가능한 상태로 되돌립니다.
+     */
+    public void resetForIdempotencyRetry() {
+        retry();
+    }
+
     public boolean isCompleted() {
         return status == JobStatus.SUCCEEDED;
     }
@@ -145,8 +246,14 @@ public class JobEntity extends BaseEntity {
         return status == JobStatus.FAILED;
     }
 
+    /**
+     * P3-1: UNKNOWN은 isFinalState에 포함 — consumer가 재처리하지 않도록
+     * UnknownJobRecoveryScheduler가 별도로 복구 처리
+     */
     public boolean isFinalState() {
-        return status == JobStatus.SUCCEEDED || status == JobStatus.FAILED;
+        return status == JobStatus.SUCCEEDED
+                || status == JobStatus.FAILED
+                || status == JobStatus.UNKNOWN;
     }
 
     public boolean isProcessing() {
@@ -155,6 +262,14 @@ public class JobEntity extends BaseEntity {
 
     public boolean isPending() {
         return status == JobStatus.PENDING;
+    }
+
+    public boolean isRetrying() {
+        return status == JobStatus.RETRYING;
+    }
+
+    public boolean isUnknown() {
+        return status == JobStatus.UNKNOWN;
     }
 
     public void setArtifactId(String artifactId) {

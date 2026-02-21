@@ -2,8 +2,8 @@ package org.example.sharedprompts.module.domain.production.infra.storage;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.domain.production.config.properties.ProductionS3Properties;
 import org.example.sharedprompts.module.domain.production.infra.storage.exception.S3StorageException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -25,25 +25,44 @@ import java.time.Duration;
 public class S3PresignedUrlService {
 
     private final S3Presigner s3Presigner;
+    private final ProductionS3Properties productionS3Properties;
 
-    @Value("${production.storage.s3.bucket}")
-    private String bucket;
+    private String bucket() {
+        return productionS3Properties.getBucket();
+    }
 
-    @Value("${production.storage.s3.presigned-url.ttl-seconds:300}")
-    private int defaultTtlSeconds;
+    private int defaultTtlSeconds() {
+        return productionS3Properties.getPresignedUrl().getTtlSeconds();
+    }
 
     /**
      * 다운로드용 Presigned GET URL을 생성합니다.
      */
     public String generateDownloadUrl(String s3Key, Duration ttl) {
-        return generateDownloadUrl(s3Key, ttl, null);
+        return generateDownloadUrl(bucket(), s3Key, ttl, null);
     }
 
     /**
      * 다운로드용 Presigned GET URL을 생성합니다 (Content-Disposition 포함).
      */
     public String generateDownloadUrl(String s3Key, Duration ttl, String contentDisposition) {
+        return generateDownloadUrl(bucket(), s3Key, ttl, contentDisposition);
+    }
+
+    /**
+     * 다운로드용 Presigned GET URL을 생성합니다 (버킷 지정).
+     * <p>
+     * - 기존 코드의 "bucket을 외부에서 전달하는 presign 구현"을 단일 구현으로 흡수하기 위해 추가합니다.
+     * - 기존 시그니처는 변경하지 않고, 내부에서 이 메서드를 호출합니다.
+     */
+    public String generateDownloadUrl(String bucket, String s3Key, Duration ttl, String contentDisposition) {
         log.debug("Generating presigned download URL - bucket: {}, key: {}, ttl: {}", bucket, s3Key, ttl);
+        if (bucket == null || bucket.isBlank()) {
+            throw new S3StorageException("S3 bucket is not configured");
+        }
+        if (s3Key == null || s3Key.isBlank()) {
+            throw new S3StorageException("S3 key is blank");
+        }
         try {
             GetObjectRequest.Builder requestBuilder = GetObjectRequest.builder()
                     .bucket(bucket)
@@ -54,7 +73,7 @@ public class S3PresignedUrlService {
             }
             
             GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                    .signatureDuration(ttl != null ? ttl : Duration.ofSeconds(defaultTtlSeconds))
+                    .signatureDuration(ttl != null ? ttl : Duration.ofSeconds(defaultTtlSeconds()))
                     .getObjectRequest(requestBuilder.build())
                     .build();
             
@@ -70,7 +89,20 @@ public class S3PresignedUrlService {
      * 이미지 미리보기용 Presigned GET URL을 생성합니다 (inline).
      */
     public String generatePreviewUrl(String s3Key, Duration ttl) {
+        return generatePreviewUrl(bucket(), s3Key, ttl);
+    }
+
+    /**
+     * 이미지 미리보기용 Presigned GET URL을 생성합니다 (inline, 버킷 지정).
+     */
+    public String generatePreviewUrl(String bucket, String s3Key, Duration ttl) {
         log.debug("Generating presigned preview URL - bucket: {}, key: {}, ttl: {}", bucket, s3Key, ttl);
+        if (bucket == null || bucket.isBlank()) {
+            throw new S3StorageException("S3 bucket is not configured");
+        }
+        if (s3Key == null || s3Key.isBlank()) {
+            throw new S3StorageException("S3 key is blank");
+        }
         try {
             GetObjectRequest request = GetObjectRequest.builder()
                     .bucket(bucket)
@@ -79,7 +111,7 @@ public class S3PresignedUrlService {
                     .build();
             
             GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                    .signatureDuration(ttl != null ? ttl : Duration.ofSeconds(defaultTtlSeconds))
+                    .signatureDuration(ttl != null ? ttl : Duration.ofSeconds(defaultTtlSeconds()))
                     .getObjectRequest(request)
                     .build();
             
@@ -95,8 +127,21 @@ public class S3PresignedUrlService {
      * 업로드용 Presigned PUT URL을 생성합니다.
      */
     public String generateUploadUrl(String s3Key, String contentType, Duration ttl) {
-        log.debug("Generating presigned upload URL - bucket: {}, key: {}, contentType: {}, ttl: {}", 
+        return generateUploadUrl(bucket(), s3Key, contentType, ttl);
+    }
+
+    /**
+     * 업로드용 Presigned PUT URL을 생성합니다 (버킷 지정).
+     */
+    public String generateUploadUrl(String bucket, String s3Key, String contentType, Duration ttl) {
+        log.debug("Generating presigned upload URL - bucket: {}, key: {}, contentType: {}, ttl: {}",
                 bucket, s3Key, contentType, ttl);
+        if (bucket == null || bucket.isBlank()) {
+            throw new S3StorageException("S3 bucket is not configured");
+        }
+        if (s3Key == null || s3Key.isBlank()) {
+            throw new S3StorageException("S3 key is blank");
+        }
         try {
             PutObjectRequest request = PutObjectRequest.builder()
                     .bucket(bucket)
@@ -105,7 +150,7 @@ public class S3PresignedUrlService {
                     .build();
             
             PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                    .signatureDuration(ttl != null ? ttl : Duration.ofSeconds(defaultTtlSeconds))
+                    .signatureDuration(ttl != null ? ttl : Duration.ofSeconds(defaultTtlSeconds()))
                     .putObjectRequest(request)
                     .build();
             

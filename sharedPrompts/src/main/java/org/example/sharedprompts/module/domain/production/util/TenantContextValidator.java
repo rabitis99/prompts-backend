@@ -2,6 +2,8 @@ package org.example.sharedprompts.module.domain.production.util;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.model.tenant.TenantContext;
+import org.example.sharedprompts.module.exception.BaseException;
+import org.example.sharedprompts.module.exception.ModuleErrorCode;
 
 /**
  * 테넌트 컨텍스트 검증 유틸리티
@@ -21,7 +23,7 @@ public final class TenantContextValidator {
      * 
      * @param contextInfo 컨텍스트 정보 (예: jobId, operation name 등) - 로깅용
      * @return 검증된 tenant ID
-     * @throws IllegalStateException 테넌트 컨텍스트가 설정되지 않은 경우
+     * @throws BaseException 테넌트 컨텍스트가 설정되지 않은 경우 (ModuleErrorCode.VALIDATION_ERROR)
      */
     public static String requireTenantContext(String contextInfo) {
         String tenantId = TenantContext.getCurrentTenantId();
@@ -31,7 +33,9 @@ public final class TenantContextValidator {
                     "Please ensure X-Tenant-Id header is provided.",
                     contextInfo, Thread.currentThread().getName());
             log.error(errorMessage);
-            throw new IllegalStateException(
+            throw new BaseException(
+                    ModuleErrorCode.VALIDATION_ERROR,
+                    null,
                     "Tenant context is required but not set. X-Tenant-Id header must be provided. Context: " + contextInfo);
         }
         log.debug("Tenant context verified - context: {}, tenantId: {}", contextInfo, tenantId);
@@ -43,7 +47,7 @@ public final class TenantContextValidator {
      * 
      * @param jobId Job ID
      * @return 검증된 tenant ID
-     * @throws IllegalStateException 테넌트 컨텍스트가 설정되지 않은 경우
+     * @throws BaseException 테넌트 컨텍스트가 설정되지 않은 경우
      */
     public static String requireTenantContextForJob(String jobId) {
         return requireTenantContext("jobId: " + jobId);

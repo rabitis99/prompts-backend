@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.service.ai.config.properties.LeonardoProperties;
 import org.example.sharedprompts.module.domain.production.service.ai.exception.AiClientException;
+import org.example.sharedprompts.module.domain.production.service.ai.retry.AiPollingScheduler;
 import org.example.sharedprompts.module.domain.production.service.ai.retry.RetryExecutor;
 import org.example.sharedprompts.module.domain.production.service.ai.retry.RetryPolicy;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -40,24 +41,23 @@ public class LeonardoImageAiClient implements ImageAIClient {
     private final ObjectMapper objectMapper;
     private final RetryPolicy retryPolicy;
     private final RetryExecutor retryExecutor;
+    private final AiPollingScheduler pollingScheduler;
     
     private volatile WebClient webClient;
     
-    /**
-     * 생성자
-     * @Qualifier를 생성자 파라미터에 명시적으로 지정
-     */
     public LeonardoImageAiClient(
             LeonardoProperties properties,
             WebClient.Builder webClientBuilder,
             ObjectMapper objectMapper,
             @Qualifier("leonardoRetryPolicy") RetryPolicy retryPolicy,
-            RetryExecutor retryExecutor) {
+            RetryExecutor retryExecutor,
+            AiPollingScheduler pollingScheduler) {
         this.properties = properties;
         this.webClientBuilder = webClientBuilder;
         this.objectMapper = objectMapper;
         this.retryPolicy = retryPolicy;
         this.retryExecutor = retryExecutor;
+        this.pollingScheduler = pollingScheduler;
     }
     
     /**
@@ -173,6 +173,10 @@ public class LeonardoImageAiClient implements ImageAIClient {
                     request.getPrompt() != null ? request.getPrompt().length() : 0, 
                     request.getWidth(), request.getHeight());
             
+            // P1-1: WebClient.block()은 calling thread를 블로킹함
+            // RabbitMQ consumer 스레드에서 실행되므로 스레드 점유 문제 발생 가능
+            // TODO: 장기적으로 reactive pipeline 전환 (P2-1)
+            // 현재는 consumer의 prefetchCount를 AI executor의 thread pool 크기에 맞게 조정 필요
             String responseBody = getWebClient()
                     .post()
                     .uri(GENERATION_ENDPOINT)
@@ -180,7 +184,7 @@ public class LeonardoImageAiClient implements ImageAIClient {
                     .retrieve()
                     .bodyToMono(String.class)
                     .timeout(Duration.ofSeconds(properties.getTimeoutSeconds()))
-                    .block();
+                    .block(); // BLOCKING: Consumer thread is held during API call
             
             if (responseBody == null) {
                 throw new AiClientException("Leonardo API returned null response");
@@ -252,29 +256,28 @@ public class LeonardoImageAiClient implements ImageAIClient {
                     throw new AiClientException("Image generation failed");
                 }
                 
-                // 진행 중이면 대기 후 재시도
                 log.debug("Generation in progress - status: {}, waiting {}s", 
                         statusValue, properties.getPollingIntervalSeconds());
                 
                 try {
-                    Thread.sleep(pollInterval);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new AiClientException("Polling interrupted", ie);
+                    pollingScheduler.scheduleDelay(pollInterval).get();
+                } catch (Exception delayEx) {
+                    if (delayEx.getCause() instanceof InterruptedException) {
+                        Thread.currentThread().interrupt();
+                        throw new AiClientException("Polling interrupted", delayEx);
+                    }
+                    throw new AiClientException("Polling delay failed", delayEx);
                 }
                 
             } catch (Exception e) {
                 if (e instanceof AiClientException) {
-                    // AiClientException은 즉시 전파 (재시도 불가능한 오류)
                     throw e;
                 }
                 
-                // 비-AiClientException 예외는 연속 실패 카운터 증가
                 consecutiveFailures++;
                 log.warn("Error polling generation status (consecutive failures: {}/{}), retrying...", 
                         consecutiveFailures, maxConsecutiveFailures, e);
                 
-                // 연속 실패 횟수 초과 시 조기 중단
                 if (consecutiveFailures >= maxConsecutiveFailures) {
                     throw new AiClientException(
                             String.format("Polling failed after %d consecutive failures", 
@@ -282,10 +285,13 @@ public class LeonardoImageAiClient implements ImageAIClient {
                 }
                 
                 try {
-                    Thread.sleep(pollInterval);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new AiClientException("Polling interrupted", ie);
+                    pollingScheduler.scheduleDelay(pollInterval).get();
+                } catch (Exception delayEx) {
+                    if (delayEx.getCause() instanceof InterruptedException) {
+                        Thread.currentThread().interrupt();
+                        throw new AiClientException("Polling interrupted", delayEx);
+                    }
+                    throw new AiClientException("Polling delay failed", delayEx);
                 }
             }
         }
@@ -296,13 +302,15 @@ public class LeonardoImageAiClient implements ImageAIClient {
      */
     private LeonardoGenerationStatusResponse getGenerationStatus(String generationId) {
         try {
-            String responseBody = getWebClient()
-                    .get()
-                    .uri(GENERATION_STATUS_ENDPOINT, generationId)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(properties.getTimeoutSeconds()))
-                    .block();
+                // P1-1: WebClient.block()은 calling thread를 블로킹함
+                // RabbitMQ consumer 스레드에서 실행되므로 스레드 점유 문제 발생 가능
+                String responseBody = getWebClient()
+                        .get()
+                        .uri(GENERATION_STATUS_ENDPOINT, generationId)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(Duration.ofSeconds(properties.getTimeoutSeconds()))
+                        .block(); // BLOCKING: Consumer thread is held during API call
             
             if (responseBody == null) {
                 throw new AiClientException("Leonardo API returned null status response");

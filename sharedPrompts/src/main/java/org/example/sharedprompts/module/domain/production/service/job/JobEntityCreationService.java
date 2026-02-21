@@ -59,7 +59,9 @@ public class JobEntityCreationService {
         } catch (DataIntegrityViolationException e) {
             log.info("Duplicate idempotencyKey detected - idempotencyKey: {}", idempotencyKey);
 
-            JobEntity existingJob = jobRepository.findByIdempotencyKey(idempotencyKey)
+            // P0-1: Use pessimistic lock to prevent race condition when reading existing job
+            // This ensures we get the latest state even if another thread is modifying the job
+            JobEntity existingJob = jobRepository.findByIdempotencyKeyForUpdate(idempotencyKey)
                     .orElseThrow(() -> new IllegalStateException(
                             "Job with idempotencyKey not found after duplicate exception: " + idempotencyKey, e));
 

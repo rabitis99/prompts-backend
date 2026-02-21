@@ -23,6 +23,10 @@ public class S3Config {
         log.info("✓ S3Config is active - S3 storage type is configured");
     }
 
+    /**
+     * S3 클라이언트 빈. 애플리케이션 종료 시 Spring이 destroyMethod="close"로 자동 정리합니다.
+     * DEPLOYMENT_ISSUES 3.1: 리소스 정리는 close() 호출로 보장됨.
+     */
     @Bean(destroyMethod = "close")
     public S3Client s3Client(
             @Value("${spring.cloud.aws.credentials.access-key:${AWS_ACCESS_KEY_ID:}}") String accessKey,
@@ -53,6 +57,9 @@ public class S3Config {
         }
     }
 
+    /**
+     * S3 Presigner 빈. 애플리케이션 종료 시 Spring이 destroyMethod="close"로 자동 정리합니다.
+     */
     @Bean(destroyMethod = "close")
     public S3Presigner s3Presigner(
             @Value("${spring.cloud.aws.credentials.access-key:${AWS_ACCESS_KEY_ID:}}") String accessKey,

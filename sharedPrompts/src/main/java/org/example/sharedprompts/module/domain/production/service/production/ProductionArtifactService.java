@@ -13,6 +13,7 @@ import org.example.sharedprompts.module.domain.production.model.contract.result.
 import org.example.sharedprompts.module.domain.production.repository.production.ProductionArtifactRepository;
 import org.example.sharedprompts.module.domain.production.service.artifact.ArtifactHandler;
 import org.example.sharedprompts.module.domain.production.service.artifact.ArtifactHandlerRegistry;
+import org.example.sharedprompts.module.domain.production.service.artifact.ImageArtifactHandler;
 import org.example.sharedprompts.module.domain.production.service.image.ThumbnailService;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.example.sharedprompts.module.domain.production.util.TenantContextValidator;
@@ -31,11 +32,31 @@ public class ProductionArtifactService {
     private final ArtifactHandlerRegistry artifactHandlerRegistry;
     private final ThumbnailService thumbnailService;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW, timeout = 30)
+    /**
+     * P1-3: S3 I/O를 트랜잭션 밖에서 수행하기 위해 메서드를 분리
+     * prepareArtifactData()에서 S3 I/O 수행 후, createArtifactInTx()에서 엔티티 생성 및 저장
+     */
     public ProductionArtifactEntity createArtifact(
             JobEntity job,
             String s3Key
     ) {
+        // S3 I/O를 트랜잭션 밖에서 수행
+        ArtifactHandler handler = prepareArtifactHandler(job, s3Key);
+        ImageArtifactHandler.ImageDetailData detailData = null;
+        
+        if (handler instanceof ImageArtifactHandler imageHandler) {
+            // P1-3: S3 I/O를 트랜잭션 밖에서 수행
+            detailData = imageHandler.prepareDetailData(s3Key);
+        }
+        
+        // 트랜잭션 안에서 엔티티 생성 및 저장
+        return createArtifactInTx(job, s3Key, handler, detailData);
+    }
+
+    /**
+     * P1-3: S3 I/O를 포함한 artifact handler 준비 (트랜잭션 밖)
+     */
+    private ArtifactHandler prepareArtifactHandler(JobEntity job, String s3Key) {
         ProductionCommandType commandType;
         try {
             commandType = ProductionCommandType.valueOf(job.getCommandType());
@@ -49,31 +70,48 @@ public class ProductionArtifactService {
         }
 
         // 실제 파일의 contentType을 확인하여 올바른 handler 선택
-        // 파일명이나 파일 내용을 기반으로 contentType 추정
         String estimatedContentType = ArtifactMetadataHelper.determineContentType(s3Key);
         
-        // 실제 파일의 contentType을 기반으로 artifactType 결정
         ArtifactType artifactType;
         if (estimatedContentType != null && estimatedContentType.toLowerCase().startsWith("image/")) {
-            // 이미지 파일인 경우
             artifactType = ArtifactType.IMAGE;
         } else if (estimatedContentType != null && estimatedContentType.equals("text/plain")) {
-            // 텍스트 파일인 경우 (프롬프트 txt 등)
             artifactType = ArtifactType.FILE;
         } else {
-            // 기본값: commandType 기반으로 결정
             artifactType = ArtifactMetadataHelper.determineArtifactType(commandType);
         }
         
-        ArtifactHandler handler;
         try {
-            handler = artifactHandlerRegistry.getHandler(artifactType);
+            return artifactHandlerRegistry.getHandler(artifactType);
         } catch (IllegalArgumentException e) {
             log.error("No ArtifactHandler found for type: {}", artifactType, e);
             throw new BaseException(
                     ModuleErrorCode.VALIDATION_ERROR,
                     null,
                     "No ArtifactHandler found for type: " + artifactType,
+                    e);
+        }
+    }
+
+    /**
+     * P1-3: 트랜잭션 안에서 엔티티 생성 및 저장
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW, timeout = 30)
+    private ProductionArtifactEntity createArtifactInTx(
+            JobEntity job,
+            String s3Key,
+            ArtifactHandler handler,
+            ImageArtifactHandler.ImageDetailData detailData
+    ) {
+        ProductionCommandType commandType;
+        try {
+            commandType = ProductionCommandType.valueOf(job.getCommandType());
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid command type: {}", job.getCommandType(), e);
+            throw new BaseException(
+                    ModuleErrorCode.VALIDATION_ERROR,
+                    null,
+                    "Invalid command type: " + job.getCommandType(),
                     e);
         }
 
@@ -87,7 +125,16 @@ public class ProductionArtifactService {
                 commandType
         );
 
-        ProductionArtifactDetailEntity detail = handler.createDetail(s3Key);
+        // P1-3: S3 I/O는 이미 prepareArtifactHandler()에서 수행됨
+        // ImageArtifactHandler의 경우 prepareDetailData()를 먼저 호출하여 S3 I/O를 트랜잭션 밖에서 수행
+        ProductionArtifactDetailEntity detail;
+        if (handler instanceof ImageArtifactHandler imageHandler && detailData != null) {
+            // 트랜잭션 안에서 엔티티 생성 (S3 I/O는 이미 완료됨)
+            detail = imageHandler.createDetailFromData(detailData);
+        } else {
+            // 다른 핸들러는 기존 방식 유지 (향후 개선 필요)
+            detail = handler.createDetail(s3Key);
+        }
         
         String contentType = detail.getContentType();
         

@@ -18,7 +18,8 @@ public class JobRecoveryProperties {
     
     private List<JobStatus> recoverableStatuses = List.of(
         JobStatus.PENDING,
-        JobStatus.PROCESSING
+        JobStatus.PROCESSING,
+        JobStatus.UNKNOWN   // P3-1: timeout ambiguity 상태 - threshold 초과 시 FAILED로 전이
     );
 }
 

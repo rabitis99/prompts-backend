@@ -11,6 +11,7 @@ import org.example.sharedprompts.module.domain.production.repository.production.
 import org.example.sharedprompts.module.domain.production.service.job.process.JobProcessor;
 import org.example.sharedprompts.module.domain.production.service.job.queue.JobQueueService;
 import org.example.sharedprompts.module.domain.production.service.artifact.ArtifactHandlerRegistry;
+import org.example.sharedprompts.module.domain.production.service.production.access.ArtifactOwnershipValidator;
 import org.example.sharedprompts.module.dto.response.production.JobResponseDto;
 import org.example.sharedprompts.module.dto.response.production.JobResponseDtoMapper;
 import org.example.sharedprompts.module.dto.response.production.ProductionResponseDto;
@@ -32,6 +33,7 @@ public class ProductionResultApplicationService {
     private final JobQueueService jobQueueService;
     private final JobProcessor jobProcessor;
     private final ArtifactHandlerRegistry artifactHandlerRegistry;
+    private final ArtifactOwnershipValidator ownershipValidator;
 
     private Job getJobOrThrow(String jobId, Long userId) {
         Job job = jobQueueService.getJob(jobId);
@@ -57,10 +59,8 @@ public class ProductionResultApplicationService {
                             .findByIdWithDetail(productionId)
                             .orElseThrow(() -> new BaseException(ModuleErrorCode.PRODUCTION_NOT_FOUND));
                 });
-        
-        if (!artifact.getUserId().equals(userId)) {
-            throw new BaseException(ModuleErrorCode.PRODUCTION_FORBIDDEN);
-        }
+
+        ownershipValidator.validateProductionOwner(artifact, userId);
         
         // Job 정보 조회 (errorMessage, startedAt, completedAt, status를 위해)
         // ProductionArtifactEntity.jobId는 JobEntity.id (PK)를 참조

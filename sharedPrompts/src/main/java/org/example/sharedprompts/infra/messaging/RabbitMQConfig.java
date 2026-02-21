@@ -301,14 +301,21 @@ public class RabbitMQConfig {
                 .with(JOB_ROUTING_KEY);
     }
 
+    /**
+     * P1-1: Job Worker 전용 Container Factory
+     * - prefetchCount=1: AI 호출이 블로킹되므로 한 번에 하나씩만 처리
+     * - concurrentConsumers=3~10: AI executor의 thread pool 크기(aiCallTaskExecutor: core=10, max=50)와 조정 필요
+     * - WebClient.block()으로 인해 consumer 스레드가 블로킹되므로, prefetchCount를 낮게 유지하여 스레드 고갈 방지
+     * - TODO: WebClient.block() 제거 및 reactive pipeline 전환 시 prefetchCount 증가 가능 (P2-1)
+     */
     @Bean("jobWorkerContainerFactory")
     public SimpleRabbitListenerContainerFactory jobWorkerContainerFactory(ConnectionFactory connectionFactory) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
         factory.setMessageConverter(jsonMessageConverter());
-        factory.setPrefetchCount(1);
+        factory.setPrefetchCount(1); // P1-1: AI 호출 블로킹으로 인해 낮게 유지
         factory.setConcurrentConsumers(3);
-        factory.setMaxConcurrentConsumers(10);
+        factory.setMaxConcurrentConsumers(10); // P1-1: aiCallTaskExecutor의 max(50)보다 낮게 설정하여 여유 확보
         factory.setDefaultRequeueRejected(false);
         factory.setAcknowledgeMode(org.springframework.amqp.core.AcknowledgeMode.MANUAL);
         return factory;

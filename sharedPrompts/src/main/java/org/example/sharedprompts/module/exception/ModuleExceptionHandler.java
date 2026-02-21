@@ -54,10 +54,9 @@ public class ModuleExceptionHandler {
 
     /**
      * IllegalStateException을 처리합니다.
-     * 
-     * TODO: 이 핸들러는 예외 메시지 문자열 매칭에 의존하므로 깨지기 쉽습니다.
-     * 가능하다면 IllegalStateException 대신 처음부터 적절한 BaseException 하위 타입
-     * (예: JobInvalidStatusException)을 던지도록 발생 지점을 리팩터링하는 것이 더 안전합니다.
+     * Job 상태 전이 오류는 이미 {@link org.example.sharedprompts.module.domain.production.service.job.state.JobStateMachine}에서
+     * BaseException(JOB_INVALID_STATUS)으로 던지므로, 이 핸들러는 그 외 IllegalStateException(예: Job not found, 설정 오류)용입니다.
+     * 예외 메시지로 JOB_INVALID_STATUS 후보를 구분하며, 나머지는 VALIDATION_ERROR로 매핑합니다.
      */
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ModuleResponse<Void>> handleIllegalStateException(IllegalStateException e) {
@@ -77,7 +76,7 @@ public class ModuleExceptionHandler {
             baseException = new BaseException(
                     ModuleErrorCode.VALIDATION_ERROR,
                     null,
-                    "요청을 처리할 수 없는 상태입니다: " + message
+                    "요청을 처리할 수 없는 상태입니다: " + (message != null ? message : e.toString())
             );
         }
         return ResponseEntity
