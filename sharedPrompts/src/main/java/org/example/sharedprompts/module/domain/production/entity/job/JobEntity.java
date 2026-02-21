@@ -75,6 +75,10 @@ public class JobEntity extends BaseEntity {
     @Column(name = "artifact_id", length = 50)
     private String artifactId;
 
+    /**
+     * 재시도 횟수. 메시지 레벨 재시도(markAsRetrying)와 수동 복구(retry) 모두에서 증가합니다.
+     * 한 실패 사이클에서 두 경로가 겹치지 않지만, 생명주기 전체로 보면 둘 다 반영된 총 시도 횟수입니다.
+     */
     @Column(name = "retry_count", nullable = false)
     @Builder.Default
     private Integer retryCount = 0;
@@ -131,6 +135,10 @@ public class JobEntity extends BaseEntity {
         this.completedAt = Instant.now();
     }
 
+    /**
+     * P2-2: 수동 복구 시 FAILED → PENDING. retryCount 증가.
+     * markAsRetrying()은 메시지 레벨 재시도 발행 시 호출되며, retry()는 복구 스케줄러 등에서 호출됩니다.
+     */
     public void retry() {
         if (this.status != JobStatus.FAILED) {
             throw new BaseException(

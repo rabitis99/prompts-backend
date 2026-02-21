@@ -109,11 +109,12 @@ public class JobQueueConsumer {
                                 log.error("Failed to schedule retry - jobId: {}", jobId, error);
                                 // retry 발행 실패 시 FAILED 상태 유지 (이미 설정됨)
                             })
-                            .block(); // P0-5: retry 발행 확정 후 nack
+                            .block(java.time.Duration.ofSeconds(30)); // timeout to avoid consumer thread stuck
 
                     // P2-2: retry 발행 성공 시 RETRYING 상태로 전이 (운영 가시성)
                     jobStateService.markJobAsRetrying(jobId);
-                    nackMessage(channel, deliveryTag, false);
+                    // Retry가 새 메시지로 발행되었으므로 원본 메시지는 ack하여 큐에서 제거 (nack 시 DLQ로 감)
+                    acknowledgeMessage(channel, deliveryTag);
                 } catch (Exception retryException) {
                     log.error("Exception during retry scheduling - jobId: {}", jobId, retryException);
                     // retry 발행 실패 → FAILED 상태 유지, DLQ 이동

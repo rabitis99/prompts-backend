@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS production_job_outbox (
     id BIGINT NOT NULL AUTO_INCREMENT,
     job_id VARCHAR(36) NOT NULL COMMENT 'Job ID (production_jobs.job_id)',
     max_retry_count INT NOT NULL DEFAULT 3 COMMENT '메시지 maxRetryCount',
+    retry_count INT NOT NULL DEFAULT 0 COMMENT '현재까지 발행 시도 횟수 (재시도 제한 적용용)',
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING, SENT, FAILED',
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     sent_at DATETIME(6) NULL COMMENT '발행 완료 시각',

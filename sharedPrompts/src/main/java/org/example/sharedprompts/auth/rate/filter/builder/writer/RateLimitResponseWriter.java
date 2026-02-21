@@ -50,6 +50,9 @@ public final class RateLimitResponseWriter {
         if (result == null) {
             throw new IllegalArgumentException("RateLimitResult cannot be null");
         }
+        if (rule == null) {
+            throw new IllegalArgumentException("RateLimitRule cannot be null");
+        }
         
         // RateLimit details 생성 (요구사항: details 필드)
         // 헤더와 동일한 reset timestamp를 사용하여 일관성 유지

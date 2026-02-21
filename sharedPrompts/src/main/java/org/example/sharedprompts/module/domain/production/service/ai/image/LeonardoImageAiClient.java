@@ -261,6 +261,9 @@ public class LeonardoImageAiClient implements ImageAIClient {
                 
                 try {
                     pollingScheduler.scheduleDelay(pollInterval).get();
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new AiClientException("Polling interrupted", ie);
                 } catch (Exception delayEx) {
                     if (delayEx.getCause() instanceof InterruptedException) {
                         Thread.currentThread().interrupt();
@@ -286,6 +289,9 @@ public class LeonardoImageAiClient implements ImageAIClient {
                 
                 try {
                     pollingScheduler.scheduleDelay(pollInterval).get();
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new AiClientException("Polling interrupted", ie);
                 } catch (Exception delayEx) {
                     if (delayEx.getCause() instanceof InterruptedException) {
                         Thread.currentThread().interrupt();

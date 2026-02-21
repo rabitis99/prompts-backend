@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class JobEntityCreationService {
 
     private final JobRepository jobRepository;
+    private final JobEntityPersistenceService persistenceService;
     private final ObjectMapper objectMapper;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -50,7 +51,9 @@ public class JobEntityCreationService {
                     tenantId
             );
 
-            JobEntity savedJob = jobRepository.save(job);
+            // Save in separate transaction so constraint violation only aborts that transaction
+            // (PostgreSQL-compatible: caller transaction remains valid for findByIdempotencyKeyForUpdate)
+            JobEntity savedJob = persistenceService.saveInNewTransaction(job);
             log.info("Job created - jobId: {}, idempotencyKey: {}",
                     savedJob.getJobId(), idempotencyKey);
 

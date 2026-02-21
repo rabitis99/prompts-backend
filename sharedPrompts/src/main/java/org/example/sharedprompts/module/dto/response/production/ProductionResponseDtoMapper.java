@@ -42,7 +42,7 @@ public final class ProductionResponseDtoMapper {
             status = switch (jobStatus) {
                 case SUCCEEDED -> ProductionStatus.SUCCEEDED;
                 case FAILED -> ProductionStatus.FAILED;
-                case PENDING, PROCESSING -> ProductionStatus.PROCESSING;
+                case PENDING, RETRYING, PROCESSING, UNKNOWN -> ProductionStatus.PROCESSING;
             };
             
             errorMessage = job.getErrorMessage();

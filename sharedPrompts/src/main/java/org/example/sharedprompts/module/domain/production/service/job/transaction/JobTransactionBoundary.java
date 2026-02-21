@@ -1,6 +1,5 @@
 package org.example.sharedprompts.module.domain.production.service.job.transaction;
 
-import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
 import org.example.sharedprompts.module.domain.production.repository.job.JobRepository;
 import org.springframework.stereotype.Service;
@@ -12,12 +11,12 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 @Service
-@RequiredArgsConstructor
 public class JobTransactionBoundary {
-    
+
     private final JobRepository jobRepository;
     private final TransactionTemplate transactionTemplate;
-    
+
+    /** Explicit constructor: REQUIRES_NEW + timeout=30. Do not replace with @RequiredArgsConstructor. */
     public JobTransactionBoundary(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
         this.jobRepository = jobRepository;
         this.transactionTemplate = new TransactionTemplate(transactionManager);

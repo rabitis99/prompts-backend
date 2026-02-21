@@ -1,6 +1,5 @@
 package org.example.sharedprompts.module.domain.production.service.artifact;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,9 +14,6 @@ import org.example.sharedprompts.module.dto.response.production.ImageArtifactDto
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -209,45 +205,6 @@ public class ImageArtifactHandler implements ArtifactHandler {
             return null;
         } catch (Exception e) {
             log.error("Failed to extract image path from HTML - filePath: {}", htmlFilePath, e);
-            return null;
-        }
-    }
-
-    private Map<String, String> buildThumbnailUrls(String metadataJson) {
-        if (metadataJson == null || metadataJson.isBlank()) {
-            return null;
-        }
-
-        try {
-            Map<String, Object> metadata = objectMapper.readValue(metadataJson, new TypeReference<>() {});
-            Object thumbnails = metadata.get("thumbnails");
-            if (!(thumbnails instanceof Map)) {
-                return null;
-            }
-
-            Map<String, String> thumbnailKeys = new HashMap<>();
-            ((Map<?, ?>) thumbnails).forEach((k, v) -> {
-                if (k instanceof String && v instanceof String) {
-                    thumbnailKeys.put((String) k, (String) v);
-                }
-            });
-            Map<String, String> thumbnailUrls = new HashMap<>();
-
-            // P1-4: batch presign URL 생성으로 개선 - 여러 thumbnail에 대한 URL을 일괄 생성
-            List<String> keys = thumbnailKeys.values().stream().toList();
-            Map<String, String> batchUrls = artifactAccessService.generatePreviewUrls(keys);
-            
-            // size를 키로 하는 맵으로 변환
-            thumbnailKeys.forEach((size, key) -> {
-                String url = batchUrls.get(key);
-                if (url != null) {
-                    thumbnailUrls.put(size, url);
-                }
-            });
-
-            return thumbnailUrls.isEmpty() ? null : thumbnailUrls;
-        } catch (Exception e) {
-            log.warn("Failed to parse thumbnail metadata", e);
             return null;
         }
     }

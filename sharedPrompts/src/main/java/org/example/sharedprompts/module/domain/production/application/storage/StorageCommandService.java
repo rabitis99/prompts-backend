@@ -27,7 +27,7 @@ public class StorageCommandService {
 
     /**
      * 업로드용 Presigned URL 생성
-     * TTL은 S3PresignedUrlService의 기본값을 사용합니다.
+     * TTL은 PresignedUrlService의 기본값을 사용합니다.
      * 비동기 컨텍스트 등에서 tenantId가 null일 수 있습니다.
      */
     public String generateUploadPresignedUrl(Long userId, String jobId, String fileName, String contentType) {
@@ -47,7 +47,7 @@ public class StorageCommandService {
      */
     public String generateDownloadPresignedUrl(Long artifactId, Long userId) {
         String s3Key = resolveS3KeyWithOwnerCheck(artifactId, userId);
-        // TTL은 S3PresignedUrlService의 기본값을 사용합니다.
+        // TTL은 PresignedUrlService의 기본값을 사용합니다.
         return presignedUrlService.generateDownloadUrlByKey(s3Key, null);
     }
 
@@ -57,7 +57,7 @@ public class StorageCommandService {
      */
     public String generatePreviewPresignedUrl(Long artifactId, Long userId) {
         String s3Key = resolveS3KeyWithOwnerCheck(artifactId, userId);
-        // TTL은 S3PresignedUrlService의 기본값을 사용합니다.
+        // TTL은 PresignedUrlService의 기본값을 사용합니다.
         return presignedUrlService.generatePreviewUrlByKey(s3Key, null);
     }
 

@@ -17,7 +17,9 @@ public class JobFailureHandler {
     private final FailureEscalationPolicy escalationPolicy;
     
     public void handleFailure(String jobId, String commandType, String failureReason, Exception exception) {
-        String errorMessage = exception != null ? exception.getMessage() : failureReason;
+        String errorMessage = exception != null && exception.getMessage() != null
+                ? exception.getMessage()
+                : failureReason;
         jobStateService.saveJobFailure(jobId, errorMessage);
         
         metricsRecorder.recordFailure(jobId, commandType, failureReason);

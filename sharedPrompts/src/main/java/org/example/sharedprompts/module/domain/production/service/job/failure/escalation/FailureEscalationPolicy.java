@@ -13,6 +13,10 @@ public class FailureEscalationPolicy {
             "INVALID_INPUT"
     );
     
+    /**
+     * @param jobId reserved for future per-job or per-tenant policy
+     * @param failureReason reason code to classify as permanent or retriable
+     */
     public boolean isPermanentFailure(String jobId, String failureReason) {
         return PERMANENT_FAILURE_REASONS.contains(failureReason);
     }

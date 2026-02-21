@@ -35,6 +35,10 @@ public class JobOutboxEntity {
     @Column(name = "max_retry_count", nullable = false)
     private Integer maxRetryCount;
 
+    @Column(name = "retry_count", nullable = false)
+    @Builder.Default
+    private Integer retryCount = 0;
+
     @Column(name = "status", nullable = false, length = 20)
     private String status;
 

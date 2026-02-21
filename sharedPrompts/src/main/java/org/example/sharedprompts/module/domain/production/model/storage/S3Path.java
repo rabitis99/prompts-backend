@@ -12,12 +12,19 @@ public record S3Path(String bucket, String key) {
         if (key == null || key.isBlank()) {
             throw new IllegalArgumentException("S3 key must not be blank");
         }
+        key = key.endsWith("/") ? key.substring(0, key.length() - 1) : key;
+        if (key.isBlank()) {
+            throw new IllegalArgumentException("S3 key must not be blank after normalization");
+        }
     }
 
     public boolean hasBucket() {
         return bucket != null && !bucket.isBlank();
     }
 
+    /**
+     * Returns the segment after the last '/'. After constructor normalization, key does not end with '/'.
+     */
     public String fileName() {
         int lastSlash = key.lastIndexOf('/');
         return (lastSlash >= 0 && lastSlash < key.length() - 1) ? key.substring(lastSlash + 1) : key;

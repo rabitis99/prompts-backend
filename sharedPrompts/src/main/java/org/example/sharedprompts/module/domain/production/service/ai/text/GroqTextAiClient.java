@@ -106,7 +106,9 @@ public class GroqTextAiClient implements TextAiClient {
                             .bodyToMono(String.class)
                             .timeout(Duration.ofSeconds(properties.getTimeoutSeconds()))
                             .block(); // BLOCKING: Consumer thread is held during API call
-                    
+                    if (responseBody == null) {
+                        throw new AiClientException("Groq API returned empty response body (e.g. 204 or empty 2xx)");
+                    }
                     // 응답 파서를 사용하여 응답 처리
                     return responseParser.parseResponse(responseBody);
                 },

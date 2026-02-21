@@ -1,5 +1,6 @@
 package org.example.sharedprompts.module.domain.production.service.production;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -12,15 +13,18 @@ public interface ArtifactAccessService {
     /**
      * P1-4: 여러 파일 경로에 대한 Presigned URL을 일괄 생성
      * Redis 캐시를 효율적으로 활용하여 목록 조회 시 성능 개선
-     * 
-     * @param filePaths 파일 경로 목록
+     *
+     * @param filePaths 파일 경로 목록 (null이면 빈 맵 반환)
      * @return 파일 경로를 키로 하는 Presigned URL 맵
      */
     default Map<String, String> generatePreviewUrls(List<String> filePaths) {
+        if (filePaths == null || filePaths.isEmpty()) {
+            return Collections.emptyMap();
+        }
         return filePaths.stream()
                 .collect(java.util.stream.Collectors.toMap(
                         path -> path,
-                        this::generatePreviewUrl,
+                        path -> generatePreviewUrl(path),
                         (existing, replacement) -> existing
                 ));
     }

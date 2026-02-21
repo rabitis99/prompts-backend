@@ -2,8 +2,6 @@ package org.example.sharedprompts.module.exception.translator;
 
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.module.domain.production.infra.storage.exception.S3StorageException;
-import org.example.sharedprompts.module.domain.production.service.ai.exception.AiClientException;
 import org.example.sharedprompts.module.exception.BaseException;
 import org.example.sharedprompts.module.exception.ModuleErrorCode;
 import org.springframework.stereotype.Component;
@@ -23,14 +21,6 @@ public class ModuleExceptionTranslator implements ExceptionTranslator {
 
         if (t instanceof BaseException be) {
             return be;
-        }
-
-        if (t instanceof S3StorageException) {
-            return new BaseException(ModuleErrorCode.STORAGE_ERROR, t);
-        }
-
-        if (t instanceof AiClientException) {
-            return new BaseException(ModuleErrorCode.AI_CLIENT_ERROR, t);
         }
 
         if (t instanceof CallNotPermittedException) {

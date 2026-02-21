@@ -40,7 +40,7 @@ public class UnknownJobRecoveryHandler implements JobRecoveryHandler {
         String failureReason = String.format(
                 "UNKNOWN state timeout: job exceeded recovery threshold. " +
                 "Check AI provider console for actual result. Original reason: %s",
-                job.getErrorMessage()
+                job.getErrorMessage() != null ? job.getErrorMessage() : "N/A"
         );
 
         jobStateService.recoverUnknownJobAsFailed(job.getJobId(), failureReason);

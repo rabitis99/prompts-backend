@@ -8,6 +8,7 @@ import org.example.sharedprompts.module.domain.production.repository.job.JobRepo
 import org.example.sharedprompts.module.domain.production.service.job.helper.JobUpdateHelper;
 import org.example.sharedprompts.module.domain.production.service.job.state.JobStateMachine;
 import org.example.sharedprompts.module.domain.production.service.job.process.exception.JobProcessingException;
+import org.example.sharedprompts.module.exception.BaseException;
 import org.example.sharedprompts.module.domain.production.service.production.ProductionArtifactService;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.example.sharedprompts.module.exception.ModuleErrorCode;
@@ -95,7 +96,7 @@ public class JobStateService {
         try {
             jobUpdateHelper.updateJob(jobId, job -> stateMachine.fail(job, errorMessage));
             log.info("Job failure saved - jobId: {}, error: {}", jobId, errorMessage);
-        } catch (JobProcessingException e) {
+        } catch (BaseException e) {
             if (e.getErrorCode() == ModuleErrorCode.JOB_INVALID_STATUS ||
                 e.getErrorCode() == ModuleErrorCode.JOB_ALREADY_COMPLETED ||
                 e.getErrorCode() == ModuleErrorCode.JOB_ALREADY_FAILED) {
@@ -117,7 +118,7 @@ public class JobStateService {
         try {
             jobUpdateHelper.updateJob(jobId, job -> stateMachine.markAsUnknown(job, reason));
             log.warn("Job marked as UNKNOWN (timeout ambiguity) - jobId: {}, reason: {}", jobId, reason);
-        } catch (JobProcessingException e) {
+        } catch (BaseException e) {
             if (e.getErrorCode() == ModuleErrorCode.JOB_INVALID_STATUS) {
                 log.warn("Could not mark job as UNKNOWN (invalid state transition) - jobId: {}", jobId);
             } else {
@@ -136,7 +137,7 @@ public class JobStateService {
         try {
             jobUpdateHelper.updateJob(jobId, job -> stateMachine.markAsRetrying(job));
             log.info("Job marked as RETRYING - jobId: {}", jobId);
-        } catch (JobProcessingException e) {
+        } catch (BaseException e) {
             if (e.getErrorCode() == ModuleErrorCode.JOB_INVALID_STATUS) {
                 log.warn("Could not mark job as RETRYING (invalid state) - jobId: {}", jobId);
             } else {
@@ -154,7 +155,7 @@ public class JobStateService {
         try {
             jobUpdateHelper.updateJob(jobId, job -> stateMachine.recoverAsFailed(job, reason));
             log.warn("UNKNOWN job recovered as FAILED - jobId: {}", jobId);
-        } catch (JobProcessingException e) {
+        } catch (BaseException e) {
             if (e.getErrorCode() == ModuleErrorCode.JOB_INVALID_STATUS) {
                 log.warn("Could not recover UNKNOWN job as FAILED (invalid state) - jobId: {}", jobId);
             } else {
@@ -165,9 +166,23 @@ public class JobStateService {
         }
     }
 
+    /**
+     * FAILED job을 PENDING으로 전이 후 재처리 가능하게 합니다.
+     * JOB_INVALID_STATUS 등은 경고 로그만 남기고, 그 외 예외는 호출자에게 전파합니다.
+     */
     public void retryJob(String jobId) {
-        jobUpdateHelper.updateJob(jobId, job -> stateMachine.retry(job));
-        log.info("Job retried - jobId: {}", jobId);
+        try {
+            jobUpdateHelper.updateJob(jobId, job -> stateMachine.retry(job));
+            log.info("Job retried - jobId: {}", jobId);
+        } catch (BaseException e) {
+            if (e.getErrorCode() == ModuleErrorCode.JOB_INVALID_STATUS) {
+                log.warn("Could not retry job (invalid state) - jobId: {}", jobId);
+            } else {
+                throw e;
+            }
+        } catch (IllegalStateException e) {
+            log.warn("Could not retry job - jobId: {}, error: {}", jobId, e.getMessage());
+        }
     }
 
     @Transactional(readOnly = true)

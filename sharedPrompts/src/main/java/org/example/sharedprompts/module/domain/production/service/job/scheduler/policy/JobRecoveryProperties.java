@@ -14,6 +14,7 @@ import java.util.List;
 @ConfigurationProperties(prefix = "job.recovery")
 public class JobRecoveryProperties {
     
+    private int maxRetryCount = 3;
     private int staleJobThresholdMinutes = 30;
     
     private List<JobStatus> recoverableStatuses = List.of(

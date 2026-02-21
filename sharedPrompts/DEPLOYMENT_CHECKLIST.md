@@ -10,9 +10,8 @@
 
 ### 확인 방법
 
-- **Flyway 사용 시**: `db/migration/` 경로가 Flyway `locations`에 포함되어 있고, Outbox 마이그레이션이 버전 순서에 맞게 적용되도록 파일명 규칙을 지킨다.  
-  - 현재 스크립트: `src/main/resources/db/migration/outbox.sql`
-- **Flyway 미사용 시**: 배포 전에 **수동으로** 아래 SQL을 대상 DB에서 1회 실행한다.
+- **Flyway 미사용 (현재)**: 이 프로젝트에는 Flyway 의존성이 없습니다. 배포 전에 **수동으로** 아래 SQL을 대상 DB에서 1회 실행한다.
+- **Flyway 도입 시**: Flyway 의존성 추가 후 `db/migration/`에 `V1__add_outbox_table.sql` 등 버전 규칙을 따르는 파일로 마이그레이션을 관리한다.
 
 ### 적용할 SQL
 
@@ -73,6 +72,10 @@ COMMENT='Job 큐 발행용 Transactional Outbox - 동일 TX 기록 후 비동기
 - `HIKARI_MAXIMUM_POOL_SIZE`: 미설정 시 기본값 사용 경고 (예: 50으로 설정 권장).
 
 **검증**: 앱 기동 시 `EnvironmentValidator`가 실행되며, 누락 시 **기동이 실패**합니다.
+
+### 로컬 개발 시 Storage
+
+`production.storage.type` 기본값은 **S3**입니다. 로컬에서 S3를 사용하지 않으려면 `PRODUCTION_STORAGE_TYPE`을 다른 값으로 재정의하거나, S3를 사용할 경우 `AWS_S3_BUCKET` 등 필요한 환경 변수를 설정하세요. 타입만 S3로 두고 버킷을 비우면 바인딩/검증 단계에서 조기 실패합니다.
 
 ### 체크
 

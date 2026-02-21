@@ -71,7 +71,9 @@ public class PresignedUrlService {
         PresignedStrategy strategy = presignedStrategyResolver.resolve(contentType);
 
         S3Path location = S3PathUtils.tryParse(artifact.getS3Key(), productionS3Properties.getBucket()).orElse(null);
-        if (location == null || location.bucket() == null || location.bucket().isBlank()) {
+        if (location == null
+                || location.bucket() == null || location.bucket().isBlank()
+                || location.key() == null || location.key().isBlank()) {
             log.warn("Failed to parse S3 path for artifact - artifactId: {}, s3Key: {}",
                     artifact.getId(), artifact.getS3Key());
             return null;

@@ -94,6 +94,7 @@ UPDATE production_jobs
 SET
     status = 'PENDING',
     started_at = NULL,
+    completed_at = NULL,
     error_message = 'Migration: RETRYING state reset to PENDING (server restart detected)',
     version = version + 1,
     updated_at = NOW()

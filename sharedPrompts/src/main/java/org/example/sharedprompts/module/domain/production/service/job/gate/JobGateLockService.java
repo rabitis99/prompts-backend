@@ -34,7 +34,7 @@ public class JobGateLockService {
      *
      * @param tenantId 테넌트 ID (멀티테넌트 스코프)
      * @param jobId    Job ID
-     * @return 락 획득 성공 시 true, 실패 또는 비활성화 시 false
+     * @return 락 획득 성공 또는 비활성화 시 true, 획득 실패 시 false
      */
     public boolean tryLock(String tenantId, String jobId) {
         if (!enabled) {

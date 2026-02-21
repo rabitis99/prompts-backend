@@ -37,7 +37,7 @@ public class S3HealthIndicator extends AbstractHealthIndicator {
             log.warn("S3 health check failed - bucket: {}", bucket, e);
             builder.down()
                     .withDetail("bucket", bucket)
-                    .withException(e);
+                    .withDetail("error", e.getMessage());
         }
     }
 }

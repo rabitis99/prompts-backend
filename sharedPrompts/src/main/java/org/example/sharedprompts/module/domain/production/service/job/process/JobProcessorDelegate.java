@@ -93,12 +93,16 @@ public class JobProcessorDelegate {
             }
         } catch (AIServiceException e) {
             exceptionHandler.handleAIException(jobId, "UNKNOWN", e);
+            throw e;
         } catch (ContentRenderException e) {
             exceptionHandler.handleRenderException(jobId, "UNKNOWN", e);
+            throw e;
         } catch (StorageException e) {
             exceptionHandler.handleStorageException(jobId, "UNKNOWN", e);
+            throw e;
         } catch (Exception e) {
             exceptionHandler.handleGeneralException(jobId, "UNKNOWN", e);
+            throw e;
         }
     }
 
@@ -147,12 +151,16 @@ public class JobProcessorDelegate {
             log.info("Job completed successfully - jobId: {}, duration: {}ms", jobId, duration.toMillis());
         } catch (AIServiceException e) {
             exceptionHandler.handleAIException(jobId, commandType, e);
+            throw e;
         } catch (ContentRenderException e) {
             exceptionHandler.handleRenderException(jobId, commandType, e);
+            throw e;
         } catch (StorageException e) {
             exceptionHandler.handleStorageException(jobId, commandType, e);
+            throw e;
         } catch (Exception e) {
             exceptionHandler.handleGeneralException(jobId, commandType, e);
+            throw e;
         }
     }
 }
