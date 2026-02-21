@@ -5,7 +5,6 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.example.sharedprompts.auth.rate.RateLimiter;
 import org.example.sharedprompts.auth.rate.policy.RateLimitRule;
-import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Instant;
 
@@ -48,27 +47,6 @@ public final class RateLimitHeaderUtil {
     }
 
     /**
-     * RateLimit 헤더를 응답에 추가합니다 (하위 호환성용).
-     * 
-     * @deprecated 사용되지 않는 파라미터를 제거한 버전을 사용하세요.
-     * @param response HttpServletResponse
-     * @param rule RateLimitRule
-     * @param result RateLimitResult (null 가능 - 헤더만 추가)
-     * @param redisTemplate RedisTemplate (사용하지 않음)
-     * @param rateLimitKey Redis 키 (사용하지 않음)
-     */
-    @Deprecated
-    public static void addRateLimitHeaders(
-            HttpServletResponse response,
-            RateLimitRule rule,
-            RateLimiter.RateLimitResult result,
-            RedisTemplate<String, Object> redisTemplate,
-            String rateLimitKey
-    ) {
-        addRateLimitHeaders(response, rule, result);
-    }
-
-    /**
      * RateLimit 초과 시 헤더를 추가합니다 (429 에러용).
      * 
      * @param response HttpServletResponse
@@ -84,27 +62,6 @@ public final class RateLimitHeaderUtil {
 
         long retryAfter = result.getRetryAfter(1L);
         response.setHeader(HEADER_RETRY_AFTER, String.valueOf(retryAfter));
-    }
-
-    /**
-     * RateLimit 초과 시 헤더를 추가합니다 (429 에러용, 하위 호환성용).
-     * 
-     * @deprecated 사용되지 않는 파라미터를 제거한 버전을 사용하세요.
-     * @param response HttpServletResponse
-     * @param rule RateLimitRule
-     * @param result RateLimitResult
-     * @param redisTemplate RedisTemplate (사용하지 않음)
-     * @param rateLimitKey Redis 키 (사용하지 않음)
-     */
-    @Deprecated
-    public static void addRateLimitExceededHeaders(
-            HttpServletResponse response,
-            RateLimitRule rule,
-            RateLimiter.RateLimitResult result,
-            RedisTemplate<String, Object> redisTemplate,
-            String rateLimitKey
-    ) {
-        addRateLimitExceededHeaders(response, rule, result);
     }
 
     private static long calculateResetTimestamp(

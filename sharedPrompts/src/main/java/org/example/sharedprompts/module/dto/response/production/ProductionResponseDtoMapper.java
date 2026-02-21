@@ -35,19 +35,18 @@ public final class ProductionResponseDtoMapper {
         Instant completedAt = null;
 
         if (jobEntity != null) {
-            JobEntity job = jobEntity;
-            JobStatus jobStatus = job.getStatus();
+            JobStatus jobStatus = jobEntity.getStatus();
             
             // Job 상태를 ProductionStatus로 매핑
             status = switch (jobStatus) {
                 case SUCCEEDED -> ProductionStatus.SUCCEEDED;
                 case FAILED -> ProductionStatus.FAILED;
-                case PENDING, PROCESSING -> ProductionStatus.PROCESSING;
+                case PENDING, RETRYING, PROCESSING, UNKNOWN -> ProductionStatus.PROCESSING;
             };
             
-            errorMessage = job.getErrorMessage();
-            startedAt = job.getStartedAt();
-            completedAt = job.getCompletedAt();
+            errorMessage = jobEntity.getErrorMessage();
+            startedAt = jobEntity.getStartedAt();
+            completedAt = jobEntity.getCompletedAt();
         } else {
             // Job 정보가 없는 경우 (레거시 호환성): Artifact 존재 여부로 결정
             status = (entity.getArtifacts() != null && !entity.getArtifacts().isEmpty())
@@ -64,17 +63,17 @@ public final class ProductionResponseDtoMapper {
         if (status == ProductionStatus.SUCCEEDED) {
             // Job 정보가 있을 때 Artifact가 null일 수 있으므로 방어적 체크
             if (entity.getArtifacts() != null && !entity.getArtifacts().isEmpty()) {
-            // primary artifact만 반환 (이미지 생성 시 PNG 이미지만 반환)
-            ProductionArtifactDetailEntity primaryDetail = entity.getArtifacts().stream()
-                    .filter(ProductionArtifactDetailEntity::isPrimary)
-                    .findFirst()
-                    .orElse(null);
-            
+                // primary artifact만 반환 (이미지 생성 시 PNG 이미지만 반환)
+                ProductionArtifactDetailEntity primaryDetail = entity.getArtifacts().stream()
+                        .filter(ProductionArtifactDetailEntity::isPrimary)
+                        .findFirst()
+                        .orElse(null);
+
                 // primary artifact가 없으면 null 반환 (txt 파일만 있는 경우)
                 if (primaryDetail != null) {
                     artifact = ArtifactDtoMapper.toDto(primaryDetail, artifactHandlerRegistry);
                 }
-                
+
                 // 모든 artifacts를 summary로 변환
                 artifacts = ArtifactSummaryDtoMapper.toDtoList(entity.getArtifacts());
             }

@@ -2,6 +2,7 @@ package org.example.sharedprompts.module.domain.production.service.production.pr
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.domain.production.infra.storage.S3PresignedUrlService;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -11,7 +12,7 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class ImagePresignedStrategy implements PresignedStrategy {
 
-    private final PresignedUrlGenerator presignedUrlGenerator;
+    private final S3PresignedUrlService presignedUrlService;
 
     @Override
     public boolean supports(String contentType) {
@@ -22,7 +23,7 @@ public class ImagePresignedStrategy implements PresignedStrategy {
     public String generatePresignedUrl(String bucket, String key, String contentType, Duration ttl) {
         log.debug("Generating presigned URL for image - bucket: {}, key: {}, contentType: {}", 
                 bucket, key, contentType);
-        return presignedUrlGenerator.generate(bucket, key, ttl, "inline");
+        return presignedUrlService.generatePreviewUrl(bucket, key, ttl);
     }
 }
 

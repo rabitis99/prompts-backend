@@ -1,22 +1,17 @@
 package org.example.sharedprompts.module.domain.production.service.artifact;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.entity.factory.ProductionArtifactDetailEntityFactory;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactDetailEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
-import org.example.sharedprompts.module.domain.production.service.production.ArtifactAccessService;
 import org.example.sharedprompts.module.domain.production.application.storage.StorageFacade;
+import org.example.sharedprompts.module.domain.production.service.artifact.mapper.ImageArtifactMapper;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.example.sharedprompts.module.dto.response.production.ArtifactDto;
-import org.example.sharedprompts.module.dto.response.production.ImageArtifactDto;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,45 +20,48 @@ import java.util.regex.Pattern;
 @Slf4j
 public class ImageArtifactHandler implements ArtifactHandler {
 
-    private final ArtifactAccessService artifactAccessService;
-    private final ObjectMapper objectMapper;
     private final StorageFacade storageFacade;
-    
+    private final ImageArtifactMapper imageArtifactMapper;
+
     private static final Pattern IMG_SRC_PATTERN = Pattern.compile(
             "<img[^>]+src\\s*=\\s*[\"']([^\"']+)[\"']", 
             Pattern.CASE_INSENSITIVE
     );
-    
-    private static final String STORAGE_LOCATION_S3 = "S3";
 
     @Override
     public ArtifactType getSupportedType() {
         return ArtifactType.IMAGE;
     }
 
-    @Override
-    public ProductionArtifactDetailEntity createDetail(
-            String s3Key
-    ) {
-        // S3에 업로드된 실제 key를 그대로 사용
+    /**
+     * P1-3: S3 I/O를 트랜잭션 밖에서 수행하기 위한 메서드
+     * format 감지와 HTML 파싱을 먼저 수행하고, 결과를 파라미터로 전달하여 entity 생성
+     */
+    public ImageDetailData prepareDetailData(String s3Key) {
         String fileName = ArtifactMetadataHelper.extractFileName(s3Key);
         String contentType;
 
         // 이미지 포맷 감지를 위해 파일의 시작 부분만 읽기 (최대 12바이트)
         // 전체 파일을 다운로드하지 않아 네트워크 I/O와 메모리 사용을 최소화합니다.
         try {
-            // WebP 포맷 감지를 위해 최대 12바이트 필요
-            byte[] fileHeader = storageFacade.downloadRange(s3Key, 0, 11);
-            if (fileHeader != null && fileHeader.length > 0) {
-                String detectedFormat = detectImageFormat(fileHeader);
-                contentType = getContentTypeFromFormat(detectedFormat);
-                
-                log.info("Detected image format from file header - s3Key: {}, format: {}, contentType: {}, fileName: {}", 
-                        s3Key, detectedFormat, contentType, fileName);
+            // HTML 파일 여부를 파일명으로 먼저 확인 (매직 바이트로는 HTML 감지 불가)
+            String filenameContentType = ArtifactMetadataHelper.determineContentType(s3Key);
+            if (filenameContentType != null && filenameContentType.contains("html")) {
+                contentType = filenameContentType;
+                log.info("HTML file detected by filename - s3Key: {}, contentType: {}", s3Key, contentType);
             } else {
-                // 파일을 읽을 수 없는 경우 파일명에서 추론
-                log.warn("Could not read file header, inferring from s3Key - s3Key: {}", s3Key);
-                contentType = ArtifactMetadataHelper.determineContentType(s3Key);
+                // WebP 포맷 감지를 위해 최대 12바이트 필요
+                byte[] fileHeader = storageFacade.downloadRange(s3Key, 0, 11);
+                if (fileHeader != null && fileHeader.length > 0) {
+                    String detectedFormat = detectImageFormat(fileHeader);
+                    contentType = getContentTypeFromFormat(detectedFormat);
+                    log.info("Detected image format from file header - s3Key: {}, format: {}, contentType: {}, fileName: {}",
+                            s3Key, detectedFormat, contentType, fileName);
+                } else {
+                    // 파일을 읽을 수 없는 경우 파일명에서 추론
+                    log.warn("Could not read file header, inferring from s3Key - s3Key: {}", s3Key);
+                    contentType = ArtifactMetadataHelper.determineContentType(s3Key);
+                }
             }
         } catch (Exception e) {
             // 파일 읽기 실패 시 파일명에서 추론
@@ -85,16 +83,46 @@ public class ImageArtifactHandler implements ArtifactHandler {
             }
         }
 
-        // S3에 업로드된 실제 key와 contentType을 그대로 사용하여 Entity 생성
-        // ImageArtifactHandler는 항상 IMAGE 타입을 반환합니다.
+        // S3 오브젝트 메타데이터(Content-Length)로 파일 크기 설정. 조회 실패 시 null 유지
+        Long fileSize = storageFacade.getContentLength(s3Key).orElse(null);
+
+        return new ImageDetailData(s3Key, fileName, contentType, fileSize, actualImagePath);
+    }
+
+    /**
+     * P1-3: 준비된 데이터로부터 엔티티 생성 (트랜잭션 안에서 실행)
+     */
+    public ProductionArtifactDetailEntity createDetailFromData(ImageDetailData data) {
         return ProductionArtifactDetailEntityFactory.createImage(
-                s3Key,
-                fileName,
-                contentType,
-                null, // fileSize는 나중에 설정 가능
-                actualImagePath // HTML 파일인 경우 추출한 이미지 경로, 아니면 null
+                data.s3Key(),
+                data.fileName(),
+                data.contentType(),
+                data.fileSize(),
+                data.actualImagePath()
         );
     }
+
+    /**
+     * @deprecated S3 I/O가 트랜잭션 안에서 실행됩니다.
+     *             {@link #prepareDetailData(String)} + {@link #createDetailFromData(ImageDetailData)} 사용을 권장합니다.
+     */
+    @Deprecated(since = "production-job-refactor", forRemoval = false)
+    @Override
+    public ProductionArtifactDetailEntity createDetail(String s3Key) {
+        ImageDetailData data = prepareDetailData(s3Key);
+        return createDetailFromData(data);
+    }
+
+    /**
+     * P1-3: S3 I/O 결과를 담는 데이터 클래스
+     */
+    public record ImageDetailData(
+            String s3Key,
+            String fileName,
+            String contentType,
+            Long fileSize,
+            String actualImagePath
+    ) {}
 
     /**
      * 파일 내용의 magic bytes를 확인하여 이미지 포맷을 감지합니다.
@@ -153,26 +181,7 @@ public class ImageArtifactHandler implements ArtifactHandler {
 
     @Override
     public ArtifactDto toDto(ProductionArtifactDetailEntity detail) {
-        // 엔티티에 저장된 actualImagePath 사용 (엔티티 생성 시점에 미리 추출됨)
-        // DTO 매핑은 메모리 기반 연산만 수행하므로 S3 I/O가 발생하지 않습니다.
-        String actualImagePath = detail.getActualImagePath();
-        if (actualImagePath == null || actualImagePath.isBlank()) {
-            // 하위 호환성을 위해 actualImagePath가 없는 경우 s3Key 사용
-            actualImagePath = detail.getS3Key();
-        }
-        
-        String cdnUrl = artifactAccessService.generateCdnUrl(actualImagePath);
-        Map<String, String> thumbnailUrls = buildThumbnailUrls(detail.getMetadata());
-
-        return new ImageArtifactDto(
-                ArtifactType.IMAGE,
-                actualImagePath, // 실제 이미지 경로 사용
-                detail.getFileName(),
-                detail.getContentType(),
-                STORAGE_LOCATION_S3,
-                thumbnailUrls,
-                cdnUrl
-        );
+        return imageArtifactMapper.toDto(detail);
     }
     
     /**
@@ -187,7 +196,12 @@ public class ImageArtifactHandler implements ArtifactHandler {
      */
     private String extractImagePathFromHtml(String htmlFilePath) {
         try {
+            // P1-3: S3 I/O (prepareDetailData에서 호출 시 트랜잭션 밖, 레거시 createDetail에서 호출 시 트랜잭션 안)
             byte[] htmlContent = storageFacade.download(htmlFilePath);
+            if (htmlContent == null || htmlContent.length == 0) {
+                log.warn("Downloaded empty or null content from HTML file - filePath: {}", htmlFilePath);
+                return null;
+            }
             String html = new String(htmlContent, StandardCharsets.UTF_8);
             
             Matcher matcher = IMG_SRC_PATTERN.matcher(html);
@@ -201,37 +215,6 @@ public class ImageArtifactHandler implements ArtifactHandler {
             return null;
         } catch (Exception e) {
             log.error("Failed to extract image path from HTML - filePath: {}", htmlFilePath, e);
-            return null;
-        }
-    }
-
-    private Map<String, String> buildThumbnailUrls(String metadataJson) {
-        if (metadataJson == null || metadataJson.isBlank()) {
-            return null;
-        }
-
-        try {
-            Map<String, Object> metadata = objectMapper.readValue(metadataJson, new TypeReference<>() {});
-            Object thumbnails = metadata.get("thumbnails");
-            if (!(thumbnails instanceof Map)) {
-                return null;
-            }
-
-            Map<String, String> thumbnailKeys = new HashMap<>();
-            ((Map<?, ?>) thumbnails).forEach((k, v) -> {
-                if (k instanceof String && v instanceof String) {
-                    thumbnailKeys.put((String) k, (String) v);
-                }
-            });
-            Map<String, String> thumbnailUrls = new HashMap<>();
-
-            thumbnailKeys.forEach((size, key) ->
-                    thumbnailUrls.put(size, artifactAccessService.generatePreviewUrl(key))
-            );
-
-            return thumbnailUrls.isEmpty() ? null : thumbnailUrls;
-        } catch (Exception e) {
-            log.warn("Failed to parse thumbnail metadata", e);
             return null;
         }
     }

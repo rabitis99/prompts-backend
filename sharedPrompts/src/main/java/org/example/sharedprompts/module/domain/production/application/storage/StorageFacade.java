@@ -2,15 +2,14 @@ package org.example.sharedprompts.module.domain.production.application.storage;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.domain.production.application.presign.PresignedUrlService;
 import org.example.sharedprompts.module.domain.production.infra.storage.S3DownloadService;
-import org.example.sharedprompts.module.domain.production.infra.storage.S3PresignedUrlService;
 import org.example.sharedprompts.module.domain.production.infra.storage.S3UploadService;
 import org.example.sharedprompts.module.domain.production.model.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Optional;
 
 /**
  * Storage Facade
@@ -23,7 +22,7 @@ public class StorageFacade {
 
     private final S3UploadService uploadService;
     private final S3DownloadService downloadService;
-    private final S3PresignedUrlService presignedUrlService;
+    private final PresignedUrlService presignedUrlService;
 
     /**
      * 파일 업로드
@@ -94,6 +93,14 @@ public class StorageFacade {
     }
 
     /**
+     * S3 객체의 Content-Length(바이트)를 반환합니다.
+     * 객체가 없거나 메타데이터 조회에 실패하면 빈 Optional을 반환합니다.
+     */
+    public Optional<Long> getContentLength(String s3Key) {
+        return downloadService.getContentLength(s3Key);
+    }
+
+    /**
      * 파일 존재 여부 확인
      */
     public boolean exists(String s3Key) {
@@ -111,59 +118,22 @@ public class StorageFacade {
      * 다운로드용 Presigned URL 생성
      */
     public String generateDownloadUrl(String s3Key, Duration ttl) {
-        String fileName = extractFileName(s3Key);
-        String contentDisposition = buildContentDisposition(fileName);
-        return presignedUrlService.generateDownloadUrl(s3Key, ttl, contentDisposition);
+        return presignedUrlService.generateDownloadUrlByKey(s3Key, ttl);
     }
 
     /**
      * 이미지 미리보기용 Presigned URL 생성
      */
     public String generatePreviewUrl(String s3Key, Duration ttl) {
-        return presignedUrlService.generatePreviewUrl(s3Key, ttl);
+        return presignedUrlService.generatePreviewUrlByKey(s3Key, ttl);
     }
 
     /**
      * 업로드용 Presigned URL 생성
      */
     public String generateUploadUrl(String s3Key, String contentType, Duration ttl) {
-        return presignedUrlService.generateUploadUrl(s3Key, contentType, ttl);
+        return presignedUrlService.generateUploadUrlByKey(s3Key, contentType, ttl);
     }
 
-    private String extractFileName(String s3Key) {
-        if (s3Key == null || s3Key.isBlank()) {
-            return null;
-        }
-        int lastSlash = s3Key.lastIndexOf('/');
-        return lastSlash >= 0 && lastSlash < s3Key.length() - 1 
-                ? s3Key.substring(lastSlash + 1) 
-                : s3Key;
-    }
-
-    /**
-     * RFC 6266 준수 Content-Disposition 헤더를 안전하게 생성합니다.
-     * 파일명의 위험한 문자를 제거하고 UTF-8 인코딩을 지원합니다.
-     *
-     * @param fileName 파일명 (null 가능)
-     * @return 안전한 Content-Disposition 헤더 값
-     */
-    private String buildContentDisposition(String fileName) {
-        if (fileName == null || fileName.isBlank()) {
-            return "attachment";
-        }
-
-        // 위험한 문자 및 비-ASCII 문자 제거 (filename 파라미터는 ASCII 범위만 허용)
-        // RFC 7230 §3.2.6 및 RFC 6266 §4.1에 따르면 filename 값은 ISO-8859-1 출력 가능 범위(실질적으로 ASCII) 내에 있어야 함
-        String sanitized = fileName.replaceAll("[\"\\r\\n]", "_")
-                                   .replaceAll("[^\\x20-\\x7E]", "_");
-
-        // RFC 6266 준수: filename과 filename* 모두 제공
-        // filename: ASCII-safe 버전 (호환성 및 구형 클라이언트 지원)
-        // filename*: UTF-8 인코딩 버전 (비-ASCII 문자 지원)
-        // URLEncoder.encode(String, Charset)는 Java 10+에서 checked exception을 던지지 않습니다.
-        String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
-                .replace("+", "%20"); // URLEncoder는 공백을 +로 인코딩하지만 RFC 6266은 %20을 선호
-        return String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s", sanitized, encoded);
-    }
 }
 

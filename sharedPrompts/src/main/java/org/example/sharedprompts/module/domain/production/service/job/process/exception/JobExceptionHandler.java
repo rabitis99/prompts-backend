@@ -3,8 +3,7 @@ package org.example.sharedprompts.module.domain.production.service.job.process.e
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.exception.ParseException;
-import org.example.sharedprompts.module.domain.production.service.job.JobStateService;
-import org.example.sharedprompts.module.domain.production.service.job.metrics.JobMetrics;
+import org.example.sharedprompts.module.domain.production.service.job.failure.JobFailureHandler;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -12,53 +11,30 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class JobExceptionHandler {
 
-    private final JobStateService jobStateService;
-    private final JobMetrics jobMetrics;
+    private final JobFailureHandler failureHandler;
 
     public void handleAIException(String jobId, String commandType, AIServiceException e) {
-        log.error("AI service exception - jobId: {}, commandType: {}, errorCode: {}", 
-                jobId, commandType, e.getErrorCode(), e);
-        jobStateService.saveJobFailure(jobId, "AI call failed: " + e.getMessage());
-        jobMetrics.recordJobFailed(commandType, "AI_CALL_FAILED");
+        failureHandler.handleFailure(jobId, commandType, "AI_CALL_FAILED", e);
     }
 
     public void handleParseException(String jobId, String commandType, ParseException e) {
-        log.error("Parse exception - jobId: {}, commandType: {}, errorCode: {}",
-                jobId, commandType, e.getErrorCode(), e);
-        jobStateService.saveJobFailure(jobId, "Parse failed: " + e.getMessage());
-        jobMetrics.recordJobFailed(commandType, "PARSE_FAILED");
+        failureHandler.handleFailure(jobId, commandType, "PARSE_FAILED", e);
     }
 
     public void handleRenderException(String jobId, String commandType, ContentRenderException e) {
-        log.error("Render exception - jobId: {}, commandType: {}, errorCode: {}", 
-                jobId, commandType, e.getErrorCode(), e);
-        jobStateService.saveJobFailure(jobId, "Rendering failed: " + e.getMessage());
-        jobMetrics.recordJobFailed(commandType, "RENDER_FAILED");
+        failureHandler.handleFailure(jobId, commandType, "RENDER_FAILED", e);
     }
 
     public void handleStorageException(String jobId, String commandType, StorageException e) {
-        log.error("Storage exception - jobId: {}, commandType: {}, errorCode: {}", 
-                jobId, commandType, e.getErrorCode(), e);
-        jobStateService.saveJobFailure(jobId, "Storage failed: " + e.getMessage());
-        jobMetrics.recordJobFailed(commandType, "STORAGE_FAILED");
+        failureHandler.handleFailure(jobId, commandType, "STORAGE_FAILED", e);
     }
 
     public void handleRecoveryException(String jobId, String commandType, RecoveryException e) {
-        log.error("Recovery exception - jobId: {}, commandType: {}, errorCode: {}", 
-                jobId, commandType, e.getErrorCode(), e);
-        jobStateService.saveJobFailure(jobId, "Recovery failed: " + e.getMessage());
-        jobMetrics.recordJobFailed(commandType, "RECOVERY_FAILED");
+        failureHandler.handleFailure(jobId, commandType, "RECOVERY_FAILED", e);
     }
 
     public void handleGeneralException(String jobId, String commandType, Exception e) {
-        if (e instanceof JobProcessingException jobException) {
-            log.error("General exception - jobId: {}, commandType: {}, errorCode: {}",
-                    jobId, commandType, jobException.getErrorCode(), e);
-        } else {
-            log.error("General exception - jobId: {}, commandType: {}", jobId, commandType, e);
-        }
-        jobStateService.saveJobFailure(jobId, "Job processing failed: " + e.getMessage());
-        jobMetrics.recordJobFailed(commandType, "PROCESSING_FAILED");
+        failureHandler.handleFailure(jobId, commandType, "PROCESSING_FAILED", e);
     }
 }
 

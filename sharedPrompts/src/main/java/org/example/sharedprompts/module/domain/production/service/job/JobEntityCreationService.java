@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class JobEntityCreationService {
 
     private final JobRepository jobRepository;
+    private final JobEntityPersistenceService persistenceService;
     private final ObjectMapper objectMapper;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -50,7 +51,9 @@ public class JobEntityCreationService {
                     tenantId
             );
 
-            JobEntity savedJob = jobRepository.save(job);
+            // Save in separate transaction so constraint violation only aborts that transaction
+            // (PostgreSQL-compatible: caller transaction remains valid for findByIdempotencyKeyForUpdate)
+            JobEntity savedJob = persistenceService.saveInNewTransaction(job);
             log.info("Job created - jobId: {}, idempotencyKey: {}",
                     savedJob.getJobId(), idempotencyKey);
 
@@ -59,7 +62,9 @@ public class JobEntityCreationService {
         } catch (DataIntegrityViolationException e) {
             log.info("Duplicate idempotencyKey detected - idempotencyKey: {}", idempotencyKey);
 
-            JobEntity existingJob = jobRepository.findByIdempotencyKey(idempotencyKey)
+            // P0-1: Use pessimistic lock to prevent race condition when reading existing job
+            // This ensures we get the latest state even if another thread is modifying the job
+            JobEntity existingJob = jobRepository.findByIdempotencyKeyForUpdate(idempotencyKey)
                     .orElseThrow(() -> new IllegalStateException(
                             "Job with idempotencyKey not found after duplicate exception: " + idempotencyKey, e));
 

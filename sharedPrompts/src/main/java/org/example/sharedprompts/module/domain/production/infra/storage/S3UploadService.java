@@ -3,8 +3,9 @@ package org.example.sharedprompts.module.domain.production.infra.storage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.global.util.ContentTypeUtils;
+import org.example.sharedprompts.module.domain.production.config.condition.ConditionalOnStorageType;
+import org.example.sharedprompts.module.domain.production.config.properties.ProductionS3Properties;
 import org.example.sharedprompts.module.domain.production.infra.storage.exception.S3StorageException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -17,17 +18,21 @@ import java.util.Map;
 /**
  * S3 업로드 서비스
  * 파일 업로드를 담당합니다.
+ * production.storage.type=S3 일 때만 빈 등록되며, 버킷은 ProductionS3Properties @NotBlank로 검증됩니다.
  */
 @Service
+@ConditionalOnStorageType("S3")
 @RequiredArgsConstructor
 @Slf4j
 public class S3UploadService {
 
     private final S3Client s3Client;
     private final S3KeyGenerator keyGenerator;
+    private final ProductionS3Properties productionS3Properties;
 
-    @Value("${production.storage.s3.bucket}")
-    private String bucket;
+    private String bucket() {
+        return productionS3Properties.getBucket();
+    }
 
     /**
      * Content-Type에서 파일 확장자로의 매핑
@@ -73,11 +78,11 @@ public class S3UploadService {
         String s3Key = keyGenerator.generateKey(tenantId, userId, jobId, correctedFileName);
 
         log.info("Uploading to S3 - bucket: {}, key: {}, contentType: {}, size: {} bytes, originalFileName: {}, correctedFileName: {}",
-                bucket, s3Key, contentType, data.length, fileName, correctedFileName);
+                bucket(), s3Key, contentType, data.length, fileName, correctedFileName);
 
         try {
             PutObjectRequest request = PutObjectRequest.builder()
-                    .bucket(bucket)
+                    .bucket(bucket())
                     .key(s3Key)
                     .contentType(contentType)
                     .contentLength((long) data.length)
@@ -88,7 +93,7 @@ public class S3UploadService {
             return s3Key;
 
         } catch (Exception e) {
-            log.error("S3 upload failed - bucket: {}, key: {}", bucket, s3Key, e);
+            log.error("S3 upload failed - bucket: {}, key: {}", bucket(), s3Key, e);
             throw new S3StorageException("S3 upload failed: " + e.getMessage(), e);
         }
     }
@@ -141,15 +146,15 @@ public class S3UploadService {
      * S3에서 파일을 삭제합니다.
      */
     public void delete(String s3Key) {
-        log.info("Deleting from S3 - bucket: {}, key: {}", bucket, s3Key);
+        log.info("Deleting from S3 - bucket: {}, key: {}", bucket(), s3Key);
         try {
             s3Client.deleteObject(DeleteObjectRequest.builder()
-                    .bucket(bucket)
+                    .bucket(bucket())
                     .key(s3Key)
                     .build());
             log.info("S3 delete completed - key: {}", s3Key);
         } catch (Exception e) {
-            log.error("S3 delete failed - bucket: {}, key: {}", bucket, s3Key, e);
+            log.error("S3 delete failed - bucket: {}, key: {}", bucket(), s3Key, e);
             throw new S3StorageException("S3 delete failed: " + e.getMessage(), e);
         }
     }

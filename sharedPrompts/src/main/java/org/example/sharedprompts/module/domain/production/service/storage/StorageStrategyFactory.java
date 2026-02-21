@@ -2,7 +2,7 @@ package org.example.sharedprompts.module.domain.production.service.storage;
 
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.example.sharedprompts.module.domain.production.config.properties.ProductionStorageProperties;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -17,14 +17,14 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class StorageStrategyFactory {
 
-    @Value("${production.storage.type:S3}")
-    private String storageType;
+    private final ProductionStorageProperties storageProperties;
 
     private final List<StorageStrategy> strategies;
     private final Map<StorageType, StorageStrategy> strategyMap;
     private StorageType resolvedStorageType;
 
-    public StorageStrategyFactory(List<StorageStrategy> strategies) {
+    public StorageStrategyFactory(ProductionStorageProperties storageProperties, List<StorageStrategy> strategies) {
+        this.storageProperties = storageProperties;
         this.strategies = strategies;
         this.strategyMap = new ConcurrentHashMap<>();
     }
@@ -38,15 +38,8 @@ public class StorageStrategyFactory {
         }
         
         // 설정된 기본 전략 타입이 유효한지 조기 검증 및 캐싱
-        StorageType defaultType;
-        try {
-            defaultType = StorageType.valueOf(storageType.toUpperCase());
-            this.resolvedStorageType = defaultType;
-        } catch (IllegalArgumentException e) {
-            throw new IllegalStateException(
-                    String.format("Invalid storage type configured: '%s'. Valid types: %s",
-                            storageType, java.util.Arrays.toString(StorageType.values())), e);
-        }
+        StorageType defaultType = storageProperties.getType();
+        this.resolvedStorageType = defaultType;
         
         if (!strategyMap.containsKey(defaultType)) {
             throw new IllegalStateException(

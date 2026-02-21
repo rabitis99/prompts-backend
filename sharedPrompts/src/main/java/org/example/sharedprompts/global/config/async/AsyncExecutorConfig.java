@@ -70,6 +70,16 @@ public class AsyncExecutorConfig {
                 DEFAULT_AWAIT_TERMINATION_SECONDS, createCallerThreadRejectionHandler());
     }
 
+    /** Retry 및 Polling 전용 ScheduledExecutorService */
+    @Bean(name = "retryScheduledExecutor")
+    public java.util.concurrent.ScheduledExecutorService retryScheduledExecutor() {
+        return java.util.concurrent.Executors.newScheduledThreadPool(10, r -> {
+            Thread t = new Thread(r, "retry-scheduled-");
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
     /** 공통 Executor 설정 로직 */
     private void configureExecutor(ThreadPoolTaskExecutor executor, String prefix, int core, int max, int queue,
                                    int awaitSec, RejectedExecutionHandler rejectedHandler) {

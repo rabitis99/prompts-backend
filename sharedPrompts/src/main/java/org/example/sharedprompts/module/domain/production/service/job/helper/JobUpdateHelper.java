@@ -45,17 +45,12 @@ public class JobUpdateHelper {
 
     /**
      * 공통 재시도 로직: OptimisticLockingFailureException 발생 시 지수 백오프로 재시도
-     * 
-     * @param jobId Job ID
-     * @param operationName 메트릭 기록용 작업 이름
-     * @param operation 실행할 작업 (Supplier)
-     * @param <T> 반환 타입
-     * @return 작업 결과
+     * 최대 대기 시간: 10ms + 20ms = 30ms (3회, 매우 짧음)
      */
     private <T> T executeWithRetry(String jobId, String operationName, RetryableOperation<T> operation) {
         Timer.Sample sample = jobMetrics.startUpdateTimer();
         boolean success = false;
-        
+
         try {
             for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
                 try {
@@ -79,7 +74,6 @@ public class JobUpdateHelper {
                 }
             }
             // 컴파일러 요구사항: MAX_ATTEMPTS > 0인 경우 이 지점에는 도달하지 않습니다.
-            // 마지막 반복(attempt == MAX_ATTEMPTS - 1)에서 항상 return 또는 throw가 발생합니다.
             throw new JobProcessingException(
                     ModuleErrorCode.RECOVERY_ERROR,
                     "Unexpected error: retry loop completed without success - jobId: " + jobId
@@ -89,14 +83,9 @@ public class JobUpdateHelper {
         }
     }
 
-    /**
-     * 지수 백오프로 대기: INITIAL_RETRY_DELAY_MS * 2^attempt
-     * 마지막 시도(attempt == MAX_ATTEMPTS - 1)에서는 호출되지 않습니다.
-     * attempt 0: 10ms, attempt 1: 20ms
-     */
     private void sleepWithExponentialBackoff(int attempt, String jobId) {
+        long delayMs = INITIAL_RETRY_DELAY_MS * (1L << attempt);
         try {
-            long delayMs = INITIAL_RETRY_DELAY_MS * (1L << attempt); // 2^attempt
             Thread.sleep(delayMs);
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
@@ -108,12 +97,8 @@ public class JobUpdateHelper {
         }
     }
 
-    /**
-     * 재시도 가능한 작업을 나타내는 함수형 인터페이스
-     */
     @FunctionalInterface
     private interface RetryableOperation<T> {
         T execute();
     }
 }
-

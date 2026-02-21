@@ -7,6 +7,7 @@ import org.example.sharedprompts.module.domain.production.model.contract.command
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
 import org.example.sharedprompts.module.domain.production.service.job.JobLockService;
 import org.example.sharedprompts.module.domain.production.service.job.JobStateService;
+import org.example.sharedprompts.module.domain.production.service.job.gate.JobGateLockService;
 import org.example.sharedprompts.module.domain.production.service.job.metrics.JobMetrics;
 import org.example.sharedprompts.module.domain.production.service.job.process.exception.AIServiceException;
 import org.example.sharedprompts.module.domain.production.service.job.process.exception.ContentRenderException;
@@ -45,35 +46,52 @@ public class JobProcessorDelegate {
     private final CommandDeserializer commandDeserializer;
     private final FileNameGenerator fileNameGenerator;
     private final JobMetrics jobMetrics;
+    private final Optional<JobGateLockService> jobGateLockService;
 
     /**
      * Job 처리 실행
      */
     public void processJob(String jobId) {
         Instant startTime = Instant.now();
-        String commandType = "UNKNOWN";
 
+        log.info("Processing job - jobId: {}", jobId);
+
+        Optional<JobEntity> lockResult = jobLockService.acquireJobLock(jobId);
+        if (lockResult.isEmpty()) {
+            log.info("Could not acquire lock for job - jobId: {} (another thread is processing)", jobId);
+            return;
+        }
+
+        JobEntity job = lockResult.get();
+        if (job.isFinalState()) {
+            log.info("Job already finished - jobId: {}, status: {}", jobId, job.getStatus());
+            return;
+        }
+
+        // Ensure tenant context is set at the beginning of async processing
+        // In multi-tenant SaaS, tenant_id is REQUIRED for all operations
+        // tenant_id must come from TenantContext (set by SecurityContextTaskDecorator from X-Tenant-Id header)
+        // DO NOT create or generate tenant_id - it must be provided in the request header
+        String tenantId = TenantContextValidator.requireTenantContextForJob(jobId);
+
+        // Gate Lock: 외부 호출(AI/S3) 중복 방지. 획득 실패 시 재큐를 위해 처리하지 않고 반환 (DEPLOYMENT_ISSUES 4.1)
+        boolean gateLockAcquired = jobGateLockService
+                .map(s -> s.tryLock(tenantId, jobId))
+                .orElse(true);
+        if (!gateLockAcquired) {
+            log.info("Job gate lock not acquired - jobId: {} (will retry via queue)", jobId);
+            return;
+        }
         try {
-            log.info("Processing job - jobId: {}", jobId);
+            doProcessJob(jobId, job, startTime, tenantId);
+        } finally {
+            jobGateLockService.ifPresent(s -> s.unlock(tenantId, jobId));
+        }
+    }
 
-            Optional<JobEntity> lockResult = jobLockService.acquireJobLock(jobId);
-            if (lockResult.isEmpty()) {
-                log.info("Could not acquire lock for job - jobId: {} (another thread is processing)", jobId);
-                return;
-            }
-
-            JobEntity job = lockResult.get();
-            if (job.isFinalState()) {
-                log.info("Job already finished - jobId: {}, status: {}", jobId, job.getStatus());
-                return;
-            }
-
-            // Ensure tenant context is set at the beginning of async processing
-            // In multi-tenant SaaS, tenant_id is REQUIRED for all operations
-            // tenant_id must come from TenantContext (set by SecurityContextTaskDecorator from X-Tenant-Id header)
-            // DO NOT create or generate tenant_id - it must be provided in the request header
-            TenantContextValidator.requireTenantContextForJob(jobId);
-
+    private void doProcessJob(String jobId, JobEntity job, Instant startTime, String tenantId) {
+        String commandType = "UNKNOWN";
+        try {
             ProductionCommand command = commandDeserializer.deserialize(job);
             commandType = command.getCommandType().name();
 
@@ -109,21 +127,23 @@ public class JobProcessorDelegate {
             }
             
             jobStateService.markStored(job.getJobId(), s3Key);
-            
             // markStored() 내부에서 이미 complete()를 호출하므로 중복 호출 제거
 
             Duration duration = Duration.between(startTime, Instant.now());
             jobMetrics.recordJobCompleted(commandType, duration);
             log.info("Job completed successfully - jobId: {}, duration: {}ms", jobId, duration.toMillis());
-
         } catch (AIServiceException e) {
             exceptionHandler.handleAIException(jobId, commandType, e);
+            throw e;
         } catch (ContentRenderException e) {
             exceptionHandler.handleRenderException(jobId, commandType, e);
+            throw e;
         } catch (StorageException e) {
             exceptionHandler.handleStorageException(jobId, commandType, e);
+            throw e;
         } catch (Exception e) {
             exceptionHandler.handleGeneralException(jobId, commandType, e);
+            throw e;
         }
     }
 }

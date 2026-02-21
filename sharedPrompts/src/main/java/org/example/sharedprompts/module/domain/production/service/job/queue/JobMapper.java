@@ -22,8 +22,10 @@ public class JobMapper {
                         jobEntity.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant() : null)
                 .startedAt(jobEntity.getStartedAt())
                 .completedAt(jobEntity.getCompletedAt())
-                .aiGeneratedContent(jobEntity.getAiGeneratedContent())
+                // JobEntity에는 aiGeneratedContent가 영속화되지 않습니다(artifact로 저장/관리).
+                .aiGeneratedContent(null)
                 .artifactId(jobEntity.getArtifactId())
+                .productionId(jobEntity.getProductionId())
                 .build();
     }
 }

@@ -50,6 +50,9 @@ public final class RateLimitResponseWriter {
         if (result == null) {
             throw new IllegalArgumentException("RateLimitResult cannot be null");
         }
+        if (rule == null) {
+            throw new IllegalArgumentException("RateLimitRule cannot be null");
+        }
         
         // RateLimit details 생성 (요구사항: details 필드)
         // 헤더와 동일한 reset timestamp를 사용하여 일관성 유지
@@ -82,9 +85,7 @@ public final class RateLimitResponseWriter {
         response.setStatus(code.getHttpStatus().value());
         
         // RateLimit 헤더 추가 (요구사항: X-RateLimit-*, Retry-After)
-        RateLimitHeaderUtil.addRateLimitExceededHeaders(
-                response, rule, result, redisTemplate, rateLimitKey
-        );
+        RateLimitHeaderUtil.addRateLimitExceededHeaders(response, rule, result);
         
         // Content-Type 및 인코딩 설정
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

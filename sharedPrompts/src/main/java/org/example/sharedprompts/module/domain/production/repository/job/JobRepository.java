@@ -10,6 +10,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -58,19 +61,23 @@ public interface JobRepository extends JpaRepository<JobEntity, Long> {
         @Param("thresholdTime") Instant thresholdTime
     );
 
+    /**
+     * P2-2: PENDING 또는 RETRYING 상태의 Job을 PROCESSING으로 전이 (atomic lock 획득)
+     * RETRYING → PROCESSING: 메시지 레벨 retry 메시지 소비 시
+     */
     @Query(value = """
-        UPDATE production_jobs 
-        SET status = 'PROCESSING', 
+        UPDATE production_jobs
+        SET status = 'PROCESSING',
             started_at = :startedAt,
             version = version + 1
-        WHERE job_id = :jobId 
-          AND status = 'PENDING'
+        WHERE job_id = :jobId
+          AND status IN ('PENDING', 'RETRYING')
           AND version = :version
         """, nativeQuery = true)
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     int acquireJobLock(
-        @Param("jobId") String jobId, 
+        @Param("jobId") String jobId,
         @Param("startedAt") Instant startedAt,
         @Param("version") Long version
     );
@@ -98,5 +105,10 @@ public interface JobRepository extends JpaRepository<JobEntity, Long> {
     );
 
     List<JobEntity> findTop10ByStatusOrderByCreatedAtAsc(JobStatus status);
+
+    /**
+     * 관리자 조회: 상태별 Job 목록 (최신순, 페이지)
+     */
+    Page<JobEntity> findByStatusOrderByCreatedAtDesc(JobStatus status, Pageable pageable);
 }
 

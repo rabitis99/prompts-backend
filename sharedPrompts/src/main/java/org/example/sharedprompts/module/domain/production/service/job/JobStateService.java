@@ -6,7 +6,9 @@ import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
 import org.example.sharedprompts.module.domain.production.repository.job.JobRepository;
 import org.example.sharedprompts.module.domain.production.service.job.helper.JobUpdateHelper;
+import org.example.sharedprompts.module.domain.production.service.job.state.JobStateMachine;
 import org.example.sharedprompts.module.domain.production.service.job.process.exception.JobProcessingException;
+import org.example.sharedprompts.module.exception.BaseException;
 import org.example.sharedprompts.module.domain.production.service.production.ProductionArtifactService;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.example.sharedprompts.module.exception.ModuleErrorCode;
@@ -21,6 +23,7 @@ public class JobStateService {
     private final JobRepository jobRepository;
     private final JobUpdateHelper jobUpdateHelper;
     private final ProductionArtifactService productionArtifactService;
+    private final JobStateMachine stateMachine;
 
     public void updateJobPromptVersion(String jobId, String promptVersion) {
         jobUpdateHelper.updateJob(jobId, job -> job.setPromptVersion(promptVersion));
@@ -61,7 +64,7 @@ public class JobStateService {
         String artifactId = artifact.getId().toString();
 
         try {
-            jobUpdateHelper.updateJob(jobId, jobEntity -> jobEntity.complete(artifactId));
+            jobUpdateHelper.updateJob(jobId, jobEntity -> stateMachine.complete(jobEntity, artifactId));
             log.info("ProductionArtifact created and job completed - jobId: {}, artifactId: {}, s3Key: {}",
                     jobId, artifactId, s3Key);
         } catch (Exception e) {
@@ -85,31 +88,119 @@ public class JobStateService {
                         "Cannot complete job without artifactId - jobId: " + jobId
                 );
             }
-            jobEntity.complete(jobEntity.getArtifactId());
+            stateMachine.complete(jobEntity, jobEntity.getArtifactId());
         });
     }
 
     public void saveJobFailure(String jobId, String errorMessage) {
         try {
-            jobUpdateHelper.updateJob(jobId, job -> job.fail(errorMessage));
+            jobUpdateHelper.updateJob(jobId, job -> stateMachine.fail(job, errorMessage));
             log.info("Job failure saved - jobId: {}, error: {}", jobId, errorMessage);
-        } catch (JobProcessingException e) {
-            if (e.getErrorCode() == ModuleErrorCode.JOB_INVALID_STATUS || 
-                e.getErrorCode() == ModuleErrorCode.JOB_ALREADY_COMPLETED ||
+        } catch (BaseException e) {
+            if (e.getErrorCode() == ModuleErrorCode.JOB_ALREADY_COMPLETED ||
                 e.getErrorCode() == ModuleErrorCode.JOB_ALREADY_FAILED) {
                 log.warn("Could not mark job as failed (already in final state) - jobId: {}", jobId);
+            } else if (e.getErrorCode() == ModuleErrorCode.JOB_INVALID_STATUS) {
+                log.warn("Could not mark job as failed (invalid state transition) - jobId: {}", jobId);
+            } else {
+                throw e;
+            }
+        }
+        // IllegalStateException is not caught so unexpected state machine bugs propagate to callers.
+    }
+
+    /**
+     * P3-1: AI/S3 timeout 발생 시 UNKNOWN 상태로 전이
+     * Timeout은 성공/실패 확정 불가 → 즉시 재호출 금지
+     * UnknownJobRecoveryScheduler가 5분 주기로 AI provider 상태 조회 후 복구
+     */
+    public void saveJobUnknown(String jobId, String reason) {
+        try {
+            jobUpdateHelper.updateJob(jobId, job -> stateMachine.markAsUnknown(job, reason));
+            log.warn("Job marked as UNKNOWN (timeout ambiguity) - jobId: {}, reason: {}", jobId, reason);
+        } catch (BaseException e) {
+            if (e.getErrorCode() == ModuleErrorCode.JOB_INVALID_STATUS) {
+                log.warn("Could not mark job as UNKNOWN (invalid state transition) - jobId: {}", jobId);
             } else {
                 throw e;
             }
         } catch (IllegalStateException e) {
-            log.warn("Could not mark job as failed (already in final state) - jobId: {}, error: {}", jobId, e.getMessage());
+            log.warn("Could not mark job as UNKNOWN - jobId: {}, error: {}", jobId, e.getMessage());
         }
     }
 
+    /**
+     * P2-2: 메시지 레벨 retry 발행 성공 시 RETRYING 상태로 전이
+     * 운영 대시보드에서 retry 대기 중인 job을 명시적으로 식별 가능
+     */
+    public void markJobAsRetrying(String jobId) {
+        try {
+            jobUpdateHelper.updateJob(jobId, job -> stateMachine.markAsRetrying(job));
+            log.info("Job marked as RETRYING - jobId: {}", jobId);
+        } catch (BaseException e) {
+            if (e.getErrorCode() == ModuleErrorCode.JOB_INVALID_STATUS) {
+                log.warn("Could not mark job as RETRYING (invalid state) - jobId: {}", jobId);
+            } else {
+                throw e;
+            }
+        } catch (IllegalStateException e) {
+            log.warn("Could not mark job as RETRYING - jobId: {}, error: {}", jobId, e.getMessage());
+        }
+    }
 
+    /**
+     * P3-1: UNKNOWN → FAILED (복구 스케줄러가 threshold 초과 판단 시)
+     */
+    public void recoverUnknownJobAsFailed(String jobId, String reason) {
+        try {
+            jobUpdateHelper.updateJob(jobId, job -> stateMachine.recoverAsFailed(job, reason));
+            log.warn("UNKNOWN job recovered as FAILED - jobId: {}", jobId);
+        } catch (BaseException e) {
+            if (e.getErrorCode() == ModuleErrorCode.JOB_INVALID_STATUS) {
+                log.warn("Could not recover UNKNOWN job as FAILED (invalid state) - jobId: {}", jobId);
+            } else {
+                throw e;
+            }
+        } catch (IllegalStateException e) {
+            log.warn("Could not recover UNKNOWN job as FAILED - jobId: {}, error: {}", jobId, e.getMessage());
+            throw e;
+        }
+    }
+
+    /**
+     * Stuck PROCESSING 복구: FAILED 전이 후 즉시 PENDING으로 전이하여 재큐 가능하게 합니다.
+     * 두 전이를 한 트랜잭션으로 묶어, retryJob 실패 시 fail 전이도 롤백되도록 합니다.
+     * fail 전이 실패 시 예외를 전파하여 retryJob을 호출하지 않고, 호출자가 복구 실패를 인지할 수 있게 합니다.
+     */
+    @Transactional
+    public void recoverStuckProcessingJob(String jobId, String failureReason) {
+        try {
+            jobUpdateHelper.updateJob(jobId, job -> stateMachine.fail(job, failureReason));
+            log.info("Stuck processing job failure saved - jobId: {}", jobId);
+        } catch (BaseException | IllegalStateException e) {
+            log.error("Failed to transition stuck PROCESSING job to FAILED - jobId: {}", jobId, e);
+            throw e;
+        }
+        retryJob(jobId);
+    }
+
+    /**
+     * FAILED job을 PENDING으로 전이 후 재처리 가능하게 합니다.
+     * JOB_INVALID_STATUS 등은 경고 로그만 남기고, 그 외 예외는 호출자에게 전파합니다.
+     */
     public void retryJob(String jobId) {
-        jobUpdateHelper.updateJob(jobId, job -> job.retry());
-        log.info("Job retried - jobId: {}", jobId);
+        try {
+            jobUpdateHelper.updateJob(jobId, job -> stateMachine.retry(job));
+            log.info("Job retried - jobId: {}", jobId);
+        } catch (BaseException e) {
+            if (e.getErrorCode() == ModuleErrorCode.JOB_INVALID_STATUS) {
+                log.warn("Could not retry job (invalid state) - jobId: {}", jobId);
+                throw e; // 호출자(recoverStuckProcessingJob)의 롤백 보장을 위해 전파
+            } else {
+                throw e;
+            }
+        }
+        // IllegalStateException은 예상치 못한 에러이므로 호출자에게 전파
     }
 
     @Transactional(readOnly = true)

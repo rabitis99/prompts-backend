@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.prompt.enums;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.List;
@@ -8,7 +7,6 @@ import java.util.List;
 import static org.example.sharedprompts.domain.prompt.enums.I18nUtils.getByLang;
 
 @Getter
-@AllArgsConstructor
 public enum ToneType {
 
     FRIENDLY(
@@ -109,6 +107,13 @@ public enum ToneType {
     private final String guidelineKo;
     private final String guidelineEn;
     private final String guidelineJa;
+
+    ToneType(String displayName, String guidelineKo, String guidelineEn, String guidelineJa) {
+        this.displayName = displayName;
+        this.guidelineKo = guidelineKo;
+        this.guidelineEn = guidelineEn;
+        this.guidelineJa = guidelineJa;
+    }
 
     /**
      * 언어 타입에 따라 적절한 톤 가이드라인을 반환한다.

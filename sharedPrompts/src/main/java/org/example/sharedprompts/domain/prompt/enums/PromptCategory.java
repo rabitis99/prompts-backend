@@ -1,10 +1,8 @@
 package org.example.sharedprompts.domain.prompt.enums;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor
 public enum PromptCategory {
 
     PRODUCTIVITY(
@@ -137,4 +135,12 @@ public enum PromptCategory {
 
     /** 대표 TaskDomain (힌트 — ActionType이 override 가능) */
     private final TaskDomain defaultDomain;
+
+    PromptCategory(String displayName, String guidelineKo, String guidelineEn, String guidelineJa, TaskDomain defaultDomain) {
+        this.displayName = displayName;
+        this.guidelineKo = guidelineKo;
+        this.guidelineEn = guidelineEn;
+        this.guidelineJa = guidelineJa;
+        this.defaultDomain = defaultDomain;
+    }
 }

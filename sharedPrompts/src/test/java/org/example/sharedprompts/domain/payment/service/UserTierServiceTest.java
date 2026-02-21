@@ -2,8 +2,8 @@ package org.example.sharedprompts.domain.payment.service;
 
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
-import org.example.sharedprompts.domain.payment.repository.PaymentRepository;
-import org.example.sharedprompts.domain.payment.repository.UserTierHistoryRepository;
+import org.example.sharedprompts.domain.payment.infrastructure.persistence.repository.payment.PaymentRepository;
+import org.example.sharedprompts.domain.payment.infrastructure.persistence.repository.userTier.UserTierHistoryRepository;
 import org.example.sharedprompts.domain.payment.service.user.tier.UserTierServiceImpl;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.enums.Provider;
@@ -129,6 +129,24 @@ class UserTierServiceTest {
 
         // when & then
         assertThatThrownBy(() -> userTierService.getTierInfo(1L))
+                .isInstanceOf(ApiException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.USER_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("티어 변경 시 사용자 없음 예외 발생")
+    void changeTier_UserNotFound() {
+        // given
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        TierChangeRequestDto request = TierChangeRequestDto.builder()
+                .tier(UserTier.PRO)
+                .reason("업그레이드")
+                .build();
+
+        // when & then
+        assertThatThrownBy(() -> userTierService.changeTier(1L, request, 999L))
                 .isInstanceOf(ApiException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.USER_NOT_FOUND);
