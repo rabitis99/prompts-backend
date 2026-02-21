@@ -20,10 +20,11 @@ public class JobFailureHandler {
         String errorMessage = exception != null && exception.getMessage() != null
                 ? exception.getMessage()
                 : failureReason;
-        jobStateService.saveJobFailure(jobId, errorMessage);
-        
-        metricsRecorder.recordFailure(jobId, commandType, failureReason);
-        
+        try {
+            jobStateService.saveJobFailure(jobId, errorMessage);
+        } finally {
+            metricsRecorder.recordFailure(jobId, commandType, failureReason);
+        }
         if (escalationPolicy.isPermanentFailure(jobId, failureReason)) {
             log.error("Job permanent failure - jobId: {}, commandType: {}, reason: {}", 
                     jobId, commandType, failureReason, exception);

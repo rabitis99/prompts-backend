@@ -66,6 +66,16 @@ public class JobOutboxEntity {
         setErrorMessage(message != null && message.length() > 500 ? message.substring(0, 500) : message);
     }
 
+    /** 발행 실패 시 재시도 횟수 증가. maxRetryCount 초과 여부는 호출부에서 검사. */
+    public void incrementRetryCount() {
+        setRetryCount(getRetryCount() == null ? 1 : getRetryCount() + 1);
+    }
+
+    /** 재시도 실패 시 에러 메시지만 기록하고 상태는 PENDING 유지 (다음 폴에 재시도). */
+    public void recordRetryFailure(String message) {
+        setErrorMessage(message != null && message.length() > 500 ? message.substring(0, 500) : message);
+    }
+
     @PrePersist
     void onPersist() {
         if (createdAt == null) {

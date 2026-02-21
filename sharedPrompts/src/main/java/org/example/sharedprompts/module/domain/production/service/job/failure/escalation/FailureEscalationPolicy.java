@@ -18,7 +18,7 @@ public class FailureEscalationPolicy {
      * @param failureReason reason code to classify as permanent or retriable
      */
     public boolean isPermanentFailure(String jobId, String failureReason) {
-        return PERMANENT_FAILURE_REASONS.contains(failureReason);
+        return failureReason != null && PERMANENT_FAILURE_REASONS.contains(failureReason);
     }
 }
 

@@ -67,6 +67,9 @@ public class JobGateLockService {
     }
 
     private static String lockKey(String tenantId, String jobId) {
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalArgumentException("tenantId must not be null or blank for gate lock key");
+        }
         return KEY_PREFIX + tenantId + ":" + jobId;
     }
 }

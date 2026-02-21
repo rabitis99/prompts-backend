@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
 import org.example.sharedprompts.module.domain.production.model.job.JobStatus;
 import org.example.sharedprompts.module.domain.production.service.job.JobStateService;
+import org.example.sharedprompts.module.domain.production.service.job.scheduler.policy.JobRecoveryProperties;
 import org.example.sharedprompts.module.domain.production.service.job.queue.JobQueuePublisher;
 import org.springframework.stereotype.Component;
 
@@ -17,10 +18,9 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class ProcessingJobRecoveryHandler implements JobRecoveryHandler {
 
-    private static final int DEFAULT_MAX_RETRY_COUNT = 3;
-
     private final JobStateService jobStateService;
     private final JobQueuePublisher jobQueuePublisher;
+    private final JobRecoveryProperties jobRecoveryProperties;
 
     @Override
     public boolean supports(JobStatus status) {
@@ -30,13 +30,18 @@ public class ProcessingJobRecoveryHandler implements JobRecoveryHandler {
     @Override
     public void recover(JobEntity job) {
         String jobId = job.getJobId();
+        int maxRetry = jobRecoveryProperties.getMaxRetryCount();
+        if (job.getRetryCount() >= maxRetry) {
+            log.warn("PROCESSING job exceeded max retries, escalating to FAILED - jobId: {}, retryCount: {}", jobId, job.getRetryCount());
+            jobStateService.saveJobFailure(jobId,
+                    "PROCESSING recovery exceeded max retry threshold (" + maxRetry + ")");
+            return;
+        }
         log.info("Recovering stuck PROCESSING job - jobId: {}, retryCount: {}",
                 jobId, job.getRetryCount());
-
-        jobStateService.saveJobFailure(jobId,
+        jobStateService.recoverStuckProcessingJob(jobId,
                 "Stale PROCESSING job recovered (stuck beyond threshold)");
-        jobStateService.retryJob(jobId);
-        jobQueuePublisher.publishJob(jobId, DEFAULT_MAX_RETRY_COUNT);
+        jobQueuePublisher.publishJob(jobId, maxRetry);
     }
 }
 

@@ -97,10 +97,11 @@ public class JobStateService {
             jobUpdateHelper.updateJob(jobId, job -> stateMachine.fail(job, errorMessage));
             log.info("Job failure saved - jobId: {}, error: {}", jobId, errorMessage);
         } catch (BaseException e) {
-            if (e.getErrorCode() == ModuleErrorCode.JOB_INVALID_STATUS ||
-                e.getErrorCode() == ModuleErrorCode.JOB_ALREADY_COMPLETED ||
+            if (e.getErrorCode() == ModuleErrorCode.JOB_ALREADY_COMPLETED ||
                 e.getErrorCode() == ModuleErrorCode.JOB_ALREADY_FAILED) {
                 log.warn("Could not mark job as failed (already in final state) - jobId: {}", jobId);
+            } else if (e.getErrorCode() == ModuleErrorCode.JOB_INVALID_STATUS) {
+                log.warn("Could not mark job as failed (invalid state transition) - jobId: {}", jobId);
             } else {
                 throw e;
             }
@@ -163,7 +164,18 @@ public class JobStateService {
             }
         } catch (IllegalStateException e) {
             log.warn("Could not recover UNKNOWN job as FAILED - jobId: {}, error: {}", jobId, e.getMessage());
+            throw e;
         }
+    }
+
+    /**
+     * Stuck PROCESSING 복구: FAILED 전이 후 즉시 PENDING으로 전이하여 재큐 가능하게 합니다.
+     * 두 전이를 한 트랜잭션으로 묶어, retryJob 실패 시 saveJobFailure도 롤백되도록 합니다.
+     */
+    @Transactional
+    public void recoverStuckProcessingJob(String jobId, String failureReason) {
+        saveJobFailure(jobId, failureReason);
+        retryJob(jobId);
     }
 
     /**

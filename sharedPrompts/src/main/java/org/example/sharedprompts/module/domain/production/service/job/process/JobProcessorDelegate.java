@@ -91,18 +91,8 @@ public class JobProcessorDelegate {
                     jobGateLockService.unlock(tenantId, jobId);
                 }
             }
-        } catch (AIServiceException e) {
-            exceptionHandler.handleAIException(jobId, "UNKNOWN", e);
-            throw e;
-        } catch (ContentRenderException e) {
-            exceptionHandler.handleRenderException(jobId, "UNKNOWN", e);
-            throw e;
-        } catch (StorageException e) {
-            exceptionHandler.handleStorageException(jobId, "UNKNOWN", e);
-            throw e;
-        } catch (Exception e) {
-            exceptionHandler.handleGeneralException(jobId, "UNKNOWN", e);
-            throw e;
+        } finally {
+            // 예외는 doProcessJob 내부에서 한 번만 핸들링되며, 여기서는 전파만 함
         }
     }
 

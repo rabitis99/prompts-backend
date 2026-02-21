@@ -9,9 +9,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Isolates job save in a new transaction so that constraint violations (e.g. duplicate
- * idempotency key) only abort this transaction. Ensures compatibility with PostgreSQL,
- * which aborts the entire transaction on constraint violation; the caller can then
- * run findByIdempotencyKeyForUpdate in its own transaction.
+ * idempotency key) only abort this inner transaction, leaving the caller's transaction
+ * intact. This is especially important for PostgreSQL (which aborts the whole transaction
+ * on any constraint violation), but is also applied defensively when using MySQL.
+ * The caller can then safely run findByIdempotencyKeyForUpdate in its own transaction.
  */
 @Service
 @RequiredArgsConstructor

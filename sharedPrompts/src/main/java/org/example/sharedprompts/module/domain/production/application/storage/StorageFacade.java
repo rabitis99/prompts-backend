@@ -9,6 +9,7 @@ import org.example.sharedprompts.module.domain.production.model.tenant.TenantCon
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.Optional;
 
 /**
  * Storage Facade
@@ -89,6 +90,14 @@ public class StorageFacade {
      */
     public byte[] downloadRange(String s3Key, long startByteRange, long endByteRange) {
         return downloadService.downloadRange(s3Key, startByteRange, endByteRange);
+    }
+
+    /**
+     * S3 객체의 Content-Length(바이트)를 반환합니다.
+     * 객체가 없거나 메타데이터 조회에 실패하면 빈 Optional을 반환합니다.
+     */
+    public Optional<Long> getContentLength(String s3Key) {
+        return downloadService.getContentLength(s3Key);
     }
 
     /**

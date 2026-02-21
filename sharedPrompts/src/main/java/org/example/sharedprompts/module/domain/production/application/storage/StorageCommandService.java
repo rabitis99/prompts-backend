@@ -62,6 +62,7 @@ public class StorageCommandService {
     }
 
     /**
+     * 아티팩트 소유권을 검증한 뒤 S3 키를 추출합니다.
      */
     private String resolveS3KeyWithOwnerCheck(Long artifactId, Long userId) {
         // Repository fetch join(EntityGraph) + 공통 Validator를 통해 소유권 검증을 단일화

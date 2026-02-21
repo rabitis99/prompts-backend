@@ -2,6 +2,9 @@
 -- Legacy Job Status 마이그레이션 스크립트
 -- ============================================
 --
+-- ⚠ Flyway가 관리하지 않는 수동 실행 전용 스크립트입니다.
+--    Flyway 버전 명명 규칙(V<버전>__<설명>.sql)을 따르지 않으므로 자동 적용되지 않습니다.
+--
 -- 목적: 배포 시점에 비정상 상태로 남아있는 Job들을 복구 가능한 상태로 변환
 --
 -- 지원 상태 (v2: UNKNOWN, RETRYING 추가):
@@ -21,6 +24,10 @@
 -- ============================================
 -- 섹션 A: Legacy 중간 상태 처리 (AI_CALLED, PARSED, RENDERED, STORED 등)
 -- ============================================
+-- 단일 트랜잭션으로 실행하여 중간 실패 시 부분 마이그레이션 방지.
+-- 실패 시 수동으로 ROLLBACK 후 원인 조치하고 재실행하세요.
+
+START TRANSACTION;
 
 -- A-1. 영향받을 Job 수 확인 (실제 마이그레이션 전에 실행)
 -- SELECT
@@ -31,12 +38,13 @@
 -- GROUP BY status;
 
 -- A-2. 최근 중간 상태 → PENDING 변환 (30분 이내, 재시도 가능)
+-- error_message를 status 갱신 전에 설정하여 원래 상태가 기록되도록 함
 UPDATE production_jobs
 SET
+    error_message = CONCAT('Legacy status migration: ', status, ' -> PENDING'),
     status = 'PENDING',
     started_at = NULL,
     completed_at = NULL,
-    error_message = CONCAT('Legacy status migration: ', status, ' -> PENDING'),
     version = version + 1,
     updated_at = NOW()
 WHERE status IN ('AI_CALLED', 'PARSED', 'RENDERED', 'STORED')
@@ -45,9 +53,9 @@ WHERE status IN ('AI_CALLED', 'PARSED', 'RENDERED', 'STORED')
 -- A-3. 오래된 중간 상태 → FAILED 변환 (30분 초과)
 UPDATE production_jobs
 SET
+    error_message = CONCAT('Legacy status migration: ', status, ' -> FAILED (stale job)'),
     status = 'FAILED',
     completed_at = NOW(),
-    error_message = CONCAT('Legacy status migration: ', status, ' -> FAILED (stale job)'),
     version = version + 1,
     updated_at = NOW()
 WHERE status IN ('AI_CALLED', 'PARSED', 'RENDERED', 'STORED')
@@ -66,6 +74,11 @@ WHERE status IN ('AI_CALLED', 'PARSED', 'RENDERED', 'STORED')
 -- FROM production_jobs WHERE status = 'UNKNOWN';
 
 -- B-2. 10분 초과 UNKNOWN → FAILED (복구 불가, 운영자 수동 확인 권고)
+--      updated_at < 10분 조건으로 "신선한" UNKNOWN은 이 UPDATE에서 제외됨.
+--      제외된 UNKNOWN은 영구 방치되지 않음: JobRecoveryScheduler가 주기적으로
+--      UnknownJobRecoveryHandler를 통해 UNKNOWN Job을 조회하며, startedAt 기준
+--      stale 임계값(기본 30분, job.recovery.stale-job-threshold-minutes) 초과 시
+--      FAILED로 전이하므로, 재기동 후 다음 스케줄 주기에 자동 복구됨.
 UPDATE production_jobs
 SET
     status = 'FAILED',
@@ -99,6 +112,8 @@ SET
     version = version + 1,
     updated_at = NOW()
 WHERE status = 'RETRYING';
+
+COMMIT;
 
 -- ============================================
 -- 최종 확인 쿼리

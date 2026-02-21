@@ -1,16 +1,14 @@
 package org.example.sharedprompts.module.domain.production.service.artifact;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.entity.factory.ProductionArtifactDetailEntityFactory;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactDetailEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
-import org.example.sharedprompts.module.domain.production.service.production.ArtifactAccessService;
 import org.example.sharedprompts.module.domain.production.application.storage.StorageFacade;
+import org.example.sharedprompts.module.domain.production.service.artifact.mapper.ImageArtifactMapper;
 import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.example.sharedprompts.module.dto.response.production.ArtifactDto;
-import org.example.sharedprompts.module.dto.response.production.ImageArtifactDto;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -22,16 +20,13 @@ import java.util.regex.Pattern;
 @Slf4j
 public class ImageArtifactHandler implements ArtifactHandler {
 
-    private final ArtifactAccessService artifactAccessService;
-    private final ObjectMapper objectMapper;
     private final StorageFacade storageFacade;
-    
+    private final ImageArtifactMapper imageArtifactMapper;
+
     private static final Pattern IMG_SRC_PATTERN = Pattern.compile(
             "<img[^>]+src\\s*=\\s*[\"']([^\"']+)[\"']", 
             Pattern.CASE_INSENSITIVE
     );
-    
-    private static final String STORAGE_LOCATION_S3 = "S3";
 
     @Override
     public ArtifactType getSupportedType() {
@@ -82,7 +77,10 @@ public class ImageArtifactHandler implements ArtifactHandler {
             }
         }
 
-        return new ImageDetailData(s3Key, fileName, contentType, actualImagePath);
+        // S3 오브젝트 메타데이터(Content-Length)로 파일 크기 설정. 조회 실패 시 null 유지
+        Long fileSize = storageFacade.getContentLength(s3Key).orElse(null);
+
+        return new ImageDetailData(s3Key, fileName, contentType, fileSize, actualImagePath);
     }
 
     /**
@@ -93,7 +91,7 @@ public class ImageArtifactHandler implements ArtifactHandler {
                 data.s3Key(),
                 data.fileName(),
                 data.contentType(),
-                null, // fileSize는 나중에 설정 가능
+                data.fileSize(),
                 data.actualImagePath()
         );
     }
@@ -114,6 +112,7 @@ public class ImageArtifactHandler implements ArtifactHandler {
             String s3Key,
             String fileName,
             String contentType,
+            Long fileSize,
             String actualImagePath
     ) {}
 
@@ -174,8 +173,7 @@ public class ImageArtifactHandler implements ArtifactHandler {
 
     @Override
     public ArtifactDto toDto(ProductionArtifactDetailEntity detail) {
-        return new org.example.sharedprompts.module.domain.production.service.artifact.mapper.ImageArtifactMapper(
-                artifactAccessService, objectMapper).toDto(detail);
+        return imageArtifactMapper.toDto(detail);
     }
     
     /**
@@ -190,7 +188,7 @@ public class ImageArtifactHandler implements ArtifactHandler {
      */
     private String extractImagePathFromHtml(String htmlFilePath) {
         try {
-            // P1-3: S3 I/O (트랜잭션 안에서 실행됨)
+            // P1-3: S3 I/O (prepareDetailData에서 호출 시 트랜잭션 밖, 레거시 createDetail에서 호출 시 트랜잭션 안)
             byte[] htmlContent = storageFacade.download(htmlFilePath);
             String html = new String(htmlContent, StandardCharsets.UTF_8);
             

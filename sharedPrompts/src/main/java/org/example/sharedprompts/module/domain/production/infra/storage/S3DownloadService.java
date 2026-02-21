@@ -9,6 +9,8 @@ import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
+import java.util.Optional;
+
 /**
  * S3 다운로드 서비스
  * 파일 다운로드를 담당합니다.
@@ -114,6 +116,32 @@ public class S3DownloadService {
         } catch (Exception e) {
             log.error("S3 range read failed - bucket: {}, key: {}, range: {}-{}", bucket, s3Key, startByteRange, endByteRange, e);
             throw new S3StorageException("S3 range read failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * S3 객체의 Content-Length(바이트)를 반환합니다.
+     * 객체가 없거나 메타데이터 조회에 실패하면 빈 Optional을 반환합니다.
+     */
+    public Optional<Long> getContentLength(String s3Key) {
+        try {
+            HeadObjectResponse headResponse = s3Client.headObject(
+                    HeadObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(s3Key)
+                            .build());
+            return Optional.ofNullable(headResponse.contentLength());
+        } catch (NoSuchKeyException e) {
+            return Optional.empty();
+        } catch (S3Exception e) {
+            if (e.statusCode() == 404) {
+                return Optional.empty();
+            }
+            log.warn("S3 headObject failed - bucket: {}, key: {}", bucket, s3Key, e);
+            return Optional.empty();
+        } catch (Exception e) {
+            log.warn("S3 headObject failed - bucket: {}, key: {}", bucket, s3Key, e);
+            return Optional.empty();
         }
     }
 

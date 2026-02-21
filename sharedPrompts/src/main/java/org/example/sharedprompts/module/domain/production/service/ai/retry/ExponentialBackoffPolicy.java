@@ -10,7 +10,7 @@ public class ExponentialBackoffPolicy implements BackoffPolicy {
     
     @Override
     public long calculateDelayMs(int attempt) {
-        if (attempt <= 0) {
+        if (attempt < 0) {
             return INITIAL_DELAY_MS;
         }
         // INITIAL_DELAY_MS * 2^54 exceeds Long.MAX_VALUE; cap from attempt 54 onward

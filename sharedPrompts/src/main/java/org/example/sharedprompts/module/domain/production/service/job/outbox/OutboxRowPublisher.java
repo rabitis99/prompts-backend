@@ -21,10 +21,8 @@ import java.util.List;
 @Slf4j
 public class OutboxRowPublisher {
 
-    private static final List<String> PUBLISH_STATUSES = List.of(
-            JobOutboxEntity.STATUS_PENDING,
-            JobOutboxEntity.STATUS_FAILED
-    );
+    /** PENDING만 재발행 대상. FAILED는 maxRetryCount 초과 후 최종 실패로 두어 무한 재시도 방지. */
+    private static final List<String> PUBLISH_STATUSES = List.of(JobOutboxEntity.STATUS_PENDING);
 
     private final JobOutboxRepository jobOutboxRepository;
     private final JobQueuePublisher jobQueuePublisher;
@@ -46,8 +44,17 @@ public class OutboxRowPublisher {
             row.markSent();
             jobOutboxRepository.save(row);
         } catch (Exception e) {
-            log.warn("Outbox publish failed - id: {}, jobId: {}, will retry on next poll", row.getId(), row.getJobId(), e);
-            row.markFailed(e.getMessage());
+            row.incrementRetryCount();
+            String message = e.getMessage() != null && e.getMessage().length() > 500
+                    ? e.getMessage().substring(0, 500) : e.getMessage();
+            if (row.getRetryCount() >= row.getMaxRetryCount()) {
+                log.warn("Outbox publish failed after max retries - id: {}, jobId: {}, giving up", row.getId(), row.getJobId(), e);
+                row.markFailed(message);
+            } else {
+                log.warn("Outbox publish failed - id: {}, jobId: {}, retryCount: {}/{}, will retry on next poll",
+                        row.getId(), row.getJobId(), row.getRetryCount(), row.getMaxRetryCount(), e);
+                row.recordRetryFailure(message);
+            }
             jobOutboxRepository.save(row);
         }
         return true;
