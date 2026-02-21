@@ -54,10 +54,11 @@ class JobEntityTest {
         JobEntity job = pendingJob();
         job.start();
 
-        job.complete("artifact-123");
+        job.complete("123");
 
         assertThat(job.getStatus()).isEqualTo(JobStatus.SUCCEEDED);
-        assertThat(job.getArtifactId()).isEqualTo("artifact-123");
+        assertThat(job.getArtifactId()).isEqualTo("123");
+        assertThat(job.getProductionId()).isEqualTo(123L);
         assertThat(job.getCompletedAt()).isNotNull();
         assertThat(job.isCompleted()).isTrue();
     }
@@ -67,7 +68,7 @@ class JobEntityTest {
     void complete_from_pending_throws_exception() {
         JobEntity job = pendingJob();
 
-        assertThatThrownBy(() -> job.complete("artifact-1"))
+        assertThatThrownBy(() -> job.complete("1"))
                 .isInstanceOf(BaseException.class)
                 .hasMessageContaining("PROCESSING");
     }

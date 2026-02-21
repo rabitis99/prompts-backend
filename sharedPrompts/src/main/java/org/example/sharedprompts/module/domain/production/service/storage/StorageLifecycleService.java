@@ -153,19 +153,19 @@ public class StorageLifecycleService {
         }
     }
 
+    /**
+     * Returns existing object tags. Throws on failure so callers do not overwrite
+     * tags with a partial set (e.g. lifecycle-only), which would delete cost/compliance tags.
+     */
     private Map<String, String> getObjectTags(String key) {
-        try {
-            GetObjectTaggingResponse response = s3Client.getObjectTagging(
-            GetObjectTaggingRequest.builder()
-                    .bucket(productionS3Properties.getBucket())
-                    .key(key)
-                    .build());
+        GetObjectTaggingResponse response = s3Client.getObjectTagging(
+                GetObjectTaggingRequest.builder()
+                        .bucket(productionS3Properties.getBucket())
+                        .key(key)
+                        .build());
 
-            HashMap<String, String> tags = new HashMap<>();
-            response.tagSet().forEach(tag -> tags.put(tag.key(), tag.value()));
-            return tags;
-        } catch (Exception e) {
-            return new HashMap<>();
-        }
+        HashMap<String, String> tags = new HashMap<>();
+        response.tagSet().forEach(tag -> tags.put(tag.key(), tag.value()));
+        return tags;
     }
 }

@@ -133,7 +133,8 @@ public class S3DownloadService {
 
     /**
      * S3 객체의 Content-Length(바이트)를 반환합니다.
-     * 객체가 없거나 메타데이터 조회에 실패하면 빈 Optional을 반환합니다.
+     * 객체가 없으면(NoSuchKey 또는 404) 빈 Optional을 반환합니다.
+     * 그 외 S3 오류는 S3StorageException을 던집니다.
      */
     public Optional<Long> getContentLength(String s3Key) {
         try {

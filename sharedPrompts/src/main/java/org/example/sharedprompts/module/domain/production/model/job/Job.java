@@ -58,6 +58,7 @@ public class Job {
 
     public void setArtifactId(String artifactId) {
         this.artifactId = artifactId;
+        this.productionId = parseProductionIdOrNull(artifactId);
     }
 
     public boolean isCompleted() {
@@ -66,6 +67,17 @@ public class Job {
 
     public boolean isFailed() {
         return status == JobStatus.FAILED;
+    }
+
+    private static Long parseProductionIdOrNull(String artifactId) {
+        if (artifactId == null || artifactId.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.valueOf(artifactId);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }
 

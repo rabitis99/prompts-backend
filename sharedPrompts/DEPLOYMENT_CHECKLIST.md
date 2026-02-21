@@ -4,13 +4,24 @@
 
 ---
 
-## 1. Outbox 테이블
+## 1. DB 스키마 마이그레이션 (Flyway 미사용)
 
-**목표**: `production_job_outbox` 테이블이 배포 대상 DB에 존재해야 합니다.
+**목표**: 배포 대상 DB에 필요한 테이블·컬럼이 적용되어 있어야 합니다. **Flyway를 사용하지 않으므로** `src/main/resources/db/migration/` 아래 SQL은 자동 실행되지 않습니다. 각 파일의 실행 시점과 담당을 팀에서 명확히 하세요.
 
-### 확인 방법
+### 마이그레이션 파일 목록
 
-- **Flyway 미사용 (현재)**: 이 프로젝트에는 Flyway 의존성이 없습니다. 배포 전에 **수동으로** 아래 SQL을 대상 DB에서 1회 실행한다.
+| 파일 | 목적 | 실행 시점 | 비고 |
+|------|------|-----------|------|
+| `outbox.sql` | `production_job_outbox` 테이블 생성 | 배포 전 1회 수동, 또는 `production.outbox.table.auto-create=true` 시 앱 기동 시 OutboxTableInitializer가 실행 | 미적용 시 Outbox 발행 불가 |
+| `add_production_id_to_jobs.sql` | `production_jobs.production_id` 컬럼 추가 및 기존 데이터 보정 | Job N+1 방지 기능 배포 전/직후 1회 수동 | 미적용 시 스키마 불일치 가능 |
+| `migrate_legacy_job_statuses.sql` | 레거시/비정상 Job 상태 정리 (UNKNOWN, RETRYING 등) | 배포 전/직후 필요 시 수동 (애플리케이션 시작 전 권장) | 선택 |
+| `shedlock.sql` | ShedLock 테이블 (Redis 장애 시 DB 락 전환용) | ShedLock DB 사용 시 배포 전 1회 수동 | 해당 스케줄러 사용 시만 |
+
+**권장**: Flyway 등 자동 마이그레이션 도구 도입 또는, 수동 실행 시 배포 체크리스트/CI에서 실행 순서·담당자 명시.
+
+### Outbox 테이블 적용 (상세)
+
+- **Flyway 미사용 (현재)**: 배포 전에 **수동으로** 아래 SQL을 대상 DB에서 1회 실행한다.
 - **Flyway 도입 시**: Flyway 의존성 추가 후 `db/migration/`에 `V1__add_outbox_table.sql` 등 버전 규칙을 따르는 파일로 마이그레이션을 관리한다.
 
 ### 적용할 SQL
@@ -34,6 +45,7 @@ COMMENT='Job 큐 발행용 Transactional Outbox - 동일 TX 기록 후 비동기
 ### 체크
 
 - [ ] Outbox 테이블이 배포 대상 DB에 적용됨 (Flyway 또는 수동 실행)
+- [ ] (해당 시) `add_production_id_to_jobs.sql`, `shedlock.sql` 등 필요한 스키마 마이그레이션이 적용됨
 
 ---
 
@@ -152,7 +164,7 @@ production:
 
 | # | 항목 | 확인 내용 |
 |---|------|-----------|
-| 1 | Outbox 테이블 | `production_job_outbox` Flyway 또는 수동 적용 |
+| 1 | DB 스키마 마이그레이션 | Outbox·production_id·ShedLock 등 `db/migration/` SQL 실행 시점·담당 명확화, 필요 시 수동 적용 |
 | 2 | 환경 변수 | 공통 + prod 필수 변수 설정, 앱 기동 시 검증 통과 |
 | 3 | OPERATIONS §1~§3 | 로깅·모니터링·백업 계획 점검 |
 | 4 | Outbox 설정 | enabled(true 권장), publisher-interval-ms(기본 2000) 확인 |

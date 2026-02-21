@@ -126,9 +126,7 @@ public class JobEntity extends BaseEntity {
         }
         this.status = JobStatus.SUCCEEDED;
         this.artifactId = artifactId;
-        this.productionId = (artifactId != null && !artifactId.isBlank())
-                ? Long.valueOf(artifactId)
-                : null;
+        this.productionId = parseProductionIdOrNull(artifactId);
         this.completedAt = Instant.now();
     }
 
@@ -166,84 +164,53 @@ public class JobEntity extends BaseEntity {
     }
 
     /**
-     * P2-2: 메시지 레벨 retry 발행 성공 시 RETRYING 상태로 전이
-     * FAILED → RETRYING
+     * P2-2: 메시지 레벨 retry 발행 성공 시 RETRYING 상태로 전이. FAILED → RETRYING.
+     * State transition validation is performed by JobStateMachine before calling this.
      */
     public void markAsRetrying() {
-        if (this.status != JobStatus.FAILED) {
-            throw new BaseException(
-                    ModuleErrorCode.JOB_INVALID_STATUS,
-                    null,
-                    String.format("Cannot mark as retrying: expected FAILED, but was %s", this.status)
-            );
-        }
         this.status = JobStatus.RETRYING;
         this.retryCount++;
     }
 
     /**
-     * P2-2: RETRYING 상태의 job을 consumer가 소비할 때 PROCESSING으로 전이
-     * RETRYING → PROCESSING
+     * P2-2: RETRYING 상태의 job을 consumer가 소비할 때 PROCESSING으로 전이. RETRYING → PROCESSING.
+     * State transition validation is performed by JobStateMachine before calling this.
      */
     public void startFromRetrying() {
-        if (this.status != JobStatus.RETRYING) {
-            throw new BaseException(
-                    ModuleErrorCode.JOB_INVALID_STATUS,
-                    null,
-                    String.format("Cannot start from retrying: expected RETRYING, but was %s", this.status)
-            );
-        }
         this.status = JobStatus.PROCESSING;
         this.startedAt = Instant.now();
         this.errorMessage = null;
         this.artifactId = null;
+        this.completedAt = null;
     }
 
     /**
-     * P3-1: AI/S3 호출 timeout 시 UNKNOWN 상태로 전이
-     * PROCESSING → UNKNOWN
-     * 즉시 재호출 금지 - UnknownJobRecoveryScheduler가 5분 주기로 복구
+     * P3-1: AI/S3 호출 timeout 시 UNKNOWN 상태로 전이. PROCESSING → UNKNOWN.
+     * 즉시 재호출 금지 - UnknownJobRecoveryScheduler가 5분 주기로 복구.
+     * State transition validation is performed by JobStateMachine before calling this.
      */
     public void markAsUnknown(String reason) {
-        if (this.status != JobStatus.PROCESSING) {
-            throw new BaseException(
-                    ModuleErrorCode.JOB_INVALID_STATUS,
-                    null,
-                    String.format("Cannot mark as unknown: expected PROCESSING, but was %s", this.status)
-            );
-        }
         this.status = JobStatus.UNKNOWN;
         this.errorMessage = reason;
     }
 
     /**
-     * P3-1: 복구 스케줄러가 UNKNOWN → SUCCEEDED 전이
+     * P3-1: 복구 스케줄러가 UNKNOWN → SUCCEEDED 전이.
+     * State transition validation is performed by JobStateMachine before calling this.
      */
     public void recoverAsSucceeded(String artifactId) {
-        if (this.status != JobStatus.UNKNOWN) {
-            throw new BaseException(
-                    ModuleErrorCode.JOB_INVALID_STATUS,
-                    null,
-                    String.format("Cannot recover as succeeded: expected UNKNOWN, but was %s", this.status)
-            );
-        }
         this.status = JobStatus.SUCCEEDED;
         this.artifactId = artifactId;
+        this.productionId = parseProductionIdOrNull(artifactId);
         this.completedAt = Instant.now();
         this.errorMessage = null;
     }
 
     /**
-     * P3-1: 복구 스케줄러가 UNKNOWN → FAILED 전이
+     * P3-1: 복구 스케줄러가 UNKNOWN → FAILED 전이.
+     * State transition validation is performed by JobStateMachine before calling this.
      */
     public void recoverAsFailed(String errorMessage) {
-        if (this.status != JobStatus.UNKNOWN) {
-            throw new BaseException(
-                    ModuleErrorCode.JOB_INVALID_STATUS,
-                    null,
-                    String.format("Cannot recover as failed: expected UNKNOWN, but was %s", this.status)
-            );
-        }
         this.status = JobStatus.FAILED;
         this.errorMessage = errorMessage;
         this.completedAt = Instant.now();
@@ -292,6 +259,7 @@ public class JobEntity extends BaseEntity {
 
     public void setArtifactId(String artifactId) {
         this.artifactId = artifactId;
+        this.productionId = parseProductionIdOrNull(artifactId);
     }
 
     public void setPromptVersion(String promptVersion) {
@@ -301,5 +269,21 @@ public class JobEntity extends BaseEntity {
     public void setModelInfo(String modelName, String tokenUsage) {
         this.modelName = modelName;
         this.tokenUsage = tokenUsage;
+    }
+
+    /**
+     * Parses artifactId to Long when it is numeric (e.g. production_artifacts.id);
+     * returns null for null, blank, or non-numeric values (e.g. UUID, test values).
+     * Avoids NumberFormatException and supports VARCHAR(50) artifactId storage.
+     */
+    private static Long parseProductionIdOrNull(String artifactId) {
+        if (artifactId == null || artifactId.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.valueOf(artifactId);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }

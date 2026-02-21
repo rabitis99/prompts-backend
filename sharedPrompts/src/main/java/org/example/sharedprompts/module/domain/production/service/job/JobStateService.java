@@ -105,9 +105,8 @@ public class JobStateService {
             } else {
                 throw e;
             }
-        } catch (IllegalStateException e) {
-            log.warn("Could not mark job as failed (already in final state) - jobId: {}, error: {}", jobId, e.getMessage());
         }
+        // IllegalStateException is not caught so unexpected state machine bugs propagate to callers.
     }
 
     /**

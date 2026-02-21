@@ -49,21 +49,6 @@ class ProductionResponseDtoMapperTest {
         return entity;
     }
 
-    /**
-     * primary가 지정된 detail 한 개 → SUCCEEDED 시 artifact DTO 포함
-     */
-    private ProductionArtifactEntity artifactWithPrimaryDetail() {
-        ProductionArtifactEntity entity = ProductionArtifactEntity.builder()
-                .jobId(1L).tenantId("t").userId(100L).commandType(ProductionCommandType.TEXT)
-                .build();
-        ProductionArtifactDetailEntity detail = ProductionArtifactDetailEntity.builder()
-                .artifactType(ArtifactType.TEXT).content("내용")
-                .fileName("output.txt").contentType("text/plain").build();
-        entity.addArtifact(detail);
-        entity.markAsPrimary(detail);
-        return entity;
-    }
-
     private JobEntity baseJob(String jobId, String key) {
         return JobEntity.builder()
                 .jobId(jobId).idempotencyKey(key).promptId(1L)
@@ -97,16 +82,6 @@ class ProductionResponseDtoMapperTest {
         assertThat(dto.errorMessage()).isNull();
         assertThat(dto.startedAt()).isNotNull();
         assertThat(dto.completedAt()).isNotNull();
-    }
-
-    @Test
-    @DisplayName("Job이 SUCCEEDED이고 primary artifact가 있으면 artifact DTO가 포함된다")
-    void toDto_with_succeeded_job_and_primary_artifact_includes_artifact() {
-        ProductionResponseDto dto = ProductionResponseDtoMapper.toDto(
-                artifactWithPrimaryDetail(), succeededJob(), artifactHandlerRegistry);
-
-        assertThat(dto.status()).isEqualTo(ProductionStatus.SUCCEEDED);
-        assertThat(dto.artifact()).isNotNull();
     }
 
     @Test

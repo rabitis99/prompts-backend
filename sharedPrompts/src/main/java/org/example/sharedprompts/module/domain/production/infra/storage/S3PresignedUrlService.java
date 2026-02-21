@@ -2,6 +2,7 @@ package org.example.sharedprompts.module.domain.production.infra.storage;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.module.domain.production.config.condition.ConditionalOnStorageType;
 import org.example.sharedprompts.module.domain.production.config.properties.ProductionS3Properties;
 import org.example.sharedprompts.module.domain.production.infra.storage.exception.S3StorageException;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import java.time.ZonedDateTime;
  * 업로드/다운로드용 Presigned URL 생성을 담당합니다.
  */
 @Service
+@ConditionalOnStorageType("S3")
 @RequiredArgsConstructor
 @Slf4j
 public class S3PresignedUrlService {

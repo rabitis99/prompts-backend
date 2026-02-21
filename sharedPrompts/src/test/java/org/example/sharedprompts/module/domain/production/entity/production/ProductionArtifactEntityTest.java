@@ -2,7 +2,6 @@ package org.example.sharedprompts.module.domain.production.entity.production;
 
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -99,7 +98,7 @@ class ProductionArtifactEntityTest {
         ProductionArtifactDetailEntity detail = textDetail();
         artifact.addArtifact(detail);
         artifact.markAsPrimary(detail);
-        Assumptions.assumeTrue(detail.isPrimary(), "precondition: detail이 primary여야 함");
+        assertThat(detail.isPrimary()).as("precondition: detail이 primary여야 함").isTrue();
 
         artifact.removeArtifact(detail);
 
