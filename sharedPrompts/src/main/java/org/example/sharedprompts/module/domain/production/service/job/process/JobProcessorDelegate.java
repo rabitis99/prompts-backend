@@ -168,6 +168,9 @@ public class JobProcessorDelegate {
         List<String> tokenUsages = new ArrayList<>();
         for (int attempt = 0; attempt <= LITERARY_VALIDATION_MAX_RETRIES; attempt++) {
             execResult = strategy.generate(job, command, composedPrompt, literaryAIExecutor, literaryResponseExtractor);
+            if (execResult == null) {
+                throw new ContentRenderException("Literary generation produced no result");
+            }
             if (execResult.tokenUsage() != null && !execResult.tokenUsage().isBlank()) {
                 tokenUsages.add(execResult.tokenUsage());
             }
@@ -183,7 +186,7 @@ public class JobProcessorDelegate {
 
         LiteraryExecutionResult resultToStore = Objects.requireNonNull(execResult, "Literary generation produced no result");
         String accumulatedTokenUsage = tokenUsages.isEmpty()
-                ? resultToStore.tokenUsage()
+                ? null
                 : String.join("; ", tokenUsages);
         jobStateService.setModelInfo(job.getJobId(), resultToStore.modelName(), accumulatedTokenUsage);
         LiteraryPipelineResult pipelineResult = literaryOutputPipeline.run(resultToStore.content(), job);

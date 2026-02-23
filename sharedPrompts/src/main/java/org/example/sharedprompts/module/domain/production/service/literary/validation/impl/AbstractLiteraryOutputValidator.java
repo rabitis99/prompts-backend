@@ -1,5 +1,6 @@
 package org.example.sharedprompts.module.domain.production.service.literary.validation.impl;
 
+import org.example.sharedprompts.module.domain.production.model.literary.LiteraryType;
 import org.example.sharedprompts.module.domain.production.service.literary.validation.LiteraryOutputValidator;
 import org.example.sharedprompts.module.domain.production.service.literary.validation.LiteraryValidationResult;
 
@@ -7,6 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class AbstractLiteraryOutputValidator implements LiteraryOutputValidator {
+
+    @Override
+    public abstract LiteraryType getLiteraryType();
 
     protected abstract int getMinContentLength();
 
@@ -19,9 +23,10 @@ public abstract class AbstractLiteraryOutputValidator implements LiteraryOutputV
             errors.add("Content is empty");
             return LiteraryValidationResult.failure(errors);
         }
-        String t = rawContent.trim();
-        if (t.length() < getMinContentLength()) {
-            errors.add("Content too short (min " + getMinContentLength() + " chars for " + getTypeName() + ")");
+        String trimmed = rawContent.trim();
+        int minLength = getMinContentLength();
+        if (trimmed.length() < minLength) {
+            errors.add("Content too short (min " + minLength + " chars for " + getTypeName() + ")");
         }
         return errors.isEmpty() ? LiteraryValidationResult.ok() : LiteraryValidationResult.failure(errors);
     }

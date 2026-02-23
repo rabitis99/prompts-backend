@@ -30,6 +30,9 @@ public class LiteraryGenerationStrategyRegistry {
     }
 
     public LiteraryGenerationStrategy getStrategy(LiteraryType literaryType) {
+        if (literaryType == null) {
+            throw new IllegalArgumentException("literaryType must not be null");
+        }
         LiteraryGenerationStrategy strategy = strategyMap.get(literaryType);
         if (strategy == null) {
             throw new IllegalArgumentException("No LiteraryGenerationStrategy for type: " + literaryType);

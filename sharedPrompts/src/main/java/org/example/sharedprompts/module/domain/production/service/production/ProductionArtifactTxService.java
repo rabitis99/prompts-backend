@@ -122,16 +122,9 @@ public class ProductionArtifactTxService {
     }
 
     /**
-     * LITERARY 완성 작품용: original.txt, preview.html, final.pdf 3개 디테일로 아티팩트 생성.
-     * PDF를 primary로 설정한다.
+     * LITERARY 키 검증. 트랜잭션 진입 전에 호출하여 불필요한 커넥션 획득을 피한다.
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW, timeout = 30)
-    public ProductionArtifactEntity createInNewTransactionForLiterary(
-            JobEntity job,
-            String originalTxtKey,
-            String previewHtmlKey,
-            String finalPdfKey
-    ) {
+    public static void validateLiteraryKeys(String originalTxtKey, String previewHtmlKey, String finalPdfKey) {
         if (originalTxtKey == null || originalTxtKey.isBlank()) {
             throw new IllegalArgumentException("originalTxtKey must not be blank");
         }
@@ -141,6 +134,20 @@ public class ProductionArtifactTxService {
         if (finalPdfKey == null || finalPdfKey.isBlank()) {
             throw new IllegalArgumentException("finalPdfKey must not be blank");
         }
+    }
+
+    /**
+     * LITERARY 완성 작품용: original.txt, preview.html, final.pdf 3개 디테일로 아티팩트 생성.
+     * PDF를 primary로 설정한다.
+     * 호출 전에 {@link #validateLiteraryKeys}를 호출할 것.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW, timeout = 30)
+    public ProductionArtifactEntity createInNewTransactionForLiterary(
+            JobEntity job,
+            String originalTxtKey,
+            String previewHtmlKey,
+            String finalPdfKey
+    ) {
         String tenantId = TenantContextValidator.requireTenantContext(
                 "creating literary artifact - jobId: " + job.getJobId());
 

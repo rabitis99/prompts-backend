@@ -6,7 +6,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class NovelLiteraryOutputValidator extends AbstractLiteraryOutputValidator {
 
-    private static final int MIN_CONTENT_LENGTH = 200;
+    /** First gate: reject obviously truncated output. Short story uses a lower threshold. */
+    private static final int MIN_CONTENT_LENGTH = 2_000;
 
     @Override
     public LiteraryType getLiteraryType() {

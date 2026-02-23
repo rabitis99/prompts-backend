@@ -4,24 +4,35 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.model.literary.LiteraryType;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @Slf4j
 public class LiteraryValidatorRegistry {
 
-    private final Map<LiteraryType, LiteraryOutputValidator> validatorMap = new ConcurrentHashMap<>();
+    private final Map<LiteraryType, LiteraryOutputValidator> validatorMap;
 
     public LiteraryValidatorRegistry(List<LiteraryOutputValidator> validators) {
+        Map<LiteraryType, LiteraryOutputValidator> map = new EnumMap<>(LiteraryType.class);
         for (LiteraryOutputValidator v : validators) {
-            validatorMap.put(v.getLiteraryType(), v);
+            LiteraryOutputValidator existing = map.put(v.getLiteraryType(), v);
+            if (existing != null) {
+                throw new IllegalStateException(
+                        "Duplicate LiteraryOutputValidator for type " + v.getLiteraryType()
+                                + ": " + existing.getClass().getSimpleName() + " and " + v.getClass().getSimpleName());
+            }
             log.info("Registered LiteraryOutputValidator: {} for {}", v.getClass().getSimpleName(), v.getLiteraryType());
         }
+        this.validatorMap = Collections.unmodifiableMap(map);
     }
 
     public LiteraryOutputValidator getValidator(LiteraryType literaryType) {
+        if (literaryType == null) {
+            throw new IllegalArgumentException("literaryType must not be null");
+        }
         LiteraryOutputValidator v = validatorMap.get(literaryType);
         if (v == null) {
             throw new IllegalArgumentException("No LiteraryOutputValidator registered for type: " + literaryType);

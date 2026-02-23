@@ -4,9 +4,10 @@ import org.example.sharedprompts.module.domain.production.model.literary.Literar
 import org.springframework.stereotype.Component;
 
 @Component
-public class DefaultLiteraryOutputValidator extends AbstractLiteraryOutputValidator {
+public class PoemLiteraryOutputValidator extends AbstractLiteraryOutputValidator {
 
-    private static final int MIN_CONTENT_LENGTH = 50;
+    /** Allows short forms (e.g. haiku, 2-line verse). Raise if product requires longer poems only. */
+    private static final int MIN_CONTENT_LENGTH = 20;
 
     @Override
     public LiteraryType getLiteraryType() {

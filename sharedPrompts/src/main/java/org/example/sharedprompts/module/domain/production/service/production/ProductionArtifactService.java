@@ -47,6 +47,7 @@ public class ProductionArtifactService {
 
     /**
      * LITERARY 완성 작품: original.txt, preview.html, final.pdf 3개 파일에 대한 아티팩트 생성.
+     * 검증은 트랜잭션 진입 전에 수행한다.
      */
     public ProductionArtifactEntity createArtifactForLiterary(
             JobEntity job,
@@ -54,6 +55,7 @@ public class ProductionArtifactService {
             String previewHtmlKey,
             String finalPdfKey
     ) {
+        ProductionArtifactTxService.validateLiteraryKeys(originalTxtKey, previewHtmlKey, finalPdfKey);
         return artifactTxService.createInNewTransactionForLiterary(
                 job, originalTxtKey, previewHtmlKey, finalPdfKey);
     }
