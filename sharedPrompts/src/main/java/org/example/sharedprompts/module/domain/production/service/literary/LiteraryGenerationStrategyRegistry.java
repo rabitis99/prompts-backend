@@ -4,19 +4,21 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.model.literary.LiteraryType;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @Slf4j
 public class LiteraryGenerationStrategyRegistry {
 
-    private final Map<LiteraryType, LiteraryGenerationStrategy> strategyMap = new ConcurrentHashMap<>();
+    private final Map<LiteraryType, LiteraryGenerationStrategy> strategyMap;
 
     public LiteraryGenerationStrategyRegistry(List<LiteraryGenerationStrategy> strategies) {
+        Map<LiteraryType, LiteraryGenerationStrategy> map = new EnumMap<>(LiteraryType.class);
         for (LiteraryGenerationStrategy strategy : strategies) {
-            LiteraryGenerationStrategy existing = strategyMap.put(strategy.getLiteraryType(), strategy);
+            LiteraryGenerationStrategy existing = map.put(strategy.getLiteraryType(), strategy);
             if (existing != null) {
                 throw new IllegalStateException(
                         "Duplicate LiteraryGenerationStrategy for type " + strategy.getLiteraryType()
@@ -24,6 +26,7 @@ public class LiteraryGenerationStrategyRegistry {
             }
             log.info("Registered LiteraryGenerationStrategy: {} for {}", strategy.getClass().getSimpleName(), strategy.getLiteraryType());
         }
+        this.strategyMap = Collections.unmodifiableMap(map);
     }
 
     public LiteraryGenerationStrategy getStrategy(LiteraryType literaryType) {

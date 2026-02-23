@@ -31,9 +31,10 @@ public class NovelGenerationStrategy implements LiteraryGenerationStrategy {
                                             LiteraryAIExecutor aiExecutor, LiteraryResponseExtractor responseExtractor) {
         LiteraryExecutionResult execResult = aiExecutor.execute(job, command, composedPrompt);
         String content = responseExtractor.extractContent(execResult.content());
-        if (tokenEstimator.estimateTokens(content) > tokenEstimator.getMaxTokensPerRequest()) {
+        int estimatedTokens = tokenEstimator.estimateTokens(content);
+        if (estimatedTokens > tokenEstimator.getMaxTokensPerRequest()) {
             log.warn("Novel content exceeds token limit (estimated: {}, max: {}) - consider chunking in a future iteration",
-                    tokenEstimator.estimateTokens(content), tokenEstimator.getMaxTokensPerRequest());
+                    estimatedTokens, tokenEstimator.getMaxTokensPerRequest());
         }
         return new LiteraryExecutionResult(content, execResult.modelName(), execResult.tokenUsage());
     }

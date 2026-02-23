@@ -163,6 +163,10 @@ public class ProductionArtifactTxService {
         return productionArtifactRepository.save(artifact);
     }
 
+    /**
+     * Creates a file detail from an S3 key. fileSize is left null; consider populating from
+     * storage (e.g. getContentLength) when size-based validation or display is needed.
+     */
     private static ProductionArtifactDetailEntity createFileDetail(String s3Key) {
         String fileName = ArtifactMetadataHelper.extractFileName(s3Key);
         String contentType = ArtifactMetadataHelper.determineContentType(s3Key);

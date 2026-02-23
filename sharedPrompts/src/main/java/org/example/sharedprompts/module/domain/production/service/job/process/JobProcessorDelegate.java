@@ -37,6 +37,8 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -63,6 +65,8 @@ public class JobProcessorDelegate {
     private final LiteraryOutputPipeline literaryOutputPipeline;
     private final LiteraryAIExecutor literaryAIExecutor;
     private final LiteraryResponseExtractor literaryResponseExtractor;
+
+    private static final int LITERARY_VALIDATION_MAX_RETRIES = 2;
 
     public void processJob(String jobId) {
         Instant startTime = Instant.now();
@@ -155,16 +159,18 @@ public class JobProcessorDelegate {
         }
     }
 
-    private static final int LITERARY_VALIDATION_MAX_RETRIES = 2;
-
     private void processLiteraryJob(String jobId, JobEntity job, LiteraryCommand command, String composedPrompt,
                                     Instant startTime, String commandType) {
         LiteraryGenerationStrategy strategy = literaryStrategyRegistry.getStrategy(command.literaryType());
         var validator = literaryValidatorRegistry.getValidator(command.literaryType());
 
         LiteraryExecutionResult execResult = null;
+        List<String> tokenUsages = new ArrayList<>();
         for (int attempt = 0; attempt <= LITERARY_VALIDATION_MAX_RETRIES; attempt++) {
             execResult = strategy.generate(job, command, composedPrompt, literaryAIExecutor, literaryResponseExtractor);
+            if (execResult.tokenUsage() != null && !execResult.tokenUsage().isBlank()) {
+                tokenUsages.add(execResult.tokenUsage());
+            }
             LiteraryValidationResult result = validator.validate(execResult.content());
             if (result.isValid()) {
                 break;
@@ -176,7 +182,10 @@ public class JobProcessorDelegate {
         }
 
         LiteraryExecutionResult resultToStore = Objects.requireNonNull(execResult, "Literary generation produced no result");
-        jobStateService.setModelInfo(job.getJobId(), resultToStore.modelName(), resultToStore.tokenUsage());
+        String accumulatedTokenUsage = tokenUsages.isEmpty()
+                ? resultToStore.tokenUsage()
+                : String.join("; ", tokenUsages);
+        jobStateService.setModelInfo(job.getJobId(), resultToStore.modelName(), accumulatedTokenUsage);
         LiteraryPipelineResult pipelineResult = literaryOutputPipeline.run(resultToStore.content(), job);
         jobStateService.markStoredLiterary(
                 job.getJobId(),

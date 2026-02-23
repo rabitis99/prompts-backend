@@ -30,6 +30,9 @@ public class CommandDeserializer {
     }
 
     private Class<? extends ProductionCommand> getCommandClass(String commandType) {
+        if (commandType == null) {
+            throw new IllegalArgumentException("Command type must not be null");
+        }
         ProductionCommandType type;
         try {
             type = ProductionCommandType.valueOf(commandType);
