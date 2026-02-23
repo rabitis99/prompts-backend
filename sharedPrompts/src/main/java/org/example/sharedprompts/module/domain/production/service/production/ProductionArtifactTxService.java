@@ -3,10 +3,12 @@ package org.example.sharedprompts.module.domain.production.service.production;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
+import org.example.sharedprompts.module.domain.production.entity.factory.ProductionArtifactDetailEntityFactory;
 import org.example.sharedprompts.module.domain.production.entity.factory.ProductionArtifactEntityFactory;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactDetailEntity;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.result.ArtifactType;
+import org.example.sharedprompts.module.domain.production.util.ArtifactMetadataHelper;
 import org.example.sharedprompts.module.domain.production.repository.production.ProductionArtifactRepository;
 import org.example.sharedprompts.module.domain.production.service.artifact.ArtifactHandler;
 import org.example.sharedprompts.module.domain.production.service.artifact.ArtifactHandlerRegistry;
@@ -117,5 +119,65 @@ public class ProductionArtifactTxService {
         }
 
         return saved;
+    }
+
+    /**
+     * LITERARY 키 검증. 트랜잭션 진입 전에 호출하여 불필요한 커넥션 획득을 피한다.
+     */
+    public static void validateLiteraryKeys(String originalTxtKey, String previewHtmlKey, String finalPdfKey) {
+        if (originalTxtKey == null || originalTxtKey.isBlank()) {
+            throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, null, "originalTxtKey must not be blank");
+        }
+        if (previewHtmlKey == null || previewHtmlKey.isBlank()) {
+            throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, null, "previewHtmlKey must not be blank");
+        }
+        if (finalPdfKey == null || finalPdfKey.isBlank()) {
+            throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, null, "finalPdfKey must not be blank");
+        }
+    }
+
+    /**
+     * LITERARY 완성 작품용: original.txt, preview.html, final.pdf 3개 디테일로 아티팩트 생성.
+     * PDF를 primary로 설정한다.
+     * 호출 전에 {@link #validateLiteraryKeys}를 호출할 것.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW, timeout = 30)
+    public ProductionArtifactEntity createInNewTransactionForLiterary(
+            JobEntity job,
+            String originalTxtKey,
+            String previewHtmlKey,
+            String finalPdfKey
+    ) {
+        String tenantId = TenantContextValidator.requireTenantContext(
+                "creating literary artifact - jobId: " + job.getJobId());
+
+        ProductionArtifactEntity artifact = ProductionArtifactEntityFactory.create(
+                job.getId(),
+                tenantId,
+                job.getUserId(),
+                ProductionCommandType.LITERARY
+        );
+
+        ProductionArtifactDetailEntity detailOriginal = createFileDetail(originalTxtKey);
+        ProductionArtifactDetailEntity detailPreview = createFileDetail(previewHtmlKey);
+        ProductionArtifactDetailEntity detailPdf = createFileDetail(finalPdfKey);
+
+        artifact.addArtifact(detailOriginal);
+        artifact.addArtifact(detailPreview);
+        artifact.addArtifact(detailPdf);
+        artifact.markAsPrimary(detailPdf);
+
+        return productionArtifactRepository.save(artifact);
+    }
+
+    /**
+     * Creates a file detail from an S3 key. fileSize is left null; consider populating from
+     * storage (e.g. getContentLength) when size-based validation or display is needed.
+     */
+    private static ProductionArtifactDetailEntity createFileDetail(String s3Key) {
+        String fileName = ArtifactMetadataHelper.extractFileName(s3Key);
+        String contentType = ArtifactMetadataHelper.determineContentType(s3Key);
+        return ProductionArtifactDetailEntityFactory.createFile(
+                ArtifactType.FILE, s3Key, fileName, contentType, null, null);
     }
 }

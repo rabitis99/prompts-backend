@@ -33,6 +33,7 @@ public final class ArtifactMetadataHelper {
         return switch (commandType) {
             case TEXT, EMAIL, BLOG, DOCUMENT -> ArtifactType.TEXT;
             case IMAGE -> ArtifactType.IMAGE;
+            case LITERARY -> ArtifactType.FILE;
         };
     }
 

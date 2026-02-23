@@ -61,12 +61,29 @@ public class JobStateService {
         }
 
         var artifact = productionArtifactService.createArtifact(job, s3Key);
-        String artifactId = artifact.getId().toString();
+        completeJobWithArtifact(jobId, job, artifact.getId().toString());
+    }
 
+    /**
+     * LITERARY 완성 작품: 3개 S3 키(original, preview, pdf)로 아티팩트 생성 후 Job 완료.
+     */
+    public void markStoredLiterary(String jobId, String originalTxtKey, String previewHtmlKey, String finalPdfKey) {
+        if (originalTxtKey == null || originalTxtKey.isBlank()
+                || previewHtmlKey == null || previewHtmlKey.isBlank()
+                || finalPdfKey == null || finalPdfKey.isBlank()) {
+            throw new JobProcessingException(ModuleErrorCode.JOB_INVALID_STATUS,
+                    "Literary artifact S3 keys must not be blank - jobId: " + jobId);
+        }
+        JobEntity job = getJob(jobId);
+        var artifact = productionArtifactService.createArtifactForLiterary(
+                job, originalTxtKey, previewHtmlKey, finalPdfKey);
+        completeJobWithArtifact(jobId, job, artifact.getId().toString());
+        log.info("Literary artifact created and job completed - jobId: {}, artifactId: {}", jobId, artifact.getId());
+    }
+
+    private void completeJobWithArtifact(String jobId, JobEntity job, String artifactId) {
         try {
             jobUpdateHelper.updateJob(jobId, jobEntity -> stateMachine.complete(jobEntity, artifactId));
-            log.info("ProductionArtifact created and job completed - jobId: {}, artifactId: {}, s3Key: {}",
-                    jobId, artifactId, s3Key);
         } catch (Exception e) {
             log.error("Failed to complete job after artifact creation - jobId: {}, artifactId: {}. Cleaning up orphaned artifact.",
                     jobId, artifactId, e);

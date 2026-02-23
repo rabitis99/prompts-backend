@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommand;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
+import org.example.sharedprompts.module.domain.production.model.executor.literary.LiteraryCommand;
 import org.example.sharedprompts.module.domain.production.service.job.JobLockService;
 import org.example.sharedprompts.module.domain.production.service.job.JobStateService;
 import org.example.sharedprompts.module.domain.production.service.job.gate.JobGateLockService;
@@ -20,6 +21,15 @@ import org.example.sharedprompts.module.domain.production.service.job.process.ex
 import org.example.sharedprompts.module.domain.production.service.job.process.execution.content.ContentStorageService;
 import org.example.sharedprompts.module.domain.production.service.job.process.util.CommandDeserializer;
 import org.example.sharedprompts.module.domain.production.service.job.process.util.FileNameGenerator;
+import org.example.sharedprompts.module.domain.production.service.literary.LiteraryAIExecutor;
+import org.example.sharedprompts.module.domain.production.service.literary.LiteraryExecutionResult;
+import org.example.sharedprompts.module.domain.production.service.literary.LiteraryGenerationStrategy;
+import org.example.sharedprompts.module.domain.production.service.literary.LiteraryResponseExtractor;
+import org.example.sharedprompts.module.domain.production.service.literary.LiteraryGenerationStrategyRegistry;
+import org.example.sharedprompts.module.domain.production.service.literary.pipeline.LiteraryOutputPipeline;
+import org.example.sharedprompts.module.domain.production.service.literary.pipeline.LiteraryPipelineResult;
+import org.example.sharedprompts.module.domain.production.service.literary.validation.LiteraryValidationResult;
+import org.example.sharedprompts.module.domain.production.service.literary.validation.LiteraryValidatorRegistry;
 import org.example.sharedprompts.module.domain.production.service.parser.ParsedResponse;
 import org.example.sharedprompts.module.domain.production.service.prompt.PromptTemplateService;
 import org.example.sharedprompts.module.domain.production.util.TenantContextValidator;
@@ -27,6 +37,9 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Component
@@ -47,10 +60,14 @@ public class JobProcessorDelegate {
     private final FileNameGenerator fileNameGenerator;
     private final JobMetrics jobMetrics;
     private final Optional<JobGateLockService> jobGateLockService;
+    private final LiteraryGenerationStrategyRegistry literaryStrategyRegistry;
+    private final LiteraryValidatorRegistry literaryValidatorRegistry;
+    private final LiteraryOutputPipeline literaryOutputPipeline;
+    private final LiteraryAIExecutor literaryAIExecutor;
+    private final LiteraryResponseExtractor literaryResponseExtractor;
 
-    /**
-     * Job 처리 실행
-     */
+    private static final int LITERARY_VALIDATION_MAX_RETRIES = 2;
+
     public void processJob(String jobId) {
         Instant startTime = Instant.now();
 
@@ -68,13 +85,7 @@ public class JobProcessorDelegate {
             return;
         }
 
-        // Ensure tenant context is set at the beginning of async processing
-        // In multi-tenant SaaS, tenant_id is REQUIRED for all operations
-        // tenant_id must come from TenantContext (set by SecurityContextTaskDecorator from X-Tenant-Id header)
-        // DO NOT create or generate tenant_id - it must be provided in the request header
         String tenantId = TenantContextValidator.requireTenantContextForJob(jobId);
-
-        // Gate Lock: 외부 호출(AI/S3) 중복 방지. 획득 실패 시 재큐를 위해 처리하지 않고 반환 (DEPLOYMENT_ISSUES 4.1)
         boolean gateLockAcquired = jobGateLockService
                 .map(s -> s.tryLock(tenantId, jobId))
                 .orElse(true);
@@ -98,36 +109,37 @@ public class JobProcessorDelegate {
             var mergedPrompt = promptTemplateService.mergePrompt(
                     job.getPromptId(),
                     job.getUserId(),
-                    command.getCommandType(),
+                    command,
                     job.getUserInput()
             );
 
             jobStateService.updateJobPromptVersion(job.getJobId(), mergedPrompt.version());
 
+            if (command.getCommandType() == ProductionCommandType.LITERARY) {
+                if (!(command instanceof LiteraryCommand literaryCommand)) {
+                    throw new IllegalStateException("LITERARY command type but deserialized as " + command.getClass().getSimpleName());
+                }
+                processLiteraryJob(jobId, job, literaryCommand, mergedPrompt.content(), startTime, commandType);
+                return;
+            }
+
             AIJobExecutor.AIExecutionResult aiResult = aiJobExecutor.execute(job, command, mergedPrompt.content());
-            // AI 모델 정보 설정
             jobStateService.setModelInfo(job.getJobId(), aiResult.modelName(), aiResult.tokenUsage());
 
             ParsedResponse parsedResponse = aiResponseHandler.parse(aiResult.rawResponse(), command.getCommandType());
             String renderedContent = contentRenderer.render(parsedResponse.jsonNode(), command.getCommandType());
 
             String s3Key;
-            
-            // 이미지 생성인 경우 이미 저장된 PNG 파일 경로를 그대로 사용
             if (command.getCommandType() == ProductionCommandType.IMAGE) {
-                // ImageRenderer가 이미지 경로를 그대로 반환하므로 그대로 사용
                 s3Key = renderedContent;
                 log.info("Using existing image path for IMAGE command - s3Key: {}", s3Key);
             } else {
-                // 다른 타입은 기존 로직대로 포맷 변환 후 저장
                 String outputFormat = command.getOutputFormat();
                 String baseFileName = fileNameGenerator.generate(command);
                 var converted = contentFormatter.format(renderedContent, outputFormat, baseFileName);
                 s3Key = contentStorageService.store(converted.data(), converted.contentType(), job, converted.fileName());
             }
-            
             jobStateService.markStored(job.getJobId(), s3Key);
-            // markStored() 내부에서 이미 complete()를 호출하므로 중복 호출 제거
 
             Duration duration = Duration.between(startTime, Instant.now());
             jobMetrics.recordJobCompleted(commandType, duration);
@@ -146,5 +158,47 @@ public class JobProcessorDelegate {
             throw e;
         }
     }
-}
 
+    private void processLiteraryJob(String jobId, JobEntity job, LiteraryCommand command, String composedPrompt,
+                                    Instant startTime, String commandType) {
+        LiteraryGenerationStrategy strategy = literaryStrategyRegistry.getStrategy(command.literaryType());
+        var validator = literaryValidatorRegistry.getValidator(command.literaryType());
+
+        LiteraryExecutionResult execResult = null;
+        List<String> tokenUsages = new ArrayList<>();
+        for (int attempt = 0; attempt <= LITERARY_VALIDATION_MAX_RETRIES; attempt++) {
+            execResult = strategy.generate(job, command, composedPrompt, literaryAIExecutor, literaryResponseExtractor);
+            if (execResult == null) {
+                throw new ContentRenderException("Literary generation produced no result");
+            }
+            if (execResult.tokenUsage() != null && !execResult.tokenUsage().isBlank()) {
+                tokenUsages.add(execResult.tokenUsage());
+            }
+            LiteraryValidationResult result = validator.validate(execResult.content());
+            if (result.isValid()) {
+                break;
+            }
+            log.warn("Literary validation failed - jobId: {}, attempt: {}, errors: {}", jobId, attempt + 1, result.getErrors());
+            if (attempt == LITERARY_VALIDATION_MAX_RETRIES) {
+                throw new ContentRenderException("Literary output validation failed after " + (LITERARY_VALIDATION_MAX_RETRIES + 1) + " attempts: " + result.getErrors());
+            }
+        }
+
+        LiteraryExecutionResult resultToStore = Objects.requireNonNull(execResult, "Literary generation produced no result");
+        String accumulatedTokenUsage = tokenUsages.isEmpty()
+                ? null
+                : String.join("; ", tokenUsages);
+        jobStateService.setModelInfo(job.getJobId(), resultToStore.modelName(), accumulatedTokenUsage);
+        LiteraryPipelineResult pipelineResult = literaryOutputPipeline.run(resultToStore.content(), job);
+        jobStateService.markStoredLiterary(
+                job.getJobId(),
+                pipelineResult.getOriginalTxtKey(),
+                pipelineResult.getPreviewHtmlKey(),
+                pipelineResult.getFinalPdfKey()
+        );
+
+        Duration duration = Duration.between(startTime, Instant.now());
+        jobMetrics.recordJobCompleted(commandType, duration);
+        log.info("Literary job completed - jobId: {}, duration: {}ms", jobId, duration.toMillis());
+    }
+}
