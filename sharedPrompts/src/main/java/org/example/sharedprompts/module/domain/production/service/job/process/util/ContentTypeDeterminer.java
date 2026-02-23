@@ -11,7 +11,7 @@ public class ContentTypeDeterminer {
     public ContentType determine(ProductionCommand command) {
         ProductionCommandType commandType = command.getCommandType();
         return switch (commandType) {
-            case TEXT, EMAIL, BLOG, DOCUMENT -> ContentType.TEXT;
+            case TEXT, EMAIL, BLOG, DOCUMENT, LITERARY -> ContentType.TEXT;
             case IMAGE -> ContentType.IMAGE;
         };
     }

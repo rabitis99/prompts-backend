@@ -8,6 +8,7 @@ import org.example.sharedprompts.module.domain.production.model.executor.blog.Bl
 import org.example.sharedprompts.module.domain.production.model.executor.document.DocumentCommand;
 import org.example.sharedprompts.module.domain.production.model.executor.email.EmailCommand;
 import org.example.sharedprompts.module.domain.production.model.executor.image.ImageCommand;
+import org.example.sharedprompts.module.domain.production.model.executor.literary.LiteraryCommand;
 import org.example.sharedprompts.module.domain.production.model.executor.text.TextCommand;
 import org.springframework.stereotype.Component;
 
@@ -34,6 +35,7 @@ public class CommandDeserializer {
             case "EMAIL" -> EmailCommand.class;
             case "BLOG" -> BlogCommand.class;
             case "DOCUMENT" -> DocumentCommand.class;
+            case "LITERARY" -> LiteraryCommand.class;
             default -> throw new IllegalArgumentException("Unknown command type: " + commandType);
         };
     }

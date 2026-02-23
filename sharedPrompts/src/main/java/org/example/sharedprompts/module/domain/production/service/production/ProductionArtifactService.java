@@ -45,6 +45,19 @@ public class ProductionArtifactService {
         return artifactTxService.createInNewTransaction(job, s3Key, handler, detailData, commandType);
     }
 
+    /**
+     * LITERARY 완성 작품: original.txt, preview.html, final.pdf 3개 파일에 대한 아티팩트 생성.
+     */
+    public ProductionArtifactEntity createArtifactForLiterary(
+            JobEntity job,
+            String originalTxtKey,
+            String previewHtmlKey,
+            String finalPdfKey
+    ) {
+        return artifactTxService.createInNewTransactionForLiterary(
+                job, originalTxtKey, previewHtmlKey, finalPdfKey);
+    }
+
     private ProductionCommandType parseCommandType(JobEntity job) {
         try {
             return ProductionCommandType.valueOf(job.getCommandType());
