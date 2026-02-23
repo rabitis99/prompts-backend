@@ -68,6 +68,12 @@ public class JobStateService {
      * LITERARY 완성 작품: 3개 S3 키(original, preview, pdf)로 아티팩트 생성 후 Job 완료.
      */
     public void markStoredLiterary(String jobId, String originalTxtKey, String previewHtmlKey, String finalPdfKey) {
+        if (originalTxtKey == null || originalTxtKey.isBlank()
+                || previewHtmlKey == null || previewHtmlKey.isBlank()
+                || finalPdfKey == null || finalPdfKey.isBlank()) {
+            throw new JobProcessingException(ModuleErrorCode.JOB_INVALID_STATUS,
+                    "Literary artifact S3 keys must not be blank - jobId: " + jobId);
+        }
         JobEntity job = getJob(jobId);
         var artifact = productionArtifactService.createArtifactForLiterary(
                 job, originalTxtKey, previewHtmlKey, finalPdfKey);

@@ -22,7 +22,9 @@ import org.example.sharedprompts.module.domain.production.service.job.process.ex
 import org.example.sharedprompts.module.domain.production.service.job.process.util.CommandDeserializer;
 import org.example.sharedprompts.module.domain.production.service.job.process.util.FileNameGenerator;
 import org.example.sharedprompts.module.domain.production.service.literary.LiteraryAIExecutor;
+import org.example.sharedprompts.module.domain.production.service.literary.LiteraryExecutionResult;
 import org.example.sharedprompts.module.domain.production.service.literary.LiteraryGenerationStrategy;
+import org.example.sharedprompts.module.domain.production.service.literary.LiteraryResponseExtractor;
 import org.example.sharedprompts.module.domain.production.service.literary.LiteraryGenerationStrategyRegistry;
 import org.example.sharedprompts.module.domain.production.service.literary.pipeline.LiteraryOutputPipeline;
 import org.example.sharedprompts.module.domain.production.service.literary.pipeline.LiteraryPipelineResult;
@@ -35,6 +37,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
 
 @Component
@@ -59,6 +62,7 @@ public class JobProcessorDelegate {
     private final LiteraryValidatorRegistry literaryValidatorRegistry;
     private final LiteraryOutputPipeline literaryOutputPipeline;
     private final LiteraryAIExecutor literaryAIExecutor;
+    private final LiteraryResponseExtractor literaryResponseExtractor;
 
     public void processJob(String jobId) {
         Instant startTime = Instant.now();
@@ -108,7 +112,10 @@ public class JobProcessorDelegate {
             jobStateService.updateJobPromptVersion(job.getJobId(), mergedPrompt.version());
 
             if (command.getCommandType() == ProductionCommandType.LITERARY) {
-                processLiteraryJob(jobId, job, (LiteraryCommand) command, mergedPrompt.content(), startTime, commandType);
+                if (!(command instanceof LiteraryCommand literaryCommand)) {
+                    throw new IllegalStateException("LITERARY command type but deserialized as " + command.getClass().getSimpleName());
+                }
+                processLiteraryJob(jobId, job, literaryCommand, mergedPrompt.content(), startTime, commandType);
                 return;
             }
 
@@ -155,10 +162,10 @@ public class JobProcessorDelegate {
         LiteraryGenerationStrategy strategy = literaryStrategyRegistry.getStrategy(command.literaryType());
         var validator = literaryValidatorRegistry.getValidator(command.literaryType());
 
-        String content = null;
+        LiteraryExecutionResult execResult = null;
         for (int attempt = 0; attempt <= LITERARY_VALIDATION_MAX_RETRIES; attempt++) {
-            content = strategy.generate(job, command, composedPrompt, literaryAIExecutor);
-            LiteraryValidationResult result = validator.validate(content);
+            execResult = strategy.generate(job, command, composedPrompt, literaryAIExecutor, literaryResponseExtractor);
+            LiteraryValidationResult result = validator.validate(execResult.content());
             if (result.isValid()) {
                 break;
             }
@@ -168,7 +175,9 @@ public class JobProcessorDelegate {
             }
         }
 
-        LiteraryPipelineResult pipelineResult = literaryOutputPipeline.run(content, job);
+        LiteraryExecutionResult resultToStore = Objects.requireNonNull(execResult, "Literary generation produced no result");
+        jobStateService.setModelInfo(job.getJobId(), resultToStore.modelName(), resultToStore.tokenUsage());
+        LiteraryPipelineResult pipelineResult = literaryOutputPipeline.run(resultToStore.content(), job);
         jobStateService.markStoredLiterary(
                 job.getJobId(),
                 pipelineResult.getOriginalTxtKey(),

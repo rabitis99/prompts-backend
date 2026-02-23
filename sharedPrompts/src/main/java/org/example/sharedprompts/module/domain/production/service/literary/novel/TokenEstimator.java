@@ -6,10 +6,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class TokenEstimator {
 
+    /**
+     * Approximate characters per token for estimation only. Actual ratio depends on the AI model's
+     * tokenizer (e.g. BPE). English is often ~4 chars/token; Korean may be ~0.5–1 token per character.
+     * Do not rely on this for precise token limits.
+     */
     private static final int DEFAULT_CHARS_PER_TOKEN = 3;
 
     @Value("${production.literary.novel.max-tokens-per-request:4000}")
-    private int maxTokensPerRequest = 4000;
+    private int maxTokensPerRequest;
 
     public int estimateTokens(String text) {
         if (text == null || text.isBlank()) {

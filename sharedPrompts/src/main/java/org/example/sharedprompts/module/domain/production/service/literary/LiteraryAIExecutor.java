@@ -5,5 +5,5 @@ import org.example.sharedprompts.module.domain.production.model.executor.literar
 
 public interface LiteraryAIExecutor {
 
-    String execute(JobEntity job, LiteraryCommand command, String prompt);
+    LiteraryExecutionResult execute(JobEntity job, LiteraryCommand command, String prompt);
 }

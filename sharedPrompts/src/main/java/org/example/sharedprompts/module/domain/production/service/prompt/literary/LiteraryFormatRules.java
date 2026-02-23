@@ -1,16 +1,17 @@
 package org.example.sharedprompts.module.domain.production.service.prompt.literary;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.example.sharedprompts.module.domain.production.model.literary.LiteraryType;
-import org.springframework.stereotype.Component;
 
-@Component
-public class LiteraryFormatRules {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class LiteraryFormatRules {
 
     private static final String OUTPUT_ONLY_RULE = """
         [필수] 결과물만 출력하세요. 서론, 설명, 주석, 해석, "다음과 같이 작성했습니다" 등의 문구는 절대 포함하지 마세요.
         """;
 
-    public String getFormatRules(LiteraryType literaryType) {
+    public static String getFormatRules(LiteraryType literaryType) {
         String typeRules = switch (literaryType) {
             case POEM -> getPoemRules();
             case SHORT_STORY -> getShortStoryRules();
@@ -20,7 +21,7 @@ public class LiteraryFormatRules {
         return typeRules + "\n" + OUTPUT_ONLY_RULE;
     }
 
-    private String getPoemRules() {
+    private static String getPoemRules() {
         return """
             [POEM 형식]
             - 시는 반드시 행(줄) 단위로 구성한다.
@@ -30,7 +31,7 @@ public class LiteraryFormatRules {
             """;
     }
 
-    private String getShortStoryRules() {
+    private static String getShortStoryRules() {
         return """
             [SHORT_STORY 형식]
             - 단편소설은 도입 → 전개 → 클라이맥스 → 결말 구조를 반드시 따른다.
@@ -39,7 +40,7 @@ public class LiteraryFormatRules {
             """;
     }
 
-    private String getNovelRules() {
+    private static String getNovelRules() {
         return """
             [NOVEL 형식]
             - 장(Chapter) 단위로 구분한다. 각 장에는 "제N장" 또는 "Chapter N" 형태의 제목을 둔다.
@@ -48,7 +49,7 @@ public class LiteraryFormatRules {
             """;
     }
 
-    private String getScriptRules() {
+    private static String getScriptRules() {
         return """
             [SCRIPT 형식]
             - 소설처럼 서술하는 문체를 사용하지 않는다.

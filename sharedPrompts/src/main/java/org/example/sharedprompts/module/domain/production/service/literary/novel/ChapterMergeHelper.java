@@ -13,6 +13,9 @@ public final class ChapterMergeHelper {
         if (chapterContents == null || chapterContents.isEmpty()) {
             return "";
         }
-        return String.join(CHAPTER_SEPARATOR, chapterContents);
+        List<String> nonNull = chapterContents.stream()
+                .filter(c -> c != null)
+                .toList();
+        return String.join(CHAPTER_SEPARATOR, nonNull);
     }
 }

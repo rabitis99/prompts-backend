@@ -10,6 +10,7 @@ import org.example.sharedprompts.module.domain.production.model.executor.email.E
 import org.example.sharedprompts.module.domain.production.model.executor.image.ImageCommand;
 import org.example.sharedprompts.module.domain.production.model.executor.literary.LiteraryCommand;
 import org.example.sharedprompts.module.domain.production.model.executor.text.TextCommand;
+import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommandType;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -29,14 +30,19 @@ public class CommandDeserializer {
     }
 
     private Class<? extends ProductionCommand> getCommandClass(String commandType) {
-        return switch (commandType) {
-            case "TEXT" -> TextCommand.class;
-            case "IMAGE" -> ImageCommand.class;
-            case "EMAIL" -> EmailCommand.class;
-            case "BLOG" -> BlogCommand.class;
-            case "DOCUMENT" -> DocumentCommand.class;
-            case "LITERARY" -> LiteraryCommand.class;
-            default -> throw new IllegalArgumentException("Unknown command type: " + commandType);
+        ProductionCommandType type;
+        try {
+            type = ProductionCommandType.valueOf(commandType);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unknown command type: " + commandType, e);
+        }
+        return switch (type) {
+            case TEXT -> TextCommand.class;
+            case IMAGE -> ImageCommand.class;
+            case EMAIL -> EmailCommand.class;
+            case BLOG -> BlogCommand.class;
+            case DOCUMENT -> DocumentCommand.class;
+            case LITERARY -> LiteraryCommand.class;
         };
     }
 }

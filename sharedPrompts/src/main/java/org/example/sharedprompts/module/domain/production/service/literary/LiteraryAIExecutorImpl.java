@@ -16,11 +16,15 @@ public class LiteraryAIExecutorImpl implements LiteraryAIExecutor {
     private final AIJobExecutor aiJobExecutor;
 
     @Override
-    public String execute(JobEntity job, LiteraryCommand command, String prompt) {
+    public LiteraryExecutionResult execute(JobEntity job, LiteraryCommand command, String prompt) {
         var result = aiJobExecutor.execute(job, command, prompt);
-        if (result == null || result.rawResponse() == null) {
+        if (result == null || result.rawResponse() == null || result.rawResponse().isBlank()) {
             throw new AIServiceException("AI returned null or empty response");
         }
-        return result.rawResponse();
+        return new LiteraryExecutionResult(
+                result.rawResponse(),
+                result.modelName(),
+                result.tokenUsage() != null ? result.tokenUsage() : ""
+        );
     }
 }

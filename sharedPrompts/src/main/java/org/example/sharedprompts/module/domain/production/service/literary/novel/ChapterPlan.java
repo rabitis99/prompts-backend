@@ -3,6 +3,7 @@ package org.example.sharedprompts.module.domain.production.service.literary.nove
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.Collections;
 import java.util.List;
 
 @Getter
@@ -10,6 +11,7 @@ import java.util.List;
 public class ChapterPlan {
 
     private final int chapterCount;
-    private final List<String> chapterTitlesOrPrompts;
+    @Builder.Default
+    private final List<String> chapterTitlesOrPrompts = Collections.emptyList();
     private final String userContext;
 }

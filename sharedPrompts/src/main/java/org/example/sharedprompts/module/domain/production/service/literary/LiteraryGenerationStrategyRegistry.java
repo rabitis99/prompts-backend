@@ -16,7 +16,12 @@ public class LiteraryGenerationStrategyRegistry {
 
     public LiteraryGenerationStrategyRegistry(List<LiteraryGenerationStrategy> strategies) {
         for (LiteraryGenerationStrategy strategy : strategies) {
-            strategyMap.put(strategy.getLiteraryType(), strategy);
+            LiteraryGenerationStrategy existing = strategyMap.put(strategy.getLiteraryType(), strategy);
+            if (existing != null) {
+                throw new IllegalStateException(
+                        "Duplicate LiteraryGenerationStrategy for type " + strategy.getLiteraryType()
+                                + ": " + existing.getClass().getSimpleName() + " and " + strategy.getClass().getSimpleName());
+            }
             log.info("Registered LiteraryGenerationStrategy: {} for {}", strategy.getClass().getSimpleName(), strategy.getLiteraryType());
         }
     }

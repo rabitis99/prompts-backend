@@ -59,6 +59,6 @@ public class LiteraryOutputPipeline {
 
     private String storePdf(String sanitized, JobEntity job) {
         ConvertedContent converted = formatConverterRegistry.convert(sanitized, "pdf", "final");
-        return contentStorageService.store(converted.data(), converted.contentType(), job, converted.fileName());
+        return contentStorageService.store(converted.data(), converted.contentType(), job, FINAL_PDF);
     }
 }

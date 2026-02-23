@@ -30,7 +30,7 @@ public class AIRequestBuilder {
         if (command instanceof TextCommand textCommand) {
             builder.contentTypeHint(textCommand.format());
         } else if (command instanceof LiteraryCommand literaryCommand) {
-            builder.contentTypeHint("literary:" + literaryCommand.literaryType().name());
+            builder.contentTypeHint("literary:" + Objects.requireNonNull(literaryCommand.literaryType(), "literaryType must not be null").name());
         } else if (command instanceof ImageCommand imageCommand) {
             builder
                     .width(imageCommand.width())

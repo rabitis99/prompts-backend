@@ -1,22 +1,23 @@
 package org.example.sharedprompts.module.domain.production.service.literary.impl;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
 import org.example.sharedprompts.module.domain.production.model.executor.literary.LiteraryCommand;
 import org.example.sharedprompts.module.domain.production.model.literary.LiteraryType;
 import org.example.sharedprompts.module.domain.production.service.literary.LiteraryAIExecutor;
+import org.example.sharedprompts.module.domain.production.service.literary.LiteraryExecutionResult;
 import org.example.sharedprompts.module.domain.production.service.literary.LiteraryGenerationStrategy;
 import org.example.sharedprompts.module.domain.production.service.literary.LiteraryResponseExtractor;
 import org.example.sharedprompts.module.domain.production.service.literary.novel.TokenEstimator;
 import org.springframework.stereotype.Component;
 
 @Component
+@Slf4j
 public class NovelGenerationStrategy implements LiteraryGenerationStrategy {
 
-    private final LiteraryResponseExtractor responseExtractor;
     private final TokenEstimator tokenEstimator;
 
-    public NovelGenerationStrategy(LiteraryResponseExtractor responseExtractor, TokenEstimator tokenEstimator) {
-        this.responseExtractor = responseExtractor;
+    public NovelGenerationStrategy(TokenEstimator tokenEstimator) {
         this.tokenEstimator = tokenEstimator;
     }
 
@@ -26,11 +27,14 @@ public class NovelGenerationStrategy implements LiteraryGenerationStrategy {
     }
 
     @Override
-    public String generate(JobEntity job, LiteraryCommand command, String composedPrompt, LiteraryAIExecutor aiExecutor) {
-        String raw = aiExecutor.execute(job, command, composedPrompt);
-        String content = responseExtractor.extractContent(raw);
+    public LiteraryExecutionResult generate(JobEntity job, LiteraryCommand command, String composedPrompt,
+                                            LiteraryAIExecutor aiExecutor, LiteraryResponseExtractor responseExtractor) {
+        LiteraryExecutionResult execResult = aiExecutor.execute(job, command, composedPrompt);
+        String content = responseExtractor.extractContent(execResult.content());
         if (tokenEstimator.estimateTokens(content) > tokenEstimator.getMaxTokensPerRequest()) {
+            log.warn("Novel content exceeds token limit (estimated: {}, max: {}) - consider chunking in a future iteration",
+                    tokenEstimator.estimateTokens(content), tokenEstimator.getMaxTokensPerRequest());
         }
-        return content;
+        return new LiteraryExecutionResult(content, execResult.modelName(), execResult.tokenUsage());
     }
 }

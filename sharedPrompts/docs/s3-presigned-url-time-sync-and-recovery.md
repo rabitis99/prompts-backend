@@ -148,7 +148,7 @@ docker run --rm <image> date -u
 - **엔드포인트**: `GET /artifact/{id}/access?type=download` 또는 `GET /artifact/{id}/access?type=preview`
 - **동작**:
   1. 서버가 인증/소유권 검증 후 Presigned URL 생성 (요청 시점의 “현재 시각” 사용).
-  2. `302 Found` + `Location: <presigned-url>` 반환.
+  2. `302 Found` + `Location: <presigned-url>` 반환. 응답에 `Cache-Control: no-store, no-cache` 헤더를 포함하여 클라이언트가 302의 Location을 캐싱하지 않도록 합니다(캐시 시 만료된 Presigned URL로 이동해 403이 발생할 수 있음).
   3. 클라이언트(브라우저/앱)는 해당 URL로 리다이렉트되어 S3에서 직접 다운로드/미리보기.
 
 **장점**
@@ -190,6 +190,7 @@ public ResponseEntity<Void> accessArtifact(
     String presignedUrl = storageCommandService.generateDownloadPresignedUrl(artifactId, principal.getUserId());
     return ResponseEntity.status(HttpStatus.FOUND)
             .location(URI.create(presignedUrl))
+            .header("Cache-Control", "no-store, no-cache")
             .build();
 }
 ```

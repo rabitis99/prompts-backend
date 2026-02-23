@@ -8,7 +8,7 @@
 
 ## 2. 패키지 구조
 
-```
+```text
 module/domain/production/
 ├── model/
 │   ├── contract/command/
@@ -51,7 +51,7 @@ module/domain/production/
 
 ## 3. 처리 흐름
 
-```
+```text
 [Request] LiteraryProductionRequestDto(literaryType, fileName, format, userInput)
     → ProductionApplicationService.produce()
     → LiteraryCommandFactory.createCommand() → LiteraryCommand
@@ -104,7 +104,7 @@ sequenceDiagram
     Strategy-->>Processor: rawContent
     loop 검증 실패 시 최대 2회 재시도
         Processor->>Validator: validate(rawContent)
-        Validator-->>Processor: ValidationResult
+        Validator-->>Processor: LiteraryValidationResult
     end
     Processor->>Pipeline: run(rawContent, job)
     Pipeline->>Pipeline: Markdown 정제 → original.txt
@@ -124,7 +124,7 @@ sequenceDiagram
 ```java
 public interface LiteraryGenerationStrategy {
     LiteraryType getLiteraryType();
-    String generate(JobEntity job, LiteraryCommand command, String composedPrompt, AIService aiService);
+    String generate(JobEntity job, LiteraryCommand command, String composedPrompt, LiteraryAIExecutor aiExecutor);
 }
 ```
 
@@ -133,7 +133,7 @@ public interface LiteraryGenerationStrategy {
 ```java
 public interface LiteraryOutputValidator {
     LiteraryType getLiteraryType();
-    ValidationResult validate(String rawContent);
+    LiteraryValidationResult validate(String rawContent);
 }
 ```
 

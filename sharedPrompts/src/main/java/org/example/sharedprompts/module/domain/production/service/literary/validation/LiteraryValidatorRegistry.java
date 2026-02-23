@@ -24,7 +24,7 @@ public class LiteraryValidatorRegistry {
     public LiteraryOutputValidator getValidator(LiteraryType literaryType) {
         LiteraryOutputValidator v = validatorMap.get(literaryType);
         if (v == null) {
-            return validatorMap.get(LiteraryType.POEM);
+            throw new IllegalArgumentException("No LiteraryOutputValidator registered for type: " + literaryType);
         }
         return v;
     }

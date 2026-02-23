@@ -132,6 +132,15 @@ public class ProductionArtifactTxService {
             String previewHtmlKey,
             String finalPdfKey
     ) {
+        if (originalTxtKey == null || originalTxtKey.isBlank()) {
+            throw new IllegalArgumentException("originalTxtKey must not be blank");
+        }
+        if (previewHtmlKey == null || previewHtmlKey.isBlank()) {
+            throw new IllegalArgumentException("previewHtmlKey must not be blank");
+        }
+        if (finalPdfKey == null || finalPdfKey.isBlank()) {
+            throw new IllegalArgumentException("finalPdfKey must not be blank");
+        }
         String tenantId = TenantContextValidator.requireTenantContext(
                 "creating literary artifact - jobId: " + job.getJobId());
 
