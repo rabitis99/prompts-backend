@@ -6,8 +6,10 @@ import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Component
 @Slf4j
@@ -18,6 +20,10 @@ public class LiteraryValidatorRegistry {
     public LiteraryValidatorRegistry(List<LiteraryOutputValidator> validators) {
         Map<LiteraryType, LiteraryOutputValidator> map = new EnumMap<>(LiteraryType.class);
         for (LiteraryOutputValidator v : validators) {
+            if (v.getLiteraryType() == null) {
+                throw new IllegalStateException(
+                        "getLiteraryType() returned null for " + v.getClass().getSimpleName());
+            }
             LiteraryOutputValidator existing = map.put(v.getLiteraryType(), v);
             if (existing != null) {
                 throw new IllegalStateException(
@@ -25,6 +31,12 @@ public class LiteraryValidatorRegistry {
                                 + ": " + existing.getClass().getSimpleName() + " and " + v.getClass().getSimpleName());
             }
             log.info("Registered LiteraryOutputValidator: {} for {}", v.getClass().getSimpleName(), v.getLiteraryType());
+        }
+        Set<LiteraryType> missing = EnumSet.allOf(LiteraryType.class);
+        missing.removeAll(map.keySet());
+        if (!missing.isEmpty()) {
+            throw new IllegalStateException(
+                    "No LiteraryOutputValidator registered for types: " + missing);
         }
         this.validatorMap = Collections.unmodifiableMap(map);
     }

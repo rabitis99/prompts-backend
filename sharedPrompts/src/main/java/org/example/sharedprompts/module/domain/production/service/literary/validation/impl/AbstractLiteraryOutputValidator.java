@@ -17,13 +17,13 @@ public abstract class AbstractLiteraryOutputValidator implements LiteraryOutputV
     protected abstract String getTypeName();
 
     @Override
-    public LiteraryValidationResult validate(String rawContent) {
+    public final LiteraryValidationResult validate(String rawContent) {
         List<String> errors = new ArrayList<>();
         if (rawContent == null || rawContent.isBlank()) {
             errors.add("Content is empty");
             return LiteraryValidationResult.failure(errors);
         }
-        String trimmed = rawContent.trim();
+        String trimmed = rawContent.strip();
         int minLength = getMinContentLength();
         if (trimmed.length() < minLength) {
             errors.add("Content too short (min " + minLength + " chars for " + getTypeName() + ")");

@@ -126,13 +126,13 @@ public class ProductionArtifactTxService {
      */
     public static void validateLiteraryKeys(String originalTxtKey, String previewHtmlKey, String finalPdfKey) {
         if (originalTxtKey == null || originalTxtKey.isBlank()) {
-            throw new IllegalArgumentException("originalTxtKey must not be blank");
+            throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, null, "originalTxtKey must not be blank");
         }
         if (previewHtmlKey == null || previewHtmlKey.isBlank()) {
-            throw new IllegalArgumentException("previewHtmlKey must not be blank");
+            throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, null, "previewHtmlKey must not be blank");
         }
         if (finalPdfKey == null || finalPdfKey.isBlank()) {
-            throw new IllegalArgumentException("finalPdfKey must not be blank");
+            throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, null, "finalPdfKey must not be blank");
         }
     }
 
