@@ -9,10 +9,16 @@ public final class GitHubBodyFileNames {
     private GitHubBodyFileNames() {}
 
     public static String issueFileName(String jobId) {
+        if (jobId == null || jobId.isBlank()) {
+            throw new IllegalArgumentException("jobId must not be blank");
+        }
         return "issue-" + jobId + ".md";
     }
 
     public static String prFileName(String jobId) {
+        if (jobId == null || jobId.isBlank()) {
+            throw new IllegalArgumentException("jobId must not be blank");
+        }
         return "pr-" + jobId + ".md";
     }
 }

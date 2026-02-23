@@ -3,8 +3,6 @@ package org.example.sharedprompts.module.domain.github;
 import org.example.sharedprompts.module.dto.request.github.GitHubBodyRequestDto;
 
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * 템플릿 치환용 변수 집합. Request에서 한 곳에서만 생성하여 일관성 유지.
@@ -42,7 +40,7 @@ public record GitHubBodyVars(
 
     /** Placeholder 이름 → 값 Map (GitHubBodyPlaceholderSubstitutor에서 사용). */
     public Map<String, String> toMap() {
-        return Stream.of(
+        return Map.ofEntries(
                 entry("REPO", repo),
                 entry("BASE_BRANCH", baseBranch),
                 entry("BRANCH", branch),
@@ -54,7 +52,7 @@ public record GitHubBodyVars(
                 entry("FILES", files),
                 entry("JOB_ID", jobId),
                 entry("DELIVERY_ID", deliveryId)
-        ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        );
     }
 
     private static Map.Entry<String, String> entry(String k, String v) {

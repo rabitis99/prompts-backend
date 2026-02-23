@@ -16,10 +16,12 @@ public final class GitHubBodyInputTruncator {
 
     /**
      * 줄 단위로 잘라서 최대 maxLines줄만 사용하고, 초과분이 있으면 "... and N more"를 붙인다.
+     * Trailing newline은 제거 후 줄 수를 계산하여 "... and N more"의 N이 실제 초과 줄 수와 일치하도록 한다.
      */
     public static String truncateToLines(String text, int maxLines) {
         if (text == null || text.isBlank()) return "";
-        String[] lines = text.split("\n", -1);
+        String normalized = text.replaceAll("\\n+$", "");
+        String[] lines = normalized.split("\n", -1);
         if (lines.length <= maxLines) return text;
         String head = Arrays.stream(lines).limit(maxLines).collect(Collectors.joining("\n"));
         int more = lines.length - maxLines;

@@ -90,8 +90,9 @@ class GitHubBodyStorageServiceTest {
     @Test
     @DisplayName("tryGetExistingKeys: 하나라도 없으면 empty")
     void tryGetExistingKeys_oneMissing_returnsEmpty() {
-        when(keyGenerator.generateKey(anyString(), eq(0L), anyString(), anyString()))
-                .thenReturn("production/github/0/j1/issue-j1.md")
+        when(keyGenerator.generateKey(eq("github"), eq(0L), eq("j1"), eq("issue-j1.md")))
+                .thenReturn("production/github/0/j1/issue-j1.md");
+        when(keyGenerator.generateKey(eq("github"), eq(0L), eq("j1"), eq("pr-j1.md")))
                 .thenReturn("production/github/0/j1/pr-j1.md");
         when(storageFacade.exists("production/github/0/j1/issue-j1.md")).thenReturn(true);
         when(storageFacade.exists("production/github/0/j1/pr-j1.md")).thenReturn(false);

@@ -1,5 +1,6 @@
 package org.example.sharedprompts.module.dto.request.github;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.example.sharedprompts.module.exception.BaseException;
 import org.example.sharedprompts.module.exception.ModuleErrorCode;
 
@@ -12,17 +13,29 @@ import java.util.stream.Collectors;
  * 본문 템플릿은 path의 prompts/{promptId} 로 조회.
  */
 public record GitHubBodyRequestDto(
+        @JsonProperty("job_id")
         String jobId,
+        @JsonProperty("delivery_id")
         String deliveryId,
+        @JsonProperty("sha")
         String sha,
+        @JsonProperty("repo_full_name")
         String repoFullName,
+        @JsonProperty("branch")
         String branch,
+        @JsonProperty("base_branch")
         String baseBranch,
+        @JsonProperty("title")
         String title,
+        @JsonProperty("author")
         String author,
+        @JsonProperty("date")
         String date,
+        @JsonProperty("commits")
         String commits,
+        @JsonProperty("files")
         String files,
+        @JsonProperty("tenant_id")
         String tenantId
 ) {
 

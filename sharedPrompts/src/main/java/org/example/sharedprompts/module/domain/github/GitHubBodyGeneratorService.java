@@ -45,7 +45,7 @@ public class GitHubBodyGeneratorService {
         if (textAiClient != null) {
             try {
                 String systemPrompt = kind == Kind.PR ? GitHubBodyTemplates.AI_SYSTEM_PR : GitHubBodyTemplates.AI_SYSTEM_ISSUE;
-                String userPrompt = buildUserPrompt(request, kind, template);
+                String userPrompt = buildUserPrompt(vars, kind, template);
                 String combinedPrompt = systemPrompt + "\n\n---\n\n" + userPrompt;
                 // TODO: Groq 호출 시 temperature 0.2~0.3 권장. 현재 TextAiClient가 temperature 미지원 시 기본값 사용.
                 String generated = textAiClient.generateText(combinedPrompt, null, "markdown");
@@ -73,11 +73,13 @@ public class GitHubBodyGeneratorService {
                 throw new BaseException(ModuleErrorCode.GITHUB_BODY_PROMPT_NOT_FOUND, "prompts/id not found: " + bodyTemplatePromptId, e);
             }
         }
+        if (bodyTemplatePromptId != null) {
+            log.warn("Body template for promptId {} is blank, falling back to default template", bodyTemplatePromptId);
+        }
         return kind == Kind.PR ? GitHubBodyTemplates.PR_BODY : GitHubBodyTemplates.ISSUE_BODY;
     }
 
-    private String buildUserPrompt(GitHubBodyRequestDto request, Kind kind, String outputStructureTemplate) {
-        GitHubBodyVars v = GitHubBodyVars.from(request);
+    private String buildUserPrompt(GitHubBodyVars v, Kind kind, String outputStructureTemplate) {
         return """
                 Generate the GitHub %s body. Use the following output structure (keep {{REPO}}, {{SHA}}, {{BRANCH}}, {{BASE_BRANCH}}, {{JOB_ID}}, {{DELIVERY_ID}} as-is). Fill every other part from the input below.
 

@@ -23,6 +23,7 @@ import java.util.Optional;
 public class GitHubBodyStorageService {
 
     private static final long WEBHOOK_USER_ID = 0L;
+    private static final String DEFAULT_TENANT_ID = "github";
 
     private final StorageFacade storageFacade;
     private final S3KeyGenerator keyGenerator;
@@ -57,8 +58,8 @@ public class GitHubBodyStorageService {
      * If PR save fails after Issue save, deletes the Issue object and rethrows.
      */
     public StoredKeys saveBothAsMarkdown(String issueBody, String prBody, GitHubBodyRequestDto request) {
-        if (storageFacade == null) {
-            log.debug("StorageFacade not available, skipping save");
+        if (storageFacade == null || keyGenerator == null) {
+            log.debug("Storage or keyGenerator not available, skipping save");
             return new StoredKeys(null, null);
         }
         String jobId = request.resolveJobId();
@@ -97,7 +98,7 @@ public class GitHubBodyStorageService {
     private String resolveTenantId(GitHubBodyRequestDto request) {
         if (request.tenantId() != null && !request.tenantId().isBlank()) return request.tenantId();
         String fromContext = TenantContext.getCurrentTenantId();
-        return (fromContext != null && !fromContext.isBlank()) ? fromContext : "github";
+        return (fromContext != null && !fromContext.isBlank()) ? fromContext : DEFAULT_TENANT_ID;
     }
 
     @Nullable
