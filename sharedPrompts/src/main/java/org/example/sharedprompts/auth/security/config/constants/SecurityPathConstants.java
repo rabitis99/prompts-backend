@@ -39,6 +39,8 @@ public final class SecurityPathConstants {
      * Spring Security는 servlet path인 {@code /auth/signup}을 기준으로 매칭합니다.
      */
     public static final String[] PUBLIC_PATHS = {
+            // GitHub Webhook: 사용자별 tenantKey로 분리 (POST /api/webhooks/github/{tenantKey})
+            "/webhooks/github/**",
             "/auth/signup",
             "/auth/login",
             "/auth/refresh",

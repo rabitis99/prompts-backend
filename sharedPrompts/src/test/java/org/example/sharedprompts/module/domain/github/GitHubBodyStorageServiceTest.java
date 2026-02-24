@@ -90,8 +90,9 @@ class GitHubBodyStorageServiceTest {
     @Test
     @DisplayName("tryGetExistingKeys: 하나라도 없으면 empty")
     void tryGetExistingKeys_oneMissing_returnsEmpty() {
-        when(keyGenerator.generateKey(anyString(), eq(0L), anyString(), anyString()))
-                .thenReturn("production/github/0/j1/issue-j1.md")
+        when(keyGenerator.generateKey(eq("github"), eq(0L), eq("j1"), eq("issue-j1.md")))
+                .thenReturn("production/github/0/j1/issue-j1.md");
+        when(keyGenerator.generateKey(eq("github"), eq(0L), eq("j1"), eq("pr-j1.md")))
                 .thenReturn("production/github/0/j1/pr-j1.md");
         when(storageFacade.exists("production/github/0/j1/issue-j1.md")).thenReturn(true);
         when(storageFacade.exists("production/github/0/j1/pr-j1.md")).thenReturn(false);
@@ -110,5 +111,34 @@ class GitHubBodyStorageServiceTest {
         GitHubBodyRequestDto request = new GitHubBodyRequestDto(
                 "j1", null, null, null, null, null, null, null, null, null, null, null);
         assertThat(service.tryGetExistingKeys(request)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("KeyGenerator null이면 tryGetExistingKeys empty")
+    void tryGetExistingKeys_noKeyGenerator_returnsEmpty() {
+        GitHubBodyStorageService service = new GitHubBodyStorageService(storageFacade, null);
+        GitHubBodyRequestDto request = new GitHubBodyRequestDto(
+                "j1", null, null, null, null, null, null, null, null, null, null, null);
+        assertThat(service.tryGetExistingKeys(request)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("StorageFacade null이면 saveBothAsMarkdown Optional.empty() 반환")
+    void saveBothAsMarkdown_noFacade_returnsEmpty() {
+        GitHubBodyStorageService service = new GitHubBodyStorageService(null, keyGenerator);
+        GitHubBodyRequestDto request = new GitHubBodyRequestDto(
+                "j1", null, null, null, null, null, null, null, null, null, null, null);
+        Optional<GitHubBodyStorageService.StoredKeys> result = service.saveBothAsMarkdown("issue", "pr", request);
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("KeyGenerator null이면 saveBothAsMarkdown Optional.empty() 반환")
+    void saveBothAsMarkdown_noKeyGenerator_returnsEmpty() {
+        GitHubBodyStorageService service = new GitHubBodyStorageService(storageFacade, null);
+        GitHubBodyRequestDto request = new GitHubBodyRequestDto(
+                "j1", null, null, null, null, null, null, null, null, null, null, null);
+        Optional<GitHubBodyStorageService.StoredKeys> result = service.saveBothAsMarkdown("issue", "pr", request);
+        assertThat(result).isEmpty();
     }
 }

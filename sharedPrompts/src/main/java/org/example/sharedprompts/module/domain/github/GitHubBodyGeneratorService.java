@@ -32,8 +32,12 @@ public class GitHubBodyGeneratorService {
     }
 
     public GitHubBodyPair generateBoth(Long bodyTemplatePromptId, GitHubBodyRequestDto request) {
-        String issueBody = generateBody(bodyTemplatePromptId, request, Kind.ISSUE);
-        String prBody = generateBody(bodyTemplatePromptId, request, Kind.PR);
+        GitHubBodyVars vars = GitHubBodyVars.from(request);
+        Map<String, String> varMap = vars.toMap();
+        String issueTemplate = resolveBodyTemplate(bodyTemplatePromptId, Kind.ISSUE);
+        String prTemplate = bodyTemplatePromptId == null ? resolveBodyTemplate(null, Kind.PR) : issueTemplate;
+        String issueBody = generateBodyFromVars(vars, varMap, issueTemplate, Kind.ISSUE);
+        String prBody = generateBodyFromVars(vars, varMap, prTemplate, Kind.PR);
         return new GitHubBodyPair(issueBody, prBody);
     }
 
@@ -41,11 +45,14 @@ public class GitHubBodyGeneratorService {
         GitHubBodyVars vars = GitHubBodyVars.from(request);
         Map<String, String> varMap = vars.toMap();
         String template = resolveBodyTemplate(bodyTemplatePromptId, kind);
+        return generateBodyFromVars(vars, varMap, template, kind);
+    }
 
+    private String generateBodyFromVars(GitHubBodyVars vars, Map<String, String> varMap, String template, Kind kind) {
         if (textAiClient != null) {
             try {
                 String systemPrompt = kind == Kind.PR ? GitHubBodyTemplates.AI_SYSTEM_PR : GitHubBodyTemplates.AI_SYSTEM_ISSUE;
-                String userPrompt = buildUserPrompt(request, kind, template);
+                String userPrompt = buildUserPrompt(vars, kind, template);
                 String combinedPrompt = systemPrompt + "\n\n---\n\n" + userPrompt;
                 // TODO: Groq 호출 시 temperature 0.2~0.3 권장. 현재 TextAiClient가 temperature 미지원 시 기본값 사용.
                 String generated = textAiClient.generateText(combinedPrompt, null, "markdown");
@@ -56,7 +63,6 @@ public class GitHubBodyGeneratorService {
                 log.warn("GitHub body AI generation failed, using template fallback: {}", e.getMessage());
             }
         }
-
         return GitHubBodyPlaceholderSubstitutor.substitute(template, varMap);
     }
 
@@ -64,20 +70,30 @@ public class GitHubBodyGeneratorService {
 
     /** path의 promptId가 있으면 prompts 테이블에서 조회(Issue·PR 공통 템플릿), 없으면 GitHubBodyTemplates 상수. */
     private String resolveBodyTemplate(Long bodyTemplatePromptId, Kind kind) {
-        if (bodyTemplatePromptId != null) {
-            try {
-                String content = promptService.getPromptDetail(bodyTemplatePromptId, null).getContent();
-                if (content != null && !content.isBlank()) return content;
-            } catch (Exception e) {
-                log.warn("Failed to load body template by promptId {}: {}", bodyTemplatePromptId, e.getMessage());
-                throw new BaseException(ModuleErrorCode.GITHUB_BODY_PROMPT_NOT_FOUND, "prompts/id not found: " + bodyTemplatePromptId, e);
+        if (bodyTemplatePromptId == null) {
+            return kind == Kind.PR ? GitHubBodyTemplates.PR_BODY : GitHubBodyTemplates.ISSUE_BODY;
+        }
+        try {
+            var detail = promptService.getPromptDetail(bodyTemplatePromptId, null);
+            if (detail == null) {
+                throw new BaseException(ModuleErrorCode.GITHUB_BODY_PROMPT_NOT_FOUND, null, "prompts/id not found: " + bodyTemplatePromptId);
             }
+            String content = detail.getContent();
+            if (content != null && !content.isBlank()) {
+                return content;
+            }
+            log.warn("Body template for promptId {} is {} falling back to default template",
+                    bodyTemplatePromptId, content == null ? "null," : "blank,");
+        } catch (BaseException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("Failed to load body template by promptId {}: {}", bodyTemplatePromptId, e.getMessage());
+            throw new BaseException(ModuleErrorCode.GITHUB_BODY_PROMPT_NOT_FOUND, null, "prompts/id not found: " + bodyTemplatePromptId, e);
         }
         return kind == Kind.PR ? GitHubBodyTemplates.PR_BODY : GitHubBodyTemplates.ISSUE_BODY;
     }
 
-    private String buildUserPrompt(GitHubBodyRequestDto request, Kind kind, String outputStructureTemplate) {
-        GitHubBodyVars v = GitHubBodyVars.from(request);
+    private String buildUserPrompt(GitHubBodyVars v, Kind kind, String outputStructureTemplate) {
         return """
                 Generate the GitHub %s body. Use the following output structure (keep {{REPO}}, {{SHA}}, {{BRANCH}}, {{BASE_BRANCH}}, {{JOB_ID}}, {{DELIVERY_ID}} as-is). Fill every other part from the input below.
 

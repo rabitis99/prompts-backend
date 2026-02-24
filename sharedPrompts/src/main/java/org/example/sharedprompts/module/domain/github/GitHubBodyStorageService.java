@@ -23,6 +23,7 @@ import java.util.Optional;
 public class GitHubBodyStorageService {
 
     private static final long WEBHOOK_USER_ID = 0L;
+    private static final String DEFAULT_TENANT_ID = "github";
 
     private final StorageFacade storageFacade;
     private final S3KeyGenerator keyGenerator;
@@ -55,11 +56,13 @@ public class GitHubBodyStorageService {
     /**
      * Saves both under the same jobId. Same key rule as above.
      * If PR save fails after Issue save, deletes the Issue object and rethrows.
+     * Returns {@link Optional#empty()} when storage/keyGenerator is unavailable, or when
+     * either body is null/blank (upload skipped); otherwise returns present with both keys.
      */
-    public StoredKeys saveBothAsMarkdown(String issueBody, String prBody, GitHubBodyRequestDto request) {
-        if (storageFacade == null) {
-            log.debug("StorageFacade not available, skipping save");
-            return new StoredKeys(null, null);
+    public Optional<StoredKeys> saveBothAsMarkdown(String issueBody, String prBody, GitHubBodyRequestDto request) {
+        if (storageFacade == null || keyGenerator == null) {
+            log.warn("Storage or keyGenerator not available, skipping save for jobId: {}", request.resolveJobId());
+            return Optional.empty();
         }
         String jobId = request.resolveJobId();
         String tenantId = resolveTenantId(request);
@@ -70,10 +73,11 @@ public class GitHubBodyStorageService {
         try {
             issueKey = uploadOne(issueBody, tenantId, jobId, issueFileName);
             String prKey = uploadOne(prBody, tenantId, jobId, prFileName);
-            if (issueKey != null || prKey != null) {
-                log.info("GitHub bodies saved for jobId: {} - issue: {}, pr: {}", jobId, issueKey != null, prKey != null);
+            if (issueKey == null || prKey == null) {
+                return Optional.empty();
             }
-            return new StoredKeys(issueKey, prKey);
+            log.info("GitHub bodies saved for jobId: {} - issue: {}, pr: {}", jobId, issueKey, prKey);
+            return Optional.of(new StoredKeys(issueKey, prKey));
         } catch (Exception e) {
             if (issueKey != null) {
                 try {
@@ -97,7 +101,7 @@ public class GitHubBodyStorageService {
     private String resolveTenantId(GitHubBodyRequestDto request) {
         if (request.tenantId() != null && !request.tenantId().isBlank()) return request.tenantId();
         String fromContext = TenantContext.getCurrentTenantId();
-        return (fromContext != null && !fromContext.isBlank()) ? fromContext : "github";
+        return (fromContext != null && !fromContext.isBlank()) ? fromContext : DEFAULT_TENANT_ID;
     }
 
     @Nullable
@@ -106,5 +110,7 @@ public class GitHubBodyStorageService {
         return storageFacade.upload(body, tenantId, WEBHOOK_USER_ID, jobId, fileName);
     }
 
-    public record StoredKeys(String storedIssueFileKey, String storedPrFileKey) {}
+    public record StoredKeys(
+            @Nullable String storedIssueFileKey,
+            @Nullable String storedPrFileKey) {}
 }
