@@ -7,6 +7,7 @@ import org.example.sharedprompts.module.exception.BaseException;
 import org.example.sharedprompts.module.exception.ModuleErrorCode;
 import org.example.sharedprompts.module.dto.request.github.GitHubBodyRequestDto;
 import org.example.sharedprompts.module.dto.response.github.GitHubBodyResponseDto;
+import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,7 +41,7 @@ public class GitHubBodyGenerateApplicationService {
      */
     @Transactional
     public GitHubBodyResponseDto generate(Long promptId, GitHubBodyRequestDto request,
-                                          String tenantKey, @Nullable String eventType, @Nullable Long ownerUserId) {
+                                          @NonNull String tenantKey, @Nullable String eventType, @Nullable Long ownerUserId) {
         return generateInternal(promptId, request, tenantKey, eventType, ownerUserId);
     }
 
@@ -57,7 +58,7 @@ public class GitHubBodyGenerateApplicationService {
             GitHubBodyResponseDto dto = new GitHubBodyResponseDto(
                     jobId, issueBody, prBody,
                     keys.storedIssueFileKey(), keys.storedPrFileKey());
-            upsertMetadataIfNeeded(tenantKey, request, promptId, keys.storedIssueFileKey(), keys.storedPrFileKey(), eventType, ownerUserId);
+            upsertMetadataIfNeeded(tenantKey, request, jobId, promptId, keys.storedIssueFileKey(), keys.storedPrFileKey(), eventType, ownerUserId);
             return dto;
         }
 
@@ -79,26 +80,30 @@ public class GitHubBodyGenerateApplicationService {
                 pair.prBody(),
                 keys.storedIssueFileKey(),
                 keys.storedPrFileKey());
-        upsertMetadataIfNeeded(tenantKey, request, promptId, keys.storedIssueFileKey(), keys.storedPrFileKey(), eventType, ownerUserId);
+        upsertMetadataIfNeeded(tenantKey, request, jobId, promptId, keys.storedIssueFileKey(), keys.storedPrFileKey(), eventType, ownerUserId);
         return dto;
     }
 
     /**
      * tenantKey가 있고 저장된 이슈/PR 키가 둘 다 null이 아닐 때만 (tenant_key, repo_full_name, job_id) 기준 UPSERT.
      */
-    private void upsertMetadataIfNeeded(@Nullable String tenantKey, GitHubBodyRequestDto request, Long bodyPromptId,
+    private void upsertMetadataIfNeeded(@Nullable String tenantKey, GitHubBodyRequestDto request, String jobId,
+                                        Long bodyPromptId,
                                         @Nullable String storedIssueFileKey, @Nullable String storedPrFileKey,
                                         @Nullable String eventType, @Nullable Long ownerUserId) {
-        if (tenantKey == null || tenantKey.isBlank() || storedIssueFileKey == null || storedPrFileKey == null) {
+        if (tenantKey == null || tenantKey.isBlank()
+                || storedIssueFileKey == null || storedPrFileKey == null
+                || request.repoFullName() == null || request.repoFullName().isBlank()) {
+            log.debug("Skipping metadata upsert - missing required fields (tenantKey/repoFullName/storageKeys)");
             return;
         }
-        String repoFullName = request.repoFullName() != null ? request.repoFullName() : "";
+        String repoFullName = request.repoFullName();
         String deliveryId = request.deliveryId() != null && !request.deliveryId().isBlank() ? request.deliveryId() : null;
         try {
             githubBodyStorageRepository.upsert(
                     tenantKey,
                     repoFullName,
-                    request.resolveJobId(),
+                    jobId,
                     deliveryId,
                     eventType,
                     storedIssueFileKey,
@@ -106,11 +111,11 @@ public class GitHubBodyGenerateApplicationService {
                     bodyPromptId,
                     ownerUserId
             );
-            log.debug("GitHub body storage metadata upserted - tenantKey: {}, repo: {}, jobId: {}", tenantKey, repoFullName, request.resolveJobId());
+            log.debug("GitHub body storage metadata upserted - tenantKey: {}, repo: {}, jobId: {}", tenantKey, repoFullName, jobId);
         } catch (Exception e) {
-            log.warn("GitHub body storage metadata upsert failed - tenantKey: {}, jobId: {}: {}", tenantKey, request.resolveJobId(), e.getMessage());
+            log.warn("GitHub body storage metadata upsert failed - tenantKey: {}, jobId: {}: {}", tenantKey, jobId, e.getMessage());
             throw new BaseException(ModuleErrorCode.GITHUB_BODY_STORAGE_UPSERT_FAILED, null,
-                    "tenantKey: " + tenantKey + ", jobId: " + request.resolveJobId(), e);
+                    "tenantKey: " + tenantKey + ", jobId: " + jobId, e);
         }
     }
 }

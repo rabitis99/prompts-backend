@@ -47,7 +47,8 @@ public class GitHubBodyStorageController {
         if (!authUser.getId().equals(ownerUserId)) {
             throw new BaseException(ModuleErrorCode.GITHUB_BODY_STORAGE_FORBIDDEN, null, "ownerUserId mismatch");
         }
-        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(size, MAX_PAGE_SIZE));
+        int safeSize = Math.max(1, Math.min(size, MAX_PAGE_SIZE));
+        Pageable pageable = PageRequest.of(Math.max(page, 0), safeSize);
         var dtoPage = bodyStorageApplicationService.listByOwnerUserId(ownerUserId, pageable);
         return CustomResponseHelper.ok(PageResponse.of(dtoPage));
     }

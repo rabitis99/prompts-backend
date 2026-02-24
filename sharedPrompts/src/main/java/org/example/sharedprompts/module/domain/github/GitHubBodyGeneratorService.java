@@ -32,8 +32,12 @@ public class GitHubBodyGeneratorService {
     }
 
     public GitHubBodyPair generateBoth(Long bodyTemplatePromptId, GitHubBodyRequestDto request) {
-        String issueBody = generateBody(bodyTemplatePromptId, request, Kind.ISSUE);
-        String prBody = generateBody(bodyTemplatePromptId, request, Kind.PR);
+        GitHubBodyVars vars = GitHubBodyVars.from(request);
+        Map<String, String> varMap = vars.toMap();
+        String issueTemplate = resolveBodyTemplate(bodyTemplatePromptId, Kind.ISSUE);
+        String prTemplate = bodyTemplatePromptId == null ? resolveBodyTemplate(null, Kind.PR) : issueTemplate;
+        String issueBody = generateBodyFromVars(vars, varMap, issueTemplate, Kind.ISSUE);
+        String prBody = generateBodyFromVars(vars, varMap, prTemplate, Kind.PR);
         return new GitHubBodyPair(issueBody, prBody);
     }
 
@@ -41,7 +45,10 @@ public class GitHubBodyGeneratorService {
         GitHubBodyVars vars = GitHubBodyVars.from(request);
         Map<String, String> varMap = vars.toMap();
         String template = resolveBodyTemplate(bodyTemplatePromptId, kind);
+        return generateBodyFromVars(vars, varMap, template, kind);
+    }
 
+    private String generateBodyFromVars(GitHubBodyVars vars, Map<String, String> varMap, String template, Kind kind) {
         if (textAiClient != null) {
             try {
                 String systemPrompt = kind == Kind.PR ? GitHubBodyTemplates.AI_SYSTEM_PR : GitHubBodyTemplates.AI_SYSTEM_ISSUE;
@@ -56,7 +63,6 @@ public class GitHubBodyGeneratorService {
                 log.warn("GitHub body AI generation failed, using template fallback: {}", e.getMessage());
             }
         }
-
         return GitHubBodyPlaceholderSubstitutor.substitute(template, varMap);
     }
 
@@ -76,7 +82,8 @@ public class GitHubBodyGeneratorService {
             if (content != null && !content.isBlank()) {
                 return content;
             }
-            log.warn("Body template for promptId {} is blank, falling back to default template", bodyTemplatePromptId);
+            log.warn("Body template for promptId {} is {} falling back to default template",
+                    bodyTemplatePromptId, content == null ? "null," : "blank,");
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {

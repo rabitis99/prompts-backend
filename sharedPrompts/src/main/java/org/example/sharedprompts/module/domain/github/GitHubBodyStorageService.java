@@ -56,7 +56,8 @@ public class GitHubBodyStorageService {
     /**
      * Saves both under the same jobId. Same key rule as above.
      * If PR save fails after Issue save, deletes the Issue object and rethrows.
-     * Returns empty when storage or keyGenerator is not available (no null keys propagated).
+     * Returns {@link Optional#empty()} when storage/keyGenerator is unavailable, or when
+     * either body is null/blank (upload skipped); otherwise returns present with both keys.
      */
     public Optional<StoredKeys> saveBothAsMarkdown(String issueBody, String prBody, GitHubBodyRequestDto request) {
         if (storageFacade == null || keyGenerator == null) {
@@ -72,9 +73,10 @@ public class GitHubBodyStorageService {
         try {
             issueKey = uploadOne(issueBody, tenantId, jobId, issueFileName);
             String prKey = uploadOne(prBody, tenantId, jobId, prFileName);
-            if (issueKey != null && prKey != null) {
-                log.info("GitHub bodies saved for jobId: {} - issue: {}, pr: {}", jobId, issueKey, prKey);
+            if (issueKey == null || prKey == null) {
+                return Optional.empty();
             }
+            log.info("GitHub bodies saved for jobId: {} - issue: {}, pr: {}", jobId, issueKey, prKey);
             return Optional.of(new StoredKeys(issueKey, prKey));
         } catch (Exception e) {
             if (issueKey != null) {

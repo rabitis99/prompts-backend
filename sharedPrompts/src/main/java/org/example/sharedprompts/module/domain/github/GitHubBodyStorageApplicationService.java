@@ -88,7 +88,7 @@ public class GitHubBodyStorageApplicationService {
             return entity.getStoredPrFileKey();
         }
         if (!"issue".equalsIgnoreCase(type)) {
-            log.warn("Unexpected type for GitHub body storage: '{}', treating as issue", type);
+            throw new BaseException(ModuleErrorCode.VALIDATION_ERROR, null, "Invalid type: " + type);
         }
         return entity.getStoredIssueFileKey();
     }
