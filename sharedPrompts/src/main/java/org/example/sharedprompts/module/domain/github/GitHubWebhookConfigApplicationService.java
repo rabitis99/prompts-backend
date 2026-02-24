@@ -1,29 +1,43 @@
 package org.example.sharedprompts.module.domain.github;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.prompt.service.PromptService;
 import org.example.sharedprompts.module.domain.github.entity.GitHubWebhookConfig;
 import org.example.sharedprompts.module.domain.github.repository.GitHubWebhookConfigRepository;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Optional;
 
 /**
  * GitHub Webhook 설정 관리 애플리케이션 서비스.
  * 인증된 사용자가 promptId + repo 를 넘기면 tenantKey를 생성/재사용하고 Webhook URL 구성을 돕습니다.
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class GitHubWebhookConfigApplicationService {
 
     private final GitHubWebhookConfigRepository webhookConfigRepository;
     private final PromptService promptService;
 
+    @Lazy
+    private GitHubWebhookConfigApplicationService self;
+
     private final SecureRandom secureRandom = new SecureRandom();
+
+    public GitHubWebhookConfigApplicationService(
+            GitHubWebhookConfigRepository webhookConfigRepository,
+            PromptService promptService,
+            @Lazy GitHubWebhookConfigApplicationService self) {
+        this.webhookConfigRepository = webhookConfigRepository;
+        this.promptService = promptService;
+        this.self = self;
+    }
 
     /**
      * ownerUserId + repoFullName 기준으로 설정을 찾고, 없으면 새로 생성해 반환.
@@ -60,11 +74,27 @@ public class GitHubWebhookConfigApplicationService {
                             .enabled(true)
                             .webhookSecret(webhookSecret != null && !webhookSecret.isBlank() ? webhookSecret : null)
                             .build();
-                    GitHubWebhookConfig saved = webhookConfigRepository.save(config);
-                    log.info("Created GitHub webhook config - ownerUserId: {}, repo: {}, tenantKey: {}, promptId: {}",
-                            ownerUserId, repoFullName, tenantKey, promptId);
-                    return saved;
+                    try {
+                        GitHubWebhookConfig saved = webhookConfigRepository.save(config);
+                        log.info("Created GitHub webhook config - ownerUserId: {}, repo: {}, tenantKey: {}, promptId: {}",
+                                ownerUserId, repoFullName, tenantKey, promptId);
+                        return saved;
+                    } catch (DataIntegrityViolationException e) {
+                        log.warn("Duplicate webhook config (concurrent create), re-fetching - ownerUserId: {}, repo: {}",
+                                ownerUserId, repoFullName);
+                        return self.findExistingInNewTransaction(ownerUserId, repoFullName)
+                                .orElseThrow(() -> new IllegalStateException(
+                                        "Unique constraint violated but config not found after conflict", e));
+                    }
                 });
+    }
+
+    /**
+     * Runs in a new transaction so that after a concurrent-insert conflict we can see the committed row.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    public Optional<GitHubWebhookConfig> findExistingInNewTransaction(Long ownerUserId, String repoFullName) {
+        return webhookConfigRepository.findByOwnerUserIdAndRepoFullNameAndEnabledTrue(ownerUserId, repoFullName);
     }
 
     private String generateTenantKey() {

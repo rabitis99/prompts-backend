@@ -1,6 +1,7 @@
 package org.example.sharedprompts.module.domain.github;
 
 import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.module.domain.github.entity.GitHubWebhookConfig;
 import org.example.sharedprompts.module.domain.github.repository.GitHubWebhookConfigRepository;
 import org.springframework.stereotype.Component;
 
@@ -25,7 +26,7 @@ public class GitHubWebhookSecretResolver {
             return Optional.empty();
         }
         return webhookConfigRepository.findByTenantKeyAndRepoFullNameAndEnabledTrue(tenantKey, repoFullName)
-                .map(c -> c.getWebhookSecret())
+                .map(GitHubWebhookConfig::getWebhookSecret)
                 .filter(s -> s != null && !s.isBlank());
     }
 }

@@ -16,8 +16,8 @@ import org.example.sharedprompts.global.entity.BaseEntity;
 @Table(
         name = "github_webhook_config",
         indexes = {
-                @Index(name = "idx_github_webhook_config_tenant_repo", columnList = "tenant_key, repo_full_name", unique = true),
-                @Index(name = "uk_owner_repo", columnList = "owner_user_id, repo_full_name", unique = true)
+                @Index(name = "uk_github_webhook_config_tenant_repo", columnList = "tenant_key, repo_full_name", unique = true),
+                @Index(name = "uk_github_webhook_config_owner_repo", columnList = "owner_user_id, repo_full_name", unique = true)
         }
 )
 public class GitHubWebhookConfig extends BaseEntity {
@@ -57,6 +57,7 @@ public class GitHubWebhookConfig extends BaseEntity {
     /**
      * GitHub Webhook Secret (해당 tenantKey URL에 대해 GitHub에 설정한 값).
      * X-Hub-Signature-256 검증 시 사용. 사용자(테넌트)별로 다를 수 있음.
+     * 현재는 평문 저장. 향후 보안 강화 시 JPA @Convert/AttributeConverter 또는 DB 컬럼 암호화 적용 권장.
      */
     @Column(name = "webhook_secret", length = 512)
     private String webhookSecret;

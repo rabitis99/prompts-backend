@@ -29,6 +29,8 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class GitHubBodyStorageController {
 
+    private static final int MAX_PAGE_SIZE = 100;
+
     private final GitHubBodyStorageApplicationService bodyStorageApplicationService;
 
     /**
@@ -45,7 +47,7 @@ public class GitHubBodyStorageController {
         if (!authUser.getId().equals(ownerUserId)) {
             throw new BaseException(ModuleErrorCode.GITHUB_BODY_STORAGE_FORBIDDEN, null, "ownerUserId mismatch");
         }
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(size, MAX_PAGE_SIZE));
         var dtoPage = bodyStorageApplicationService.listByOwnerUserId(ownerUserId, pageable);
         return CustomResponseHelper.ok(PageResponse.of(dtoPage));
     }
@@ -80,6 +82,7 @@ public class GitHubBodyStorageController {
     /**
      * 다운로드 Presigned URL로 302 리다이렉트.
      * 브라우저에서 직접 다운로드 링크로 쓸 때 사용합니다.
+     * downloadUrl이 없으면 302를 보내지 않고 STORAGE_ERROR로 응답합니다.
      */
     @GetMapping(value = "/{id}/download", params = "redirect=true")
     public ResponseEntity<Void> downloadRedirect(
@@ -88,8 +91,12 @@ public class GitHubBodyStorageController {
             @CurrentUser AuthUser authUser
     ) {
         GitHubBodyDownloadUrlDto dto = bodyStorageApplicationService.getDownloadUrl(id, authUser.getId(), type);
+        String url = dto.downloadUrl();
+        if (url == null || url.isBlank()) {
+            throw new BaseException(ModuleErrorCode.STORAGE_ERROR, null, "Download URL could not be generated for redirect");
+        }
         return ResponseEntity.status(302)
-                .header(HttpHeaders.LOCATION, dto.downloadUrl())
+                .header(HttpHeaders.LOCATION, url)
                 .build();
     }
 }

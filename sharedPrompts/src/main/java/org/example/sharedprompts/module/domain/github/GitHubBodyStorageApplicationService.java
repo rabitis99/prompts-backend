@@ -66,6 +66,10 @@ public class GitHubBodyStorageApplicationService {
     public GitHubBodyDownloadUrlDto getDownloadUrl(Long id, Long currentUserId, String type) {
         GithubBodyStorage entity = getEntityAndCheckOwner(id, currentUserId);
         String s3Key = resolveS3KeyByType(entity, type);
+        if (s3Key == null || s3Key.isBlank()) {
+            throw new BaseException(ModuleErrorCode.GITHUB_BODY_STORAGE_NOT_FOUND, null,
+                    "No stored file key for type: " + type);
+        }
         String url = storageFacade.generateDownloadUrl(s3Key, PRESIGNED_URL_TTL);
         return new GitHubBodyDownloadUrlDto(url);
     }
@@ -82,6 +86,9 @@ public class GitHubBodyStorageApplicationService {
     private String resolveS3KeyByType(GithubBodyStorage entity, String type) {
         if ("pr".equalsIgnoreCase(type)) {
             return entity.getStoredPrFileKey();
+        }
+        if (!"issue".equalsIgnoreCase(type)) {
+            log.warn("Unexpected type for GitHub body storage: '{}', treating as issue", type);
         }
         return entity.getStoredIssueFileKey();
     }

@@ -3,15 +3,20 @@ package org.example.sharedprompts.module.domain.github;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.domain.github.repository.GithubBodyStorageRepository;
+import org.example.sharedprompts.module.exception.BaseException;
+import org.example.sharedprompts.module.exception.ModuleErrorCode;
 import org.example.sharedprompts.module.dto.request.github.GitHubBodyRequestDto;
 import org.example.sharedprompts.module.dto.response.github.GitHubBodyResponseDto;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 /**
  * GitHub Issue/PR 본문 생성 오케스트레이션.
  * 멱등 확인 → 기존 키 있으면 다운로드 반환 / 없으면 생성 → S3 저장 → (선택) DB 메타데이터 UPSERT → 응답 생성.
+ * 참고: DB UPSERT 실패 시 트랜잭션 롤백으로 DB는 원복되나 S3 파일은 남을 수 있음. 멱등 재시도 시 기존 키 재사용으로 유실은 없음. 장기적으로 S3 고아 파일 정리(TTL/배치) 고려 권장.
  */
 @Service
 @RequiredArgsConstructor
@@ -57,8 +62,17 @@ public class GitHubBodyGenerateApplicationService {
         }
 
         GitHubBodyGeneratorService.GitHubBodyPair pair = generatorService.generateBoth(promptId, request);
-        GitHubBodyStorageService.StoredKeys keys = storageService.saveBothAsMarkdown(
+        Optional<GitHubBodyStorageService.StoredKeys> keysOpt = storageService.saveBothAsMarkdown(
                 pair.issueBody(), pair.prBody(), request);
+        if (keysOpt.isEmpty()) {
+            return new GitHubBodyResponseDto(
+                    jobId,
+                    pair.issueBody(),
+                    pair.prBody(),
+                    null,
+                    null);
+        }
+        GitHubBodyStorageService.StoredKeys keys = keysOpt.get();
         GitHubBodyResponseDto dto = new GitHubBodyResponseDto(
                 jobId,
                 pair.issueBody(),
@@ -95,7 +109,8 @@ public class GitHubBodyGenerateApplicationService {
             log.debug("GitHub body storage metadata upserted - tenantKey: {}, repo: {}, jobId: {}", tenantKey, repoFullName, request.resolveJobId());
         } catch (Exception e) {
             log.warn("GitHub body storage metadata upsert failed - tenantKey: {}, jobId: {}: {}", tenantKey, request.resolveJobId(), e.getMessage());
-            throw new RuntimeException("Failed to save GitHub body storage metadata", e);
+            throw new BaseException(ModuleErrorCode.GITHUB_BODY_STORAGE_UPSERT_FAILED, null,
+                    "tenantKey: " + tenantKey + ", jobId: " + request.resolveJobId(), e);
         }
     }
 }

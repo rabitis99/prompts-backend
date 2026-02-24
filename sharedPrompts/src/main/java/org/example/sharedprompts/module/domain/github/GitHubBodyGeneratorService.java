@@ -81,7 +81,7 @@ public class GitHubBodyGeneratorService {
             throw e;
         } catch (Exception e) {
             log.warn("Failed to load body template by promptId {}: {}", bodyTemplatePromptId, e.getMessage());
-            throw new BaseException(ModuleErrorCode.GITHUB_BODY_PROMPT_NOT_FOUND, "prompts/id not found: " + bodyTemplatePromptId, e);
+            throw new BaseException(ModuleErrorCode.GITHUB_BODY_PROMPT_NOT_FOUND, null, "prompts/id not found: " + bodyTemplatePromptId, e);
         }
         return kind == Kind.PR ? GitHubBodyTemplates.PR_BODY : GitHubBodyTemplates.ISSUE_BODY;
     }

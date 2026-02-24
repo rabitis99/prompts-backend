@@ -30,7 +30,8 @@ public enum ModuleErrorCode {
     GITHUB_BODY_JOB_ID_REQUIRED("PD00406", HttpStatus.BAD_REQUEST, "jobId, deliveryId, sha 중 하나 이상 필요"),
     GITHUB_BODY_PROMPT_NOT_FOUND("PD00705", HttpStatus.NOT_FOUND, "GitHub prompt를 찾을 수 없습니다."),
     GITHUB_BODY_STORAGE_NOT_FOUND("PD00706", HttpStatus.NOT_FOUND, "GitHub 본문 저장을 찾을 수 없습니다."),
-    GITHUB_BODY_STORAGE_FORBIDDEN("PD00603", HttpStatus.FORBIDDEN, "해당 GitHub 본문 저장에 대한 접근 권한이 없습니다.");
+    GITHUB_BODY_STORAGE_FORBIDDEN("PD00603", HttpStatus.FORBIDDEN, "해당 GitHub 본문 저장에 대한 접근 권한이 없습니다."),
+    GITHUB_BODY_STORAGE_UPSERT_FAILED("PD01010", HttpStatus.INTERNAL_SERVER_ERROR, "GitHub 본문 저장 메타데이터 저장에 실패했습니다.");
 
     private final String code;
     private final HttpStatus httpStatus;

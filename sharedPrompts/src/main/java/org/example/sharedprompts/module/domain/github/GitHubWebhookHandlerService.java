@@ -33,8 +33,12 @@ public class GitHubWebhookHandlerService {
      */
     @Transactional
     public Optional<GitHubBodyResponseDto> handlePush(String tenantKey, String deliveryId, String rawPayload) {
-        GitHubWebhookPayloads.PushPayload payload = parse(rawPayload, GitHubWebhookPayloads.PushPayload.class);
-        if (payload == null || payload.getRepository() == null) {
+        Optional<GitHubWebhookPayloads.PushPayload> payloadOpt = parse(rawPayload, GitHubWebhookPayloads.PushPayload.class);
+        if (payloadOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        GitHubWebhookPayloads.PushPayload payload = payloadOpt.get();
+        if (payload.getRepository() == null) {
             log.warn("GitHub push payload missing repository");
             return Optional.empty();
         }
@@ -82,8 +86,12 @@ public class GitHubWebhookHandlerService {
      */
     @Transactional
     public Optional<GitHubBodyResponseDto> handlePullRequest(String tenantKey, String deliveryId, String rawPayload) {
-        GitHubWebhookPayloads.PullRequestPayload payload = parse(rawPayload, GitHubWebhookPayloads.PullRequestPayload.class);
-        if (payload == null || payload.getRepository() == null || payload.getPullRequest() == null) {
+        Optional<GitHubWebhookPayloads.PullRequestPayload> payloadOpt = parse(rawPayload, GitHubWebhookPayloads.PullRequestPayload.class);
+        if (payloadOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        GitHubWebhookPayloads.PullRequestPayload payload = payloadOpt.get();
+        if (payload.getRepository() == null || payload.getPullRequest() == null) {
             log.warn("GitHub pull_request payload missing repository or pull_request");
             return Optional.empty();
         }
@@ -96,7 +104,7 @@ public class GitHubWebhookHandlerService {
         GitHubWebhookPayloads.PullRequest pr = payload.getPullRequest();
         String sha = pr.getHead() != null ? pr.getHead().getSha() : "";
         String branch = pr.getHead() != null ? pr.getHead().getRef() : "";
-        String baseBranch = pr.getBase() != null ? pr.getBase().getRef() : "main";
+        String baseBranch = pr.getBase() != null ? pr.getBase().getRef() : "";
         String title = pr.getTitle() != null ? pr.getTitle() : "";
         String author = pr.getUser() != null ? pr.getUser().getLogin() : "";
         String date = pr.getCreatedAt() != null ? pr.getCreatedAt() : "";
@@ -146,12 +154,12 @@ public class GitHubWebhookHandlerService {
         return configOpt;
     }
 
-    private <T> T parse(String raw, Class<T> type) {
+    private <T> Optional<T> parse(String raw, Class<T> type) {
         try {
-            return objectMapper.readValue(raw, type);
+            return Optional.ofNullable(objectMapper.readValue(raw, type));
         } catch (Exception e) {
             log.warn("Failed to parse GitHub webhook payload: {}", e.getMessage());
-            return null;
+            return Optional.empty();
         }
     }
 }
