@@ -71,9 +71,15 @@ public class GitHubBodyStorageService {
 
         String issueKey = null;
         try {
+            if (issueBody == null || issueBody.isBlank() || prBody == null || prBody.isBlank()) {
+                return Optional.empty();
+            }
             issueKey = uploadOne(issueBody, tenantId, jobId, issueFileName);
             String prKey = uploadOne(prBody, tenantId, jobId, prFileName);
             if (issueKey == null || prKey == null) {
+                if (issueKey != null) {
+                    storageFacade.delete(issueKey);
+                }
                 return Optional.empty();
             }
             log.info("GitHub bodies saved for jobId: {} - issue: {}, pr: {}", jobId, issueKey, prKey);

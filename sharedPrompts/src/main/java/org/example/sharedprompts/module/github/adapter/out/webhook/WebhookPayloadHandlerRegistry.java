@@ -3,6 +3,7 @@ package org.example.sharedprompts.module.github.adapter.out.webhook;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.module.github.domain.model.BodyGenerationRequest;
+import org.example.sharedprompts.module.github.port.out.WebhookParserPort;
 import org.example.sharedprompts.module.github.port.out.WebhookPayloadHandler;
 import org.springframework.stereotype.Component;
 
@@ -19,7 +20,7 @@ import java.util.Optional;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class WebhookPayloadHandlerRegistry {
+public class WebhookPayloadHandlerRegistry implements WebhookParserPort {
 
   private final List<WebhookPayloadHandler> handlers;
 
@@ -30,6 +31,7 @@ public class WebhookPayloadHandlerRegistry {
    * @param payload GitHub webhook JSON 페이로드
    * @return 파싱된 본문 생성 요청 또는 empty
    */
+  @Override
   public Optional<BodyGenerationRequest> parse(String eventType, String payload) {
     if (eventType == null || payload == null) {
       return Optional.empty();

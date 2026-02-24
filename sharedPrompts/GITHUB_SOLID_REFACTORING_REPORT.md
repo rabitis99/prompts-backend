@@ -128,7 +128,7 @@ BUILD SUCCESS (0 errors)
 ## 8️⃣ 아키텍처 개선 전후 비교
 
 ### 1️⃣ Before (리팩토링 전)
-```
+```text
 Controller
   ↓ (직접 호출)
 GitHubBodyGenerateApplicationService
@@ -147,7 +147,7 @@ Infrastructure (S3, JPA, AI API)
 - 새 이벤트 타입 추가 시 기존 코드 수정 필요
 
 ### 2️⃣ After (리팩토링 후)
-```
+```text
 WebhookControllerAdapter
   ↓ (Port 호출)
 ReceiveWebhookUseCase (Port)
@@ -176,8 +176,8 @@ Infrastructure (S3, JPA, AI API)
 
 ## 9️⃣ 기존 코드 호환성 주의사항
 
-### 기존 파일 (삭제 전까지 유지 가능)
-```
+### 기존 파일 (이번 리팩토링에서 삭제됨)
+```text
 web/controller/webhook/GitHubWebhookController.java ← WebhookControllerAdapter로 대체
 web/controller/body/GitHubBodyStorageController.java ← BodyStorageControllerAdapter로 대체
 web/controller/config/GitHubWebhookConfigController.java ← WebhookConfigControllerAdapter로 대체
@@ -187,10 +187,10 @@ application/config/GitHubWebhookConfigApplicationService.java ← CreateWebhookC
 application/webhook/GitHubWebhookHandlerService.java ← ReceiveWebhookService로 대체
 ```
 
-**점진적 전환 권장:**
-1. 신규 요청은 새로운 Adapter 엔드포인트 사용
-2. 기존 요청은 기존 Controller를 통해 처리 (평행 운영)
-3. 충분한 테스트 후 기존 파일 삭제
+**전환 전략 메모:**
+1. 기존 레거시 컨트롤러는 Adapter와 URL이 충돌하므로 동일 애플리케이션 내 평행 운영은 불가합니다.
+2. 이 PR에서는 Adapter로 완전히 대체하면서 레거시 컨트롤러를 삭제했습니다.
+3. 운영 환경에서 단계적 전환이 필요하다면, 이전 단계에서는 별도 애플리케이션 또는 다른 URL prefix로 레거시 엔드포인트를 분리 운영해야 합니다.
 
 ### DTO 로직 호환성
 ```java
@@ -209,7 +209,7 @@ public String resolveBaseBranch() { ... }    // 기존 호출부 지원
 ## 🔟 생성된 파일 목록 (28개)
 
 ### Port 인터페이스 (13개)
-```
+```text
 port/in/ReceiveWebhookUseCase.java
 port/in/GenerateGitHubBodyUseCase.java
 port/in/CreateWebhookConfigUseCase.java
@@ -226,7 +226,7 @@ port/exception/TemplateException.java
 ```
 
 ### Adapter (11개)
-```
+```text
 adapter/out/storage/S3StorageAdapter.java
 adapter/out/persistence/JpaWebhookConfigAdapter.java
 adapter/out/persistence/JpaBodyStorageAdapter.java
@@ -241,7 +241,7 @@ adapter/in/controller/WebhookConfigControllerAdapter.java
 ```
 
 ### Application Service (4개)
-```
+```text
 application/usecase/ReceiveWebhookService.java
 application/usecase/GenerateBodyService.java
 application/usecase/CreateWebhookConfigService.java
@@ -249,7 +249,7 @@ application/usecase/QueryBodyStorageService.java
 ```
 
 ### Domain Model (1개)
-```
+```text
 domain/model/BodyGenerationRequest.java
 ```
 
@@ -285,7 +285,7 @@ public class IssueWebhookHandler implements WebhookPayloadHandler {
 @Component
 public class GcsStorageAdapter implements StoragePort {
     @Override
-    public String saveMarkdown(String s3Key, String content) {
+    public String saveMarkdown(String storageKey, String content) {
         // GCS 업로드
     }
     // ...

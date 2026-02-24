@@ -1,6 +1,7 @@
 package org.example.sharedprompts.module.github.port.out;
 
 import org.example.sharedprompts.module.github.domain.model.GithubBodyStorage;
+import org.example.sharedprompts.module.github.port.exception.PersistenceException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -13,7 +14,7 @@ import java.util.Optional;
  * - {@link org.example.sharedprompts.module.github.adapter.out.persistence.JpaBodyStorageAdapter}
  *
  * LSP 계약:
- * - 조회: Optional 또는 Page로 반통 (없으면 empty/zero)
+ * - 조회: Optional 또는 Page로 반환 (없으면 empty/zero)
  * - 저장: 예외 발생 (제약, 트랜잭션 오류 등)
  * - Upsert: (tenantKey, repoFullName, jobId) 키로 merge (idempotent)
  */

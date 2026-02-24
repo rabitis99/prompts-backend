@@ -1,5 +1,6 @@
 package org.example.sharedprompts.module.github.port.in;
 
+import org.example.sharedprompts.module.exception.BaseException;
 import org.example.sharedprompts.module.github.dto.body.response.GitHubBodyResponseDto;
 import org.example.sharedprompts.module.github.dto.body.request.GitHubBodyRequestDto;
 

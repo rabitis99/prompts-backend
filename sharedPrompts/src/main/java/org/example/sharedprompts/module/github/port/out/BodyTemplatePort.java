@@ -1,5 +1,7 @@
 package org.example.sharedprompts.module.github.port.out;
 
+import org.example.sharedprompts.module.github.port.exception.TemplateException;
+
 /**
  * GitHub 본문 템플릿 해석 포트.
  *

@@ -1,5 +1,7 @@
 package org.example.sharedprompts.module.github.port.out;
 
+import org.example.sharedprompts.module.domain.production.service.job.process.exception.StorageException;
+
 import java.time.Duration;
 
 /**
@@ -15,17 +17,6 @@ import java.time.Duration;
  * - 프리사인드 URL 실패: exception 발생
  */
 public interface StoragePort {
-
-  /**
-   * S3에 마크다운 파일 저장.
-   *
-   * @param s3Key S3 object key (절대 경로)
-   * @param content 파일 내용 (마크다운)
-   * @return 저장된 S3 key
-   * @throws IllegalArgumentException key/content null 또는 blank
-   * @throws StorageException S3 업로드 실패
-   */
-  String saveMarkdown(String s3Key, String content);
 
   /**
    * S3에서 마크다운 파일 다운로드.

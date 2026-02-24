@@ -1,17 +1,14 @@
 package org.example.sharedprompts.module.github.domain.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.prompt.service.PromptService;
-import org.example.sharedprompts.module.domain.production.service.ai.text.TextAiClient;
-import org.example.sharedprompts.module.exception.BaseException;
-import org.example.sharedprompts.module.exception.ModuleErrorCode;
 import org.example.sharedprompts.module.github.dto.body.request.GitHubBodyRequestDto;
 import org.example.sharedprompts.module.github.dto.body.request.GitHubBodyRequestDto.Kind;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.lang.Nullable;
+import org.example.sharedprompts.module.github.port.out.BodyGenerationPort;
+import org.example.sharedprompts.module.github.port.out.BodyTemplatePort;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * GitHub Issue/PR 본문 Markdown 생성.
@@ -21,14 +18,14 @@ import java.util.Map;
 @Slf4j
 public class GitHubBodyGeneratorService {
 
-    private final TextAiClient textAiClient;
-    private final PromptService promptService;
+    private final BodyTemplatePort bodyTemplatePort;
+    private final BodyGenerationPort bodyGenerationPort;
 
     public GitHubBodyGeneratorService(
-            @Autowired(required = false) @Nullable TextAiClient textAiClient,
-            PromptService promptService) {
-        this.textAiClient = textAiClient;
-        this.promptService = promptService;
+            BodyTemplatePort bodyTemplatePort,
+            BodyGenerationPort bodyGenerationPort) {
+        this.bodyTemplatePort = bodyTemplatePort;
+        this.bodyGenerationPort = bodyGenerationPort;
     }
 
     public GitHubBodyPair generateBoth(Long bodyTemplatePromptId, GitHubBodyRequestDto request) {
@@ -49,48 +46,25 @@ public class GitHubBodyGeneratorService {
     }
 
     private String generateBodyFromVars(GitHubBodyVars vars, Map<String, String> varMap, String template, Kind kind) {
-        if (textAiClient != null) {
-            try {
-                String systemPrompt = kind == Kind.PR ? GitHubBodyTemplates.AI_SYSTEM_PR : GitHubBodyTemplates.AI_SYSTEM_ISSUE;
-                String userPrompt = buildUserPrompt(vars, kind, template);
-                String combinedPrompt = systemPrompt + "\n\n---\n\n" + userPrompt;
-                // TODO: Groq 호출 시 temperature 0.2~0.3 권장. 현재 TextAiClient가 temperature 미지원 시 기본값 사용.
-                String generated = textAiClient.generateText(combinedPrompt, null, "markdown");
-                if (generated != null && !generated.isBlank()) {
-                    return GitHubBodyPlaceholderSubstitutor.substitute(generated.trim(), varMap);
-                }
-            } catch (Exception e) {
-                log.warn("GitHub body AI generation failed, using template fallback: {}", e.getMessage());
-            }
+        String systemPrompt = kind == Kind.PR ? GitHubBodyTemplates.AI_SYSTEM_PR : GitHubBodyTemplates.AI_SYSTEM_ISSUE;
+        String userPrompt = buildUserPrompt(vars, kind, template);
+
+        Optional<String> generated = bodyGenerationPort.generateBody(systemPrompt, userPrompt);
+        if (generated.isPresent()) {
+            return GitHubBodyPlaceholderSubstitutor.substitute(generated.get().trim(), varMap);
         }
+
+        log.debug("AI generation skipped or failed, using template fallback for kind: {}", kind);
         return GitHubBodyPlaceholderSubstitutor.substitute(template, varMap);
     }
 
     public record GitHubBodyPair(String issueBody, String prBody) {}
 
-    /** path의 promptId가 있으면 prompts 테이블에서 조회(Issue·PR 공통 템플릿), 없으면 GitHubBodyTemplates 상수. */
+    /** path의 promptId가 있으면 템플릿 포트에서 조회(Issue·PR 구분), 없으면 포트 기본값 사용. */
     private String resolveBodyTemplate(Long bodyTemplatePromptId, Kind kind) {
-        if (bodyTemplatePromptId == null) {
-            return kind == Kind.PR ? GitHubBodyTemplates.PR_BODY : GitHubBodyTemplates.ISSUE_BODY;
-        }
-        try {
-            var detail = promptService.getPromptDetail(bodyTemplatePromptId, null);
-            if (detail == null) {
-                throw new BaseException(ModuleErrorCode.GITHUB_BODY_PROMPT_NOT_FOUND, null, "prompts/id not found: " + bodyTemplatePromptId);
-            }
-            String content = detail.getContent();
-            if (content != null && !content.isBlank()) {
-                return content;
-            }
-            log.warn("Body template for promptId {} is {} falling back to default template",
-                    bodyTemplatePromptId, content == null ? "null," : "blank,");
-        } catch (BaseException e) {
-            throw e;
-        } catch (Exception e) {
-            log.warn("Failed to load body template by promptId {}: {}", bodyTemplatePromptId, e.getMessage());
-            throw new BaseException(ModuleErrorCode.GITHUB_BODY_PROMPT_NOT_FOUND, null, "prompts/id not found: " + bodyTemplatePromptId, e);
-        }
-        return kind == Kind.PR ? GitHubBodyTemplates.PR_BODY : GitHubBodyTemplates.ISSUE_BODY;
+        BodyTemplatePort.TemplateKind templateKind =
+                (kind == Kind.PR) ? BodyTemplatePort.TemplateKind.PR : BodyTemplatePort.TemplateKind.ISSUE;
+        return bodyTemplatePort.resolveTemplate(bodyTemplatePromptId, templateKind);
     }
 
     private String buildUserPrompt(GitHubBodyVars v, Kind kind, String outputStructureTemplate) {

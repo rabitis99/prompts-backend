@@ -6,7 +6,6 @@ import org.example.sharedprompts.domain.prompt.service.PromptService;
 import org.example.sharedprompts.module.github.domain.model.GitHubWebhookConfig;
 import org.example.sharedprompts.module.github.port.in.CreateWebhookConfigUseCase;
 import org.example.sharedprompts.module.github.port.out.WebhookConfigPersistencePort;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -38,9 +37,7 @@ public class CreateWebhookConfigService implements CreateWebhookConfigUseCase {
 
   private final WebhookConfigPersistencePort configPort;
   private final PromptService promptService;
-
-  @Lazy
-  private CreateWebhookConfigService self;
+  private final CreateWebhookConfigNewTxHelper newTxHelper;
 
   private final SecureRandom secureRandom = new SecureRandom();
 
@@ -88,15 +85,10 @@ public class CreateWebhookConfigService implements CreateWebhookConfigUseCase {
     } catch (DataIntegrityViolationException e) {
       log.warn("Duplicate webhook config (concurrent create), re-fetching - ownerUserId: {}, repo: {}",
           ownerUserId, repoFullName);
-      return self.findExistingInNewTransaction(ownerUserId, repoFullName)
+      return newTxHelper.findExistingInNewTransaction(ownerUserId, repoFullName)
           .orElseThrow(() -> new IllegalStateException(
               "Unique constraint violated but config not found after conflict", e));
     }
-  }
-
-  @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
-  public Optional<GitHubWebhookConfig> findExistingInNewTransaction(Long ownerUserId, String repoFullName) {
-    return configPort.findByOwner(ownerUserId, repoFullName);
   }
 
   private String generateTenantKey() {

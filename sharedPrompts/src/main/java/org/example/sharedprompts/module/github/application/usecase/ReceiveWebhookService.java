@@ -2,12 +2,15 @@ package org.example.sharedprompts.module.github.application.usecase;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.module.github.adapter.out.webhook.WebhookPayloadHandlerRegistry;
+import org.example.sharedprompts.module.exception.BaseException;
 import org.example.sharedprompts.module.github.domain.model.BodyGenerationRequest;
-import org.example.sharedprompts.module.github.dto.body.response.GitHubBodyResponseDto;
-import org.example.sharedprompts.module.github.port.in.ReceiveWebhookUseCase;
-import org.example.sharedprompts.module.github.port.in.GenerateGitHubBodyUseCase;
+import org.example.sharedprompts.module.github.domain.model.GitHubWebhookConfig;
 import org.example.sharedprompts.module.github.dto.body.request.GitHubBodyRequestDto;
+import org.example.sharedprompts.module.github.dto.body.response.GitHubBodyResponseDto;
+import org.example.sharedprompts.module.github.port.in.GenerateGitHubBodyUseCase;
+import org.example.sharedprompts.module.github.port.in.ReceiveWebhookUseCase;
+import org.example.sharedprompts.module.github.port.out.WebhookConfigPersistencePort;
+import org.example.sharedprompts.module.github.port.out.WebhookParserPort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,8 +31,9 @@ import java.util.Optional;
 @Slf4j
 public class ReceiveWebhookService implements ReceiveWebhookUseCase {
 
-  private final WebhookPayloadHandlerRegistry payloadHandlerRegistry;
+  private final WebhookParserPort payloadHandlerRegistry;
   private final GenerateGitHubBodyUseCase generateBodyUseCase;
+  private final WebhookConfigPersistencePort webhookConfigPersistencePort;
 
   @Transactional
   @Override
@@ -57,6 +61,13 @@ public class ReceiveWebhookService implements ReceiveWebhookUseCase {
       log.debug("Parsed request missing repo");
       return Optional.empty();
     }
+    Optional<GitHubWebhookConfig> configOpt =
+        webhookConfigPersistencePort.findByTenantKey(tenantKey, repoFullName);
+    if (configOpt.isEmpty()) {
+      log.debug("No active webhook config for tenantKey={}, repo={}", tenantKey, repoFullName);
+      return Optional.empty();
+    }
+    GitHubWebhookConfig config = configOpt.get();
 
     GitHubBodyRequestDto dto = new GitHubBodyRequestDto(
         request.jobId(),
@@ -73,14 +84,15 @@ public class ReceiveWebhookService implements ReceiveWebhookUseCase {
         tenantKey
     );
 
-    // TODO: bodyPromptId를 어디서 가져올지 결정 필요 (webhook config에서? 요청에서?)
-    // 현재는 null로 설정하면 기본 템플릿 사용
-    Long bodyPromptId = null;
-    Long ownerUserId = null; // TODO: tenantKey로부터 조회 필요
+    Long bodyPromptId = config.getBodyPromptId();
+    Long ownerUserId = config.getOwnerUserId();
 
     try {
       return Optional.of(generateBodyUseCase.generateWithPersistence(
           bodyPromptId, dto, tenantKey, eventType, ownerUserId));
+    } catch (BaseException e) {
+      log.error("Body generation failed with business error for {}: {}", eventType, e.getMessage());
+      throw e;
     } catch (Exception e) {
       log.error("Body generation failed for {}: {}", eventType, e.getMessage());
       return Optional.empty();

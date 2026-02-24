@@ -86,7 +86,8 @@ public class PushWebhookHandler implements WebhookPayloadHandler {
   private String extractAuthor(GitHubWebhookPayloads.HeadCommit commit) {
     if (commit == null || commit.getAuthor() == null) return "";
     GitHubWebhookPayloads.Author author = commit.getAuthor();
-    return author.getUsername() != null ? author.getUsername() : author.getName();
+    if (author.getUsername() != null) return author.getUsername();
+    return author.getName() != null ? author.getName() : "";
   }
 
   private String extractDate(GitHubWebhookPayloads.HeadCommit commit) {

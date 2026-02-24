@@ -60,6 +60,9 @@ public class QueryBodyStorageService implements QueryStoredBodyUseCase {
   public GitHubBodyPreviewResponseDto preview(Long storageId, Long currentUserId, String type) {
     GithubBodyStorage entity = getEntityAndCheckOwner(storageId, currentUserId);
     String s3Key = resolveS3KeyByType(entity, type);
+    if (s3Key == null || s3Key.isBlank()) {
+      return new GitHubBodyPreviewResponseDto("");
+    }
     String markdown = storagePort.downloadBody(s3Key);
     return new GitHubBodyPreviewResponseDto(markdown != null ? markdown : "");
   }

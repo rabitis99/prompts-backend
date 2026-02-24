@@ -2,6 +2,7 @@ package org.example.sharedprompts.module.github.domain.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 
@@ -56,6 +57,7 @@ public class GithubBodyStorage {
     @Column(name = "owner_user_id")
     private Long ownerUserId;
 
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 }

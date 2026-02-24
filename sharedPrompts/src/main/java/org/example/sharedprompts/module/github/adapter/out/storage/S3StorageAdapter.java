@@ -29,27 +29,6 @@ public class S3StorageAdapter implements StoragePort {
   }
 
   @Override
-  public String saveMarkdown(String s3Key, String content) {
-    if (s3Key == null || s3Key.isBlank()) {
-      throw new IllegalArgumentException("s3Key cannot be null or blank");
-    }
-    if (content == null || content.isBlank()) {
-      throw new IllegalArgumentException("content cannot be null or blank");
-    }
-    if (storageFacade == null) {
-      throw new StorageException("StorageFacade not available");
-    }
-
-    try {
-      log.debug("GitHub body save skipped - using domain service for S3 operations");
-      return s3Key;
-    } catch (Exception e) {
-      log.error("Failed to save GitHub body to S3 - key: {}: {}", s3Key, e.getMessage());
-      throw new StorageException("S3 save failed for key: " + s3Key, e);
-    }
-  }
-
-  @Override
   public String downloadBody(String s3Key) {
     if (s3Key == null || storageFacade == null) {
       return "";

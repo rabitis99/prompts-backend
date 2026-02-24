@@ -1,6 +1,7 @@
 package org.example.sharedprompts.module.github.port.out;
 
 import org.example.sharedprompts.module.github.domain.model.GitHubWebhookConfig;
+import org.example.sharedprompts.module.github.port.exception.PersistenceException;
 
 import java.util.Optional;
 

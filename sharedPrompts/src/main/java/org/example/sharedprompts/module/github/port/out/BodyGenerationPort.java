@@ -9,7 +9,7 @@ import java.util.Optional;
  * - {@link org.example.sharedprompts.module.github.adapter.out.client.TextAiClientAdapter}
  *
  * LSP 계약:
- * - AI 미사용 (null, disabled): Optional.empty() 반환
+ * - AI 미사용 (client 미주입/disabled): Optional.empty() 반환
  * - AI 호출 실패: Optional.empty() 반환 (로깅, 재시도 시 template fallback)
  * - AI 호출 성공: Optional.of(생성된 텍스트) 반환
  */

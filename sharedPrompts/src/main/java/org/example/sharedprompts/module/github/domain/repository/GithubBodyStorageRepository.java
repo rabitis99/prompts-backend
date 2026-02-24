@@ -22,21 +22,14 @@ public interface GithubBodyStorageRepository extends JpaRepository<GithubBodySto
     Page<GithubBodyStorage> findByOwnerUserIdOrderByCreatedAtDesc(Long ownerUserId, Pageable pageable);
 
     /**
-     * PK로 단건 조회 (JpaRepository 기본 메서드).
-     * 미리보기/다운로드 시 엔티티 조회 및 권한 검사에 사용합니다.
-     */
-    @Override
-    Optional<GithubBodyStorage> findById(Long id);
-
-    /**
      * (tenant_key, repo_full_name, job_id) 기준 멱등 UPSERT.
      * MySQL INSERT ... ON DUPLICATE KEY UPDATE 사용.
      */
     @Modifying
     @Query(value = """
             INSERT INTO github_body_storage (tenant_key, repo_full_name, job_id, delivery_id, event_type, stored_issue_file_key, stored_pr_file_key, body_prompt_id, owner_user_id, created_at)
-            VALUES (:tenantKey, :repoFullName, :jobId, :deliveryId, :eventType, :storedIssueFileKey, :storedPrFileKey, :bodyPromptId, :ownerUserId, CURRENT_TIMESTAMP(6))
-            ON DUPLICATE KEY UPDATE delivery_id = VALUES(delivery_id), event_type = VALUES(event_type), stored_issue_file_key = VALUES(stored_issue_file_key), stored_pr_file_key = VALUES(stored_pr_file_key), body_prompt_id = VALUES(body_prompt_id), owner_user_id = VALUES(owner_user_id)
+            VALUES (:tenantKey, :repoFullName, :jobId, :deliveryId, :eventType, :storedIssueFileKey, :storedPrFileKey, :bodyPromptId, :ownerUserId, CURRENT_TIMESTAMP(6)) AS new_row
+            ON DUPLICATE KEY UPDATE delivery_id = new_row.delivery_id, event_type = new_row.event_type, stored_issue_file_key = new_row.stored_issue_file_key, stored_pr_file_key = new_row.stored_pr_file_key, body_prompt_id = new_row.body_prompt_id, owner_user_id = new_row.owner_user_id
             """, nativeQuery = true)
     void upsert(
             @Param("tenantKey") String tenantKey,

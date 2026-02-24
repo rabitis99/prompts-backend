@@ -106,8 +106,17 @@ public class GenerateBodyService implements GenerateGitHubBodyUseCase {
     }
 
     try {
-      // TODO: GithubBodyStorage 엔티티 생성 및 upsert 호출
-      // persistencePort.upsert(storage);
+      var storage = mapToGithubBodyStorage(
+          tenantKey,
+          request,
+          jobId,
+          bodyPromptId,
+          storedIssueFileKey,
+          storedPrFileKey,
+          eventType,
+          ownerUserId
+      );
+      persistencePort.upsert(storage);
       log.debug("GitHub body storage metadata upserted - tenantKey: {}, repo: {}, jobId: {}",
           tenantKey, request.repoFullName(), jobId);
     } catch (Exception e) {
@@ -115,5 +124,28 @@ public class GenerateBodyService implements GenerateGitHubBodyUseCase {
       throw new BaseException(ModuleErrorCode.GITHUB_BODY_STORAGE_UPSERT_FAILED, null,
           "tenantKey: " + tenantKey + ", jobId: " + jobId, e);
     }
+  }
+
+  private org.example.sharedprompts.module.github.domain.model.GithubBodyStorage mapToGithubBodyStorage(
+      String tenantKey,
+      GitHubBodyRequestDto request,
+      String jobId,
+      Long bodyPromptId,
+      String storedIssueFileKey,
+      String storedPrFileKey,
+      @Nullable String eventType,
+      @Nullable Long ownerUserId
+  ) {
+    return org.example.sharedprompts.module.github.domain.model.GithubBodyStorage.builder()
+        .tenantKey(tenantKey)
+        .repoFullName(request.repoFullName())
+        .jobId(jobId)
+        .deliveryId(request.deliveryId())
+        .eventType(eventType)
+        .storedIssueFileKey(storedIssueFileKey)
+        .storedPrFileKey(storedPrFileKey)
+        .bodyPromptId(bodyPromptId)
+        .ownerUserId(ownerUserId)
+        .build();
   }
 }
