@@ -17,7 +17,7 @@ import org.example.sharedprompts.global.entity.BaseEntity;
         name = "github_webhook_config",
         indexes = {
                 @Index(name = "idx_github_webhook_config_tenant_repo", columnList = "tenant_key, repo_full_name", unique = true),
-                @Index(name = "idx_github_webhook_config_tenant", columnList = "tenant_key")
+                @Index(name = "uk_owner_repo", columnList = "owner_user_id, repo_full_name", unique = true)
         }
 )
 public class GitHubWebhookConfig extends BaseEntity {
@@ -54,7 +54,20 @@ public class GitHubWebhookConfig extends BaseEntity {
     @Builder.Default
     private boolean enabled = true;
 
-    public boolean isEnabled() {
-        return enabled;
+    /**
+     * GitHub Webhook Secret (해당 tenantKey URL에 대해 GitHub에 설정한 값).
+     * X-Hub-Signature-256 검증 시 사용. 사용자(테넌트)별로 다를 수 있음.
+     */
+    @Column(name = "webhook_secret", length = 512)
+    private String webhookSecret;
+
+    /** 본문 템플릿용 prompt를 다른 것으로 바꿀 때 사용 (createOrGet 등에서 호출). */
+    public void updateBodyPromptId(Long bodyPromptId) {
+        this.bodyPromptId = bodyPromptId;
+    }
+
+    /** Webhook Secret 갱신 (GitHub에 설정한 값과 동일하게 유지). */
+    public void updateWebhookSecret(String webhookSecret) {
+        this.webhookSecret = webhookSecret;
     }
 }

@@ -59,7 +59,7 @@ public class GitHubBodyStorageService {
      */
     public StoredKeys saveBothAsMarkdown(String issueBody, String prBody, GitHubBodyRequestDto request) {
         if (storageFacade == null || keyGenerator == null) {
-            log.debug("Storage or keyGenerator not available, skipping save");
+            log.warn("Storage or keyGenerator not available, skipping save for jobId: {}", request.resolveJobId());
             return new StoredKeys(null, null);
         }
         String jobId = request.resolveJobId();
@@ -71,7 +71,7 @@ public class GitHubBodyStorageService {
         try {
             issueKey = uploadOne(issueBody, tenantId, jobId, issueFileName);
             String prKey = uploadOne(prBody, tenantId, jobId, prFileName);
-            if (issueKey != null || prKey != null) {
+            if (issueKey != null && prKey != null) {
                 log.info("GitHub bodies saved for jobId: {} - issue: {}, pr: {}", jobId, issueKey != null, prKey != null);
             }
             return new StoredKeys(issueKey, prKey);
@@ -107,5 +107,7 @@ public class GitHubBodyStorageService {
         return storageFacade.upload(body, tenantId, WEBHOOK_USER_ID, jobId, fileName);
     }
 
-    public record StoredKeys(String storedIssueFileKey, String storedPrFileKey) {}
+    public record StoredKeys(
+            @Nullable String storedIssueFileKey,
+            @Nullable String storedPrFileKey) {}
 }

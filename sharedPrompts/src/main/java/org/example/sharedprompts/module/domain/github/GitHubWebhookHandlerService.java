@@ -29,8 +29,9 @@ public class GitHubWebhookHandlerService {
 
     /**
      * push 이벤트 처리. 설정이 있으면 본문 생성 후 응답, 없으면 empty.
+     * generate()가 S3 쓰기를 수행하므로 readOnly 트랜잭션을 사용하지 않음.
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public Optional<GitHubBodyResponseDto> handlePush(String tenantKey, String deliveryId, String rawPayload) {
         GitHubWebhookPayloads.PushPayload payload = parse(rawPayload, GitHubWebhookPayloads.PushPayload.class);
         if (payload == null || payload.getRepository() == null) {
@@ -38,9 +39,8 @@ public class GitHubWebhookHandlerService {
             return Optional.empty();
         }
         String repoFullName = payload.getRepository().getFullName();
-        Optional<GitHubWebhookConfig> configOpt = webhookConfigRepository.findByTenantKeyAndRepoFullNameAndEnabledTrue(tenantKey, repoFullName);
+        Optional<GitHubWebhookConfig> configOpt = findConfig(tenantKey, repoFullName);
         if (configOpt.isEmpty()) {
-            log.debug("No webhook config for tenantKey={}, repo={}", tenantKey, repoFullName);
             return Optional.empty();
         }
         GitHubWebhookConfig config = configOpt.get();
@@ -52,7 +52,7 @@ public class GitHubWebhookHandlerService {
         String author = payload.getHeadCommit() != null && payload.getHeadCommit().getAuthor() != null
                 ? (payload.getHeadCommit().getAuthor().getUsername() != null ? payload.getHeadCommit().getAuthor().getUsername() : payload.getHeadCommit().getAuthor().getName())
                 : "";
-        String date = payload.getHeadCommit() != null && payload.getHeadCommit().getAuthor() != null ? "" : "";
+        String date = payload.getHeadCommit() != null ? nullToEmpty(payload.getHeadCommit().getTimestamp()) : "";
         String commits = formatCommits(payload.getCommits());
         if (commits.isEmpty() && payload.getHeadCommit() != null && payload.getHeadCommit().getMessage() != null) {
             commits = payload.getHeadCommit().getMessage();
@@ -63,7 +63,7 @@ public class GitHubWebhookHandlerService {
                 sha,
                 repoFullName,
                 branch,
-                "main",
+                "",
                 title,
                 author,
                 date,
@@ -71,14 +71,16 @@ public class GitHubWebhookHandlerService {
                 "",
                 tenantKey
         );
-        GitHubBodyResponseDto response = bodyGenerateApplicationService.generate(config.getBodyPromptId(), dto);
+        GitHubBodyResponseDto response = bodyGenerateApplicationService.generate(
+                config.getBodyPromptId(), dto, tenantKey, "push", config.getOwnerUserId());
         return Optional.of(response);
     }
 
     /**
      * pull_request 이벤트 처리 (opened, synchronize 등). 설정이 있으면 본문 생성.
+     * generate()가 S3 쓰기를 수행하므로 readOnly 트랜잭션을 사용하지 않음.
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public Optional<GitHubBodyResponseDto> handlePullRequest(String tenantKey, String deliveryId, String rawPayload) {
         GitHubWebhookPayloads.PullRequestPayload payload = parse(rawPayload, GitHubWebhookPayloads.PullRequestPayload.class);
         if (payload == null || payload.getRepository() == null || payload.getPullRequest() == null) {
@@ -86,9 +88,8 @@ public class GitHubWebhookHandlerService {
             return Optional.empty();
         }
         String repoFullName = payload.getRepository().getFullName();
-        Optional<GitHubWebhookConfig> configOpt = webhookConfigRepository.findByTenantKeyAndRepoFullNameAndEnabledTrue(tenantKey, repoFullName);
+        Optional<GitHubWebhookConfig> configOpt = findConfig(tenantKey, repoFullName);
         if (configOpt.isEmpty()) {
-            log.debug("No webhook config for tenantKey={}, repo={}", tenantKey, repoFullName);
             return Optional.empty();
         }
         GitHubWebhookConfig config = configOpt.get();
@@ -113,8 +114,13 @@ public class GitHubWebhookHandlerService {
                 "",
                 tenantKey
         );
-        GitHubBodyResponseDto response = bodyGenerateApplicationService.generate(config.getBodyPromptId(), dto);
+        GitHubBodyResponseDto response = bodyGenerateApplicationService.generate(
+                config.getBodyPromptId(), dto, tenantKey, "pull_request", config.getOwnerUserId());
         return Optional.of(response);
+    }
+
+    private static String nullToEmpty(String s) {
+        return s != null ? s : "";
     }
 
     private static String firstLine(String s) {
@@ -129,6 +135,15 @@ public class GitHubWebhookHandlerService {
                 .map(c -> c != null && c.getMessage() != null ? c.getMessage() : "")
                 .map(GitHubWebhookHandlerService::firstLine)
                 .collect(Collectors.joining("\n"));
+    }
+
+    private Optional<GitHubWebhookConfig> findConfig(String tenantKey, String repoFullName) {
+        Optional<GitHubWebhookConfig> configOpt = webhookConfigRepository
+                .findByTenantKeyAndRepoFullNameAndEnabledTrue(tenantKey, repoFullName);
+        if (configOpt.isEmpty()) {
+            log.debug("No webhook config for tenantKey={}, repo={}", tenantKey, repoFullName);
+        }
+        return configOpt;
     }
 
     private <T> T parse(String raw, Class<T> type) {

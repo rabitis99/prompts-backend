@@ -13,6 +13,7 @@ import org.example.sharedprompts.module.domain.github.entity.GitHubWebhookConfig
 import org.example.sharedprompts.module.dto.request.github.GitHubWebhookCreateRequestDto;
 import org.example.sharedprompts.module.dto.response.github.GitHubWebhookConfigResponseDto;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,7 +37,7 @@ public class GitHubWebhookConfigController {
     public ResponseEntity<CustomResponse<GitHubWebhookConfigResponseDto>> createOrGetConfig(
             @Valid @RequestBody GitHubWebhookCreateRequestDto request,
             @CurrentUser AuthUser authUser,
-            @org.springframework.web.bind.annotation.PathVariable Long promptId,
+            @PathVariable Long promptId,
             HttpServletRequest httpServletRequest
     ) {
         Long userId = authUser.getId();
@@ -46,7 +47,8 @@ public class GitHubWebhookConfigController {
         GitHubWebhookConfig config = webhookConfigApplicationService.createOrGet(
                 userId,
                 promptId,
-                request.repoFullName()
+                request.repoFullName(),
+                request.webhookSecret()
         );
 
         String webhookUrl = ServletUriComponentsBuilder

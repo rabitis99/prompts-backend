@@ -28,14 +28,28 @@ public class GitHubWebhookConfigApplicationService {
     /**
      * ownerUserId + repoFullName 기준으로 설정을 찾고, 없으면 새로 생성해 반환.
      * bodyPromptId는 path의 promptId를 그대로 사용하며, 항상 유효한 prompt인지 검증한다.
+     * webhookSecret이 넘어오면 DB에 저장하여 해당 tenant의 X-Hub-Signature-256 검증에 사용합니다.
      */
     @Transactional
-    public GitHubWebhookConfig createOrGet(Long ownerUserId, Long promptId, String repoFullName) {
+    public GitHubWebhookConfig createOrGet(Long ownerUserId, Long promptId, String repoFullName, String webhookSecret) {
         // prompt 존재/권한 검증 (조회 가능해야 설정 생성 허용)
         promptService.getPromptDetail(promptId, ownerUserId);
 
         return webhookConfigRepository
                 .findByOwnerUserIdAndRepoFullNameAndEnabledTrue(ownerUserId, repoFullName)
+                .map(existing -> {
+                    if (!existing.getBodyPromptId().equals(promptId)) {
+                        Long oldPromptId = existing.getBodyPromptId();
+                        existing.updateBodyPromptId(promptId);
+                        log.info("Updated bodyPromptId for webhook config - ownerUserId: {}, repo: {}, oldPromptId: {}, newPromptId: {}",
+                                ownerUserId, repoFullName, oldPromptId, promptId);
+                    }
+                    if (webhookSecret != null && !webhookSecret.isBlank()) {
+                        existing.updateWebhookSecret(webhookSecret);
+                        log.debug("Updated webhook_secret for tenantKey: {}", existing.getTenantKey());
+                    }
+                    return webhookConfigRepository.save(existing);
+                })
                 .orElseGet(() -> {
                     String tenantKey = generateTenantKey();
                     GitHubWebhookConfig config = GitHubWebhookConfig.builder()
@@ -44,6 +58,7 @@ public class GitHubWebhookConfigApplicationService {
                             .ownerUserId(ownerUserId)
                             .bodyPromptId(promptId)
                             .enabled(true)
+                            .webhookSecret(webhookSecret != null && !webhookSecret.isBlank() ? webhookSecret : null)
                             .build();
                     GitHubWebhookConfig saved = webhookConfigRepository.save(config);
                     log.info("Created GitHub webhook config - ownerUserId: {}, repo: {}, tenantKey: {}, promptId: {}",

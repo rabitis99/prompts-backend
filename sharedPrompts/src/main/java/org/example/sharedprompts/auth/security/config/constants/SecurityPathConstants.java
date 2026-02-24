@@ -45,7 +45,6 @@ public final class SecurityPathConstants {
             "/auth/login",
             "/auth/refresh",
             "/auth/confirm",
-            "api/webhooks/github/**",
             "/api/auth/signup",
             "/api/auth/login",
             "/api/auth/refresh",

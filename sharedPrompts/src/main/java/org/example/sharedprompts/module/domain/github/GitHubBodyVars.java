@@ -41,22 +41,18 @@ public record GitHubBodyVars(
     /** Placeholder 이름 → 값 Map (GitHubBodyPlaceholderSubstitutor에서 사용). */
     public Map<String, String> toMap() {
         return Map.ofEntries(
-                entry("REPO", repo),
-                entry("BASE_BRANCH", baseBranch),
-                entry("BRANCH", branch),
-                entry("SHA", sha),
-                entry("TITLE", title),
-                entry("AUTHOR", author),
-                entry("DATE", date),
-                entry("COMMITS", commits),
-                entry("FILES", files),
-                entry("JOB_ID", jobId),
-                entry("DELIVERY_ID", deliveryId)
+                Map.entry("REPO", repo),
+                Map.entry("BASE_BRANCH", baseBranch),
+                Map.entry("BRANCH", branch),
+                Map.entry("SHA", sha),
+                Map.entry("TITLE", title),
+                Map.entry("AUTHOR", author),
+                Map.entry("DATE", date),
+                Map.entry("COMMITS", commits),
+                Map.entry("FILES", files),
+                Map.entry("JOB_ID", jobId),
+                Map.entry("DELIVERY_ID", deliveryId)
         );
-    }
-
-    private static Map.Entry<String, String> entry(String k, String v) {
-        return Map.entry(k, v);
     }
 
     private static String nullToEmpty(String s) {

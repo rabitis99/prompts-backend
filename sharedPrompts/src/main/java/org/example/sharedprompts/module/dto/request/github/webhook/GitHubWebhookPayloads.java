@@ -48,6 +48,8 @@ public final class GitHubWebhookPayloads {
         private String id;
         @JsonProperty("message")
         private String message;
+        @JsonProperty("timestamp")
+        private String timestamp;
         @JsonProperty("author")
         private Author author;
     }

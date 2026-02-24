@@ -64,17 +64,24 @@ public class GitHubBodyGeneratorService {
 
     /** path의 promptId가 있으면 prompts 테이블에서 조회(Issue·PR 공통 템플릿), 없으면 GitHubBodyTemplates 상수. */
     private String resolveBodyTemplate(Long bodyTemplatePromptId, Kind kind) {
-        if (bodyTemplatePromptId != null) {
-            try {
-                String content = promptService.getPromptDetail(bodyTemplatePromptId, null).getContent();
-                if (content != null && !content.isBlank()) return content;
-            } catch (Exception e) {
-                log.warn("Failed to load body template by promptId {}: {}", bodyTemplatePromptId, e.getMessage());
-                throw new BaseException(ModuleErrorCode.GITHUB_BODY_PROMPT_NOT_FOUND, "prompts/id not found: " + bodyTemplatePromptId, e);
-            }
+        if (bodyTemplatePromptId == null) {
+            return kind == Kind.PR ? GitHubBodyTemplates.PR_BODY : GitHubBodyTemplates.ISSUE_BODY;
         }
-        if (bodyTemplatePromptId != null) {
+        try {
+            var detail = promptService.getPromptDetail(bodyTemplatePromptId, null);
+            if (detail == null) {
+                throw new BaseException(ModuleErrorCode.GITHUB_BODY_PROMPT_NOT_FOUND, null, "prompts/id not found: " + bodyTemplatePromptId);
+            }
+            String content = detail.getContent();
+            if (content != null && !content.isBlank()) {
+                return content;
+            }
             log.warn("Body template for promptId {} is blank, falling back to default template", bodyTemplatePromptId);
+        } catch (BaseException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("Failed to load body template by promptId {}: {}", bodyTemplatePromptId, e.getMessage());
+            throw new BaseException(ModuleErrorCode.GITHUB_BODY_PROMPT_NOT_FOUND, "prompts/id not found: " + bodyTemplatePromptId, e);
         }
         return kind == Kind.PR ? GitHubBodyTemplates.PR_BODY : GitHubBodyTemplates.ISSUE_BODY;
     }
