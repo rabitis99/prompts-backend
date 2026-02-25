@@ -43,6 +43,10 @@ public class PaymentJpaAdapter {
         return paymentRepository.findByExternalPaymentId(externalPaymentId);
     }
 
+    public Optional<Payment> findByIdempotencyKey(String idempotencyKey) {
+        return paymentRepository.findByIdempotencyKey(idempotencyKey);
+    }
+
     public Page<Payment> findByUserIdWithFetchJoin(Long userId, Pageable pageable) {
         return paymentRepository.findByUserIdWithFetchJoin(userId, pageable);
     }

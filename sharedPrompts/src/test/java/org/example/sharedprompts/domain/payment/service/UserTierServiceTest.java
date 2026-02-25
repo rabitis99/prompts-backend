@@ -25,6 +25,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -84,7 +85,7 @@ class UserTierServiceTest {
     void getTierInfo_Success() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(paymentJpaAdapter.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(2L);
-        when(moduleUsageRepository.countTodayByUserIdAndModuleType(anyLong(), any(ModuleType.class))).thenReturn(0L);
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(anyLong(), any(ModuleType.class), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(0L);
         when(tierLimitPolicy.getDailyLimit(UserTier.FREE)).thenReturn(15);
         when(tierLimitPolicy.getConsumptionAmount(any(ModuleType.class))).thenReturn(1);
         when(tierLimitPolicy.getConsumptionAmount(ModuleType.LITERARY)).thenReturn(2);
@@ -106,7 +107,7 @@ class UserTierServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(paymentJpaAdapter.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(0L);
-        when(moduleUsageRepository.countTodayByUserIdAndModuleType(anyLong(), any(ModuleType.class))).thenReturn(0L);
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(anyLong(), any(ModuleType.class), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(0L);
         when(tierLimitPolicy.getDailyLimit(any(UserTier.class))).thenReturn(100);
         when(tierLimitPolicy.getConsumptionAmount(any(ModuleType.class))).thenReturn(1);
 
@@ -176,7 +177,7 @@ class UserTierServiceTest {
         when(tierLimitPolicy.getDailyLimit(UserTier.FREE)).thenReturn(15);
         when(tierLimitPolicy.getConsumptionAmount(ModuleType.LITERARY)).thenReturn(2);
         when(paymentJpaAdapter.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(0L);
-        when(moduleUsageRepository.countTodayByUserIdAndModuleType(eq(1L), any(ModuleType.class)))
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(eq(1L), any(ModuleType.class), any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenAnswer(inv -> inv.getArgument(1) == ModuleType.LITERARY ? 5L : 0L);
 
         var response = userTierService.consumeModuleUsage(1L, ModuleType.LITERARY);
@@ -196,7 +197,7 @@ class UserTierServiceTest {
         when(tierLimitPolicy.getDailyLimit(UserTier.FREE)).thenReturn(15);
         when(tierLimitPolicy.getConsumptionAmount(ModuleType.LITERARY)).thenReturn(2);
         when(paymentJpaAdapter.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(0L);
-        when(moduleUsageRepository.countTodayByUserIdAndModuleType(eq(1L), any(ModuleType.class)))
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(eq(1L), any(ModuleType.class), any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenAnswer(inv -> inv.getArgument(1) == ModuleType.LITERARY ? 7L : 0L);
 
         assertThatThrownBy(() -> userTierService.consumeModuleUsage(1L, ModuleType.LITERARY))
@@ -215,8 +216,8 @@ class UserTierServiceTest {
         when(tierLimitPolicy.getConsumptionAmount(ModuleType.EMAIL)).thenReturn(1);
         when(tierLimitPolicy.getConsumptionAmount(any(ModuleType.class))).thenReturn(1);
         when(paymentJpaAdapter.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(0L);
-        when(moduleUsageRepository.countTodayByUserIdAndModuleType(1L, any(ModuleType.class))).thenReturn(0L);
-        when(moduleUsageRepository.countTodayByUserIdAndModuleType(1L, ModuleType.LITERARY)).thenReturn(0L, 1L, 2L, 2L, 2L);
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(eq(1L), any(ModuleType.class), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(0L);
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(eq(1L), eq(ModuleType.LITERARY), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(0L, 1L, 2L, 2L, 2L);
 
         userTierService.consumeModuleUsage(1L, ModuleType.LITERARY);
         userTierService.consumeModuleUsage(1L, ModuleType.LITERARY);
@@ -238,8 +239,8 @@ class UserTierServiceTest {
         when(tierLimitPolicy.getConsumptionAmount(ModuleType.LITERARY)).thenReturn(2);
         when(tierLimitPolicy.getConsumptionAmount(ModuleType.EMAIL)).thenReturn(1);
         when(paymentJpaAdapter.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(0L);
-        when(moduleUsageRepository.countTodayByUserIdAndModuleType(1L, ModuleType.LITERARY)).thenReturn(7L);
-        when(moduleUsageRepository.countTodayByUserIdAndModuleType(1L, any(ModuleType.class))).thenReturn(0L);
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(eq(1L), any(ModuleType.class), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(0L);
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(eq(1L), eq(ModuleType.LITERARY), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(7L);
 
         assertThatThrownBy(() -> userTierService.consumeModuleUsage(1L, ModuleType.LITERARY))
                 .isInstanceOf(ApiException.class)

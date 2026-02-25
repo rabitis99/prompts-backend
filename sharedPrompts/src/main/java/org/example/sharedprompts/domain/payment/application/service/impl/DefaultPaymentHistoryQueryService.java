@@ -26,6 +26,9 @@ public class DefaultPaymentHistoryQueryService implements PaymentHistoryQueryUse
 
     @Override
     public Page<PaymentHistoryResult> getHistory(PaymentHistoryQuery query) {
+        if (query == null || query.getUserId() == null || query.getPageable() == null) {
+            throw new IllegalArgumentException("query.userId, query.pageable 는 필수입니다.");
+        }
         log.info("결제 내역 조회 시작: userId={}, page={}, size={}",
                 query.getUserId(), query.getPageable().getPageNumber(), query.getPageable().getPageSize());
 

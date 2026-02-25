@@ -68,6 +68,30 @@ public interface PaymentGatewayPort {
         public final String message;
         public final Exception exception;
 
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public String getExternalPaymentId() {
+            return externalPaymentId;
+        }
+
+        public String getApprovalCode() {
+            return approvalCode;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public String getErrorMessage() {
+            return success ? null : message;
+        }
+
+        public Exception getException() {
+            return exception;
+        }
+
         public PaymentGatewayResult(boolean success, String externalPaymentId, String approvalCode, String message) {
             this.success = success;
             this.externalPaymentId = externalPaymentId;

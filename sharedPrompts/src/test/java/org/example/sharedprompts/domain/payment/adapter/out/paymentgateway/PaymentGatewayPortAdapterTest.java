@@ -306,7 +306,7 @@ class PaymentGatewayPortAdapterTest {
         // Given
         testPayment.setExternalPaymentId("EXT_PAY_123");
         BigDecimal fullAmount = testPayment.getAmount();
-        BigDecimal partialRefundAmount = fullAmount.divide(BigDecimal.TWO);
+        BigDecimal partialRefundAmount = fullAmount.divide(BigDecimal.valueOf(2));
 
         RefundResult refundResult = new RefundResult();
         refundResult.setRefundedAmount(partialRefundAmount);

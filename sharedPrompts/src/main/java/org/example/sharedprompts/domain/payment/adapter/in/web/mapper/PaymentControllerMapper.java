@@ -42,7 +42,7 @@ public class PaymentControllerMapper {
      */
     public ConfirmPaymentCommand toConfirmCommand(PaymentConfirmRequest dto, Long userId) {
         return ConfirmPaymentCommand.builder()
-                .paymentId(Long.parseLong(dto.getPaymentId()))
+                .paymentId(dto.getOrderIdAsLong())
                 .userId(userId)
                 .providerToken(dto.getProviderToken())
                 .rawPayload(dto.getRawPayload())
@@ -65,10 +65,10 @@ public class PaymentControllerMapper {
      */
     public RefundPaymentCommand toRefundCommand(PaymentRefundRequestDto dto, Long userId) {
         return RefundPaymentCommand.builder()
-                .paymentId(Long.parseLong(dto.getPaymentId()))
+                .paymentId(dto.getPaymentIdAsLong())
                 .userId(userId)
                 .refundAmount(dto.getRefundAmount())
-                .reason(dto.getReason())
+                .reason(dto.getReasonOrDefault())
                 .build();
     }
 

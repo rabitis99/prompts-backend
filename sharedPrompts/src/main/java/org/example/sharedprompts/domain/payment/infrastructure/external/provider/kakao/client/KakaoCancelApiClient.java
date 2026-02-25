@@ -7,6 +7,8 @@ import org.example.sharedprompts.domain.payment.infrastructure.external.provider
 import org.example.sharedprompts.domain.payment.infrastructure.external.provider.kakao.util.KakaoCancelErrorHandler;
 import org.example.sharedprompts.domain.payment.infrastructure.external.provider.kakao.util.KakaoCancelResponseParser;
 import org.example.sharedprompts.domain.payment.infrastructure.external.provider.kakao.util.KakaoPayHeadersProvider;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.ParameterizedTypeReference;
@@ -127,7 +129,10 @@ public class KakaoCancelApiClient {
         );
 
         if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-            throw new RuntimeException("KakaoPay cancel API failed: status=" + response.getStatusCode());
+            throw new ApiException(
+                    ErrorCode.PAYMENT_PROVIDER_ERROR,
+                    "KakaoPay cancel API failed: status=" + response.getStatusCode()
+            );
         }
 
         return response;

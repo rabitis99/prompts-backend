@@ -76,15 +76,8 @@ public class DefaultPaymentRefundService implements PaymentRefundUseCase {
             );
         }
 
-        // 6. 결제 상태 업데이트
-        BigDecimal previousRefunded = payment.getRefundedAmount() != null ? payment.getRefundedAmount() : BigDecimal.ZERO;
-        BigDecimal totalRefunded = previousRefunded.add(refundAmount);
-
-        if (totalRefunded.compareTo(payment.getAmount()) >= 0) {
-            payment.markRefunded();
-        } else {
-            payment.markPartiallyRefunded();
-        }
+        // 6. 결제 상태 및 환불 금액 업데이트
+        payment.refund(refundAmount);
         payment = paymentRepository.save(payment);
 
         // 7. 이벤트 발행 (트랜잭션 후)
@@ -95,8 +88,8 @@ public class DefaultPaymentRefundService implements PaymentRefundUseCase {
                 command.getReason()
         );
 
-        log.info("결제 환불 완료: paymentId={}, refundAmount={}, totalRefunded={}",
-                payment.getId(), refundAmount, totalRefunded);
+        log.info("결제 환불 완료: paymentId={}, refundAmount={}",
+                payment.getId(), refundAmount);
 
         eventPublisher.publishPaymentRefunded(event);
 

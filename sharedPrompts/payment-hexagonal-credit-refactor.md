@@ -145,13 +145,13 @@ domain/payment
 
 ### In Port (UseCase)
 
-- `ApprovePaymentUseCase`
-- `CancelPaymentUseCase`
-- `RefundPaymentUseCase`
-- `ConfirmPaymentUseCase`
-- `CheckPaymentStatusUseCase`
-- `GetPaymentHistoryUseCase`
-- `HandlePaymentWebhookUseCase`
+- `PaymentApprovalUseCase`
+- `PaymentCancellationUseCase`
+- `PaymentRefundUseCase`
+- `PaymentConfirmationUseCase`
+- `PaymentStatusCheckUseCase`
+- `PaymentHistoryQueryUseCase`
+- `PaymentWebhookUseCase`
 
 ### Command
 

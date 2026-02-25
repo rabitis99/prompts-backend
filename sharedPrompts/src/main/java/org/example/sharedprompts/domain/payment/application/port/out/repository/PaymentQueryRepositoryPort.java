@@ -17,7 +17,7 @@ public interface PaymentQueryRepositoryPort {
 
     long countByStatusAndCreatedAtAfter(PaymentStatus status, LocalDateTime dateTime);
 
-    long countTodaySuccessfulPayments(Long userId, PaymentStatus status);
+    long countTodayPaymentsByStatus(Long userId, PaymentStatus status);
 
     List<Payment> findRetryablePayments();
 

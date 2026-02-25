@@ -49,9 +49,10 @@ public class ProductionApplicationService {
         
         // 통합 한도에서 모듈별 차감량만큼 차감 (LITERARY=2, 그 외=1 등). 한도 부족 시 MODULE_DAILY_LIMIT_EXCEEDED로 Job 생성 안 함
         ModuleType moduleType = ModuleType.from(command.getCommandType().name());
-        if (moduleType != null && moduleType != ModuleType.UNKNOWN) {
-            userTierService.consumeModuleUsage(userId, moduleType);
+        if (moduleType == null || moduleType == ModuleType.UNKNOWN) {
+            throw new IllegalArgumentException("지원하지 않는 모듈 타입입니다: " + command.getCommandType());
         }
+        userTierService.consumeModuleUsage(userId, moduleType);
         
         // userInput 추출 (인터페이스 메서드로 타입 안전하게 추출)
         String userInput = request.userInput();

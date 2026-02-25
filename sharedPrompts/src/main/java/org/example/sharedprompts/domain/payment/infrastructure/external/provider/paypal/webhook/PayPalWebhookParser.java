@@ -44,18 +44,18 @@ public class PayPalWebhookParser {
             @SuppressWarnings("unchecked")
             Map<String, Object> webhookData = objectMapper.readValue(payload, Map.class);
             if (webhookData == null) {
-                throw new RuntimeException("PayPal Webhook payload가 비어있습니다");
+                throw new IllegalStateException("PayPal Webhook payload가 비어있습니다");
             }
 
             String eventType = (String) webhookData.get("event_type");
             if (eventType == null || eventType.isEmpty()) {
-                throw new RuntimeException("PayPal Webhook payload에 event_type이 없습니다");
+                throw new IllegalStateException("PayPal Webhook payload에 event_type이 없습니다");
             }
 
             @SuppressWarnings("unchecked")
             Map<String, Object> resource = (Map<String, Object>) webhookData.get("resource");
             if (resource == null) {
-                throw new RuntimeException("PayPal Webhook payload에 resource가 없습니다");
+                throw new IllegalStateException("PayPal Webhook payload에 resource가 없습니다");
             }
 
             String orderId = extractOrderId(resource);
@@ -66,7 +66,7 @@ public class PayPalWebhookParser {
             // orderId가 null이면 captureId를 대체값으로 사용
             String externalPaymentId = orderId != null ? orderId : captureId;
             if (externalPaymentId == null || externalPaymentId.isEmpty()) {
-                throw new RuntimeException("PayPal Webhook payload에 orderId 또는 captureId가 없습니다");
+                throw new IllegalStateException("PayPal Webhook payload에 orderId 또는 captureId가 없습니다");
             }
 
             PaymentResult paymentResult = PaymentResult.builder()
@@ -81,6 +81,9 @@ public class PayPalWebhookParser {
         } catch (JsonProcessingException e) {
             log.error("PayPal Webhook JSON 파싱 실패: error={}", e.getMessage(), e);
             throw new RuntimeException("PayPal Webhook JSON 파싱 실패: " + e.getMessage(), e);
+        } catch (IllegalStateException e) {
+            log.error("PayPal Webhook 페이로드 유효성 검사 실패: error={}", e.getMessage(), e);
+            throw e;
         } catch (Exception e) {
             log.error("PayPal Webhook 파싱 실패: error={}", e.getMessage(), e);
             throw new RuntimeException("PayPal Webhook 파싱 실패: " + e.getMessage(), e);

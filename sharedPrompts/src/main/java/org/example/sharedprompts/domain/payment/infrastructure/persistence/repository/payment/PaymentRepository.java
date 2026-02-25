@@ -34,6 +34,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, CustomP
     Optional<Payment> findByExternalPaymentId(String externalPaymentId);
 
     /**
+     * 멱등성 키로 조회
+     */
+    Optional<Payment> findByIdempotencyKey(String idempotencyKey);
+
+    /**
      * 전체 사용자의 특정 날짜 결제 횟수 조회 (userId 필터 없음)
      */
     @Query("SELECT COUNT(p) FROM Payment p WHERE DATE(p.createdAt) = DATE(:date) AND p.status = :status")

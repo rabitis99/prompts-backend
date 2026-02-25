@@ -25,6 +25,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -92,10 +94,14 @@ public class UserTierServiceImpl implements UserTierService {
     }
 
     private int computeTodayUsedWeighted(Long userId) {
+        LocalDate today = LocalDate.now();
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay = today.plusDays(1).atStartOfDay();
+
         long todayPaymentCount = paymentJpaAdapter.countTodaySuccessfulPayments(userId, PaymentStatus.SUCCESS);
         int weightedModule = 0;
         for (ModuleType mt : USAGE_MODULE_TYPES) {
-            long count = moduleUsageRepository.countTodayByUserIdAndModuleType(userId, mt);
+            long count = moduleUsageRepository.countTodayByUserIdAndModuleType(userId, mt, startOfDay, endOfDay);
             weightedModule += (int) (count * tierLimitPolicy.getConsumptionAmount(mt));
         }
         return (int) todayPaymentCount + weightedModule;

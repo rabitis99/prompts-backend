@@ -35,6 +35,7 @@ public class PaymentWebhookCommand {
                 .paymentMethod(paymentMethod)
                 .payload(payload)
                 .signature(signature)
+                .headers(Map.of())
                 .build();
     }
 }

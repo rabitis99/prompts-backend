@@ -53,9 +53,7 @@ public class PaymentRepositoryAdapter implements PaymentCommandRepositoryPort, P
 
     @Override
     public Optional<Payment> findByIdempotencyKey(String idempotencyKey) {
-        // TODO: 이 메서드는 기존 어댑터에 없으므로 구현 필요
-        // 예: return paymentRepository.findByIdempotencyKey(idempotencyKey);
-        return Optional.empty();
+        return paymentJpaAdapter.findByIdempotencyKey(idempotencyKey);
     }
 
     @Override
@@ -64,7 +62,7 @@ public class PaymentRepositoryAdapter implements PaymentCommandRepositoryPort, P
     }
 
     @Override
-    public long countTodaySuccessfulPayments(Long userId, PaymentStatus status) {
+    public long countTodayPaymentsByStatus(Long userId, PaymentStatus status) {
         return paymentJpaAdapter.countTodaySuccessfulPayments(userId, status);
     }
 

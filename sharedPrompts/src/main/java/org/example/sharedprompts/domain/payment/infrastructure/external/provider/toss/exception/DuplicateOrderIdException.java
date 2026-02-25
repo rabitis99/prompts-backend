@@ -11,7 +11,9 @@ import lombok.Getter;
  */
 @Getter
 public class DuplicateOrderIdException extends RuntimeException {
-    
+
+    private static final long serialVersionUID = 1L;
+
     private final String paymentKey;
     private final String orderId;
     

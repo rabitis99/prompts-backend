@@ -207,7 +207,11 @@ public class PaymentController {
     }
 
     private static Optional<ModuleType> parseModuleType(String value) {
-        return Optional.ofNullable(ModuleType.from(value));
+        ModuleType mt = ModuleType.from(value);
+        if (mt == null || mt == ModuleType.UNKNOWN) {
+            return Optional.empty();
+        }
+        return Optional.of(mt);
     }
 
     private static ModuleType parseModuleTypeRequired(String value) {

@@ -99,8 +99,11 @@ public class DefaultPaymentConfirmationService implements PaymentConfirmationUse
                     .currency(payment.getCurrency())
                     .build();
 
+        } catch (PaymentValidationException e) {
+            // 유효성 검증 실패는 상위에서 처리하므로 추가 로깅 없이 그대로 전파
+            throw e;
         } catch (Exception e) {
-            log.error("결제 확인 중 오류 발생: paymentId={}, 오류: {}", command.getPaymentId(), e.getMessage(), e);
+            log.error("결제 확인 중 예상치 못한 오류 발생: paymentId={}, 오류: {}", command.getPaymentId(), e.getMessage(), e);
             throw e;
         }
     }

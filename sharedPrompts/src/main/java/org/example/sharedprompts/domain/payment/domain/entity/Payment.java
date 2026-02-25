@@ -199,8 +199,9 @@ public class Payment extends BaseEntity {
     /**
      * 부분 환불 처리
      */
-    public void markPartiallyRefunded() {
+    public void markPartiallyRefunded(BigDecimal refundedAmount) {
         this.status = PaymentStatus.PARTIALLY_REFUNDED;
+        this.refundedAmount = refundedAmount;
     }
 
     /**

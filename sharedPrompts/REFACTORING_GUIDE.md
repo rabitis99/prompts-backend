@@ -2,31 +2,11 @@
 
 ## 1. 레거시 코드와의 통합 전략
 
-### 1.1 PaymentFacade의 역할 (임시 어댑터)
+### 1.1 PaymentFacade 제거 상태
 
-기존 PaymentFacade는 임시 호환성 레이어로 유지:
-
-```java
-@Component
-@RequiredArgsConstructor
-public class PaymentFacade {
-
-    private final PaymentApprovalUseCase paymentApprovalUseCase;
-    private final PaymentConfirmationUseCase paymentConfirmationUseCase;
-    private final PaymentCancellationUseCase paymentCancellationUseCase;
-    private final PaymentRefundUseCase paymentRefundUseCase;
-    private final PaymentStatusCheckUseCase paymentStatusCheckUseCase;
-    private final PaymentHistoryQueryUseCase paymentHistoryQueryUseCase;
-
-    @Transactional
-    public PaymentResponseDto requestPayment(Long userId, PaymentRequestDto request) {
-        var command = new ApprovePaymentCommand(...);
-        var result = paymentApprovalUseCase.approve(command);
-        return mapToResponse(result);
-    }
-    // ... 다른 메서드들도 유사하게 매핑
-}
-```
+기존 PaymentFacade는 제거되었으며, 모든 진입점은 UseCase/Port 기반으로 전환되었습니다.  
+컨트롤러는 `PaymentCommandUseCase`, `PaymentQueryUseCase`, `PaymentWebhookUseCase` 등 인바운드 포트만 의존하며,  
+외부 연동 로직은 adapter(out)에서 아웃바운드 포트 구현체를 통해 처리합니다.
 
 ### 1.2 레거시 서비스와의 조화
 
@@ -188,19 +168,18 @@ payment = paymentRepository.save(payment);  // 자동 감지로 저장
 
 ## 4. 레거시 코드 제거 로드맵
 
-### Phase A: 호환성 유지 (현재)
-- ✅ 기존 PaymentFacade 유지
-- ✅ 기존 서비스들 유지
-- ✅ 새 UseCase에서 레거시 서비스 호출
+### Phase A: 전환 완료 (현재)
+- ✅ PaymentFacade/legacy query service 제거
+- ✅ 인바운드 UseCase + 아웃바운드 Port 기반으로 일원화
+- ✅ 컨트롤러/서비스가 새 흐름 사용
 
 ### Phase B: 점진적 마이그레이션 (향후)
-- TestPaymentFacade가 새 UseCase를 사용하도록 변경
-- 기존 클라이언트가 새 구조로 이동
-- 중복 로직 통합
+- scheduler, batch, 외부 클라이언트가 모두 새 UseCase/Port 경로만 사용하도록 정리
+- 남아 있는 레거시 설정/Bean 점진적 제거
 
 ### Phase C: 완전 제거 (최종)
-- PaymentFacade 완전 제거
-- 레거시 서비스 분해
+- 레거시 서비스/팩토리 분해
+- 불필요한 호환 계층 제거
 - 모든 코드가 UseCase를 직접 호출
 
 ---

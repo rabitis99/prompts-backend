@@ -205,12 +205,24 @@ class PaymentRepositoryAdapterTest {
     void testFindByIdempotencyKey() {
         // Given
         String idempotencyKey = "KEY_123";
+        User user = new User();
+        user.setId(1L);
+
+        Payment payment = Payment.builder()
+                .id(1L)
+                .user(user)
+                .idempotencyKey(idempotencyKey)
+                .status(PaymentStatus.PENDING)
+                .build();
 
         // When
+        when(paymentJpaAdapter.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.of(payment));
         Optional<Payment> result = adapter.findByIdempotencyKey(idempotencyKey);
 
         // Then
-        assertTrue(result.isEmpty()); // 현재 구현은 항상 empty
+        assertTrue(result.isPresent());
+        assertEquals(idempotencyKey, result.get().getIdempotencyKey());
+        verify(paymentJpaAdapter).findByIdempotencyKey(idempotencyKey);
     }
 
     @Test
@@ -231,8 +243,8 @@ class PaymentRepositoryAdapterTest {
     }
 
     @Test
-    @DisplayName("오늘의 성공한 결제 개수 조회")
-    void testCountTodaySuccessfulPayments() {
+    @DisplayName("오늘의 상태별 결제 개수 조회")
+    void testCountTodayPaymentsByStatus() {
         // Given
         Long userId = 1L;
         PaymentStatus status = PaymentStatus.SUCCESS;
@@ -240,7 +252,7 @@ class PaymentRepositoryAdapterTest {
 
         // When
         when(paymentJpaAdapter.countTodaySuccessfulPayments(userId, status)).thenReturn(expectedCount);
-        long result = adapter.countTodaySuccessfulPayments(userId, status);
+        long result = adapter.countTodayPaymentsByStatus(userId, status);
 
         // Then
         assertEquals(expectedCount, result);

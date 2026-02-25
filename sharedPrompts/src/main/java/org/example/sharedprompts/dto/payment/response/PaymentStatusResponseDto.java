@@ -56,10 +56,14 @@ public class PaymentStatusResponseDto {
     public static PaymentStatusResponseDto from(Payment payment) {
         return PaymentStatusResponseDto.builder()
                 .id(payment.getId())
+                .userId(payment.getUser() != null ? payment.getUser().getId() : null)
                 .status(payment.getStatus())
+                .amount(payment.getAmount())
+                .currency(payment.getCurrency())
                 .externalPaymentId(payment.getExternalPaymentId())
                 .failureReason(payment.getFailureReason())
                 .approvedAt(payment.getApprovedAt())
+                .canceledAt(payment.getCanceledAt())
                 .createdAt(payment.getCreatedAt())
                 .updatedAt(payment.getUpdatedAt())
                 .build();

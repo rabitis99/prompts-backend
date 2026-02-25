@@ -98,7 +98,7 @@ public class KakaoApproveApiClient {
     }
 
     private void validateRequired(String value, String fieldName) {
-        if (value == null || value.isEmpty()) {
+        if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + "은(는) 필수입니다");
         }
     }
