@@ -1,5 +1,7 @@
 package org.example.sharedprompts.domain.payment.infrastructure.external.provider.toss.exception;
 
+import lombok.Getter;
+
 /**
  * TossPayments 중복 주문번호 오류 예외
  * 
@@ -7,6 +9,7 @@ package org.example.sharedprompts.domain.payment.infrastructure.external.provide
  * <p>이 오류는 주문번호가 이미 사용되었음을 의미하며, 
  * 결제가 이미 확인되었을 가능성이 있습니다.
  */
+@Getter
 public class DuplicateOrderIdException extends RuntimeException {
     
     private final String paymentKey;
@@ -17,12 +20,5 @@ public class DuplicateOrderIdException extends RuntimeException {
         this.paymentKey = paymentKey;
         this.orderId = orderId;
     }
-    
-    public String getPaymentKey() {
-        return paymentKey;
-    }
-    
-    public String getOrderId() {
-        return orderId;
-    }
+
 }

@@ -14,24 +14,18 @@ import org.example.sharedprompts.global.exception.ErrorCode;
 public class PaymentConfirmRequest {
     @JsonProperty("order_id")
     private String orderId;
-    
+
     @JsonProperty("amount")
     private long amount;
-    
+
     @JsonProperty("payment_key")
     private String paymentKey;
-    
+
     @JsonProperty("pg_token")
     private String pgToken;
-    
+
     @JsonProperty("toss_order_id")
     private String tossOrderId;
-
-    public PaymentConfirmRequest(String orderId, long amount, String paymentKey) {
-        this.orderId = orderId;
-        this.amount = amount;
-        this.paymentKey = paymentKey;
-    }
 
     /**
      * 주문 ID를 Long으로 변환
@@ -43,6 +37,28 @@ public class PaymentConfirmRequest {
             throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "orderId",
                     "주문 ID는 숫자여야 합니다: " + this.orderId);
         }
+    }
+
+    /**
+     * Payment ID (orderId와 동일)
+     */
+    public String getPaymentId() {
+        return this.orderId;
+    }
+
+    /**
+     * Provider Token (pgToken 또는 paymentKey)
+     */
+    public String getProviderToken() {
+        return this.pgToken != null ? this.pgToken : this.paymentKey;
+    }
+
+    /**
+     * Raw Payload (JSON 형태의 원본 요청 데이터)
+     */
+    public String getRawPayload() {
+        return String.format("{\"orderId\":\"%s\",\"amount\":%d,\"paymentKey\":\"%s\",\"pgToken\":\"%s\",\"tossOrderId\":\"%s\"}",
+                orderId, amount, paymentKey, pgToken, tossOrderId);
     }
 }
 

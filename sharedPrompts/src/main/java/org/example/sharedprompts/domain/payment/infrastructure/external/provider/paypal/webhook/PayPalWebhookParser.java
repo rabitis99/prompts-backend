@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.payment.infrastructure.external.provider.paypal.webhook;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -77,7 +78,7 @@ public class PayPalWebhookParser {
             // orderId가 null이면 externalPaymentId를 사용 (fallback)
             String orderIdForEvent = orderId != null ? orderId : externalPaymentId;
             return new WebhookEvent(eventType, externalPaymentId, orderIdForEvent, paymentResult);
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+        } catch (JsonProcessingException e) {
             log.error("PayPal Webhook JSON 파싱 실패: error={}", e.getMessage(), e);
             throw new RuntimeException("PayPal Webhook JSON 파싱 실패: " + e.getMessage(), e);
         } catch (Exception e) {

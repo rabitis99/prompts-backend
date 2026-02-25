@@ -52,5 +52,12 @@ public class PaymentRefundRequestDto {
     public String getReasonOrDefault() {
         return this.reason != null ? this.reason : "사용자 요청";
     }
+
+    /**
+     * 환불 금액 반환 (amount와 동일)
+     */
+    public BigDecimal getRefundAmount() {
+        return this.amount;
+    }
 }
 

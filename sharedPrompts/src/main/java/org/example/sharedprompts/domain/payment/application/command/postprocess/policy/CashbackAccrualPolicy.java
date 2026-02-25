@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.payment.application.command.postprocess
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 @Component
 public class CashbackAccrualPolicy implements RewardBasisPolicy {
@@ -12,10 +13,7 @@ public class CashbackAccrualPolicy implements RewardBasisPolicy {
 
     @Override
     public BigDecimal determineBasisAmount(BigDecimal originalAmount, BigDecimal actualPaymentAmount, BigDecimal usedPointAmount) {
-        if (actualPaymentAmount == null) {
-            return BigDecimal.ZERO;
-        }
-        return actualPaymentAmount;
+        return Objects.requireNonNullElse(actualPaymentAmount, BigDecimal.ZERO);
     }
 
     @Override

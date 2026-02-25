@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.payment.infrastructure.external.provider.kakao.client;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.properties.KakaoPayProperties;
 import org.example.sharedprompts.domain.payment.infrastructure.external.provider.kakao.dto.KakaoApproveResponse;
@@ -24,7 +23,6 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 @ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class KakaoApproveApiClient {
 
@@ -32,11 +30,24 @@ public class KakaoApproveApiClient {
     private static final String APPROVE_ENDPOINT = "/approve";
 
     private final KakaoPayProperties properties;
-    @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final KakaoPayHeadersProvider headersProvider;
     private final KakaoApproveResponseParser responseParser;
     private final KakaoApproveErrorHandler errorHandler;
+
+    public KakaoApproveApiClient(
+            KakaoPayProperties properties,
+            @Qualifier("paymentRestTemplate") RestTemplate restTemplate,
+            KakaoPayHeadersProvider headersProvider,
+            KakaoApproveResponseParser responseParser,
+            KakaoApproveErrorHandler errorHandler
+    ) {
+        this.properties = properties;
+        this.restTemplate = restTemplate;
+        this.headersProvider = headersProvider;
+        this.responseParser = responseParser;
+        this.errorHandler = errorHandler;
+    }
 
     public KakaoApproveResponse approve(String tid, String orderId, String userId, String pgToken, String idempotencyKey) {
         validateRequest(tid, orderId, userId, pgToken);
@@ -74,7 +85,8 @@ public class KakaoApproveApiClient {
                 KAKAO_PAY_API_URL + APPROVE_ENDPOINT,
                 HttpMethod.POST,
                 request,
-                new ParameterizedTypeReference<Map<String, Object>>() {}
+                new ParameterizedTypeReference<>() {
+                }
         );
     }
 

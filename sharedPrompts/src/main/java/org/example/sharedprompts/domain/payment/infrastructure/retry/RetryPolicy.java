@@ -15,16 +15,6 @@ public class RetryPolicy {
     private final long maxDelayMs;
     private final Predicate<Exception> retryableExceptionPredicate;
 
-    public static RetryPolicy defaultPolicy() {
-        return RetryPolicy.builder()
-                .maxAttempts(3)
-                .initialDelayMs(1000)
-                .backoffMultiplier(2.0)
-                .maxDelayMs(10000)
-                .retryableExceptionPredicate(e -> true)
-                .build();
-    }
-
     public static RetryPolicy immediateRetryPolicy() {
         return RetryPolicy.builder()
                 .maxAttempts(2)

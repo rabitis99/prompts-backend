@@ -2,8 +2,10 @@ package org.example.sharedprompts.domain.payment.application.command.execution;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.domain.payment.application.dto.response.PaymentResult;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
+import org.example.sharedprompts.domain.payment.domain.policy.PaymentStatusTransitionPolicy;
 import org.example.sharedprompts.domain.payment.infrastructure.messaging.event.PaymentEvent;
 import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PaymentJpaAdapter;
 import org.example.sharedprompts.global.exception.ApiException;
@@ -15,7 +17,6 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.math.BigDecimal;
@@ -34,11 +35,11 @@ public class PaymentResultEventListener {
     private final PaymentEventOptimisticLockHandler optimisticLockHandler;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener
     @Retryable(
             maxAttempts = MAX_RETRY_ATTEMPTS,
-            backoff = @Backoff(delay = 1000, multiplier = 2),
-            noRetryFor = {ApiException.class}
+            backoff = @Backoff(multiplier = 2),
+            noRetryFor = ApiException.class
     )
     public void handlePaymentResultApplied(PaymentEvent.PaymentResultApplied event) {
         try {
@@ -80,26 +81,16 @@ public class PaymentResultEventListener {
         failedEventService.saveFailedEvent("PaymentResultApplied", event.paymentId(), event, e, MAX_RETRY_ATTEMPTS);
     }
 
-    private boolean canApplyPaymentResult(Payment payment, org.example.sharedprompts.domain.payment.application.dto.response.PaymentResult result) {
-        PaymentStatus currentStatus = payment.getStatus();
-        
-        if (result.isSuccess() && currentStatus == PaymentStatus.SUCCESS) {
-            return false;
-        }
-        
-        if (!result.isSuccess() && currentStatus == PaymentStatus.FAILED) {
-            return false;
-        }
-        
-        return currentStatus.isPending();
+    private boolean canApplyPaymentResult(Payment payment, PaymentResult result) {
+        return payment.getStatus().isPending();
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener
     @Retryable(
             maxAttempts = MAX_RETRY_ATTEMPTS,
-            backoff = @Backoff(delay = 1000, multiplier = 2),
-            noRetryFor = {ApiException.class}
+            backoff = @Backoff(multiplier = 2),
+            noRetryFor = ApiException.class
     )
     public void handleCancelResultApplied(PaymentEvent.CancelResultApplied event) {
         try {
@@ -124,7 +115,7 @@ public class PaymentResultEventListener {
             executionTemplate.applyResultAndSave(
                     payment,
                     event.result(),
-                    (p, r) -> resultProcessor.applyCancelResult(p, r)
+                    resultProcessor::applyCancelResult
             );
 
             log.debug("취소 결과 적용 완료: paymentId={}", event.paymentId());
@@ -149,11 +140,11 @@ public class PaymentResultEventListener {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener
     @Retryable(
             maxAttempts = MAX_RETRY_ATTEMPTS,
-            backoff = @Backoff(delay = 1000, multiplier = 2),
-            noRetryFor = {ApiException.class}
+            backoff = @Backoff(multiplier = 2),
+            noRetryFor = ApiException.class
     )
     public void handleRefundResultApplied(PaymentEvent.RefundResultApplied event) {
         try {
@@ -165,7 +156,7 @@ public class PaymentResultEventListener {
                 return;
             }
 
-            if (!payment.getStatus().isRefundable()) {
+            if (!PaymentStatusTransitionPolicy.isRefundable(payment)) {
                 log.warn("환불 결과 적용 불가: paymentId={}, currentStatus={}", event.paymentId(), payment.getStatus());
                 return;
             }

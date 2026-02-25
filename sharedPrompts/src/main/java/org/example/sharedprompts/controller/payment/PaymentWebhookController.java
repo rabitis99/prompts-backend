@@ -3,8 +3,9 @@ package org.example.sharedprompts.controller.payment;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.domain.payment.application.port.in.command.PaymentWebhookCommand;
+import org.example.sharedprompts.domain.payment.application.port.in.usecase.PaymentWebhookUseCase;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
-import org.example.sharedprompts.domain.payment.application.facade.PaymentFacade;
 import org.example.sharedprompts.domain.payment.infrastructure.monitoring.PaymentLoggingService;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
@@ -15,8 +16,7 @@ import java.util.Map;
 
 /**
  * 결제 Webhook 컨트롤러
- * 
- * <p>PaymentFacade를 통해 Webhook 처리
+ * PaymentWebhookHandlingUseCase를 통해 웹훅을 처리합니다.
  */
 @Slf4j
 @RestController
@@ -24,7 +24,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PaymentWebhookController {
 
-    private final PaymentFacade paymentFacade;
+    private final PaymentWebhookUseCase paymentWebhookUseCase;
     private final PaymentLoggingService loggingService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -57,8 +57,6 @@ public class PaymentWebhookController {
 
     /**
      * Webhook 공통 처리
-     * 
-     * <p>PaymentFacade를 통해 Webhook 처리
      */
     private ResponseEntity<Map<String, String>> handleWebhook(
             String payload,
@@ -71,8 +69,13 @@ public class PaymentWebhookController {
         loggingService.logWebhookReceived(providerName, eventType, payload);
 
         try {
-            // PaymentFacade를 통해 Webhook 처리
-            paymentFacade.handleWebhook(method, payload, signature, headers);
+            var command = PaymentWebhookCommand.builder()
+                    .paymentMethod(method)
+                    .payload(payload)
+                    .signature(signature)
+                    .headers(headers)
+                    .build();
+            paymentWebhookUseCase.handleWebhook(command);
             return ResponseEntity.ok(Map.of("status", "success"));
         } catch (ApiException e) {
             loggingService.logWebhookProcessingFailure(providerName, eventType, e);

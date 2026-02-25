@@ -1,7 +1,5 @@
 package org.example.sharedprompts.domain.payment.infrastructure.transaction;
 
-import org.example.sharedprompts.domain.payment.infrastructure.transaction.ShedLockDistributedLockService;
-
 import java.time.Duration;
 import java.util.function.Supplier;
 

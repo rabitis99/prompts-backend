@@ -176,7 +176,7 @@ public class Payment extends BaseEntity {
      */
     public void refund(BigDecimal refundAmount) {
         BigDecimal newRefundedAmount = this.refundedAmount.add(refundAmount);
-        
+
         if (newRefundedAmount.compareTo(this.amount) >= 0) {
             // 전체 환불
             this.status = PaymentStatus.REFUNDED;
@@ -186,6 +186,21 @@ public class Payment extends BaseEntity {
             this.status = PaymentStatus.PARTIALLY_REFUNDED;
             this.refundedAmount = newRefundedAmount;
         }
+    }
+
+    /**
+     * 전체 환불 처리
+     */
+    public void markRefunded() {
+        this.status = PaymentStatus.REFUNDED;
+        this.refundedAmount = this.amount;
+    }
+
+    /**
+     * 부분 환불 처리
+     */
+    public void markPartiallyRefunded() {
+        this.status = PaymentStatus.PARTIALLY_REFUNDED;
     }
 
     /**

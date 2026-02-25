@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.payment.infrastructure.external.provider.toss.client;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.properties.TossPayProperties;
 import org.example.sharedprompts.domain.payment.infrastructure.external.provider.toss.dto.TossStatusResponse;
@@ -27,18 +26,28 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 @ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class TossStatusApiClient {
 
     private final TossPayProperties properties;
-
-    @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
-
     private final TossPayHeadersProvider headersProvider;
     private final TossStatusResponseParser responseParser;
     private final TossStatusErrorHandler errorHandler;
+
+    public TossStatusApiClient(
+            TossPayProperties properties,
+            @Qualifier("paymentRestTemplate") RestTemplate restTemplate,
+            TossPayHeadersProvider headersProvider,
+            TossStatusResponseParser responseParser,
+            TossStatusErrorHandler errorHandler
+    ) {
+        this.properties = properties;
+        this.restTemplate = restTemplate;
+        this.headersProvider = headersProvider;
+        this.responseParser = responseParser;
+        this.errorHandler = errorHandler;
+    }
 
     public TossStatusResponse status(String paymentKey) {
         validateRequired(paymentKey, "paymentKey");

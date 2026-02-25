@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.payment.infrastructure.external.provider.kakao.client;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.properties.KakaoPayProperties;
 import org.example.sharedprompts.domain.payment.infrastructure.external.provider.kakao.dto.KakaoCancelResponse;
@@ -27,7 +26,6 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 @ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class KakaoCancelApiClient {
 
@@ -35,12 +33,27 @@ public class KakaoCancelApiClient {
     private static final String CANCEL_ENDPOINT = "/cancel";
 
     private final KakaoPayProperties properties;
-    @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final KakaoPayHeadersProvider headersProvider;
     private final KakaoCancelResponseParser responseParser;
     private final KakaoCancelErrorHandler errorHandler;
     private final KakaoStatusApiClient kakaoStatusApiClient;
+
+    public KakaoCancelApiClient(
+            KakaoPayProperties properties,
+            @Qualifier("paymentRestTemplate") RestTemplate restTemplate,
+            KakaoPayHeadersProvider headersProvider,
+            KakaoCancelResponseParser responseParser,
+            KakaoCancelErrorHandler errorHandler,
+            KakaoStatusApiClient kakaoStatusApiClient
+    ) {
+        this.properties = properties;
+        this.restTemplate = restTemplate;
+        this.headersProvider = headersProvider;
+        this.responseParser = responseParser;
+        this.errorHandler = errorHandler;
+        this.kakaoStatusApiClient = kakaoStatusApiClient;
+    }
 
     public KakaoCancelResponse cancel(
             String tid,
@@ -109,7 +122,8 @@ public class KakaoCancelApiClient {
                 KAKAO_PAY_API_URL + CANCEL_ENDPOINT,
                 HttpMethod.POST,
                 request,
-                new ParameterizedTypeReference<Map<String, Object>>() {}
+                new ParameterizedTypeReference<>() {
+                }
         );
 
         if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {

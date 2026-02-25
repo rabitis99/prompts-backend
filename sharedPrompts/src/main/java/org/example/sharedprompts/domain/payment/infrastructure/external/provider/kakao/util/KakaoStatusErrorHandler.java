@@ -16,9 +16,7 @@ public class KakaoStatusErrorHandler {
 
     public RuntimeException handleHttpClientError(HttpClientErrorException e, String tid) {
         String errorDetails = e.getResponseBodyAsString();
-        String masked = errorDetails != null
-                ? SensitiveDataMasker.maskSensitiveData(errorDetails)
-                : null;
+        String masked = SensitiveDataMasker.maskSensitiveData(errorDetails);
 
         log.error(
                 "KakaoPay status HTTP 오류: tid={}, status={}, body={}",

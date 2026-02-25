@@ -2,38 +2,54 @@ package org.example.sharedprompts.controller.payment;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.domain.auth.AuthUser;
-import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
-import org.example.sharedprompts.domain.payment.application.facade.PaymentFacade;
+import org.example.sharedprompts.domain.payment.application.port.in.usecase.PaymentCommandUseCase;
+import org.example.sharedprompts.domain.payment.application.port.in.usecase.PaymentQueryUseCase;
+import org.example.sharedprompts.domain.payment.adapter.in.web.mapper.PaymentControllerMapper;
+import org.example.sharedprompts.domain.payment.domain.enums.ModuleType;
 import org.example.sharedprompts.domain.payment.service.user.tier.UserTierService;
 import org.example.sharedprompts.dto.payment.request.PaymentCancelRequestDto;
 import org.example.sharedprompts.dto.payment.request.PaymentConfirmRequest;
 import org.example.sharedprompts.dto.payment.request.PaymentRefundRequestDto;
 import org.example.sharedprompts.dto.payment.request.PaymentRequestDto;
+import org.example.sharedprompts.dto.payment.request.ConsumeModuleUsageRequestDto;
 import org.example.sharedprompts.dto.payment.response.PaymentConfirmResponse;
 import org.example.sharedprompts.dto.payment.response.PaymentResponseDto;
 import org.example.sharedprompts.dto.payment.response.PaymentStatusResponseDto;
 import org.example.sharedprompts.dto.payment.response.TierInfoResponseDto;
 import org.example.sharedprompts.dto.payment.response.UserTierHistoryResponseDto;
+import org.example.sharedprompts.dto.payment.response.ConsumeModuleUsageResponseDto;
 import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import org.example.sharedprompts.dto.common.PageResponse;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.example.sharedprompts.domain.auth.AuthUser;
+import org.example.sharedprompts.domain.auth.CurrentUser;
+
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * 결제 컨트롤러
+ * 헥사고날 아키텍처로 리팩토링되었습니다.
+ * 직접 UseCase 인터페이스를 호출하고, DTO 변환은 PaymentControllerMapper를 통해 수행합니다.
  */
 @RestController
 @RequestMapping("/payments")
 @RequiredArgsConstructor
 public class PaymentController {
 
-    private final PaymentFacade paymentFacade;
+    private final PaymentCommandUseCase paymentCommandUseCase;
+    private final PaymentQueryUseCase paymentQueryUseCase;
+    private final PaymentControllerMapper mapper;
     private final UserTierService userTierService;
 
     /**
@@ -45,7 +61,9 @@ public class PaymentController {
             @Valid @RequestBody PaymentRequestDto request,
             @CurrentUser AuthUser authUser
     ) {
-        PaymentResponseDto response = paymentFacade.requestPayment(authUser.getId(), request);
+        var command = mapper.toApproveCommand(request, authUser.getId());
+        var result = paymentCommandUseCase.approve(command);
+        var response = mapper.toApprovalResponse(result);
         return CustomResponseHelper.created(response);
     }
 
@@ -58,7 +76,9 @@ public class PaymentController {
             @PathVariable Long paymentId,
             @CurrentUser AuthUser authUser
     ) {
-        PaymentStatusResponseDto response = paymentFacade.checkPaymentStatus(paymentId, authUser.getId());
+        var query = mapper.toStatusCheckQuery(paymentId, authUser.getId());
+        var result = paymentQueryUseCase.checkStatus(query);
+        var response = mapper.toStatusResponse(result);
         return CustomResponseHelper.ok(response);
     }
 
@@ -71,7 +91,9 @@ public class PaymentController {
             @Valid @RequestBody PaymentCancelRequestDto request,
             @CurrentUser AuthUser authUser
     ) {
-        PaymentResponseDto response = paymentFacade.cancelPayment(authUser.getId(), request);
+        var command = mapper.toCancelCommand(request, authUser.getId());
+        var result = paymentCommandUseCase.cancel(command);
+        var response = mapper.toCancellationResponse(result);
         return CustomResponseHelper.ok(response);
     }
 
@@ -84,7 +106,9 @@ public class PaymentController {
             @Valid @RequestBody PaymentRefundRequestDto request,
             @CurrentUser AuthUser authUser
     ) {
-        PaymentResponseDto response = paymentFacade.refundPayment(authUser.getId(), request);
+        var command = mapper.toRefundCommand(request, authUser.getId());
+        var result = paymentCommandUseCase.refund(command);
+        var response = mapper.toRefundResponse(result);
         return CustomResponseHelper.ok(response);
     }
 
@@ -101,14 +125,33 @@ public class PaymentController {
     }
 
     /**
-     * 내 티어 정보 조회 (티어, 일일 제한, 오늘 사용한 횟수, 남은 횟수)
+     * 내 티어 정보 조회 (티어, 일일 제한, 오늘 사용한 횟수, 남은 횟수, 모듈별 남은 횟수).
      * GET /payments/me/tier-info
+     * GET /payments/me/tier-info?moduleType=LITERARY — 해당 모듈만 remaining 반환
      */
     @GetMapping("/me/tier-info")
     public ResponseEntity<CustomResponse<TierInfoResponseDto>> getMyTierInfo(
-            @CurrentUser AuthUser authUser
+            @CurrentUser AuthUser authUser,
+            @RequestParam(required = false) String moduleType
     ) {
-        TierInfoResponseDto response = userTierService.getTierInfo(authUser.getId());
+        TierInfoResponseDto response = parseModuleType(moduleType)
+                .map(mt -> userTierService.getTierInfo(authUser.getId(), mt))
+                .orElseGet(() -> userTierService.getTierInfo(authUser.getId()));
+        return CustomResponseHelper.ok(response);
+    }
+
+    /**
+     * 모듈 사용 1회 차감. moduleType 필수. 해당 모듈 일일 한도만 검증.
+     * 남은 횟수 0이면 400 MODULE_DAILY_LIMIT_EXCEEDED.
+     * POST /payments/usage/consume
+     */
+    @PostMapping("/usage/consume")
+    public ResponseEntity<CustomResponse<ConsumeModuleUsageResponseDto>> consumeModuleUsage(
+            @CurrentUser AuthUser authUser,
+            @Valid @RequestBody ConsumeModuleUsageRequestDto request
+    ) {
+        ModuleType mt = parseModuleTypeRequired(request.getModuleType());
+        ConsumeModuleUsageResponseDto response = userTierService.consumeModuleUsage(authUser.getId(), mt);
         return CustomResponseHelper.ok(response);
     }
 
@@ -121,7 +164,15 @@ public class PaymentController {
             @CurrentUser AuthUser authUser,
             @PageableDefault(size = 20) Pageable pageable
     ) {
-        PageResponse<PaymentResponseDto> response = PageResponse.of(paymentFacade.getPaymentHistory(authUser.getId(), pageable));
+        var query = mapper.toHistoryQuery(authUser.getId(), pageable);
+        var resultPage = paymentQueryUseCase.getHistory(query);
+
+        var responseDtoList = resultPage.getContent().stream()
+                .map(mapper::toHistoryItemResponse)
+                .collect(Collectors.toList());
+
+        Page<PaymentResponseDto> responsePage = new PageImpl<>(responseDtoList, pageable, resultPage.getTotalElements());
+        PageResponse<PaymentResponseDto> response = PageResponse.of(responsePage);
         return CustomResponseHelper.ok(response);
     }
 
@@ -147,8 +198,23 @@ public class PaymentController {
             @Valid @RequestBody PaymentConfirmRequest request,
             @CurrentUser AuthUser authUser
     ) {
-        PaymentConfirmResponse response = paymentFacade.confirmPayment(authUser.getId(), request);
+        var command = mapper.toConfirmCommand(request, authUser.getId());
+        var result = paymentCommandUseCase.confirm(command);
+
+        // 기존 PaymentConfirmResponse 형식 유지 (하위 호환성)
+        PaymentConfirmResponse response = mapper.toConfirmationResponse(result);
         return CustomResponseHelper.ok(response);
     }
-}
 
+    private static Optional<ModuleType> parseModuleType(String value) {
+        return Optional.ofNullable(ModuleType.from(value));
+    }
+
+    private static ModuleType parseModuleTypeRequired(String value) {
+        ModuleType mt = ModuleType.from(value);
+        if (mt == null || mt == ModuleType.UNKNOWN) {
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        return mt;
+    }
+}
