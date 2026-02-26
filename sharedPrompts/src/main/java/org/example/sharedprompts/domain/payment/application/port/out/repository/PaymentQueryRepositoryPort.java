@@ -19,7 +19,10 @@ public interface PaymentQueryRepositoryPort {
 
     long countTodayPaymentsByStatus(Long userId, PaymentStatus status);
 
-    List<Payment> findRetryablePayments();
+    /**
+     * 재시도 가능한 결제 조회 (재시도 정책은 호출부에서 파라미터로 전달).
+     */
+    List<Payment> findRetryablePayments(PaymentStatus status, int maxRetry, LocalDateTime now);
 
     List<Payment> findExpiredPendingPayments(LocalDateTime expirationTime);
 }

@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.domain.enums.ModuleType;
 import org.example.sharedprompts.domain.payment.service.user.tier.UserTierService;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.example.sharedprompts.module.domain.production.application.factory.ProductionCommandFactory;
 import org.example.sharedprompts.module.domain.production.application.factory.ProductionCommandFactoryRegistry;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommand;
@@ -50,7 +52,7 @@ public class ProductionApplicationService {
         // 통합 한도에서 모듈별 차감량만큼 차감 (LITERARY=2, 그 외=1 등). 한도 부족 시 MODULE_DAILY_LIMIT_EXCEEDED로 Job 생성 안 함
         ModuleType moduleType = ModuleType.from(command.getCommandType().name());
         if (moduleType == null || moduleType == ModuleType.UNKNOWN) {
-            throw new IllegalArgumentException("지원하지 않는 모듈 타입입니다: " + command.getCommandType());
+            throw new ApiException(ErrorCode.UNSUPPORTED_MODULE_TYPE);
         }
         userTierService.consumeModuleUsage(userId, moduleType);
         

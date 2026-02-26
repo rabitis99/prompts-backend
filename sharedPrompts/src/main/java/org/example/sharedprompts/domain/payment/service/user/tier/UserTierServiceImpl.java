@@ -150,13 +150,13 @@ public class UserTierServiceImpl implements UserTierService {
                 user.getId(), currentTier.name(), dailyLimit, todayUsed, remaining);
 
         long todayPaymentCount = paymentJpaAdapter.countTodaySuccessfulPayments(user.getId(), PaymentStatus.SUCCESS);
-        if (todayPaymentCount >= currentTier.getDailyLimit()) {
+        if (todayPaymentCount >= dailyLimit) {
             log.warn("티어 변경 후 일일 결제 제한 초과: userId={}, tier={}, todayPaymentCount={}, dailyLimit={}",
-                    user.getId(), currentTier.name(), todayPaymentCount, currentTier.getDailyLimit());
-        } else if (todayPaymentCount >= currentTier.getDailyLimit() * 0.8) {
+                    user.getId(), currentTier.name(), todayPaymentCount, dailyLimit);
+        } else if (todayPaymentCount >= dailyLimit * 0.8) {
             log.warn("티어 변경 후 일일 결제 제한 근접: userId={}, tier={}, todayPaymentCount={}, dailyLimit={}, usageRate={}%",
-                    user.getId(), currentTier.name(), todayPaymentCount, currentTier.getDailyLimit(),
-                    (int) (todayPaymentCount * 100.0 / currentTier.getDailyLimit()));
+                    user.getId(), currentTier.name(), todayPaymentCount, dailyLimit,
+                    (int) (todayPaymentCount * 100.0 / dailyLimit));
         }
     }
 
@@ -211,7 +211,8 @@ public class UserTierServiceImpl implements UserTierService {
     @Override
     @Transactional
     public ConsumeModuleUsageResponseDto consumeModuleUsage(Long userId, ModuleType moduleType) {
-        User user = userRepository.findById(userId)
+        // 비관적 락으로 동일 사용자에 대한 동시 차감을 직렬화 (검증·차감을 하나의 임계구역으로)
+        User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
         UserTier tier = user.getTier();

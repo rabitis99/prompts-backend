@@ -12,6 +12,7 @@ import org.example.sharedprompts.domain.payment.application.port.out.repository.
 import org.example.sharedprompts.domain.payment.application.port.out.webhook.PaymentWebhookProcessingPort;
 import org.example.sharedprompts.domain.payment.application.service.impl.*;
 import org.example.sharedprompts.domain.payment.infrastructure.monitoring.PaymentLoggingService;
+import org.example.sharedprompts.domain.payment.infrastructure.transaction.PaymentTransactionManager;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -79,9 +80,10 @@ public class PaymentBeanConfiguration {
     public PaymentRefundUseCase paymentRefundUseCase(
             PaymentCommandRepositoryPort paymentRepository,
             PaymentGatewayPort paymentGateway,
-            PaymentEventPublisherPort eventPublisher
+            PaymentEventPublisherPort eventPublisher,
+            PaymentTransactionManager transactionManager
     ) {
-        return new DefaultPaymentRefundService(paymentRepository, paymentGateway, eventPublisher);
+        return new DefaultPaymentRefundService(paymentRepository, paymentGateway, eventPublisher, transactionManager);
     }
 
     /**

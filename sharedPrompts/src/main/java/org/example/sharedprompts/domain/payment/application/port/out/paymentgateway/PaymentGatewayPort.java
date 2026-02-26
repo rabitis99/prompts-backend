@@ -62,11 +62,13 @@ public interface PaymentGatewayPort {
      * 결제 게이트웨이 결과 DTO
      */
     class PaymentGatewayResult {
-        public final boolean success;
-        public final String externalPaymentId;
-        public final String approvalCode;
-        public final String message;
-        public final Exception exception;
+        private static final String SUCCESS_MESSAGE = "Success";
+
+        private final boolean success;
+        private final String externalPaymentId;
+        private final String approvalCode;
+        private final String message;
+        private final Exception exception;
 
         public boolean isSuccess() {
             return success;
@@ -109,7 +111,7 @@ public interface PaymentGatewayPort {
         }
 
         public static PaymentGatewayResult success(String externalPaymentId, String approvalCode) {
-            return new PaymentGatewayResult(true, externalPaymentId, approvalCode, "Success");
+            return new PaymentGatewayResult(true, externalPaymentId, approvalCode, SUCCESS_MESSAGE);
         }
 
         public static PaymentGatewayResult failure(String message, Exception exception) {

@@ -27,6 +27,9 @@ public class PaymentStatusSyncExecutor {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public PaymentStatusResponseDto doSyncPaymentStatus(Payment payment) {
+        if (payment == null || payment.getId() == null) {
+            throw new ApiException(ErrorCode.PAYMENT_NOT_FOUND);
+        }
         Payment managedPayment = paymentJpaAdapter.findById(payment.getId())
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
 
@@ -35,6 +38,9 @@ public class PaymentStatusSyncExecutor {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public PaymentStatusResponseDto doSyncPaymentStatusById(Long paymentId) {
+        if (paymentId == null) {
+            throw new ApiException(ErrorCode.PAYMENT_NOT_FOUND);
+        }
         Payment payment = paymentJpaAdapter.findById(paymentId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PAYMENT_NOT_FOUND));
         return doSyncInternal(payment);
@@ -45,8 +51,11 @@ public class PaymentStatusSyncExecutor {
         PaymentResult result = provider.getPaymentStatus(payment.getExternalPaymentId());
 
         if (payment.getStatus() != result.getStatus()) {
+            PaymentStatus before = payment.getStatus();
             syncPaymentStatusFromResult(payment, result);
-            paymentJpaAdapter.save(payment);
+            if (payment.getStatus() != before) {
+                paymentJpaAdapter.save(payment);
+            }
         } else {
             log.info(LOG_PREFIX + "동기화 불필요 (상태 동일): paymentId={}, status={}",
                     payment.getId(), payment.getStatus());

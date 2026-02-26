@@ -9,6 +9,7 @@ import org.example.sharedprompts.domain.payment.application.port.out.repository.
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @RequiredArgsConstructor
+@Service
 @Transactional(readOnly = true)
 public class DefaultPaymentHistoryQueryService implements PaymentHistoryQueryUseCase {
 

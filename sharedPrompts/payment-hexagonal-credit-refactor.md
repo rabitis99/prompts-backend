@@ -20,7 +20,7 @@
 
 ## 1. 타겟 패키지 구조
 
-`src/main/java/org/example/sharedprompts/domain/payment` 패키지를 아래 4계층으로 정리한다.
+`src/main/java/${basePackage}/domain/payment` 패키지(실제 프로젝트 루트 패키지 기준)를 아래 4계층으로 정리한다.
 
 ```text
 domain/payment
@@ -336,8 +336,8 @@ domain/credit
    - `CancelPaymentUseCase.cancel(command)` 호출
 
 2. UseCase
-   - `PaymentRepositoryPort.findByIdForUpdate` 로 결제 로딩
-   - 소유자/상태 검증
+   - 결제 로딩(취소 가능 결제 + 동시성 보장) → 소유자/상태 검증
+   - (구현 시 락 방식은 Adapter/Persistence에서 선택. Port 계약에는 `findByIdForUpdate` 등 인프라 세부사항을 직접 노출하지 않는 것을 권장.)
    - `PaymentGatewayPort.cancel` 호출
    - 도메인 모델 상태 전이 (Canceled)
    - `PaymentEventPort.publishPaymentCanceled(event)` 호출
@@ -360,29 +360,32 @@ domain/credit
 
 ---
 
-## 10. Claude 에게 기대하는 작업 요약
+## 10. 리팩토링 담당자 작업 요약
 
-Claude 는 다음을 수행해야 한다.
+리팩토링 담당자는 다음을 수행한다.
 
 1. **현재 Payment 관련 코드 분석**
-   - `domain.payment.application`, `domain.payment.infrastructure`, `domain.payment.domain`  
-     + `controller.payment` 하위 파일 역할 파악.
+   - `domain.payment.application`, `domain.payment.infrastructure`, `domain.payment.domain`, `controller.payment` 하위 파일 역할 파악.
+   - **완료 기준**: 주요 유스케이스·포트·어댑터 매핑 관계를 문서 또는 주석으로 정리.
 
 2. **패키지 구조 재정렬**
    - 이 문서의 구조에 맞게 실제 패키지/클래스를 이동하거나, 새 Port/UseCase 인터페이스를 추가.
+   - **완료 기준**: 기존 API 동작 유지, 컴파일 및 기존 테스트 통과.
 
 3. **Port/Adapter 설계 및 적용**
    - In Port (UseCase/Command) 정의 및 구현.
    - Out Port (Repository/PaymentGateway/Event) 정의 및 구현 어댑터 생성.
+   - **완료 기준**: 포트 계약이 유스케이스 관점 의도로 표현되어 있고, 락 등 인프라 세부사항은 어댑터에 한정.
 
 4. **Controller 단순화 및 DTO 경계 설정**
    - Controller 가 Port 호출 + DTO 매핑만 수행하도록 정리.
+   - **완료 기준**: API 호환 체크리스트 통과(요청/응답 스펙 변경 없음).
 
 5. **크레딧 도메인 도입을 고려한 이벤트 설계**
-   - Payment 도메인이 Credit 도메인으로 확장되기 쉽게,  
-     도메인 이벤트/Port 단위로 결제 결과를 노출.
+   - Payment 도메인이 Credit 도메인으로 확장되기 쉽게, 도메인 이벤트/Port 단위로 결제 결과를 노출.
+   - **완료 기준**: 이벤트 페이로드·이름이 확장 시나리오와 충돌하지 않음.
 
 6. **동작 동일성 검증**
-   - 리팩토링 전/후 주요 API (결제 요청/승인/취소/환불/조회) 가 동일하게 동작하는지  
-     최소한의 스모크 테스트 또는 수동/단위 테스트 추가/가이드.
+   - 리팩토링 전/후 주요 API (결제 요청/승인/취소/환불/조회) 가 동일하게 동작하는지 최소한의 스모크 테스트 또는 수동/단위 테스트 추가/가이드.
+   - **완료 기준**: 해당 API에 대한 테스트 또는 수동 시나리오 체크리스트 통과.
 

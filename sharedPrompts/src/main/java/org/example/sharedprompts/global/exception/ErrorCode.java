@@ -165,6 +165,7 @@ public enum ErrorCode {
     PAYMENT_ALREADY_REFUNDED("PY00403", HttpStatus.BAD_REQUEST, "이미 환불된 결제입니다."),
     PAYMENT_DAILY_LIMIT_EXCEEDED("PY00404", HttpStatus.BAD_REQUEST, "일일 결제 횟수 제한을 초과했습니다."),
     MODULE_DAILY_LIMIT_EXCEEDED("PY00422", HttpStatus.BAD_REQUEST, "해당 모듈의 일일 사용 횟수 제한을 초과했습니다."),
+    UNSUPPORTED_MODULE_TYPE("PY00423", HttpStatus.BAD_REQUEST, "지원하지 않는 모듈 타입입니다."),
     PAYMENT_INVALID_STATUS("PY00405", HttpStatus.BAD_REQUEST, "유효하지 않은 결제 상태입니다."),
     PAYMENT_REFUND_AMOUNT_EXCEEDED("PY00406", HttpStatus.BAD_REQUEST, "환불 금액이 환불 가능 금액을 초과했습니다."),
     PAYMENT_PROVIDER_ERROR("PY01001", HttpStatus.INTERNAL_SERVER_ERROR, "결제사 연동 중 오류가 발생했습니다."),

@@ -20,6 +20,7 @@ public enum PaymentStatus {
     CANCELED("취소됨"),
     REFUNDED("환불됨"),
     PARTIALLY_REFUNDED("부분 환불됨"),
+    REFUND_IN_PROGRESS("환불 처리 중"),
     UNKNOWN("알 수 없는 상태");
 
     private final String description;

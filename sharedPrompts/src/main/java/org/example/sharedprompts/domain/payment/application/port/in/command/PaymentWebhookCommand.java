@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -36,6 +37,23 @@ public class PaymentWebhookCommand {
                 .payload(payload)
                 .signature(signature)
                 .headers(Map.of())
+                .build();
+    }
+
+    /**
+     * HTTP 헤더를 포함한 커맨드 생성 (웹훅 서명 검증 등에 사용)
+     */
+    public static PaymentWebhookCommand of(
+            PaymentMethod paymentMethod,
+            String payload,
+            String signature,
+            Map<String, String> headers
+    ) {
+        return PaymentWebhookCommand.builder()
+                .paymentMethod(paymentMethod)
+                .payload(payload)
+                .signature(signature)
+                .headers(headers != null ? new HashMap<>(headers) : new HashMap<>())
                 .build();
     }
 }

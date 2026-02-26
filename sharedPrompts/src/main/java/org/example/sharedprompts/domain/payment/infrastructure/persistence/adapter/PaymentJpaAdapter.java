@@ -43,6 +43,14 @@ public class PaymentJpaAdapter {
         return paymentRepository.findByExternalPaymentId(externalPaymentId);
     }
 
+    public boolean existsByExternalPaymentId(String externalPaymentId) {
+        return paymentRepository.existsByExternalPaymentId(externalPaymentId);
+    }
+
+    public boolean existsById(Long id) {
+        return paymentRepository.existsById(id);
+    }
+
     public Optional<Payment> findByIdempotencyKey(String idempotencyKey) {
         return paymentRepository.findByIdempotencyKey(idempotencyKey);
     }
@@ -69,6 +77,10 @@ public class PaymentJpaAdapter {
 
     public List<Payment> findExpiredPendingPayments(PaymentStatus status, LocalDateTime expirationTime) {
         return paymentRepository.findExpiredPendingPayments(status, expirationTime);
+    }
+
+    public void delete(Payment payment) {
+        paymentRepository.delete(payment);
     }
 
     public BigDecimal sumTotalPaymentAmount(Long userId, PaymentStatus status) {

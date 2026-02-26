@@ -51,7 +51,7 @@ public void onPaymentApproved(PaymentApprovedEvent event) {
 
 **문제**: `payment.approve()` 메서드 호출 형식 불일치
 
-**기존 구현**:
+**기존 구현** (Payment 엔티티):
 ```java
 public void approve(String externalPaymentId) {
     markSuccess(externalPaymentId);
@@ -66,11 +66,9 @@ public void markSuccess(String externalPaymentId) {
 }
 ```
 
-**사용 코드 (DefaultPaymentConfirmationService)**:
+**사용 코드 (DefaultPaymentConfirmationService)** — 외부 결제 ID를 넘겨 호출:
 ```java
-// ✅ 올바른 호출
-payment.approve();  // 외부 ID는 이미 설정됨
-payment.markSuccess(confirmResult.externalPaymentId);  // 또는 이 방식
+payment.approve(confirmResult.externalPaymentId);
 
 // JPA 자동 감지로 저장됨
 paymentRepository.save(payment);  // 또는 flush
@@ -84,7 +82,7 @@ paymentRepository.save(payment);  // 또는 flush
 @Override
 public Optional<Payment> handleWebhook(PaymentWebhookCommand command) {
     try {
-        // 1. 웹훅 검증
+        // 1. 웹훅 검증 (서명 실패 시 예외 전파 — 호출자가 4xx 처리)
         WebhookVerifier.verify(command.getSignature(), command.getPayload());
 
         // 2. 멱등성 확인
@@ -106,6 +104,9 @@ public Optional<Payment> handleWebhook(PaymentWebhookCommand command) {
 
         return Optional.of(paymentRepository.save(payment));
 
+    } catch (SignatureVerificationException e) {
+        // 서명 검증 실패 — 위·변조 가능성, 상위로 전파하여 4xx 응답
+        throw e;
     } catch (Exception e) {
         log.error("Webhook 처리 실패", e);
         return Optional.empty();
@@ -252,6 +253,7 @@ Optional<Payment> payment = paymentRepository.findByIdForUpdate(paymentId);
 public class PaymentEventListener {
 
     private final ChargeCreditUseCase chargeCreditUseCase;
+    private final RefundCreditUseCase refundCreditUseCase;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPaymentApproved(PaymentApprovedEvent event) {

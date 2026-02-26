@@ -9,88 +9,76 @@ import org.example.sharedprompts.domain.payment.application.port.out.event.Payme
 import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentGatewayPort;
 import org.example.sharedprompts.domain.payment.application.port.out.repository.PaymentCommandRepositoryPort;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.domain.event.PaymentRefundedEvent;
 import org.example.sharedprompts.domain.payment.domain.exception.PaymentNotFoundException;
 import org.example.sharedprompts.domain.payment.domain.exception.PaymentValidationException;
 import org.example.sharedprompts.domain.payment.domain.policy.PaymentStatusTransitionPolicy;
-import org.springframework.transaction.annotation.Transactional;
+import org.example.sharedprompts.domain.payment.infrastructure.transaction.PaymentTransactionManager;
 
 import java.math.BigDecimal;
 
 /**
  * 결제 환불 유스케이스 구현
+ *
+ * <p>외부 PG 호출 시 DB 락을 유지하지 않도록 2단계 트랜잭션으로 처리합니다.
+ * <ul>
+ *   <li>1단계: 락 획득 → 검증 → REFUND_IN_PROGRESS 저장 → 커밋 (락 해제)</li>
+ *   <li>2단계: 외부 PG 환불 호출 (락 없음)</li>
+ *   <li>3단계: 락 획득 → 환불 반영 → 커밋 → 이벤트 발행</li>
+ * </ul>
+ * PG 실패 시 1단계에서 설정한 REFUND_IN_PROGRESS를 보상 트랜잭션으로 되돌립니다.
  */
 @Slf4j
 @RequiredArgsConstructor
-@Transactional
 public class DefaultPaymentRefundService implements PaymentRefundUseCase {
 
     private final PaymentCommandRepositoryPort paymentRepository;
     private final PaymentGatewayPort paymentGateway;
     private final PaymentEventPublisherPort eventPublisher;
+    private final PaymentTransactionManager transactionManager;
 
     @Override
     public PaymentRefundResult refund(RefundPaymentCommand command) {
         log.info("결제 환불 시작: paymentId={}, userId={}, refundAmount={}",
                 command.getPaymentId(), command.getUserId(), command.getRefundAmount());
 
-        // 1. 결제 조회 (락)
-        Payment payment = paymentRepository.findByIdForUpdate(command.getPaymentId())
-                .orElseThrow(() -> new PaymentNotFoundException(
-                        "결제를 찾을 수 없습니다. paymentId=" + command.getPaymentId()
-                ));
+        // 1단계: 락 하에 검증 후 REFUND_IN_PROGRESS로 저장하고 커밋(락 해제)
+        RefundPreparation preparation = transactionManager.executeInTransaction(() ->
+                prepareRefund(command));
 
-        // 2. 사용자 검증
-        if (!payment.getUser().getId().equals(command.getUserId())) {
-            throw new PaymentValidationException(
-                    "결제를 환불할 권한이 없습니다. paymentId=" + command.getPaymentId()
-            );
-        }
+        BigDecimal refundAmount = preparation.refundAmount();
+        Payment paymentAfterPrepare = preparation.payment();
 
-        // 3. 상태 검증
-        PaymentStatusTransitionPolicy.validateCanRefund(payment);
-
-        // 4. 환불 금액 계산
-        BigDecimal refundAmount = command.getRefundAmount();
-        BigDecimal refundableAmount = PaymentStatusTransitionPolicy.calculateRefundableAmount(payment);
-
-        if (refundAmount == null) {
-            // 전체 환불
-            refundAmount = refundableAmount;
-        } else {
-            // 부분 환불의 경우 금액 검증
-            if (refundAmount.compareTo(BigDecimal.ZERO) <= 0 ||
-                    refundAmount.compareTo(refundableAmount) > 0) {
-                throw new PaymentValidationException(
-                        "유효하지 않은 환불 금액입니다. 환불 가능: " + refundableAmount + ", 요청: " + refundAmount
-                );
-            }
-        }
-
-        // 5. 외부 PG에 환불 요청
-        PaymentGatewayPort.PaymentGatewayResult gatewayResult = paymentGateway.refundPayment(payment, refundAmount);
+        // 2단계: 외부 PG 환불 호출 (DB 락 없음)
+        PaymentGatewayPort.PaymentGatewayResult gatewayResult = paymentGateway.refundPayment(paymentAfterPrepare, refundAmount);
         if (!gatewayResult.success) {
+            transactionManager.executeInTransaction(() -> {
+                Payment p = paymentRepository.findByIdForUpdate(command.getPaymentId())
+                        .orElseThrow(() -> new PaymentNotFoundException(
+                                "결제를 찾을 수 없습니다. paymentId=" + command.getPaymentId()));
+                p.revertRefundInProgress();
+                paymentRepository.save(p);
+                return null;
+            });
             throw new PaymentValidationException(
                     "결제 환불 중 오류가 발생했습니다: " + gatewayResult.message,
                     gatewayResult.exception
             );
         }
 
-        // 6. 결제 상태 및 환불 금액 업데이트
-        payment.refund(refundAmount);
-        payment = paymentRepository.save(payment);
+        // 3단계: 락 하에 환불 반영 후 커밋
+        Payment payment = transactionManager.executeInTransaction(() ->
+                completeRefund(command.getPaymentId(), refundAmount));
 
-        // 7. 이벤트 발행 (트랜잭션 후)
         PaymentRefundedEvent event = PaymentRefundedEvent.of(
                 payment.getId(),
                 payment.getUser().getId(),
                 refundAmount,
                 command.getReason()
         );
-
         log.info("결제 환불 완료: paymentId={}, refundAmount={}",
                 payment.getId(), refundAmount);
-
         eventPublisher.publishPaymentRefunded(event);
 
         return PaymentRefundResult.builder()
@@ -100,4 +88,52 @@ public class DefaultPaymentRefundService implements PaymentRefundUseCase {
                 .reason(command.getReason())
                 .build();
     }
+
+    /**
+     * 1단계: 락 획득 → 검증 → REFUND_IN_PROGRESS 저장. 트랜잭션 커밋 시 락 해제.
+     */
+    private RefundPreparation prepareRefund(RefundPaymentCommand command) {
+        Payment payment = paymentRepository.findByIdForUpdate(command.getPaymentId())
+                .orElseThrow(() -> new PaymentNotFoundException(
+                        "결제를 찾을 수 없습니다. paymentId=" + command.getPaymentId()));
+
+        if (payment.getUser() == null || !payment.getUser().getId().equals(command.getUserId())) {
+            throw new PaymentValidationException(
+                    "결제를 환불할 권한이 없습니다. paymentId=" + command.getPaymentId());
+        }
+        PaymentStatusTransitionPolicy.validateCanRefund(payment);
+
+        BigDecimal refundAmount = command.getRefundAmount();
+        BigDecimal refundableAmount = PaymentStatusTransitionPolicy.calculateRefundableAmount(payment);
+        if (refundAmount == null) {
+            refundAmount = refundableAmount;
+        } else {
+            if (refundAmount.compareTo(BigDecimal.ZERO) <= 0
+                    || refundAmount.compareTo(refundableAmount) > 0) {
+                throw new PaymentValidationException(
+                        "유효하지 않은 환불 금액입니다. 환불 가능: " + refundableAmount + ", 요청: " + refundAmount);
+            }
+        }
+
+        payment.markRefundInProgress();
+        payment = paymentRepository.save(payment);
+        return new RefundPreparation(payment, refundAmount);
+    }
+
+    /**
+     * 3단계: 락 획득 → REFUND_IN_PROGRESS 상태에서 환불 반영 후 저장.
+     */
+    private Payment completeRefund(Long paymentId, BigDecimal refundAmount) {
+        Payment payment = paymentRepository.findByIdForUpdate(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException(
+                        "결제를 찾을 수 없습니다. paymentId=" + paymentId));
+        if (payment.getStatus() != PaymentStatus.REFUND_IN_PROGRESS) {
+            throw new IllegalStateException(
+                    "환불 진행 중 상태가 아닙니다. paymentId=" + paymentId + ", status=" + payment.getStatus());
+        }
+        payment.refund(refundAmount);
+        return paymentRepository.save(payment);
+    }
+
+    private record RefundPreparation(Payment payment, BigDecimal refundAmount) {}
 }

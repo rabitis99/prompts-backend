@@ -3,7 +3,6 @@ package org.example.sharedprompts.domain.payment.adapter.out.persistence;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PaymentJpaAdapter;
-import org.example.sharedprompts.domain.payment.infrastructure.persistence.repository.payment.PaymentRepository;
 import org.example.sharedprompts.domain.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,6 +23,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,14 +33,11 @@ class PaymentRepositoryAdapterTest {
     @Mock
     private PaymentJpaAdapter paymentJpaAdapter;
 
-    @Mock
-    private PaymentRepository paymentRepository;
-
     private PaymentRepositoryAdapter adapter;
 
     @BeforeEach
     void setUp() {
-        adapter = new PaymentRepositoryAdapter(paymentJpaAdapter, paymentRepository);
+        adapter = new PaymentRepositoryAdapter(paymentJpaAdapter);
     }
 
     @Test
@@ -265,6 +262,9 @@ class PaymentRepositoryAdapterTest {
         // Given
         User user = new User();
         user.setId(1L);
+        PaymentStatus status = PaymentStatus.PENDING;
+        int maxRetry = 5;
+        LocalDateTime now = LocalDateTime.now();
 
         List<Payment> retryablePayments = Arrays.asList(
                 Payment.builder()
@@ -275,14 +275,15 @@ class PaymentRepositoryAdapterTest {
         );
 
         // When
-        when(paymentJpaAdapter.findRetryablePayments(any(), anyInt(), any()))
+        when(paymentJpaAdapter.findRetryablePayments(status, maxRetry, now))
                 .thenReturn(retryablePayments);
-        List<Payment> result = adapter.findRetryablePayments();
+        List<Payment> result = adapter.findRetryablePayments(status, maxRetry, now);
 
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
         assertTrue(result.stream().allMatch(p -> p.getStatus() == PaymentStatus.PENDING));
+        verify(paymentJpaAdapter).findRetryablePayments(status, maxRetry, now);
     }
 
     @Test
@@ -318,22 +319,14 @@ class PaymentRepositoryAdapterTest {
     void testExistsByExternalPaymentId() {
         // Given
         String externalPaymentId = "EXT_123";
-        User user = new User();
-        user.setId(1L);
-
-        Payment payment = Payment.builder()
-                .id(1L)
-                .user(user)
-                .externalPaymentId(externalPaymentId)
-                .build();
 
         // When
-        when(paymentJpaAdapter.findByExternalPaymentId(externalPaymentId)).thenReturn(Optional.of(payment));
+        when(paymentJpaAdapter.existsByExternalPaymentId(externalPaymentId)).thenReturn(true);
         boolean result = adapter.existsByExternalPaymentId(externalPaymentId);
 
         // Then
         assertTrue(result);
-        verify(paymentJpaAdapter).findByExternalPaymentId(externalPaymentId);
+        verify(paymentJpaAdapter).existsByExternalPaymentId(externalPaymentId);
     }
 
     @Test
@@ -341,20 +334,14 @@ class PaymentRepositoryAdapterTest {
     void testExistsById() {
         // Given
         Long paymentId = 1L;
-        User user = new User();
-        user.setId(1L);
-
-        Payment payment = Payment.builder()
-                .id(paymentId)
-                .user(user)
-                .build();
 
         // When
-        when(paymentJpaAdapter.findById(paymentId)).thenReturn(Optional.of(payment));
+        when(paymentJpaAdapter.existsById(paymentId)).thenReturn(true);
         boolean result = adapter.existsById(paymentId);
 
         // Then
         assertTrue(result);
+        verify(paymentJpaAdapter).existsById(paymentId);
     }
 
     @Test
@@ -373,6 +360,6 @@ class PaymentRepositoryAdapterTest {
         adapter.delete(payment);
 
         // Then
-        verify(paymentRepository).delete(payment);
+        verify(paymentJpaAdapter).delete(payment);
     }
 }

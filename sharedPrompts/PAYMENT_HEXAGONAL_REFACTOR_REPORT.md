@@ -11,7 +11,7 @@
 
 ## 1) 최종 패키지 트리 (변경된 부분만)
 
-```
+```text
 domain/payment/
 ├── application/
 │   ├── port/
@@ -56,18 +56,21 @@ domain/payment/
 ## 2) 삭제한 대상 목록
 
 ### 파일 단위 삭제
+
 | 대상 | 비고 |
 |------|------|
 | `application/facade/PaymentFacade.java` | 웹훅 UseCase 이관 후 참조 0으로 삭제 |
 | `application/facade/PaymentWebhookFacade.java` | adapter.out.webhook.PaymentWebhookProcessingAdapter로 이동 후 삭제 |
 
 ### 메서드/필드 제거
+
 | 클래스 | 제거 항목 |
 |--------|------------|
 | `DefaultPaymentApprovalService` | `PaymentJpaAdapter` 제거, `paymentRepository.save()` 사용 |
 | `DefaultPaymentWebhookHandlingService` | `PaymentRepositoryPort`, `PaymentGatewayPort` 제거 → `PaymentWebhookProcessingPort`만 사용 |
 
 ### @Deprecated (삭제 조건 명시)
+
 | 대상 | 삭제 조건 |
 |------|-----------|
 | `PaymentCommandService` | 전역 참조 0 확인 후 제거 (아래 grep 결과 참고) |
@@ -98,6 +101,7 @@ domain/payment/
 ## 4) 테스트 추가/수정 내역
 
 ### 테스트 클래스
+
 | 클래스 | 변경 내용 |
 |--------|-----------|
 | `PaymentControllerIntegrationTest` | 스모크 2건 추가: 취소·조회 (승인/취소/조회 3개 스모크) |

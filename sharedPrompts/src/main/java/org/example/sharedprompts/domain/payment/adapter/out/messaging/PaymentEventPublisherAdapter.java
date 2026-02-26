@@ -13,8 +13,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  * 결제 이벤트 발행자 어댑터
  * PaymentEventPublisherPort를 구현하여 도메인 이벤트를 발행합니다.
  *
- * Spring의 ApplicationEventPublisher를 사용하여 이벤트를 비동기로 발행합니다.
- * 각 이벤트는 @EventListener 또는 @TransactionalEventListener로 수신할 수 있습니다.
+ * Spring의 ApplicationEventPublisher를 사용하여 이벤트를 발행합니다.
+ * 각 이벤트는 {@code @EventListener} 또는 {@code @TransactionalEventListener}로 수신할 수 있습니다.
+ * 비동기 처리가 필요한 경우 리스너 메서드에 {@code @Async} 어노테이션을 적용하세요.
  */
 @Slf4j
 @Component

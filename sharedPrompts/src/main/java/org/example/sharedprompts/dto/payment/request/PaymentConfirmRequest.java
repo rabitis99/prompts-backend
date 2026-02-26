@@ -44,8 +44,9 @@ public class PaymentConfirmRequest {
     }
 
     /**
-     * Payment ID (orderId와 동일)
+     * Payment ID (orderId와 동일). Jackson 직렬화에서는 orderId만 노출.
      */
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public String getPaymentId() {
         return this.orderId;
     }
@@ -54,10 +55,10 @@ public class PaymentConfirmRequest {
      * Provider Token (pgToken 또는 paymentKey)
      */
     public String getProviderToken() {
-        if (this.pgToken != null) {
+        if (this.pgToken != null && !this.pgToken.isBlank()) {
             return this.pgToken;
         }
-        if (this.paymentKey != null) {
+        if (this.paymentKey != null && !this.paymentKey.isBlank()) {
             return this.paymentKey;
         }
         throw new ApiException(

@@ -34,6 +34,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, CustomP
     Optional<Payment> findByExternalPaymentId(String externalPaymentId);
 
     /**
+     * 외부 결제 ID 존재 여부 (엔티티 로드 없이 EXISTS 쿼리)
+     */
+    boolean existsByExternalPaymentId(String externalPaymentId);
+
+    /**
      * 멱등성 키로 조회
      */
     Optional<Payment> findByIdempotencyKey(String idempotencyKey);

@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.payment.adapter.in.web.mapper;
 
-import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.payment.application.port.in.command.*;
 import org.example.sharedprompts.domain.payment.application.port.in.result.*;
 import org.example.sharedprompts.dto.payment.request.PaymentCancelRequestDto;
@@ -13,13 +12,13 @@ import org.example.sharedprompts.dto.payment.response.PaymentStatusResponseDto;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import org.springframework.data.domain.Pageable;
 
 /**
  * 결제 컨트롤러 매퍼
  * Controller DTO ↔ UseCase Command/Result 변환을 담당합니다.
  */
 @Component
-@RequiredArgsConstructor
 public class PaymentControllerMapper {
 
     /**
@@ -85,7 +84,7 @@ public class PaymentControllerMapper {
     /**
      * PaymentHistoryQuery
      */
-    public PaymentHistoryQuery toHistoryQuery(Long userId, org.springframework.data.domain.Pageable pageable) {
+    public PaymentHistoryQuery toHistoryQuery(Long userId, Pageable pageable) {
         return PaymentHistoryQuery.builder()
                 .userId(userId)
                 .pageable(pageable)

@@ -18,9 +18,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -110,12 +112,12 @@ class PaymentGatewayPortAdapterTest {
 
         when(providerFactory.getProvider(PaymentMethod.CARD)).thenReturn(paymentProvider);
         when(paymentProvider.confirmPayment(
-                approvalToken,
-                testPayment.getId().toString(),
-                testPayment.getAmount(),
-                testPayment.getCurrency(),
-                testPayment.getIdempotencyKey(),
-                testPayment.getUser().getId().toString(),
+                eq(approvalToken),
+                eq(testPayment.getId().toString()),
+                eq(testPayment.getAmount()),
+                eq(testPayment.getCurrency()),
+                eq(testPayment.getIdempotencyKey()),
+                eq(testPayment.getUser().getId().toString()),
                 any()
         )).thenReturn(paymentResult);
 
@@ -306,7 +308,7 @@ class PaymentGatewayPortAdapterTest {
         // Given
         testPayment.setExternalPaymentId("EXT_PAY_123");
         BigDecimal fullAmount = testPayment.getAmount();
-        BigDecimal partialRefundAmount = fullAmount.divide(BigDecimal.valueOf(2));
+        BigDecimal partialRefundAmount = fullAmount.divide(BigDecimal.valueOf(2), RoundingMode.HALF_UP);
 
         RefundResult refundResult = new RefundResult();
         refundResult.setRefundedAmount(partialRefundAmount);

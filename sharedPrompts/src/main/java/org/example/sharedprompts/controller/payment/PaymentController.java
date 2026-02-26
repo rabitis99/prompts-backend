@@ -35,7 +35,6 @@ import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
 
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * 결제 컨트롤러
@@ -169,7 +168,7 @@ public class PaymentController {
 
         var responseDtoList = resultPage.getContent().stream()
                 .map(mapper::toHistoryItemResponse)
-                .collect(Collectors.toList());
+                .toList();
 
         Page<PaymentResponseDto> responsePage = new PageImpl<>(responseDtoList, pageable, resultPage.getTotalElements());
         PageResponse<PaymentResponseDto> response = PageResponse.of(responsePage);
@@ -206,19 +205,20 @@ public class PaymentController {
         return CustomResponseHelper.ok(response);
     }
 
-    private static Optional<ModuleType> parseModuleType(String value) {
-        ModuleType mt = ModuleType.from(value);
-        if (mt == null || mt == ModuleType.UNKNOWN) {
+    private static Optional<ModuleType> resolveModuleType(String value) {
+        if (value == null || value.isBlank()) {
             return Optional.empty();
         }
-        return Optional.of(mt);
+        ModuleType mt = ModuleType.from(value);
+        return (mt == null || mt == ModuleType.UNKNOWN) ? Optional.empty() : Optional.of(mt);
+    }
+
+    private static Optional<ModuleType> parseModuleType(String value) {
+        return resolveModuleType(value);
     }
 
     private static ModuleType parseModuleTypeRequired(String value) {
-        ModuleType mt = ModuleType.from(value);
-        if (mt == null || mt == ModuleType.UNKNOWN) {
-            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE);
-        }
-        return mt;
+        return resolveModuleType(value)
+                .orElseThrow(() -> new ApiException(ErrorCode.INVALID_INPUT_VALUE));
     }
 }

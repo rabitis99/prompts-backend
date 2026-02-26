@@ -36,7 +36,7 @@ public class PayPalWebhookParser {
      * @throws RuntimeException 파싱 실패 시
      */
     public WebhookEvent parse(String payload) {
-        if (payload == null || payload.isEmpty()) {
+        if (payload == null || payload.isBlank()) {
             throw new IllegalArgumentException("PayPal Webhook payload는 필수입니다");
         }
 
@@ -59,8 +59,10 @@ public class PayPalWebhookParser {
             }
 
             String orderId = extractOrderId(resource);
-            String captureId = (String) resource.get("id");
-            String statusStr = (String) resource.get("status");
+            Object rawId = resource.get("id");
+            String captureId = rawId instanceof String ? (String) rawId : (rawId != null ? String.valueOf(rawId) : null);
+            Object rawStatus = resource.get("status");
+            String statusStr = rawStatus instanceof String ? (String) rawStatus : (rawStatus != null ? String.valueOf(rawStatus) : null);
             PaymentStatus status = statusMapper.map(statusStr);
 
             // orderId가 null이면 captureId를 대체값으로 사용
@@ -75,9 +77,7 @@ public class PayPalWebhookParser {
                     .metadata(objectMapper.writeValueAsString(resource))
                     .build();
 
-            // orderId가 null이면 externalPaymentId를 사용 (fallback)
-            String orderIdForEvent = orderId != null ? orderId : externalPaymentId;
-            return new WebhookEvent(eventType, externalPaymentId, orderIdForEvent, paymentResult);
+            return new WebhookEvent(eventType, externalPaymentId, orderId != null ? orderId : captureId, paymentResult);
         } catch (JsonProcessingException e) {
             log.error("PayPal Webhook JSON 파싱 실패: error={}", e.getMessage(), e);
             throw new RuntimeException("PayPal Webhook JSON 파싱 실패: " + e.getMessage(), e);

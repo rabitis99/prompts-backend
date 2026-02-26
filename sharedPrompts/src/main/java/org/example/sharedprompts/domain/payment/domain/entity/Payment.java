@@ -173,8 +173,16 @@ public class Payment extends BaseEntity {
 
     /**
      * 환불 처리
+     * (SUCCESS, PARTIALLY_REFUNDED에서 호출 가능; REFUND_IN_PROGRESS는 2단계 커밋 완료 시 호출)
+     * @param refundAmount 이번에 추가로 환불할 금액 (누적 합산됨)
      */
     public void refund(BigDecimal refundAmount) {
+        if (this.status != PaymentStatus.SUCCESS
+                && this.status != PaymentStatus.PARTIALLY_REFUNDED
+                && this.status != PaymentStatus.REFUND_IN_PROGRESS) {
+            throw new IllegalStateException(
+                    "환불할 수 없는 상태입니다. 현재 상태: " + this.status);
+        }
         BigDecimal newRefundedAmount = this.refundedAmount.add(refundAmount);
 
         if (newRefundedAmount.compareTo(this.amount) >= 0) {
@@ -189,7 +197,27 @@ public class Payment extends BaseEntity {
     }
 
     /**
+     * 환불 진행 중으로 표시 (외부 PG 호출 전 락 해제를 위한 1단계)
+     */
+    public void markRefundInProgress() {
+        this.status = PaymentStatus.REFUND_IN_PROGRESS;
+    }
+
+    /**
+     * 환불 진행 중 상태를 이전 상태로 되돌림 (PG 환불 실패 시 보상)
+     */
+    public void revertRefundInProgress() {
+        if (this.status != PaymentStatus.REFUND_IN_PROGRESS) {
+            return;
+        }
+        this.status = this.refundedAmount.compareTo(BigDecimal.ZERO) > 0
+                ? PaymentStatus.PARTIALLY_REFUNDED
+                : PaymentStatus.SUCCESS;
+    }
+
+    /**
      * 전체 환불 처리
+     * refundedAmount를 결제 금액 전체로 설정합니다.
      */
     public void markRefunded() {
         this.status = PaymentStatus.REFUNDED;
@@ -198,6 +226,7 @@ public class Payment extends BaseEntity {
 
     /**
      * 부분 환불 처리
+     * @param refundedAmount 환불된 금액의 누적 합계 (절댓값으로 직접 설정). refund()의 누적 합산 방식과 혼용하지 말 것.
      */
     public void markPartiallyRefunded(BigDecimal refundedAmount) {
         this.status = PaymentStatus.PARTIALLY_REFUNDED;
