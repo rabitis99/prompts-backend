@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.payment.infrastructure.external.provider.kakao.client;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.properties.KakaoPayProperties;
 import org.example.sharedprompts.domain.payment.infrastructure.external.provider.kakao.dto.KakaoStatusResponse;
@@ -27,7 +26,6 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 @ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class KakaoStatusApiClient {
 
@@ -35,11 +33,24 @@ public class KakaoStatusApiClient {
     private static final String STATUS_ENDPOINT = "/order";
 
     private final KakaoPayProperties properties;
-    @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final KakaoPayHeadersProvider headersProvider;
     private final KakaoStatusResponseParser responseParser;
     private final KakaoStatusErrorHandler errorHandler;
+
+    public KakaoStatusApiClient(
+            KakaoPayProperties properties,
+            @Qualifier("paymentRestTemplate") RestTemplate restTemplate,
+            KakaoPayHeadersProvider headersProvider,
+            KakaoStatusResponseParser responseParser,
+            KakaoStatusErrorHandler errorHandler
+    ) {
+        this.properties = properties;
+        this.restTemplate = restTemplate;
+        this.headersProvider = headersProvider;
+        this.responseParser = responseParser;
+        this.errorHandler = errorHandler;
+    }
 
     public KakaoStatusResponse status(String tid) {
         validateRequired(tid, "tid");
@@ -62,7 +73,8 @@ public class KakaoStatusApiClient {
                 KAKAO_PAY_API_URL + STATUS_ENDPOINT,
                 HttpMethod.POST,
                 request,
-                new ParameterizedTypeReference<Map<String, Object>>() {}
+                new ParameterizedTypeReference<>() {
+                }
         );
     }
 

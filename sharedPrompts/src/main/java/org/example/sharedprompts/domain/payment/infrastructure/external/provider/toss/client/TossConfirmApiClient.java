@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.payment.infrastructure.external.provider.toss.client;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.properties.TossPayProperties;
 import org.example.sharedprompts.domain.payment.infrastructure.external.provider.toss.dto.TossConfirmResponse;
@@ -26,16 +25,28 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 @ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class TossConfirmApiClient {
 
     private final TossPayProperties properties;
-    @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final TossPayHeadersProvider headersProvider;
     private final TossConfirmResponseParser responseParser;
     private final TossConfirmErrorHandler errorHandler;
+
+    public TossConfirmApiClient(
+            TossPayProperties properties,
+            @Qualifier("paymentRestTemplate") RestTemplate restTemplate,
+            TossPayHeadersProvider headersProvider,
+            TossConfirmResponseParser responseParser,
+            TossConfirmErrorHandler errorHandler
+    ) {
+        this.properties = properties;
+        this.restTemplate = restTemplate;
+        this.headersProvider = headersProvider;
+        this.responseParser = responseParser;
+        this.errorHandler = errorHandler;
+    }
 
     public TossConfirmResponse confirm(String paymentKey, String orderId, long amount, String idempotencyKey) {
         validateRequest(paymentKey, orderId, amount);

@@ -1,8 +1,9 @@
 package org.example.sharedprompts.module.domain.github;
 
+import org.example.sharedprompts.github.domain.service.GitHubBodyStorageService;
+import org.example.sharedprompts.github.dto.body.request.GitHubBodyRequestDto;
 import org.example.sharedprompts.module.domain.production.application.storage.StorageFacade;
 import org.example.sharedprompts.module.domain.production.infra.storage.S3KeyGenerator;
-import org.example.sharedprompts.module.dto.request.github.GitHubBodyRequestDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

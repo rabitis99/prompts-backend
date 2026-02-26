@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.payment.infrastructure.external.provider.kakao.client;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.properties.KakaoPayProperties;
 import org.example.sharedprompts.domain.payment.infrastructure.external.provider.kakao.dto.KakaoReadyResponse;
@@ -28,7 +27,6 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 @ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class KakaoReadyApiClient {
 
@@ -36,11 +34,24 @@ public class KakaoReadyApiClient {
     private static final String READY_ENDPOINT = "/ready";
 
     private final KakaoPayProperties properties;
-    @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
     private final KakaoPayHeadersProvider headersProvider;
     private final KakaoReadyResponseParser responseParser;
     private final KakaoReadyErrorHandler errorHandler;
+
+    public KakaoReadyApiClient(
+            KakaoPayProperties properties,
+            @Qualifier("paymentRestTemplate") RestTemplate restTemplate,
+            KakaoPayHeadersProvider headersProvider,
+            KakaoReadyResponseParser responseParser,
+            KakaoReadyErrorHandler errorHandler
+    ) {
+        this.properties = properties;
+        this.restTemplate = restTemplate;
+        this.headersProvider = headersProvider;
+        this.responseParser = responseParser;
+        this.errorHandler = errorHandler;
+    }
 
     public KakaoReadyResponse ready(
             String orderId,
@@ -81,7 +92,8 @@ public class KakaoReadyApiClient {
                 KAKAO_PAY_API_URL + READY_ENDPOINT,
                 HttpMethod.POST,
                 request,
-                new ParameterizedTypeReference<Map<String, Object>>() {}
+                new ParameterizedTypeReference<>() {
+                }
         );
     }
 

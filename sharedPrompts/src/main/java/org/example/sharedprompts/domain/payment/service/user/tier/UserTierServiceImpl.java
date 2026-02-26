@@ -2,14 +2,19 @@ package org.example.sharedprompts.domain.payment.service.user.tier;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.domain.payment.domain.entity.ModuleUsage;
 import org.example.sharedprompts.domain.payment.domain.entity.UserTierHistory;
+import org.example.sharedprompts.domain.payment.domain.enums.ModuleType;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
+import org.example.sharedprompts.domain.payment.domain.policy.TierLimitPolicy;
 import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PaymentJpaAdapter;
 import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.UserTierHistoryJpaAdapter;
+import org.example.sharedprompts.domain.payment.infrastructure.persistence.repository.moduleusage.ModuleUsageRepository;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.dto.payment.request.TierChangeRequestDto;
+import org.example.sharedprompts.dto.payment.response.ConsumeModuleUsageResponseDto;
 import org.example.sharedprompts.dto.payment.response.TierInfoResponseDto;
 import org.example.sharedprompts.dto.payment.response.UserTierHistoryResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
@@ -20,6 +25,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -31,10 +41,16 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class UserTierServiceImpl implements UserTierService {
 
+    private static final ModuleType[] USAGE_MODULE_TYPES = Arrays.stream(ModuleType.values())
+            .filter(t -> t != ModuleType.UNKNOWN)
+            .toArray(ModuleType[]::new);
+
     private final UserRepository userRepository;
     private final PaymentJpaAdapter paymentJpaAdapter;
     private final UserTierHistoryJpaAdapter tierHistoryJpaAdapter;
+    private final ModuleUsageRepository moduleUsageRepository;
     private final TierUpgradePolicy tierUpgradePolicy;
+    private final TierLimitPolicy tierLimitPolicy;
 
     @Override
     public UserTier getTier(Long userId) {
@@ -47,13 +63,60 @@ public class UserTierServiceImpl implements UserTierService {
     public TierInfoResponseDto getTierInfo(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
-
         UserTier tier = user.getTier();
-        int dailyLimit = tier.getDailyLimit();
-        long todayUsedCount = paymentJpaAdapter.countTodaySuccessfulPayments(userId, PaymentStatus.SUCCESS);
-        int remainingCount = (int) Math.max(0, dailyLimit - todayUsedCount);
+        int limit = tierLimitPolicy.getDailyLimit(tier);
+        int todayUsed = computeTodayUsedWeighted(userId);
+        int remaining = Math.max(0, limit - todayUsed);
 
-        return TierInfoResponseDto.from(user, dailyLimit, (int) todayUsedCount, remainingCount);
+        Map<String, Integer> remainingByModuleType = new LinkedHashMap<>();
+        for (ModuleType mt : USAGE_MODULE_TYPES) {
+            int consumption = tierLimitPolicy.getConsumptionAmount(mt);
+            remainingByModuleType.put(
+                    mt.name(),
+                    consumption <= 0 ? 0 : Math.max(0, remaining / consumption)
+            );
+        }
+
+        return TierInfoResponseDto.from(user, limit, todayUsed, remaining, remainingByModuleType);
+    }
+
+    @Override
+    public TierInfoResponseDto getTierInfo(Long userId, ModuleType moduleType) {
+        if (moduleType == null || moduleType == ModuleType.UNKNOWN) {
+            throw new ApiException(ErrorCode.UNSUPPORTED_MODULE_TYPE);
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+        UserTier tier = user.getTier();
+        int limit = tierLimitPolicy.getDailyLimit(tier);
+        int todayUsed = computeTodayUsedWeighted(userId);
+        int remaining = Math.max(0, limit - todayUsed);
+        return TierInfoResponseDto.fromModule(user, moduleType, limit, todayUsed, remaining);
+    }
+
+    @Override
+    public long getTodayUsedCount(Long userId) {
+        return computeTodayUsedWeighted(userId);
+    }
+
+    private int computeTodayUsedWeighted(Long userId) {
+        LocalDate today = LocalDate.now();
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay = today.plusDays(1).atStartOfDay();
+
+        // 결제 1건 = 일일 한도 1 소비 (기본 가중치)
+        long todayPaymentCount = paymentJpaAdapter.countTodaySuccessfulPayments(userId, PaymentStatus.SUCCESS);
+        int weightedModule = 0;
+        for (ModuleType mt : USAGE_MODULE_TYPES) {
+            long count = moduleUsageRepository.countTodayByUserIdAndModuleType(userId, mt, startOfDay, endOfDay);
+            weightedModule += (int) (count * tierLimitPolicy.getConsumptionAmount(mt));
+        }
+        return (int) todayPaymentCount + weightedModule;
+    }
+
+    @Override
+    public long getTodayPaymentCount(Long userId) {
+        return paymentJpaAdapter.countTodaySuccessfulPayments(userId, PaymentStatus.SUCCESS);
     }
 
     @Override
@@ -86,20 +149,20 @@ public class UserTierServiceImpl implements UserTierService {
 
     private void recalculateDailyLimit(User user) {
         UserTier currentTier = user.getTier();
-        int dailyLimit = currentTier.getDailyLimit();
-        long todayUsedCount = paymentJpaAdapter.countTodaySuccessfulPayments(user.getId(), PaymentStatus.SUCCESS);
-        int remainingCount = (int) Math.max(0, dailyLimit - todayUsedCount);
-        
-        log.info("일일 제한 재계산: userId={}, tier={}, dailyLimit={}, todayUsedCount={}, remainingCount={}", 
-                user.getId(), currentTier.name(), dailyLimit, todayUsedCount, remainingCount);
-        
-        if (todayUsedCount >= dailyLimit) {
-            log.warn("티어 변경 후 일일 제한 초과 상태: userId={}, tier={}, todayUsedCount={}, dailyLimit={}", 
-                    user.getId(), currentTier.name(), todayUsedCount, dailyLimit);
-        } else if (todayUsedCount >= dailyLimit * 0.8) {
-            log.warn("티어 변경 후 일일 제한 근접: userId={}, tier={}, todayUsedCount={}, dailyLimit={}, usageRate={}%", 
-                    user.getId(), currentTier.name(), todayUsedCount, dailyLimit, 
-                    (int) (todayUsedCount * 100.0 / dailyLimit));
+        int dailyLimit = tierLimitPolicy.getDailyLimit(currentTier);
+        int todayUsed = computeTodayUsedWeighted(user.getId());
+        int remaining = Math.max(0, dailyLimit - todayUsed);
+
+        log.info("일일 제한 재계산: userId={}, tier={}, dailyLimit={}, todayUsedWeighted={}, remaining={}",
+                user.getId(), currentTier.name(), dailyLimit, todayUsed, remaining);
+
+        if (todayUsed >= dailyLimit) {
+            log.warn("티어 변경 후 일일 사용량 제한 초과: userId={}, tier={}, todayUsedWeighted={}, dailyLimit={}",
+                    user.getId(), currentTier.name(), todayUsed, dailyLimit);
+        } else if (todayUsed >= dailyLimit * 0.8) {
+            log.warn("티어 변경 후 일일 사용량 제한 근접: userId={}, tier={}, todayUsedWeighted={}, dailyLimit={}, usageRate={}%",
+                    user.getId(), currentTier.name(), todayUsed, dailyLimit,
+                    (int) (todayUsed * 100.0 / dailyLimit));
         }
     }
 
@@ -149,6 +212,43 @@ public class UserTierServiceImpl implements UserTierService {
             user.changeTier(calculatedTier);
             recalculateDailyLimit(user);
         }
+    }
+
+    @Override
+    @Transactional
+    public ConsumeModuleUsageResponseDto consumeModuleUsage(Long userId, ModuleType moduleType) {
+        if (moduleType == null || moduleType == ModuleType.UNKNOWN) {
+            throw new ApiException(ErrorCode.UNSUPPORTED_MODULE_TYPE);
+        }
+        // 비관적 락으로 동일 사용자에 대한 동시 차감을 직렬화 (검증·차감을 하나의 임계구역으로)
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+
+        UserTier tier = user.getTier();
+        int limit = tierLimitPolicy.getDailyLimit(tier);
+        int consumption = tierLimitPolicy.getConsumptionAmount(moduleType);
+        int todayUsed = computeTodayUsedWeighted(userId);
+        int remaining = Math.max(0, limit - todayUsed);
+
+        if (remaining < consumption) {
+            throw new ApiException(ErrorCode.MODULE_DAILY_LIMIT_EXCEEDED);
+        }
+
+        ModuleUsage usage = ModuleUsage.builder()
+                .user(user)
+                .moduleType(moduleType)
+                .build();
+        moduleUsageRepository.save(usage);
+        int usedAfter = todayUsed + consumption;
+        int remainingAfter = Math.max(0, limit - usedAfter);
+        log.debug("모듈 사용 차감: userId={}, moduleType={}, consumption={}, usedWeighted={}, remaining={}", userId, moduleType, consumption, usedAfter, remainingAfter);
+        return ConsumeModuleUsageResponseDto.builder()
+                .moduleType(moduleType)
+                .limit(limit)
+                .consumptionAmount(consumption)
+                .usedToday(usedAfter)
+                .remaining(remainingAfter)
+                .build();
     }
 }
 

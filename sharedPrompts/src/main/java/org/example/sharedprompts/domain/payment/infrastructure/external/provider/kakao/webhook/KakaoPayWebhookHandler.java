@@ -50,10 +50,7 @@ public class KakaoPayWebhookHandler implements PaymentWebhookHandler {
         } catch (Exception e) {
             log.error("KakaoPay Webhook 파싱 실패: error={}", 
                     SensitiveDataMasker.maskSensitiveData(e.getMessage()), e);
-            if (e instanceof RuntimeException) {
-                throw (RuntimeException) e;
-            }
-            throw new RuntimeException("KakaoPay Webhook 파싱 실패: " + e.getMessage(), e);
+            throw (RuntimeException) e;
         }
     }
 }

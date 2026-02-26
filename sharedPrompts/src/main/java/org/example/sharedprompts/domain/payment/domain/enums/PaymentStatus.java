@@ -20,6 +20,7 @@ public enum PaymentStatus {
     CANCELED("취소됨"),
     REFUNDED("환불됨"),
     PARTIALLY_REFUNDED("부분 환불됨"),
+    REFUND_IN_PROGRESS("환불 처리 중"),
     UNKNOWN("알 수 없는 상태");
 
     private final String description;
@@ -46,6 +47,13 @@ public enum PaymentStatus {
                 || this == READY
                 || this == IN_PROGRESS
                 || this == WAITING_FOR_DEPOSIT;
+    }
+
+    /**
+     * 환불이 처리 중인 상태인지 확인합니다.
+     */
+    public boolean isRefundInProgress() {
+        return this == REFUND_IN_PROGRESS;
     }
 }
 

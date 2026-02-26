@@ -1,7 +1,8 @@
-package org.example.sharedprompts.domain.payment.application.facade;
+package org.example.sharedprompts.domain.payment.adapter.out.webhook;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.domain.payment.application.port.out.webhook.PaymentWebhookProcessingPort;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
@@ -13,12 +14,14 @@ import org.example.sharedprompts.domain.payment.infrastructure.messaging.webhook
 import org.example.sharedprompts.domain.payment.infrastructure.messaging.webhook.WebhookIdempotencyService;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class PaymentWebhookFacade {
+public class PaymentWebhookProcessingAdapter implements PaymentWebhookProcessingPort {
 
     private final WebhookHandler webhookHandler;
     private final PaymentJpaAdapter paymentJpaAdapter;
@@ -26,15 +29,12 @@ public class PaymentWebhookFacade {
     private final WebhookIdempotencyService idempotencyService;
     private final DistributedLockService distributedLockService;
 
-    public Optional<Payment> handleWebhook(PaymentMethod paymentMethod, String payload, String signature) {
-        return handleWebhook(paymentMethod, payload, signature, java.util.Collections.emptyMap());
-    }
-
-    public Optional<Payment> handleWebhook(
+    @Override
+    public Optional<Payment> processWebhook(
             PaymentMethod paymentMethod,
             String payload,
             String signature,
-            java.util.Map<String, String> headers
+            Map<String, String> headers
     ) {
         WebhookEvent event = webhookHandler.handle(paymentMethod, payload, signature, headers);
 
@@ -133,4 +133,3 @@ public class PaymentWebhookFacade {
                 event.eventType());
     }
 }
-

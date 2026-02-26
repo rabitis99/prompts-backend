@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.payment.infrastructure.external.provider.toss.webhook;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -73,7 +74,7 @@ public class TossPayWebhookParser {
                     .build();
 
             return new WebhookEvent(eventType, paymentKey, orderId, paymentResult);
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+        } catch (JsonProcessingException e) {
             log.error("TossPay Webhook JSON 파싱 실패: error={}", e.getMessage(), e);
             throw new RuntimeException("TossPay Webhook JSON 파싱 실패: " + e.getMessage(), e);
         } catch (Exception e) {

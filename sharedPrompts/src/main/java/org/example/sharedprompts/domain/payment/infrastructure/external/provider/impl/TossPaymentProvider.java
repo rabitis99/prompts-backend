@@ -68,7 +68,7 @@ public class TossPaymentProvider implements PaymentProvider {
     ) {
         validateRequired(paymentKey, "paymentKey");
         validateRequired(orderId, "orderId");
-        validateRequired(amount, "amount");
+        validateRequired(amount);
         validateRequired(currency, "currency");
 
         try {
@@ -166,7 +166,7 @@ public class TossPaymentProvider implements PaymentProvider {
     @Override
     public RefundResult refundPayment(String externalPaymentId, BigDecimal amount, String reason, String idempotencyKey) {
         validateRequired(externalPaymentId, "externalPaymentId");
-        validateRequired(amount, "amount");
+        validateRequired(amount);
         validateRequired(reason, "reason");
 
         try {
@@ -201,12 +201,12 @@ public class TossPaymentProvider implements PaymentProvider {
         }
     }
 
-    private void validateRequired(BigDecimal value, String fieldName) {
+    private void validateRequired(BigDecimal value) {
         if (value == null) {
-            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다");
+            throw new IllegalArgumentException("amount" + "은(는) 필수입니다");
         }
         if (value.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException(fieldName + "은(는) 0보다 커야 합니다: " + value);
+            throw new IllegalArgumentException("amount" + "은(는) 0보다 커야 합니다: " + value);
         }
     }
 

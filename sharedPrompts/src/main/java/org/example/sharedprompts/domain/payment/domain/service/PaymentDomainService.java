@@ -21,6 +21,8 @@ public class PaymentDomainService {
                     || targetStatus == PaymentStatus.PARTIALLY_REFUNDED;
             case PARTIALLY_REFUNDED -> targetStatus == PaymentStatus.REFUNDED
                     || targetStatus == PaymentStatus.PARTIALLY_REFUNDED;
+            case REFUND_IN_PROGRESS -> targetStatus == PaymentStatus.REFUNDED
+                    || targetStatus == PaymentStatus.PARTIALLY_REFUNDED;
             default -> false;
         };
     }

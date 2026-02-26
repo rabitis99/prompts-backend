@@ -1,18 +1,20 @@
 package org.example.sharedprompts.domain.payment.service;
 
+import org.example.sharedprompts.domain.payment.application.command.PaymentValidationService;
+import org.example.sharedprompts.domain.payment.application.command.service.amount.PaymentAmountProcessingService;
+import org.example.sharedprompts.domain.payment.application.command.service.request.PaymentCreator;
+import org.example.sharedprompts.domain.payment.application.command.service.request.PaymentPreparationHandler;
+import org.example.sharedprompts.domain.payment.application.dto.AmountProcessingResult;
+import org.example.sharedprompts.domain.payment.application.port.in.command.ApprovePaymentCommand;
+import org.example.sharedprompts.domain.payment.application.port.in.result.PaymentApprovalResult;
+import org.example.sharedprompts.domain.payment.application.port.out.repository.PaymentCommandRepositoryPort;
+import org.example.sharedprompts.domain.payment.application.service.impl.DefaultPaymentApprovalService;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentUserType;
 import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
-import org.example.sharedprompts.domain.payment.repository.PaymentRepository;
-import org.example.sharedprompts.domain.payment.service.cashback.CashbackService;
-import org.example.sharedprompts.domain.payment.service.core.PaymentServiceImpl;
-import org.example.sharedprompts.domain.payment.infrastructure.messaging.event.PaymentEventPublisher;
-import org.example.sharedprompts.domain.payment.infrastructure.external.exchange.ExchangeRateService;
-import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderService;
-import org.example.sharedprompts.domain.payment.service.payment.provider.PaymentProviderServiceFactory;
-import org.example.sharedprompts.domain.payment.service.point.PointService;
+import org.example.sharedprompts.domain.payment.infrastructure.monitoring.PaymentLoggingService;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.enums.Provider;
 import org.example.sharedprompts.domain.user.enums.Role;
@@ -24,7 +26,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -34,47 +35,57 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
- * 결제 서비스 단위 테스트
+ * 결제 승인 유스케이스 단위 테스트
+ * DefaultPaymentApprovalService(결제 요청/승인) 동작을 검증합니다.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("결제 서비스 테스트")
+@DisplayName("결제 승인 서비스 테스트")
 class PaymentServiceTest {
 
     @Mock
-    private PaymentRepository paymentRepository;
+    private PaymentCommandRepositoryPort paymentRepository;
 
     @Mock
     private UserRepository userRepository;
 
     @Mock
-    private PaymentProviderServiceFactory providerServiceFactory;
+    private PaymentValidationService validationService;
 
     @Mock
-    private PaymentProviderService providerService;
+    private PaymentAmountProcessingService amountProcessingService;
 
     @Mock
-    private ExchangeRateService exchangeRateService;
+    private PaymentCreator paymentCreator;
 
     @Mock
-    private PointService pointService;
+    private PaymentPreparationHandler preparationHandler;
 
     @Mock
-    private CashbackService cashbackService;
+    private PaymentLoggingService loggingService;
 
-    @Mock
-    private PaymentEventPublisher eventPublisher;
-
-    @InjectMocks
-    private PaymentServiceImpl paymentService;
+    private DefaultPaymentApprovalService paymentApprovalService;
 
     private User testUser;
-    private PaymentRequestDto paymentRequest;
+    private ApprovePaymentCommand approveCommand;
+    private Payment mockPayment;
 
     @BeforeEach
     void setUp() {
+        paymentApprovalService = new DefaultPaymentApprovalService(
+                paymentRepository,
+                validationService,
+                amountProcessingService,
+                paymentCreator,
+                preparationHandler,
+                loggingService,
+                userRepository
+        );
+
         testUser = User.builder()
                 .id(1L)
                 .email("test@example.com")
@@ -87,11 +98,23 @@ class PaymentServiceTest {
                 .blocked(false)
                 .build();
 
-        paymentRequest = PaymentRequestDto.builder()
+        approveCommand = ApprovePaymentCommand.builder()
+                .userId(1L)
+                .amount(new BigDecimal("10000"))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .usePointAmount(BigDecimal.ZERO)
+                .userType(PaymentUserType.PERSONAL)
+                .build();
+
+        mockPayment = Payment.builder()
+                .id(1L)
+                .user(testUser)
                 .amount(new BigDecimal("10000"))
                 .currency("KRW")
                 .paymentMethod(PaymentMethod.KAKAO_PAY)
                 .userType(PaymentUserType.PERSONAL)
+                .status(PaymentStatus.PENDING)
                 .build();
     }
 
@@ -100,21 +123,29 @@ class PaymentServiceTest {
     void requestPayment_Success() {
         // given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(paymentRepository.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(0L);
-        when(providerServiceFactory.getService(PaymentMethod.KAKAO_PAY)).thenReturn(providerService);
-        when(providerService.approvePayment(any(Payment.class))).thenReturn("EXTERNAL_PAYMENT_ID");
-        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        doNothing().when(validationService).validateDailyLimit(1L, UserTier.FREE);
+        when(amountProcessingService.processPaymentAmount(anyLong(), any(BigDecimal.class), anyString(), any()))
+                .thenReturn(new AmountProcessingResult(
+                        new BigDecimal("10000"),
+                        new BigDecimal("10000"),
+                        BigDecimal.ZERO,
+                        new BigDecimal("10000")
+                ));
+        when(paymentCreator.createPayment(any(User.class), any(PaymentRequestDto.class), any(AmountProcessingResult.class)))
+                .thenReturn(mockPayment);
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(preparationHandler.processPreparationIfNeeded(any(Payment.class), any(AmountProcessingResult.class), anyLong(), any(PaymentRequestDto.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
 
         // when
-        var response = paymentService.requestPayment(1L, paymentRequest);
+        PaymentApprovalResult result = paymentApprovalService.approve(approveCommand);
 
         // then
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
+        assertThat(result).isNotNull();
+        assertThat(result.getPaymentId()).isEqualTo(1L);
+        assertThat(result.getStatus()).isEqualTo(PaymentStatus.PENDING);
         verify(paymentRepository, times(2)).save(any(Payment.class));
-        verify(pointService).accumulatePoints(anyLong(), anyLong(), any(BigDecimal.class));
-        verify(cashbackService).accumulateCashback(anyLong(), anyLong(), any(BigDecimal.class));
-        verify(eventPublisher).publishPaymentSucceeded(anyLong(), anyLong(), anyString());
+        verify(loggingService).logPaymentRequest(any(Payment.class));
     }
 
     @Test
@@ -122,13 +153,15 @@ class PaymentServiceTest {
     void requestPayment_DailyLimitExceeded() {
         // given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(paymentRepository.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(10L); // FREE 티어 제한 초과
+        doThrow(new ApiException(ErrorCode.PAYMENT_DAILY_LIMIT_EXCEEDED))
+                .when(validationService).validateDailyLimit(1L, UserTier.FREE);
 
         // when & then
-        assertThatThrownBy(() -> paymentService.requestPayment(1L, paymentRequest))
+        assertThatThrownBy(() -> paymentApprovalService.approve(approveCommand))
                 .isInstanceOf(ApiException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.PAYMENT_DAILY_LIMIT_EXCEEDED);
+        verify(paymentRepository, never()).save(any(Payment.class));
     }
 
     @Test
@@ -138,29 +171,35 @@ class PaymentServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> paymentService.requestPayment(1L, paymentRequest))
+        assertThatThrownBy(() -> paymentApprovalService.approve(approveCommand))
                 .isInstanceOf(ApiException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.USER_NOT_FOUND);
+        verify(paymentRepository, never()).save(any(Payment.class));
     }
 
     @Test
-    @DisplayName("결제 승인 실패 시 실패 상태로 저장")
-    void requestPayment_ApprovalFailed() {
+    @DisplayName("결제 준비 처리 실패 시 예외 전파")
+    void requestPayment_PreparationFails() {
         // given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(paymentRepository.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(0L);
-        when(providerServiceFactory.getService(PaymentMethod.KAKAO_PAY)).thenReturn(providerService);
-        when(providerService.approvePayment(any(Payment.class))).thenThrow(new RuntimeException("API 호출 실패"));
-        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        doNothing().when(validationService).validateDailyLimit(1L, UserTier.FREE);
+        when(amountProcessingService.processPaymentAmount(anyLong(), any(BigDecimal.class), anyString(), any()))
+                .thenReturn(new AmountProcessingResult(
+                        new BigDecimal("10000"),
+                        new BigDecimal("10000"),
+                        BigDecimal.ZERO,
+                        new BigDecimal("10000")
+                ));
+        when(paymentCreator.createPayment(any(User.class), any(PaymentRequestDto.class), any(AmountProcessingResult.class)))
+                .thenReturn(mockPayment);
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(preparationHandler.processPreparationIfNeeded(any(Payment.class), any(AmountProcessingResult.class), anyLong(), any(PaymentRequestDto.class)))
+                .thenThrow(new RuntimeException("PG API 호출 실패"));
 
-        // when
-        var response = paymentService.requestPayment(1L, paymentRequest);
-
-        // then
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo(PaymentStatus.FAILED);
-        verify(eventPublisher).publishPaymentFailed(anyLong(), anyLong(), anyString(), anyString());
+        // when & then
+        assertThatThrownBy(() -> paymentApprovalService.approve(approveCommand))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("PG API 호출 실패");
     }
 }
-

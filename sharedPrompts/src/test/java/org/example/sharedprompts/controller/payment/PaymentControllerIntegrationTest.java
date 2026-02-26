@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -53,6 +53,22 @@ class PaymentControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized()); // 인증 없이 호출 시 401
+    }
+
+    @Test
+    @DisplayName("결제 취소 스모크 - 인증 없이 401")
+    void cancelPayment_Unauthorized() throws Exception {
+        mockMvc.perform(post("/payments/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"1\",\"reason\":\"test\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("결제 상태 조회 스모크 - 인증 없이 401")
+    void checkPaymentStatus_Unauthorized() throws Exception {
+        mockMvc.perform(get("/payments/1/status"))
+                .andExpect(status().isUnauthorized());
     }
 }
 

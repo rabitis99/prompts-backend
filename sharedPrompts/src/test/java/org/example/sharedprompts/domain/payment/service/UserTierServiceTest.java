@@ -1,9 +1,13 @@
 package org.example.sharedprompts.domain.payment.service;
 
+import org.example.sharedprompts.domain.payment.domain.enums.ModuleType;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
-import org.example.sharedprompts.domain.payment.infrastructure.persistence.repository.payment.PaymentRepository;
-import org.example.sharedprompts.domain.payment.infrastructure.persistence.repository.userTier.UserTierHistoryRepository;
+import org.example.sharedprompts.domain.payment.domain.policy.TierLimitPolicy;
+import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PaymentJpaAdapter;
+import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.UserTierHistoryJpaAdapter;
+import org.example.sharedprompts.domain.payment.infrastructure.persistence.repository.moduleusage.ModuleUsageRepository;
+import org.example.sharedprompts.domain.payment.service.user.tier.TierUpgradePolicy;
 import org.example.sharedprompts.domain.payment.service.user.tier.UserTierServiceImpl;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.enums.Provider;
@@ -21,11 +25,15 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -39,10 +47,20 @@ class UserTierServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private PaymentRepository paymentRepository;
+    private PaymentJpaAdapter paymentJpaAdapter;
 
     @Mock
-    private UserTierHistoryRepository tierHistoryRepository;
+    private UserTierHistoryJpaAdapter tierHistoryJpaAdapter;
+
+    @Mock
+    private ModuleUsageRepository moduleUsageRepository;
+
+    /** upgradeTierIfEligible()에서 자동 티어 업그레이드 시 calculateTier() 호출에 사용됨. */
+    @Mock
+    private TierUpgradePolicy tierUpgradePolicy;
+
+    @Mock
+    private TierLimitPolicy tierLimitPolicy;
 
     @InjectMocks
     private UserTierServiceImpl userTierService;
@@ -65,42 +83,44 @@ class UserTierServiceTest {
     }
 
     @Test
-    @DisplayName("티어 정보 조회 성공")
+    @DisplayName("티어 정보 조회 성공 (통합 한도, 모듈별 차감량 반영)")
     void getTierInfo_Success() {
-        // given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(paymentRepository.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(2L);
+        when(paymentJpaAdapter.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(2L);
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(anyLong(), any(ModuleType.class), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(0L);
+        when(tierLimitPolicy.getDailyLimit(UserTier.FREE)).thenReturn(15);
+        when(tierLimitPolicy.getConsumptionAmount(any(ModuleType.class))).thenReturn(1);
+        when(tierLimitPolicy.getConsumptionAmount(ModuleType.LITERARY)).thenReturn(2);
 
-        // when
         TierInfoResponseDto result = userTierService.getTierInfo(1L);
 
-        // then
         assertThat(result).isNotNull();
         assertThat(result.getTier()).isEqualTo(UserTier.FREE);
-        assertThat(result.getDailyLimit()).isEqualTo(0);
+        assertThat(result.getDailyLimit()).isEqualTo(15);
         assertThat(result.getTodayUsedCount()).isEqualTo(2);
-        assertThat(result.getRemainingCount()).isEqualTo(-2); // 제한 초과
+        assertThat(result.getRemainingCount()).isEqualTo(13);
+        assertThat(result.getRemainingByModuleType()).isNotNull();
+        assertThat(result.getRemainingByModuleType().get("LITERARY")).isEqualTo(11);
     }
 
     @Test
     @DisplayName("티어 변경 성공")
     void changeTier_Success() {
-        // given
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(tierHistoryRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(paymentJpaAdapter.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(0L);
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(anyLong(), any(ModuleType.class), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(0L);
+        when(tierLimitPolicy.getDailyLimit(any(UserTier.class))).thenReturn(100);
+        when(tierLimitPolicy.getConsumptionAmount(any(ModuleType.class))).thenReturn(1);
 
         TierChangeRequestDto request = TierChangeRequestDto.builder()
                 .tier(UserTier.PRO)
                 .reason("업그레이드")
                 .build();
 
-        // when
-        userTierService.changeTier(1L, request, 999L); // 관리자 ID
+        userTierService.changeTier(1L, request, 999L);
 
-        // then
-        verify(userRepository).save(any(User.class));
-        verify(tierHistoryRepository).save(any());
+        verify(tierHistoryJpaAdapter).save(any());
     }
 
     @Test
@@ -151,5 +171,105 @@ class UserTierServiceTest {
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.USER_NOT_FOUND);
     }
-}
 
+    @Test
+    @DisplayName("모듈 사용 1회 차감 성공 (통합 한도, LITERARY 2점 차감)")
+    void consumeModuleUsage_Success() {
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testUser));
+        when(tierLimitPolicy.getDailyLimit(UserTier.FREE)).thenReturn(15);
+        when(tierLimitPolicy.getConsumptionAmount(ModuleType.LITERARY)).thenReturn(2);
+        when(paymentJpaAdapter.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(0L);
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(eq(1L), any(ModuleType.class), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenAnswer(inv -> inv.getArgument(1) == ModuleType.LITERARY ? 5L : 0L);
+
+        var response = userTierService.consumeModuleUsage(1L, ModuleType.LITERARY);
+
+        verify(moduleUsageRepository).save(any());
+        assertThat(response.getModuleType()).isEqualTo(ModuleType.LITERARY);
+        assertThat(response.getLimit()).isEqualTo(15);
+        assertThat(response.getConsumptionAmount()).isEqualTo(2);
+        assertThat(response.getUsedToday()).isEqualTo(12);
+        assertThat(response.getRemaining()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("모듈 사용 차감 시 통합 한도 초과면 MODULE_DAILY_LIMIT_EXCEEDED")
+    void consumeModuleUsage_DailyLimitExceeded() {
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testUser));
+        when(tierLimitPolicy.getDailyLimit(UserTier.FREE)).thenReturn(15);
+        when(tierLimitPolicy.getConsumptionAmount(ModuleType.LITERARY)).thenReturn(2);
+        when(paymentJpaAdapter.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(0L);
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(eq(1L), any(ModuleType.class), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenAnswer(inv -> inv.getArgument(1) == ModuleType.LITERARY ? 7L : 0L);
+
+        assertThatThrownBy(() -> userTierService.consumeModuleUsage(1L, ModuleType.LITERARY))
+                .isInstanceOf(ApiException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.MODULE_DAILY_LIMIT_EXCEEDED);
+        verify(moduleUsageRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("LITERARY 2회 사용 시 통합 한도에서 4 소비, EMAIL 조회 시 동일 remaining")
+    void consumeModuleUsage_countsByModuleType() {
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testUser));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(tierLimitPolicy.getDailyLimit(UserTier.FREE)).thenReturn(15);
+        when(tierLimitPolicy.getConsumptionAmount(any(ModuleType.class))).thenReturn(1);
+        when(tierLimitPolicy.getConsumptionAmount(ModuleType.LITERARY)).thenReturn(2);
+        when(paymentJpaAdapter.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(0L);
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(eq(1L), any(ModuleType.class), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(0L);
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(eq(1L), eq(ModuleType.LITERARY), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(0L, 1L, 2L, 2L, 2L);
+
+        userTierService.consumeModuleUsage(1L, ModuleType.LITERARY);
+        userTierService.consumeModuleUsage(1L, ModuleType.LITERARY);
+
+        TierInfoResponseDto info = userTierService.getTierInfo(1L, ModuleType.EMAIL);
+        assertThat(info.getRemainingCount()).isEqualTo(11);
+        assertThat(info.getTodayUsedCount()).isEqualTo(4);
+
+        TierInfoResponseDto literaryInfo = userTierService.getTierInfo(1L, ModuleType.LITERARY);
+        assertThat(literaryInfo.getRemainingCount()).isEqualTo(11);
+        assertThat(literaryInfo.getTodayUsedCount()).isEqualTo(4);
+    }
+
+    @Test
+    @DisplayName("통합 한도 소진 시 LITERARY(2점)는 막히고 EMAIL(1점)은 가능")
+    void consumeModuleUsage_DailyLimitExceeded_perModule() {
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testUser));
+        when(tierLimitPolicy.getDailyLimit(UserTier.FREE)).thenReturn(15);
+        when(tierLimitPolicy.getConsumptionAmount(ModuleType.LITERARY)).thenReturn(2);
+        when(tierLimitPolicy.getConsumptionAmount(ModuleType.EMAIL)).thenReturn(1);
+        when(paymentJpaAdapter.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(0L);
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(eq(1L), any(ModuleType.class), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(0L);
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(eq(1L), eq(ModuleType.LITERARY), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(7L);
+
+        assertThatThrownBy(() -> userTierService.consumeModuleUsage(1L, ModuleType.LITERARY))
+                .isInstanceOf(ApiException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.MODULE_DAILY_LIMIT_EXCEEDED);
+
+        var response = userTierService.consumeModuleUsage(1L, ModuleType.EMAIL);
+        assertThat(response.getModuleType()).isEqualTo(ModuleType.EMAIL);
+        assertThat(response.getRemaining()).isEqualTo(0);
+        verify(moduleUsageRepository, times(1)).save(any());
+    }
+
+    @Test
+    @DisplayName("결제 성공 시 자격 있으면 티어 자동 업그레이드 — tierUpgradePolicy.calculateTier 호출 검증")
+    void upgradeTierIfEligible_callsTierUpgradePolicy() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(paymentJpaAdapter.sumTotalPaymentAmount(1L, PaymentStatus.SUCCESS)).thenReturn(BigDecimal.valueOf(100_000));
+        when(tierUpgradePolicy.calculateTier(any(BigDecimal.class), eq(UserTier.FREE))).thenReturn(UserTier.PRO);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(paymentJpaAdapter.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(0L);
+        when(moduleUsageRepository.countTodayByUserIdAndModuleType(anyLong(), any(ModuleType.class), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(0L);
+        when(tierLimitPolicy.getDailyLimit(any(UserTier.class))).thenReturn(100);
+        when(tierLimitPolicy.getConsumptionAmount(any(ModuleType.class))).thenReturn(1);
+
+        userTierService.upgradeTierIfEligible(1L, BigDecimal.valueOf(50_000));
+
+        verify(tierUpgradePolicy).calculateTier(BigDecimal.valueOf(100_000), UserTier.FREE);
+        verify(tierHistoryJpaAdapter).save(any());
+    }
+}

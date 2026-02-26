@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.payment.infrastructure.external.provider.paypal.webhook;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +36,7 @@ public class PayPalWebhookParser {
      * @throws RuntimeException 파싱 실패 시
      */
     public WebhookEvent parse(String payload) {
-        if (payload == null || payload.isEmpty()) {
+        if (payload == null || payload.isBlank()) {
             throw new IllegalArgumentException("PayPal Webhook payload는 필수입니다");
         }
 
@@ -43,29 +44,34 @@ public class PayPalWebhookParser {
             @SuppressWarnings("unchecked")
             Map<String, Object> webhookData = objectMapper.readValue(payload, Map.class);
             if (webhookData == null) {
-                throw new RuntimeException("PayPal Webhook payload가 비어있습니다");
+                throw new IllegalStateException("PayPal Webhook payload가 비어있습니다");
             }
 
             String eventType = (String) webhookData.get("event_type");
-            if (eventType == null || eventType.isEmpty()) {
-                throw new RuntimeException("PayPal Webhook payload에 event_type이 없습니다");
+            if (eventType == null || eventType.isBlank()) {
+                throw new IllegalStateException("PayPal Webhook payload에 event_type이 없습니다");
             }
 
             @SuppressWarnings("unchecked")
             Map<String, Object> resource = (Map<String, Object>) webhookData.get("resource");
             if (resource == null) {
-                throw new RuntimeException("PayPal Webhook payload에 resource가 없습니다");
+                throw new IllegalStateException("PayPal Webhook payload에 resource가 없습니다");
             }
 
             String orderId = extractOrderId(resource);
-            String captureId = (String) resource.get("id");
-            String statusStr = (String) resource.get("status");
+            Object rawId = resource.get("id");
+            String captureId = rawId instanceof String ? (String) rawId : (rawId != null ? String.valueOf(rawId) : null);
+            Object rawStatus = resource.get("status");
+            String statusStr = rawStatus instanceof String ? (String) rawStatus : (rawStatus != null ? String.valueOf(rawStatus) : null);
             PaymentStatus status = statusMapper.map(statusStr);
 
-            // orderId가 null이면 captureId를 대체값으로 사용
+            // orderId가 null이면 captureId를 대체값으로 사용 (PayPal이 주문 ID를 보내지 않는 경우).
+            // WebhookEvent.orderId 필드에는 "결제/주문 식별자"가 들어가며, 하위 검증(PaymentValidator 등)이
+            // 이 값을 기준으로 매칭할 수 있도록 설계되어 있음. order_id가 없을 때 captureId를 사용하는 것은
+            // 의도된 폴백이며, 실제 주문 ID와 결제 ID를 구분하는 정책이 필요하면 여기서 null 전달 또는 별도 플래그 고려.
             String externalPaymentId = orderId != null ? orderId : captureId;
-            if (externalPaymentId == null || externalPaymentId.isEmpty()) {
-                throw new RuntimeException("PayPal Webhook payload에 orderId 또는 captureId가 없습니다");
+            if (externalPaymentId == null || externalPaymentId.isBlank()) {
+                throw new IllegalStateException("PayPal Webhook payload에 orderId 또는 captureId가 없습니다");
             }
 
             PaymentResult paymentResult = PaymentResult.builder()
@@ -74,12 +80,13 @@ public class PayPalWebhookParser {
                     .metadata(objectMapper.writeValueAsString(resource))
                     .build();
 
-            // orderId가 null이면 externalPaymentId를 사용 (fallback)
-            String orderIdForEvent = orderId != null ? orderId : externalPaymentId;
-            return new WebhookEvent(eventType, externalPaymentId, orderIdForEvent, paymentResult);
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            return new WebhookEvent(eventType, externalPaymentId, orderId != null ? orderId : externalPaymentId, paymentResult);
+        } catch (JsonProcessingException e) {
             log.error("PayPal Webhook JSON 파싱 실패: error={}", e.getMessage(), e);
             throw new RuntimeException("PayPal Webhook JSON 파싱 실패: " + e.getMessage(), e);
+        } catch (IllegalStateException e) {
+            log.error("PayPal Webhook 페이로드 유효성 검사 실패: error={}", e.getMessage(), e);
+            throw e;
         } catch (Exception e) {
             log.error("PayPal Webhook 파싱 실패: error={}", e.getMessage(), e);
             throw new RuntimeException("PayPal Webhook 파싱 실패: " + e.getMessage(), e);
@@ -93,7 +100,8 @@ public class PayPalWebhookParser {
             @SuppressWarnings("unchecked")
             Map<String, Object> relatedIds = (Map<String, Object>) supplementaryData.get("related_ids");
             if (relatedIds != null) {
-                return (String) relatedIds.get("order_id");
+                Object rawOrderId = relatedIds.get("order_id");
+                return rawOrderId instanceof String ? (String) rawOrderId : (rawOrderId != null ? String.valueOf(rawOrderId) : null);
             }
         }
         return null;

@@ -1,5 +1,6 @@
 package org.example.sharedprompts.module.dto.request.github;
 
+import org.example.sharedprompts.github.dto.body.request.GitHubBodyRequestDto;
 import org.example.sharedprompts.module.exception.BaseException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

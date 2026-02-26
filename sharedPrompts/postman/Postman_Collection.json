@@ -1737,6 +1737,31 @@
           }
         },
         {
+          "name": "모듈 사용 1회 차감",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moduleType\": \"LITERARY\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/usage/consume",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "usage", "consume"]
+            }
+          }
+        },
+        {
           "name": "결제 승인",
           "request": {
             "method": "POST",
@@ -1758,6 +1783,74 @@
               "raw": "{{baseUrl}}/payments/confirm",
               "host": ["{{baseUrl}}"],
               "path": ["payments", "confirm"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Webhook",
+      "item": [
+        {
+          "name": "Kakao Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"PAYMENT_COMPLETED\",\n  \"data\": {}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/payments/kakao",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhooks", "payments", "kakao"]
+            }
+          }
+        },
+        {
+          "name": "Toss Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventType\": \"PAYMENT_COMPLETED\",\n  \"data\": {}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/payments/toss",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhooks", "payments", "toss"]
+            }
+          }
+        },
+        {
+          "name": "PayPal Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_type\": \"PAYMENT.SALE.COMPLETED\",\n  \"resource\": {}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/payments/paypal",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhooks", "payments", "paypal"]
             }
           }
         }

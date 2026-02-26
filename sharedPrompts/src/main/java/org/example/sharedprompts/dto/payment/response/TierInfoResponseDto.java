@@ -5,12 +5,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.sharedprompts.domain.payment.domain.enums.ModuleType;
 import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
 import org.example.sharedprompts.domain.user.User;
 
-/**
- * 사용자 티어 정보 응답 DTO
- */
+import java.util.Map;
+
 @Getter
 @Builder
 @NoArgsConstructor
@@ -34,15 +34,42 @@ public class TierInfoResponseDto {
     @JsonProperty("remaining_count")
     private int remainingCount;
 
-    /**
-     * 사용자 티어 정보를 DTO로 변환
-     */
+    @JsonProperty("remaining_by_module_type")
+    private Map<String, Integer> remainingByModuleType;
+
     public static TierInfoResponseDto from(User user, int dailyLimit, int todayUsedCount, int remainingCount) {
-        UserTier tier = (user.getTier() != null) ? user.getTier() : UserTier.FREE;
+        UserTier t = (user.getTier() != null) ? user.getTier() : UserTier.FREE;
         return TierInfoResponseDto.builder()
                 .userId(user.getId())
-                .tier(tier)
-                .tierDescription(tier.getDescription())
+                .tier(t)
+                .tierDescription(t.getDescription())
+                .dailyLimit(dailyLimit)
+                .todayUsedCount(todayUsedCount)
+                .remainingCount(remainingCount)
+                .build();
+    }
+
+    public static TierInfoResponseDto from(User user, int dailyLimit, int todayUsedCount, int remainingCount,
+                                          Map<String, Integer> remainingByModuleType) {
+        UserTier t = (user.getTier() != null) ? user.getTier() : UserTier.FREE;
+        return TierInfoResponseDto.builder()
+                .userId(user.getId())
+                .tier(t)
+                .tierDescription(t.getDescription())
+                .dailyLimit(dailyLimit)
+                .todayUsedCount(todayUsedCount)
+                .remainingCount(remainingCount)
+                .remainingByModuleType(remainingByModuleType)
+                .build();
+    }
+
+    public static TierInfoResponseDto fromModule(User user, ModuleType moduleType, int dailyLimit,
+                                                 int todayUsedCount, int remainingCount) {
+        UserTier t = (user.getTier() != null) ? user.getTier() : UserTier.FREE;
+        return TierInfoResponseDto.builder()
+                .userId(user.getId())
+                .tier(t)
+                .tierDescription(t.getDescription())
                 .dailyLimit(dailyLimit)
                 .todayUsedCount(todayUsedCount)
                 .remainingCount(remainingCount)

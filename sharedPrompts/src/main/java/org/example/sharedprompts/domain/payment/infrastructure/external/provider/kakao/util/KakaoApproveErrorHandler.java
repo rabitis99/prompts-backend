@@ -19,9 +19,7 @@ public class KakaoApproveErrorHandler {
 
     public RuntimeException handleHttpClientError(HttpClientErrorException e, String tid, String orderId) {
         String errorDetails = e.getResponseBodyAsString();
-        String masked = errorDetails != null
-                ? SensitiveDataMasker.maskSensitiveData(errorDetails)
-                : null;
+        String masked = SensitiveDataMasker.maskSensitiveData(errorDetails);
 
         log.error(
                 "KakaoPay approve HTTP 오류: tid={}, orderId={}, status={}, body={}",

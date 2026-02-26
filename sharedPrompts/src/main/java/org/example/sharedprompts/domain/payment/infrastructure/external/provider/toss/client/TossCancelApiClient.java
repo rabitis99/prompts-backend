@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.payment.infrastructure.external.provider.toss.client;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.config.properties.TossPayProperties;
 import org.example.sharedprompts.domain.payment.infrastructure.external.provider.toss.dto.TossCancelResponse;
@@ -25,20 +24,30 @@ import java.util.Map;
  */
 @Slf4j
 @Component("tossCancelApiClient")
-@RequiredArgsConstructor
 @ConditionalOnProperty(name = "payment.enabled", havingValue = "true")
 public class TossCancelApiClient {
 
     private static final String CANCEL_PATH = "/%s/cancel";
 
     private final TossPayProperties properties;
-
-    @Qualifier("paymentRestTemplate")
     private final RestTemplate restTemplate;
-
     private final TossPayHeadersProvider headersProvider;
     private final TossCancelResponseParser responseParser;
     private final TossCancelErrorHandler errorHandler;
+
+    public TossCancelApiClient(
+            TossPayProperties properties,
+            @Qualifier("paymentRestTemplate") RestTemplate restTemplate,
+            TossPayHeadersProvider headersProvider,
+            TossCancelResponseParser responseParser,
+            TossCancelErrorHandler errorHandler
+    ) {
+        this.properties = properties;
+        this.restTemplate = restTemplate;
+        this.headersProvider = headersProvider;
+        this.responseParser = responseParser;
+        this.errorHandler = errorHandler;
+    }
 
     public TossCancelResponse cancel(String paymentKey, String reason, String idempotencyKey) {
         validateRequest(paymentKey, reason);
