@@ -1,27 +1,42 @@
 package org.example.sharedprompts.module.domain.github;
 
-import org.example.sharedprompts.domain.prompt.service.PromptService;
-import org.example.sharedprompts.module.domain.production.service.ai.text.TextAiClient;
-import org.example.sharedprompts.module.dto.request.github.GitHubBodyRequestDto;
+import org.example.sharedprompts.github.domain.service.GitHubBodyGeneratorService;
+import org.example.sharedprompts.github.dto.body.request.GitHubBodyRequestDto;
+import org.example.sharedprompts.github.port.out.BodyGenerationPort;
+import org.example.sharedprompts.github.port.out.BodyTemplatePort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GitHubBodyGeneratorService 프롬프트 치환 및 generateBoth 테스트")
 class GitHubBodyGeneratorServiceTest {
 
     @Mock
-    private PromptService promptService;
+    private BodyTemplatePort bodyTemplatePort;
+
+    @Mock
+    private BodyGenerationPort bodyGenerationPort;
 
     @Test
     @DisplayName("TextAiClient 없을 때 템플릿 치환으로 Issue/PR 본문 생성")
     void generateBoth_withoutAiClient_usesTemplateSubstitution() {
-        GitHubBodyGeneratorService service = new GitHubBodyGeneratorService(null, promptService);
+        when(bodyTemplatePort.resolveTemplate(eq(null), eq(BodyTemplatePort.TemplateKind.ISSUE)))
+                .thenReturn("Repo: {{REPO}}\nSHA: {{SHA}}\nJob: {{JOB_ID}}\n[AUTO_JOB_ID:{{JOB_ID}}]\n[AUTO_PUSH_DELIVERY:{{DELIVERY_ID}}]\n[AUTO_PUSH_SHA:{{SHA}}]");
+        when(bodyTemplatePort.resolveTemplate(eq(null), eq(BodyTemplatePort.TemplateKind.PR)))
+                .thenReturn("Repo: {{REPO}}\nBase: {{BASE_BRANCH}}\nBranch: {{BRANCH}}\n[AUTO_JOB_ID:{{JOB_ID}}]");
+        when(bodyGenerationPort.generateBody(any(), any())).thenReturn(Optional.empty());
+
+        GitHubBodyGeneratorService service = new GitHubBodyGeneratorService(bodyTemplatePort, bodyGenerationPort);
         GitHubBodyRequestDto request = new GitHubBodyRequestDto(
                 "job-1", "delivery-1", "abc123",
                 "owner/repo", "feature/x", "main",
@@ -40,9 +55,12 @@ class GitHubBodyGeneratorServiceTest {
     @Test
     @DisplayName("Mock Groq 응답 시 치환된 본문 반환")
     void generateBody_withMockGroq_substitutesPlaceholders() {
-        TextAiClient mockClient = (prompt, modelName, contentTypeHint) ->
-                "## TL;DR\n- Summary from AI.\n\n## Links\n- https://github.com/{{REPO}}/commit/{{SHA}}\n\n[AUTO_JOB_ID:{{JOB_ID}}]\n[AUTO_PUSH_DELIVERY:{{DELIVERY_ID}}]\n[AUTO_PUSH_SHA:{{SHA}}]";
-        GitHubBodyGeneratorService service = new GitHubBodyGeneratorService(mockClient, promptService);
+        when(bodyTemplatePort.resolveTemplate(eq(null), eq(BodyTemplatePort.TemplateKind.ISSUE)))
+                .thenReturn("placeholder");
+        when(bodyGenerationPort.generateBody(any(), any()))
+                .thenReturn(Optional.of("## TL;DR\n- Summary from AI.\n\n## Links\n- https://github.com/{{REPO}}/commit/{{SHA}}\n\n[AUTO_JOB_ID:{{JOB_ID}}]\n[AUTO_PUSH_DELIVERY:{{DELIVERY_ID}}]\n[AUTO_PUSH_SHA:{{SHA}}]"));
+
+        GitHubBodyGeneratorService service = new GitHubBodyGeneratorService(bodyTemplatePort, bodyGenerationPort);
         GitHubBodyRequestDto request = new GitHubBodyRequestDto(
                 "job-2", "del-2", "sha-2",
                 "org/repo", "main", null,

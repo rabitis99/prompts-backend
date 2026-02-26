@@ -7,9 +7,12 @@ import org.example.sharedprompts.domain.payment.application.port.out.paymentgate
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentUserType;
 import org.example.sharedprompts.domain.payment.infrastructure.external.provider.PaymentProvider;
 import org.example.sharedprompts.domain.payment.infrastructure.external.provider.PaymentProviderFactory;
 import org.example.sharedprompts.domain.user.User;
+import org.example.sharedprompts.domain.user.enums.Provider;
+import org.example.sharedprompts.domain.user.enums.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,15 +48,24 @@ class PaymentGatewayPortAdapterTest {
     void setUp() {
         adapter = new PaymentGatewayPortAdapter(providerFactory);
 
-        User user = new User();
-        user.setId(1L);
+        User user = User.builder()
+                .id(1L)
+                .email("test@test.com")
+                .provider(Provider.LOCAL)
+                .providerId("provider-1")
+                .nickname("testuser")
+                .role(Role.ROLE_USER)
+                .signupCompleted(true)
+                .blocked(false)
+                .build();
 
         testPayment = Payment.builder()
                 .id(1L)
                 .user(user)
                 .amount(BigDecimal.valueOf(10000))
                 .currency("KRW")
-                .paymentMethod(PaymentMethod.CARD)
+                .paymentMethod(PaymentMethod.TOSS)
+                .userType(PaymentUserType.PERSONAL)
                 .idempotencyKey("KEY_123")
                 .status(PaymentStatus.PENDING)
                 .build();
@@ -62,9 +75,9 @@ class PaymentGatewayPortAdapterTest {
     @DisplayName("결제 준비 성공")
     void testPreparePaymentSuccess() {
         // Given
-        PaymentProvider.PrepareResult prepareResult = new PaymentProvider.PrepareResult("TID_123");
+        PaymentProvider.PrepareResult prepareResult = PaymentProvider.PrepareResult.success("TID_123", null, null);
 
-        when(providerFactory.getProvider(PaymentMethod.CARD)).thenReturn(paymentProvider);
+        when(providerFactory.getProvider(PaymentMethod.TOSS)).thenReturn(paymentProvider);
         when(paymentProvider.preparePayment(
                 testPayment.getId().toString(),
                 testPayment.getAmount(),
@@ -81,7 +94,7 @@ class PaymentGatewayPortAdapterTest {
         assertTrue(result.isSuccess());
         assertEquals("TID_123", result.getExternalPaymentId());
         assertNull(result.getErrorMessage());
-        verify(providerFactory).getProvider(PaymentMethod.CARD);
+        verify(providerFactory).getProvider(PaymentMethod.TOSS);
         verify(paymentProvider).preparePayment(any(), any(), any(), any(), any(), any());
     }
 
@@ -89,7 +102,7 @@ class PaymentGatewayPortAdapterTest {
     @DisplayName("결제 준비 실패")
     void testPreparePaymentFailure() {
         // Given
-        when(providerFactory.getProvider(PaymentMethod.CARD))
+        when(providerFactory.getProvider(PaymentMethod.TOSS))
                 .thenThrow(new RuntimeException("Provider error"));
 
         // When
@@ -99,7 +112,7 @@ class PaymentGatewayPortAdapterTest {
         assertFalse(result.isSuccess());
         assertNotNull(result.getErrorMessage());
         assertTrue(result.getErrorMessage().contains("오류"));
-        verify(providerFactory).getProvider(PaymentMethod.CARD);
+        verify(providerFactory).getProvider(PaymentMethod.TOSS);
     }
 
     @Test
@@ -107,10 +120,12 @@ class PaymentGatewayPortAdapterTest {
     void testConfirmPaymentSuccess() {
         // Given
         String approvalToken = "TOKEN_123";
-        PaymentResult paymentResult = new PaymentResult();
-        paymentResult.setExternalPaymentId("EXT_PAY_123");
+        PaymentResult paymentResult = PaymentResult.builder()
+                .externalPaymentId("EXT_PAY_123")
+                .status(PaymentStatus.SUCCESS)
+                .build();
 
-        when(providerFactory.getProvider(PaymentMethod.CARD)).thenReturn(paymentProvider);
+        when(providerFactory.getProvider(PaymentMethod.TOSS)).thenReturn(paymentProvider);
         when(paymentProvider.confirmPayment(
                 eq(approvalToken),
                 eq(testPayment.getId().toString()),
@@ -127,7 +142,7 @@ class PaymentGatewayPortAdapterTest {
         // Then
         assertTrue(result.isSuccess());
         assertEquals("EXT_PAY_123", result.getExternalPaymentId());
-        verify(providerFactory).getProvider(PaymentMethod.CARD);
+        verify(providerFactory).getProvider(PaymentMethod.TOSS);
         verify(paymentProvider).confirmPayment(any(), any(), any(), any(), any(), any(), any());
     }
 
@@ -137,7 +152,7 @@ class PaymentGatewayPortAdapterTest {
         // Given
         String approvalToken = "INVALID_TOKEN";
 
-        when(providerFactory.getProvider(PaymentMethod.CARD))
+        when(providerFactory.getProvider(PaymentMethod.TOSS))
                 .thenThrow(new RuntimeException("Invalid token"));
 
         // When
@@ -167,13 +182,20 @@ class PaymentGatewayPortAdapterTest {
     @DisplayName("결제 취소 성공")
     void testCancelPaymentSuccess() {
         // Given
-        testPayment.setExternalPaymentId("EXT_PAY_123");
-        CancelResult cancelResult = new CancelResult();
-        cancelResult.setCancelledAmount(testPayment.getAmount());
+        testPayment.updateExternalPaymentId("EXT_PAY_123");
+        CancelResult cancelResult = CancelResult.builder()
+                .externalPaymentId("EXT_PAY_123")
+                .status(PaymentStatus.CANCELED)
+                .canceledAt(LocalDateTime.now())
+                .reason(null)
+                .metadata(null)
+                .originalAmount(null)
+                .taxFreeAmount(null)
+                .build();
 
-        when(providerFactory.getProvider(PaymentMethod.CARD)).thenReturn(paymentProvider);
+        when(providerFactory.getProvider(PaymentMethod.TOSS)).thenReturn(paymentProvider);
         when(paymentProvider.cancelPayment(
-                testPayment.getExternalPaymentId(),
+                "EXT_PAY_123",
                 "User requested cancel",
                 testPayment.getIdempotencyKey()
         )).thenReturn(cancelResult);
@@ -184,7 +206,7 @@ class PaymentGatewayPortAdapterTest {
         // Then
         assertTrue(result.isSuccess());
         assertEquals("EXT_PAY_123", result.getExternalPaymentId());
-        verify(providerFactory).getProvider(PaymentMethod.CARD);
+        verify(providerFactory).getProvider(PaymentMethod.TOSS);
         verify(paymentProvider).cancelPayment(anyString(), anyString(), anyString());
     }
 
@@ -192,9 +214,9 @@ class PaymentGatewayPortAdapterTest {
     @DisplayName("결제 취소 실패")
     void testCancelPaymentFailure() {
         // Given
-        testPayment.setExternalPaymentId("INVALID_EXT_ID");
+        testPayment.updateExternalPaymentId("INVALID_EXT_ID");
 
-        when(providerFactory.getProvider(PaymentMethod.CARD))
+        when(providerFactory.getProvider(PaymentMethod.TOSS))
                 .thenThrow(new RuntimeException("Payment not found"));
 
         // When
@@ -209,12 +231,18 @@ class PaymentGatewayPortAdapterTest {
     @DisplayName("환불 성공")
     void testRefundPaymentSuccess() {
         // Given
-        testPayment.setExternalPaymentId("EXT_PAY_123");
+        testPayment.updateExternalPaymentId("EXT_PAY_123");
         BigDecimal refundAmount = BigDecimal.valueOf(5000);
-        RefundResult refundResult = new RefundResult();
-        refundResult.setRefundedAmount(refundAmount);
+        RefundResult refundResult = RefundResult.builder()
+                .externalPaymentId("EXT_PAY_123")
+                .status(PaymentStatus.REFUNDED)
+                .refundedAmount(refundAmount)
+                .refundedAt(LocalDateTime.now())
+                .reason(null)
+                .metadata(null)
+                .build();
 
-        when(providerFactory.getProvider(PaymentMethod.CARD)).thenReturn(paymentProvider);
+        when(providerFactory.getProvider(PaymentMethod.TOSS)).thenReturn(paymentProvider);
         when(paymentProvider.refundPayment(
                 testPayment.getExternalPaymentId(),
                 refundAmount,
@@ -228,7 +256,7 @@ class PaymentGatewayPortAdapterTest {
         // Then
         assertTrue(result.isSuccess());
         assertEquals("EXT_PAY_123", result.getExternalPaymentId());
-        verify(providerFactory).getProvider(PaymentMethod.CARD);
+        verify(providerFactory).getProvider(PaymentMethod.TOSS);
         verify(paymentProvider).refundPayment(anyString(), any(BigDecimal.class), anyString(), anyString());
     }
 
@@ -236,10 +264,10 @@ class PaymentGatewayPortAdapterTest {
     @DisplayName("환불 실패 - 금액 초과")
     void testRefundPaymentFailureAmountExceeds() {
         // Given
-        testPayment.setExternalPaymentId("EXT_PAY_123");
+        testPayment.updateExternalPaymentId("EXT_PAY_123");
         BigDecimal refundAmount = BigDecimal.valueOf(20000); // 원본 금액이 10000
 
-        when(providerFactory.getProvider(PaymentMethod.CARD))
+        when(providerFactory.getProvider(PaymentMethod.TOSS))
                 .thenThrow(new RuntimeException("Refund amount exceeds payment amount"));
 
         // When
@@ -265,13 +293,12 @@ class PaymentGatewayPortAdapterTest {
     }
 
     @Test
-    @DisplayName("다양한 결제 수단 - CARD")
-    void testDifferentPaymentMethodCard() {
-        // Given
-        testPayment.setPaymentMethod(PaymentMethod.CARD);
-        PaymentProvider.PrepareResult prepareResult = new PaymentProvider.PrepareResult("TID_CARD");
+    @DisplayName("다양한 결제 수단 - TOSS")
+    void testDifferentPaymentMethodToss() {
+        // Given - already TOSS in setUp
+        PaymentProvider.PrepareResult prepareResult = PaymentProvider.PrepareResult.success("TID_TOSS", null, null);
 
-        when(providerFactory.getProvider(PaymentMethod.CARD)).thenReturn(paymentProvider);
+        when(providerFactory.getProvider(PaymentMethod.TOSS)).thenReturn(paymentProvider);
         when(paymentProvider.preparePayment(any(), any(), any(), any(), any(), any()))
                 .thenReturn(prepareResult);
 
@@ -280,40 +307,65 @@ class PaymentGatewayPortAdapterTest {
 
         // Then
         assertTrue(result.isSuccess());
-        assertEquals("TID_CARD", result.getExternalPaymentId());
+        assertEquals("TID_TOSS", result.getExternalPaymentId());
     }
 
     @Test
-    @DisplayName("다양한 결제 수단 - TRANSFER")
+    @DisplayName("다양한 결제 수단 - KAKAO_PAY")
     void testDifferentPaymentMethodTransfer() {
-        // Given
-        testPayment.setPaymentMethod(PaymentMethod.TRANSFER);
-        PaymentProvider.PrepareResult prepareResult = new PaymentProvider.PrepareResult("TID_TRANSFER");
+        // Given - build payment with KAKAO_PAY
+        User user = User.builder()
+                .id(2L)
+                .email("u2@test.com")
+                .provider(Provider.LOCAL)
+                .providerId("provider-2")
+                .nickname("user2")
+                .role(Role.ROLE_USER)
+                .signupCompleted(true)
+                .blocked(false)
+                .build();
+        Payment kakaoPayment = Payment.builder()
+                .id(2L)
+                .user(user)
+                .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
+                .idempotencyKey("KEY_KAKAO")
+                .status(PaymentStatus.PENDING)
+                .build();
+        PaymentProvider.PrepareResult prepareResult = PaymentProvider.PrepareResult.success("TID_KAKAO", null, null);
 
-        when(providerFactory.getProvider(PaymentMethod.TRANSFER)).thenReturn(paymentProvider);
+        when(providerFactory.getProvider(PaymentMethod.KAKAO_PAY)).thenReturn(paymentProvider);
         when(paymentProvider.preparePayment(any(), any(), any(), any(), any(), any()))
                 .thenReturn(prepareResult);
 
         // When
-        PaymentGatewayPort.PaymentGatewayResult result = adapter.preparePayment(testPayment);
+        PaymentGatewayPort.PaymentGatewayResult result = adapter.preparePayment(kakaoPayment);
 
         // Then
         assertTrue(result.isSuccess());
-        assertEquals("TID_TRANSFER", result.getExternalPaymentId());
+        assertEquals("TID_KAKAO", result.getExternalPaymentId());
     }
 
     @Test
     @DisplayName("부분 환불")
     void testPartialRefund() {
         // Given
-        testPayment.setExternalPaymentId("EXT_PAY_123");
+        testPayment.updateExternalPaymentId("EXT_PAY_123");
         BigDecimal fullAmount = testPayment.getAmount();
         BigDecimal partialRefundAmount = fullAmount.divide(BigDecimal.valueOf(2), RoundingMode.HALF_UP);
 
-        RefundResult refundResult = new RefundResult();
-        refundResult.setRefundedAmount(partialRefundAmount);
+        RefundResult refundResult = RefundResult.builder()
+                .externalPaymentId("EXT_PAY_123")
+                .status(PaymentStatus.PARTIALLY_REFUNDED)
+                .refundedAmount(partialRefundAmount)
+                .refundedAt(LocalDateTime.now())
+                .reason(null)
+                .metadata(null)
+                .build();
 
-        when(providerFactory.getProvider(PaymentMethod.CARD)).thenReturn(paymentProvider);
+        when(providerFactory.getProvider(PaymentMethod.TOSS)).thenReturn(paymentProvider);
         when(paymentProvider.refundPayment(
                 testPayment.getExternalPaymentId(),
                 partialRefundAmount,

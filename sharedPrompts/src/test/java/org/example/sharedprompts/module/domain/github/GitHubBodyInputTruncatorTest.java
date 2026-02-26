@@ -1,5 +1,6 @@
 package org.example.sharedprompts.module.domain.github;
 
+import org.example.sharedprompts.github.domain.service.GitHubBodyInputTruncator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

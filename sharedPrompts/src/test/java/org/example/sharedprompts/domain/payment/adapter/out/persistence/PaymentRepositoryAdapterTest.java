@@ -2,8 +2,13 @@ package org.example.sharedprompts.domain.payment.adapter.out.persistence;
 
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentUserType;
 import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PaymentJpaAdapter;
 import org.example.sharedprompts.domain.user.User;
+import org.example.sharedprompts.domain.user.enums.Provider;
+import org.example.sharedprompts.domain.user.enums.Role;
+import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,12 +23,11 @@ import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,16 +48,16 @@ class PaymentRepositoryAdapterTest {
     @DisplayName("결제 저장 성공")
     void testSaveSuccess() {
         // Given
-        User user = new User();
-        user.setId(1L);
+        User user = userWithId(1L);
 
         Payment payment = Payment.builder()
                 .id(1L)
                 .user(user)
                 .amount(BigDecimal.valueOf(10000))
                 .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.PENDING)
-                .createdAt(LocalDateTime.now())
                 .build();
 
         // When
@@ -72,14 +76,15 @@ class PaymentRepositoryAdapterTest {
     void testFindByIdSuccess() {
         // Given
         Long paymentId = 1L;
-        User user = new User();
-        user.setId(1L);
+        User user = userWithId(1L);
 
         Payment payment = Payment.builder()
                 .id(paymentId)
                 .user(user)
                 .amount(BigDecimal.valueOf(10000))
                 .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.SUCCESS)
                 .build();
 
@@ -113,13 +118,15 @@ class PaymentRepositoryAdapterTest {
     void testFindByIdForUpdateSuccess() {
         // Given
         Long paymentId = 1L;
-        User user = new User();
-        user.setId(1L);
+        User user = userWithId(1L);
 
         Payment payment = Payment.builder()
                 .id(paymentId)
                 .user(user)
                 .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.SUCCESS)
                 .build();
 
@@ -138,14 +145,16 @@ class PaymentRepositoryAdapterTest {
     void testFindByExternalPaymentIdSuccess() {
         // Given
         String externalPaymentId = "EXT_123";
-        User user = new User();
-        user.setId(1L);
+        User user = userWithId(1L);
 
         Payment payment = Payment.builder()
                 .id(1L)
                 .user(user)
                 .externalPaymentId(externalPaymentId)
                 .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.SUCCESS)
                 .build();
 
@@ -166,20 +175,25 @@ class PaymentRepositoryAdapterTest {
         Long userId = 1L;
         Pageable pageable = PageRequest.of(0, 10);
 
-        User user = new User();
-        user.setId(userId);
+        User user = userWithId(userId);
 
         List<Payment> payments = Arrays.asList(
                 Payment.builder()
                         .id(1L)
                         .user(user)
                         .amount(BigDecimal.valueOf(10000))
+                        .currency("KRW")
+                        .paymentMethod(PaymentMethod.KAKAO_PAY)
+                        .userType(PaymentUserType.PERSONAL)
                         .status(PaymentStatus.SUCCESS)
                         .build(),
                 Payment.builder()
                         .id(2L)
                         .user(user)
                         .amount(BigDecimal.valueOf(20000))
+                        .currency("KRW")
+                        .paymentMethod(PaymentMethod.KAKAO_PAY)
+                        .userType(PaymentUserType.PERSONAL)
                         .status(PaymentStatus.SUCCESS)
                         .build()
         );
@@ -202,13 +216,16 @@ class PaymentRepositoryAdapterTest {
     void testFindByIdempotencyKey() {
         // Given
         String idempotencyKey = "KEY_123";
-        User user = new User();
-        user.setId(1L);
+        User user = userWithId(1L);
 
         Payment payment = Payment.builder()
                 .id(1L)
                 .user(user)
                 .idempotencyKey(idempotencyKey)
+                .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.PENDING)
                 .build();
 
@@ -260,16 +277,19 @@ class PaymentRepositoryAdapterTest {
     @DisplayName("재시도 가능한 결제 조회")
     void testFindRetryablePayments() {
         // Given
-        User user = new User();
-        user.setId(1L);
+        User user = userWithId(1L);
         PaymentStatus status = PaymentStatus.PENDING;
         int maxRetry = 5;
         LocalDateTime now = LocalDateTime.now();
 
-        List<Payment> retryablePayments = Arrays.asList(
+        List<Payment> retryablePayments = Collections.singletonList(
                 Payment.builder()
                         .id(1L)
                         .user(user)
+                        .amount(BigDecimal.valueOf(10000))
+                        .currency("KRW")
+                        .paymentMethod(PaymentMethod.KAKAO_PAY)
+                        .userType(PaymentUserType.PERSONAL)
                         .status(PaymentStatus.PENDING)
                         .build()
         );
@@ -291,15 +311,17 @@ class PaymentRepositoryAdapterTest {
     void testFindExpiredPendingPayments() {
         // Given
         LocalDateTime expirationTime = LocalDateTime.now().minusHours(1);
-        User user = new User();
-        user.setId(1L);
+        User user = userWithId(1L);
 
-        List<Payment> expiredPayments = Arrays.asList(
+        List<Payment> expiredPayments = Collections.singletonList(
                 Payment.builder()
                         .id(1L)
                         .user(user)
+                        .amount(BigDecimal.valueOf(10000))
+                        .currency("KRW")
+                        .paymentMethod(PaymentMethod.KAKAO_PAY)
+                        .userType(PaymentUserType.PERSONAL)
                         .status(PaymentStatus.PENDING)
-                        .createdAt(expirationTime.minusHours(1))
                         .build()
         );
 
@@ -348,12 +370,16 @@ class PaymentRepositoryAdapterTest {
     @DisplayName("결제 삭제")
     void testDelete() {
         // Given
-        User user = new User();
-        user.setId(1L);
+        User user = userWithId(1L);
 
         Payment payment = Payment.builder()
                 .id(1L)
                 .user(user)
+                .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
+                .status(PaymentStatus.PENDING)
                 .build();
 
         // When
@@ -361,5 +387,19 @@ class PaymentRepositoryAdapterTest {
 
         // Then
         verify(paymentJpaAdapter).delete(payment);
+    }
+
+    private static User userWithId(Long id) {
+        return User.builder()
+                .id(id)
+                .email("test@example.com")
+                .provider(Provider.LOCAL)
+                .providerId("provider-id")
+                .nickname("testuser")
+                .role(Role.ROLE_USER)
+                .tier(UserTier.FREE)
+                .signupCompleted(true)
+                .blocked(false)
+                .build();
     }
 }

@@ -6,12 +6,16 @@ import org.example.sharedprompts.domain.payment.application.port.out.event.Payme
 import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentGatewayPort;
 import org.example.sharedprompts.domain.payment.application.port.out.repository.PaymentCommandRepositoryPort;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
+import org.example.sharedprompts.domain.payment.infrastructure.transaction.PaymentTransactionManager;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentUserType;
 import org.example.sharedprompts.domain.payment.domain.exception.PaymentNotFoundException;
 import org.example.sharedprompts.domain.payment.domain.exception.PaymentValidationException;
 import org.example.sharedprompts.domain.user.User;
+import org.example.sharedprompts.domain.user.enums.Provider;
+import org.example.sharedprompts.domain.user.enums.Role;
+import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,15 +44,22 @@ class DefaultPaymentConfirmationServiceTest {
     @Mock
     private PaymentEventPublisherPort eventPublisher;
 
+    @Mock
+    private PaymentTransactionManager transactionManager;
+
     private DefaultPaymentConfirmationService service;
 
     @BeforeEach
+    @SuppressWarnings("unchecked")
     void setUp() {
         service = new DefaultPaymentConfirmationService(
                 paymentRepository,
                 paymentGateway,
-                eventPublisher
+                eventPublisher,
+                transactionManager
         );
+        when(transactionManager.executeInTransaction(any(Supplier.class)))
+                .thenAnswer(inv -> inv.getArgument(0, Supplier.class).get());
     }
 
     @Test
@@ -65,17 +77,16 @@ class DefaultPaymentConfirmationServiceTest {
                 .rawPayload("{}")
                 .build();
 
-        User mockUser = new User();
-        mockUser.setId(userId);
+        User mockUser = userWithId(userId);
 
         Payment mockPayment = Payment.builder()
                 .id(paymentId)
                 .user(mockUser)
                 .amount(BigDecimal.valueOf(10000))
                 .currency("KRW")
-                .paymentMethod(PaymentMethod.CREDIT_CARD)
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
                 .status(PaymentStatus.PENDING)
-                .userType(PaymentUserType.FREE)
+                .userType(PaymentUserType.PERSONAL)
                 .build();
 
         PaymentGatewayPort.PaymentGatewayResult successResult =
@@ -133,12 +144,15 @@ class DefaultPaymentConfirmationServiceTest {
                 .providerToken("token")
                 .build();
 
-        User mockUser = new User();
-        mockUser.setId(userId);
+        User mockUser = userWithId(userId);
 
         Payment mockPayment = Payment.builder()
                 .id(paymentId)
                 .user(mockUser)
+                .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.PENDING)
                 .build();
 
@@ -162,12 +176,15 @@ class DefaultPaymentConfirmationServiceTest {
                 .providerToken("token")
                 .build();
 
-        User mockUser = new User();
-        mockUser.setId(userId);
+        User mockUser = userWithId(userId);
 
         Payment mockPayment = Payment.builder()
                 .id(paymentId)
                 .user(mockUser)
+                .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.SUCCESS)  // Already processed
                 .build();
 
@@ -176,5 +193,63 @@ class DefaultPaymentConfirmationServiceTest {
 
         assertThrows(PaymentValidationException.class, () -> service.confirm(command));
         verifyNoInteractions(paymentGateway);
+    }
+
+    @Test
+    @DisplayName("게이트웨이 승인 실패 시 FAILED 저장 후 결과 반환(이벤트는 커밋 후 발행)")
+    void testConfirmGatewayFailureReturnsResult() {
+        // Given
+        Long paymentId = 1L;
+        Long userId = 1L;
+        String providerToken = "token";
+
+        ConfirmPaymentCommand command = ConfirmPaymentCommand.builder()
+                .paymentId(paymentId)
+                .userId(userId)
+                .providerToken(providerToken)
+                .build();
+
+        User mockUser = userWithId(userId);
+        Payment mockPayment = Payment.builder()
+                .id(paymentId)
+                .user(mockUser)
+                .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .status(PaymentStatus.PENDING)
+                .userType(PaymentUserType.PERSONAL)
+                .build();
+
+        PaymentGatewayPort.PaymentGatewayResult failResult =
+                PaymentGatewayPort.PaymentGatewayResult.failure("Gateway error", null);
+
+        when(paymentRepository.findByIdForUpdate(paymentId)).thenReturn(Optional.of(mockPayment));
+        when(paymentGateway.confirmPayment(mockPayment, providerToken)).thenReturn(failResult);
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // When
+        PaymentConfirmationResult result = service.confirm(command);
+
+        // Then: 예외 대신 결과 반환, FAILED 저장 및 실패 이벤트 등록(커밋 후 발행)
+        assertNotNull(result);
+        assertEquals(paymentId, result.getPaymentId());
+        assertEquals(PaymentStatus.FAILED, result.getStatus());
+        assertNull(result.getExternalPaymentId());
+        verify(paymentRepository).save(any(Payment.class));
+        verify(eventPublisher).publishPaymentFailed(any());
+    }
+
+    private static User userWithId(Long id) {
+        return User.builder()
+                .id(id)
+                .email("test@example.com")
+                .provider(Provider.LOCAL)
+                .providerId("provider-id")
+                .nickname("testuser")
+                .role(Role.ROLE_USER)
+                .tier(UserTier.FREE)
+                .signupCompleted(true)
+                .blocked(false)
+                .build();
     }
 }

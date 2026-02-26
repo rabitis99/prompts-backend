@@ -4,7 +4,6 @@ import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -52,7 +51,7 @@ class ActionTypeTaskDomainTest {
 
     @Test
     @DisplayName("모든 ActionType enum의 모든 값이 getTaskDomain()을 오버라이드했는지 검증")
-    void allActionTypesOverrideGetTaskDomain() throws Exception {
+    void allActionTypesOverrideGetTaskDomain() {
         List<String> unmappedActionTypes = new ArrayList<>();
 
         for (Class<? extends Enum<?>> enumClass : ACTION_TYPE_ENUMS) {

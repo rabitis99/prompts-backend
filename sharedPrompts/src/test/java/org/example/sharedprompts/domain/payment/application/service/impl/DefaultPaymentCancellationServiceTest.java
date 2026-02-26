@@ -9,9 +9,13 @@ import org.example.sharedprompts.domain.payment.domain.entity.Payment;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentUserType;
+import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
 import org.example.sharedprompts.domain.payment.domain.exception.PaymentNotFoundException;
 import org.example.sharedprompts.domain.payment.domain.exception.PaymentValidationException;
+import org.example.sharedprompts.domain.payment.infrastructure.transaction.PaymentTransactionManager;
 import org.example.sharedprompts.domain.user.User;
+import org.example.sharedprompts.domain.user.enums.Provider;
+import org.example.sharedprompts.domain.user.enums.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,15 +44,37 @@ class DefaultPaymentCancellationServiceTest {
     @Mock
     private PaymentEventPublisherPort eventPublisher;
 
+    @Mock
+    private PaymentTransactionManager transactionManager;
+
     private DefaultPaymentCancellationService service;
 
+    private User testUser;
+
     @BeforeEach
+    @SuppressWarnings("unchecked")
     void setUp() {
         service = new DefaultPaymentCancellationService(
                 paymentRepository,
                 paymentGateway,
-                eventPublisher
+                eventPublisher,
+                transactionManager
         );
+        testUser = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .provider(Provider.LOCAL)
+                .providerId("test-provider-id")
+                .nickname("testuser")
+                .role(Role.ROLE_USER)
+                .tier(UserTier.FREE)
+                .signupCompleted(true)
+                .blocked(false)
+                .build();
+
+        // TransactionManager: run the supplied task and return its result (each phase in its own "transaction")
+        when(transactionManager.executeInTransaction(any(Supplier.class)))
+                .thenAnswer(inv -> inv.getArgument(0, Supplier.class).get());
     }
 
     @Test
@@ -64,17 +91,14 @@ class DefaultPaymentCancellationServiceTest {
                 .reason(reason)
                 .build();
 
-        User mockUser = new User();
-        mockUser.setId(userId);
-
         Payment mockPayment = Payment.builder()
                 .id(paymentId)
-                .user(mockUser)
+                .user(testUser)
                 .amount(BigDecimal.valueOf(10000))
                 .currency("KRW")
-                .paymentMethod(PaymentMethod.CREDIT_CARD)
+                .paymentMethod(PaymentMethod.TOSS)
                 .status(PaymentStatus.SUCCESS)
-                .userType(PaymentUserType.FREE)
+                .userType(PaymentUserType.PERSONAL)
                 .refundedAmount(BigDecimal.ZERO)
                 .build();
 
@@ -110,13 +134,15 @@ class DefaultPaymentCancellationServiceTest {
                 .reason("Cancel pending payment")
                 .build();
 
-        User mockUser = new User();
-        mockUser.setId(userId);
+        User mockUser = testUser;
 
         Payment mockPayment = Payment.builder()
                 .id(paymentId)
                 .user(mockUser)
                 .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.TOSS)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.PENDING)
                 .refundedAmount(BigDecimal.ZERO)
                 .build();
@@ -159,7 +185,6 @@ class DefaultPaymentCancellationServiceTest {
     void testCancelUnauthorized() {
         // Given
         Long paymentId = 1L;
-        Long userId = 1L;
         Long differentUserId = 999L;
 
         CancelPaymentCommand command = CancelPaymentCommand.builder()
@@ -168,12 +193,15 @@ class DefaultPaymentCancellationServiceTest {
                 .reason("reason")
                 .build();
 
-        User mockUser = new User();
-        mockUser.setId(userId);
+        User mockUser = testUser;
 
         Payment mockPayment = Payment.builder()
                 .id(paymentId)
                 .user(mockUser)
+                .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.TOSS)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.SUCCESS)
                 .build();
 
@@ -197,12 +225,15 @@ class DefaultPaymentCancellationServiceTest {
                 .reason("reason")
                 .build();
 
-        User mockUser = new User();
-        mockUser.setId(userId);
+        User mockUser = testUser;
 
         Payment mockPayment = Payment.builder()
                 .id(paymentId)
                 .user(mockUser)
+                .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.TOSS)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.REFUNDED)  // Cannot cancel refunded payment
                 .build();
 

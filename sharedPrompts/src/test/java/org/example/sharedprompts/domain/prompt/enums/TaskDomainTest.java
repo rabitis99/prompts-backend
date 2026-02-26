@@ -6,6 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -64,12 +65,12 @@ class TaskDomainTest {
     @DisplayName("모든 규칙의 I18nText가 null이 아니어야 함")
     void allRulesHaveNonNullI18nText() {
         for (TaskDomain domain : TaskDomain.values()) {
-            List<GuidelineRule> allRules = List.of(
+            List<GuidelineRule> allRules = Stream.of(
                     domain.principles(),
                     domain.structuringRules(),
                     domain.qualityStandards(),
                     domain.outputConstraints()
-            ).stream()
+            )
                     .flatMap(List::stream)
                     .toList();
 
@@ -115,13 +116,13 @@ class TaskDomainTest {
     @Test
     @DisplayName("모든 규칙의 id가 고유해야 함")
     void allRuleIdsAreUnique() {
-        List<String> allIds = List.of(TaskDomain.values()).stream()
-                .flatMap(domain -> List.of(
+        List<String> allIds = Stream.of(TaskDomain.values())
+                .flatMap(domain -> Stream.of(
                         domain.principles(),
                         domain.structuringRules(),
                         domain.qualityStandards(),
                         domain.outputConstraints()
-                ).stream())
+                ))
                 .flatMap(List::stream)
                 .map(GuidelineRule::id)
                 .toList();

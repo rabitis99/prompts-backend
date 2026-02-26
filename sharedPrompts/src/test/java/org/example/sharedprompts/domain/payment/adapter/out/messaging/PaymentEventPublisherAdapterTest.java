@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.payment.adapter.out.messaging;
 
-import org.example.sharedprompts.domain.payment.application.port.out.event.PaymentEventPublisherPort;
 import org.example.sharedprompts.domain.payment.domain.event.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -91,8 +90,8 @@ class PaymentEventPublisherAdapterTest {
         PaymentCanceledEvent event = PaymentCanceledEvent.builder()
                 .paymentId(1L)
                 .userId(1L)
-                .cancelReason("User requested")
-                .canceledAt(LocalDateTime.now())
+                .reason("User requested")
+                .timestamp(LocalDateTime.now())
                 .build();
 
         // When
@@ -105,7 +104,7 @@ class PaymentEventPublisherAdapterTest {
         PaymentCanceledEvent capturedEvent = captor.getValue();
         assertNotNull(capturedEvent);
         assertEquals(1L, capturedEvent.getPaymentId());
-        assertEquals("User requested", capturedEvent.getCancelReason());
+        assertEquals("User requested", capturedEvent.getReason());
     }
 
     @Test
@@ -116,8 +115,8 @@ class PaymentEventPublisherAdapterTest {
                 .paymentId(1L)
                 .userId(1L)
                 .refundAmount(BigDecimal.valueOf(5000))
-                .refundReason("Partial refund")
-                .refundedAt(LocalDateTime.now())
+                .reason("Partial refund")
+                .timestamp(LocalDateTime.now())
                 .build();
 
         // When
@@ -131,7 +130,7 @@ class PaymentEventPublisherAdapterTest {
         assertNotNull(capturedEvent);
         assertEquals(1L, capturedEvent.getPaymentId());
         assertEquals(BigDecimal.valueOf(5000), capturedEvent.getRefundAmount());
-        assertEquals("Partial refund", capturedEvent.getRefundReason());
+        assertEquals("Partial refund", capturedEvent.getReason());
     }
 
     @Test
@@ -143,7 +142,7 @@ class PaymentEventPublisherAdapterTest {
                 .userId(1L)
                 .errorCode("PAYMENT_FAILED")
                 .errorMessage("Payment processing failed")
-                .failedAt(LocalDateTime.now())
+                .timestamp(LocalDateTime.now())
                 .build();
 
         // When
@@ -167,7 +166,7 @@ class PaymentEventPublisherAdapterTest {
         PaymentExpiredEvent event = PaymentExpiredEvent.builder()
                 .paymentId(1L)
                 .userId(1L)
-                .expiredAt(LocalDateTime.now())
+                .timestamp(LocalDateTime.now())
                 .build();
 
         // When
@@ -180,7 +179,7 @@ class PaymentEventPublisherAdapterTest {
         PaymentExpiredEvent capturedEvent = captor.getValue();
         assertNotNull(capturedEvent);
         assertEquals(1L, capturedEvent.getPaymentId());
-        assertNotNull(capturedEvent.getExpiredAt());
+        assertNotNull(capturedEvent.getTimestamp());
     }
 
     @Test
@@ -203,14 +202,15 @@ class PaymentEventPublisherAdapterTest {
         PaymentCanceledEvent canceledEvent = PaymentCanceledEvent.builder()
                 .paymentId(1L)
                 .userId(1L)
-                .cancelReason("test")
+                .reason("test")
                 .build();
 
         PaymentRefundedEvent refundedEvent = PaymentRefundedEvent.builder()
                 .paymentId(1L)
                 .userId(1L)
                 .refundAmount(BigDecimal.valueOf(5000))
-                .refundReason("test")
+                .reason("test")
+                .timestamp(LocalDateTime.now())
                 .build();
 
         PaymentFailedEvent failedEvent = PaymentFailedEvent.builder()

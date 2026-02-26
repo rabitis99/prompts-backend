@@ -5,8 +5,13 @@ import org.example.sharedprompts.domain.payment.application.port.in.result.Payme
 import org.example.sharedprompts.domain.payment.application.port.out.repository.PaymentQueryRepositoryPort;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentUserType;
 import org.example.sharedprompts.domain.payment.domain.exception.PaymentNotFoundException;
 import org.example.sharedprompts.domain.user.User;
+import org.example.sharedprompts.domain.user.enums.Provider;
+import org.example.sharedprompts.domain.user.enums.Role;
+import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,16 +52,16 @@ class DefaultPaymentStatusCheckServiceTest {
                 .userId(userId)
                 .build();
 
-        User mockUser = new User();
-        mockUser.setId(userId);
+        User mockUser = userWithId(userId);
 
         Payment mockPayment = Payment.builder()
                 .id(paymentId)
                 .user(mockUser)
                 .amount(BigDecimal.valueOf(10000))
                 .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.SUCCESS)
-                .createdAt(LocalDateTime.now())
                 .approvedAt(LocalDateTime.now())
                 .build();
 
@@ -107,13 +112,15 @@ class DefaultPaymentStatusCheckServiceTest {
                 .userId(differentUserId)
                 .build();
 
-        User mockUser = new User();
-        mockUser.setId(userId);
+        User mockUser = userWithId(userId);
 
         Payment mockPayment = Payment.builder()
                 .id(paymentId)
                 .user(mockUser)
                 .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.SUCCESS)
                 .build();
 
@@ -122,6 +129,20 @@ class DefaultPaymentStatusCheckServiceTest {
 
         assertThrows(PaymentNotFoundException.class, () -> service.checkStatus(query));
         verify(paymentRepository).findById(paymentId);
+    }
+
+    private static User userWithId(Long id) {
+        return User.builder()
+                .id(id)
+                .email("test@example.com")
+                .provider(Provider.LOCAL)
+                .providerId("provider-id")
+                .nickname("testuser")
+                .role(Role.ROLE_USER)
+                .tier(UserTier.FREE)
+                .signupCompleted(true)
+                .blocked(false)
+                .build();
     }
 
     @Test
@@ -136,16 +157,18 @@ class DefaultPaymentStatusCheckServiceTest {
                 .userId(userId)
                 .build();
 
-        User mockUser = new User();
-        mockUser.setId(userId);
+        User mockUser = userWithId(userId);
 
         // Test for PENDING status
         Payment pendingPayment = Payment.builder()
                 .id(paymentId)
                 .user(mockUser)
                 .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.PENDING)
-                .createdAt(LocalDateTime.now())
+                .canceledAt(LocalDateTime.now())
                 .build();
 
         // When
@@ -162,8 +185,11 @@ class DefaultPaymentStatusCheckServiceTest {
                 .id(paymentId)
                 .user(mockUser)
                 .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.REFUNDED)
-                .createdAt(LocalDateTime.now())
+                .canceledAt(LocalDateTime.now())
                 .build();
 
         when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(refundedPayment));

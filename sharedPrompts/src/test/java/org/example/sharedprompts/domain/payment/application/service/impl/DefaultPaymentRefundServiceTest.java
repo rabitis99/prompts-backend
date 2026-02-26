@@ -6,12 +6,16 @@ import org.example.sharedprompts.domain.payment.application.port.out.event.Payme
 import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentGatewayPort;
 import org.example.sharedprompts.domain.payment.application.port.out.repository.PaymentCommandRepositoryPort;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
-import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentUserType;
 import org.example.sharedprompts.domain.payment.domain.exception.PaymentNotFoundException;
 import org.example.sharedprompts.domain.payment.domain.exception.PaymentValidationException;
+import org.example.sharedprompts.domain.payment.infrastructure.transaction.PaymentTransactionManager;
 import org.example.sharedprompts.domain.user.User;
+import org.example.sharedprompts.domain.user.enums.Provider;
+import org.example.sharedprompts.domain.user.enums.Role;
+import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,6 +44,9 @@ class DefaultPaymentRefundServiceTest {
     @Mock
     private PaymentEventPublisherPort eventPublisher;
 
+    @Mock
+    private PaymentTransactionManager transactionManager;
+
     private DefaultPaymentRefundService service;
 
     @BeforeEach
@@ -46,7 +54,8 @@ class DefaultPaymentRefundServiceTest {
         service = new DefaultPaymentRefundService(
                 paymentRepository,
                 paymentGateway,
-                eventPublisher
+                eventPublisher,
+                transactionManager
         );
     }
 
@@ -65,13 +74,15 @@ class DefaultPaymentRefundServiceTest {
                 .reason("Full refund")
                 .build();
 
-        User mockUser = new User();
-        mockUser.setId(userId);
+        User mockUser = userWithId(userId);
 
         Payment mockPayment = Payment.builder()
                 .id(paymentId)
                 .user(mockUser)
                 .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.SUCCESS)
                 .refundedAmount(BigDecimal.ZERO)
                 .build();
@@ -80,9 +91,12 @@ class DefaultPaymentRefundServiceTest {
                 PaymentGatewayPort.PaymentGatewayResult.success("EXT_PAY_ID", null);
 
         // When
-        when(paymentRepository.findByIdForUpdate(paymentId)).thenReturn(Optional.of(mockPayment));
+        when(transactionManager.executeInTransaction(any())).thenAnswer(inv -> ((Supplier<?>) inv.getArgument(0)).get());
+        when(paymentRepository.findByIdForUpdate(paymentId))
+                .thenReturn(Optional.of(mockPayment))
+                .thenReturn(Optional.of(mockPayment));
         when(paymentGateway.refundPayment(mockPayment, refundAmount)).thenReturn(refundResult);
-        when(paymentRepository.save(any(Payment.class))).thenReturn(mockPayment);
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         PaymentRefundResult result = service.refund(command);
 
@@ -92,7 +106,7 @@ class DefaultPaymentRefundServiceTest {
         assertEquals(refundAmount, result.getRefundAmount());
         assertEquals(PaymentStatus.REFUNDED, result.getStatus());
         verify(paymentGateway).refundPayment(mockPayment, refundAmount);
-        verify(paymentRepository).save(mockPayment);
+        verify(paymentRepository, times(2)).save(any(Payment.class));
         verify(eventPublisher).publishPaymentRefunded(any());
     }
 
@@ -111,13 +125,15 @@ class DefaultPaymentRefundServiceTest {
                 .reason("Partial refund")
                 .build();
 
-        User mockUser = new User();
-        mockUser.setId(userId);
+        User mockUser = userWithId(userId);
 
         Payment mockPayment = Payment.builder()
                 .id(paymentId)
                 .user(mockUser)
                 .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.SUCCESS)
                 .refundedAmount(BigDecimal.ZERO)
                 .build();
@@ -126,9 +142,12 @@ class DefaultPaymentRefundServiceTest {
                 PaymentGatewayPort.PaymentGatewayResult.success("EXT_PAY_ID", null);
 
         // When
-        when(paymentRepository.findByIdForUpdate(paymentId)).thenReturn(Optional.of(mockPayment));
+        when(transactionManager.executeInTransaction(any())).thenAnswer(inv -> ((Supplier<?>) inv.getArgument(0)).get());
+        when(paymentRepository.findByIdForUpdate(paymentId))
+                .thenReturn(Optional.of(mockPayment))
+                .thenReturn(Optional.of(mockPayment));
         when(paymentGateway.refundPayment(mockPayment, refundAmount)).thenReturn(refundResult);
-        when(paymentRepository.save(any(Payment.class))).thenReturn(mockPayment);
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         PaymentRefundResult result = service.refund(command);
 
@@ -154,6 +173,7 @@ class DefaultPaymentRefundServiceTest {
                 .build();
 
         // When & Then
+        when(transactionManager.executeInTransaction(any())).thenAnswer(inv -> ((Supplier<?>) inv.getArgument(0)).get());
         when(paymentRepository.findByIdForUpdate(paymentId)).thenReturn(Optional.empty());
 
         assertThrows(PaymentNotFoundException.class, () -> service.refund(command));
@@ -175,16 +195,20 @@ class DefaultPaymentRefundServiceTest {
                 .reason("reason")
                 .build();
 
-        User mockUser = new User();
-        mockUser.setId(userId);
+        User mockUser = userWithId(userId);
 
         Payment mockPayment = Payment.builder()
                 .id(paymentId)
                 .user(mockUser)
+                .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.SUCCESS)
                 .build();
 
         // When & Then
+        when(transactionManager.executeInTransaction(any())).thenAnswer(inv -> ((Supplier<?>) inv.getArgument(0)).get());
         when(paymentRepository.findByIdForUpdate(paymentId)).thenReturn(Optional.of(mockPayment));
 
         assertThrows(PaymentValidationException.class, () -> service.refund(command));
@@ -205,16 +229,20 @@ class DefaultPaymentRefundServiceTest {
                 .reason("reason")
                 .build();
 
-        User mockUser = new User();
-        mockUser.setId(userId);
+        User mockUser = userWithId(userId);
 
         Payment mockPayment = Payment.builder()
                 .id(paymentId)
                 .user(mockUser)
+                .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.CANCELED)  // Cannot refund cancelled payment
                 .build();
 
         // When & Then
+        when(transactionManager.executeInTransaction(any())).thenAnswer(inv -> ((Supplier<?>) inv.getArgument(0)).get());
         when(paymentRepository.findByIdForUpdate(paymentId)).thenReturn(Optional.of(mockPayment));
 
         assertThrows(PaymentValidationException.class, () -> service.refund(command));
@@ -236,21 +264,39 @@ class DefaultPaymentRefundServiceTest {
                 .reason("reason")
                 .build();
 
-        User mockUser = new User();
-        mockUser.setId(userId);
+        User mockUser = userWithId(userId);
 
         Payment mockPayment = Payment.builder()
                 .id(paymentId)
                 .user(mockUser)
                 .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
                 .status(PaymentStatus.SUCCESS)
                 .refundedAmount(BigDecimal.ZERO)
                 .build();
 
         // When & Then
+        when(transactionManager.executeInTransaction(any())).thenAnswer(inv -> ((Supplier<?>) inv.getArgument(0)).get());
         when(paymentRepository.findByIdForUpdate(paymentId)).thenReturn(Optional.of(mockPayment));
 
         assertThrows(PaymentValidationException.class, () -> service.refund(command));
         verifyNoInteractions(paymentGateway);
     }
+
+    private static User userWithId(Long id) {
+        return User.builder()
+                .id(id)
+                .email("test@example.com")
+                .provider(Provider.LOCAL)
+                .providerId("provider-id")
+                .nickname("testuser")
+                .role(Role.ROLE_USER)
+                .tier(UserTier.FREE)
+                .signupCompleted(true)
+                .blocked(false)
+                .build();
+    }
 }
+
