@@ -51,16 +51,18 @@ public class DefaultPaymentRefundService implements PaymentRefundUseCase {
         Payment paymentAfterPrepare = preparation.payment();
 
         // 2단계: 외부 PG 환불 호출 (DB 락 없음)
-        PaymentGatewayPort.PaymentGatewayResult gatewayResult = paymentGateway.refundPayment(paymentAfterPrepare, refundAmount);
+        PaymentGatewayPort.PaymentGatewayResult gatewayResult;
+        try {
+            gatewayResult = paymentGateway.refundPayment(paymentAfterPrepare, refundAmount);
+        } catch (Exception e) {
+            revertRefundInProgress(command.getPaymentId());
+            throw new PaymentValidationException(
+                    "결제 환불 중 오류가 발생했습니다: " + e.getMessage(),
+                    e
+            );
+        }
         if (!gatewayResult.isSuccess()) {
-            transactionManager.executeInTransaction(() -> {
-                Payment p = paymentRepository.findByIdForUpdate(command.getPaymentId())
-                        .orElseThrow(() -> new PaymentNotFoundException(
-                                "결제를 찾을 수 없습니다. paymentId=" + command.getPaymentId()));
-                p.revertRefundInProgress();
-                paymentRepository.save(p);
-                return null;
-            });
+            revertRefundInProgress(command.getPaymentId());
             throw new PaymentValidationException(
                     "결제 환불 중 오류가 발생했습니다: " + gatewayResult.getMessage(),
                     gatewayResult.getException()
@@ -135,4 +137,19 @@ public class DefaultPaymentRefundService implements PaymentRefundUseCase {
     }
 
     private record RefundPreparation(Payment payment, BigDecimal refundAmount) {}
+
+    /**
+     * REFUND_IN_PROGRESS 상태를 보상 트랜잭션으로 되돌립니다.
+     * PG 호출 실패 또는 예외 시 호출하여 상태 고착을 방지합니다.
+     */
+    private void revertRefundInProgress(Long paymentId) {
+        transactionManager.executeInTransaction(() -> {
+            Payment p = paymentRepository.findByIdForUpdate(paymentId)
+                    .orElseThrow(() -> new PaymentNotFoundException(
+                            "결제를 찾을 수 없습니다. paymentId=" + paymentId));
+            p.revertRefundInProgress();
+            paymentRepository.save(p);
+            return null;
+        });
+    }
 }

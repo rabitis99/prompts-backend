@@ -98,6 +98,7 @@ public class UserTierServiceImpl implements UserTierService {
         LocalDateTime startOfDay = today.atStartOfDay();
         LocalDateTime endOfDay = today.plusDays(1).atStartOfDay();
 
+        // 결제 1건 = 일일 한도 1 소비 (기본 가중치)
         long todayPaymentCount = paymentJpaAdapter.countTodaySuccessfulPayments(userId, PaymentStatus.SUCCESS);
         int weightedModule = 0;
         for (ModuleType mt : USAGE_MODULE_TYPES) {

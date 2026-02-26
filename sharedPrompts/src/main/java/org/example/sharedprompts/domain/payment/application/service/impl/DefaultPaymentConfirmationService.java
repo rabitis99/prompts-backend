@@ -9,6 +9,7 @@ import org.example.sharedprompts.domain.payment.application.port.out.event.Payme
 import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentGatewayPort;
 import org.example.sharedprompts.domain.payment.application.port.out.repository.PaymentCommandRepositoryPort;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
+import org.example.sharedprompts.domain.payment.domain.enums.PaymentErrorCode;
 import org.example.sharedprompts.domain.payment.domain.event.PaymentConfirmedEvent;
 import org.example.sharedprompts.domain.payment.domain.event.PaymentFailedEvent;
 import org.example.sharedprompts.domain.payment.domain.exception.PaymentNotFoundException;
@@ -64,7 +65,7 @@ public class DefaultPaymentConfirmationService implements PaymentConfirmationUse
                 PaymentFailedEvent failedEvent = PaymentFailedEvent.of(
                         payment.getId(),
                         command.getUserId(),
-                        "GATEWAY_CONFIRM_FAILED",
+                        PaymentErrorCode.GATEWAY_CONFIRM_FAILED.name(),
                         confirmResult.getErrorMessage()
                 );
                 eventPublisher.publishPaymentFailed(failedEvent);

@@ -47,13 +47,18 @@ public class PaymentStatusSyncExecutor {
     }
 
     private PaymentStatusResponseDto doSyncInternal(Payment payment) {
-        PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
         String externalPaymentId = payment.getExternalPaymentId();
         if (externalPaymentId == null || externalPaymentId.isBlank()) {
             log.warn(LOG_PREFIX + "externalPaymentId가 없어 상태 동기화를 스킵합니다: paymentId={}", payment.getId());
             return PaymentStatusResponseDto.from(payment);
         }
+        PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
         PaymentResult result = provider.getPaymentStatus(externalPaymentId);
+        if (result == null || result.getStatus() == null) {
+            log.warn(LOG_PREFIX + "외부 상태 조회 결과가 유효하지 않아 동기화를 스킵합니다: paymentId={}, externalPaymentId={}",
+                    payment.getId(), externalPaymentId);
+            return PaymentStatusResponseDto.from(payment);
+        }
 
         if (payment.getStatus() != result.getStatus()) {
             PaymentStatus before = payment.getStatus();

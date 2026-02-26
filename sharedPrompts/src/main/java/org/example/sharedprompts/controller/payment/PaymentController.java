@@ -205,7 +205,10 @@ public class PaymentController {
             return Optional.empty();
         }
         ModuleType mt = ModuleType.from(value);
-        return (mt == null || mt == ModuleType.UNKNOWN) ? Optional.empty() : Optional.of(mt);
+        if (mt == null || mt == ModuleType.UNKNOWN) {
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        return Optional.of(mt);
     }
 
     private static Optional<ModuleType> parseModuleType(String value) {

@@ -42,7 +42,7 @@ public class DefaultPaymentCancellationService implements PaymentCancellationUse
                 ));
 
         // 2. 사용자 검증
-        if (!payment.getUser().getId().equals(command.getUserId())) {
+        if (payment.getUser() == null || !payment.getUser().getId().equals(command.getUserId())) {
             throw new PaymentValidationException(
                     "결제를 취소할 권한이 없습니다. paymentId=" + command.getPaymentId()
             );
@@ -52,8 +52,7 @@ public class DefaultPaymentCancellationService implements PaymentCancellationUse
         PaymentStatusTransitionPolicy.validateCanCancel(payment);
 
         // 4. 취소 금액 계산
-        BigDecimal cancelAmount = payment.getAmount()
-                .subtract(payment.getRefundedAmount() != null ? payment.getRefundedAmount() : BigDecimal.ZERO);
+        BigDecimal cancelAmount = PaymentStatusTransitionPolicy.calculateRefundableAmount(payment);
 
         // 5. 외부 PG에 취소 요청 (SUCCESS 상태인 경우만)
         if (payment.getStatus() == PaymentStatus.SUCCESS) {

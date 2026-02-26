@@ -145,13 +145,13 @@ domain/payment
 
 ### In Port (UseCase)
 
-- `PaymentApprovalUseCase`
-- `PaymentCancellationUseCase`
-- `PaymentRefundUseCase`
-- `PaymentConfirmationUseCase`
-- `PaymentStatusCheckUseCase`
-- `PaymentHistoryQueryUseCase`
-- `PaymentWebhookUseCase`
+- `ApprovePaymentUseCase`
+- `CancelPaymentUseCase`
+- `RefundPaymentUseCase`
+- `ConfirmPaymentUseCase`
+- `CheckPaymentStatusUseCase`
+- `GetPaymentHistoryUseCase`
+- `ProcessPaymentWebhookUseCase`
 
 ### Command
 
@@ -285,6 +285,12 @@ domain/credit
   - Credit 도메인의 어댑터가 이 이벤트를 받아 `ChargeCreditUseCase` 를 실행해,  
     사용자의 `CreditAccount` 에 크레딧을 적립한다.
 
+- **이벤트 발행 신뢰성 규칙 (Payment↔Credit 연계 핵심)**  
+  Payment 이벤트는 Credit 도메인 연계의 핵심이므로, 다음을 문서 규칙으로 둔다.
+  - **커밋 후 발행 보장**: 트랜잭션 커밋이 성공한 뒤에만 이벤트를 발행하여, DB 반영 전 이벤트 유실을 방지한다. (Outbox 패턴 또는 트랜잭션 커밋 후 비동기 발행 등 구현 선택.)
+  - **Idempotency key**: 이벤트 또는 구독 측 처리 시 idempotency key(예: paymentId + eventType)를 사용하여 동일 이벤트의 중복 처리·중복 적립을 방지한다.
+  - **재시도 정책**: 발행 실패 시 재시도(백오프, 최대 횟수) 정책을 두고, 유실 없이 Credit 연계가 이루어지도록 한다.
+
 - **모듈 사용 시 크레딧 차감**
   - 각 비즈니스 모듈(예: 포인트, 캐시백, 특정 기능 사용 제한)은  
     `UseCreditForModuleUseCase` (in port)를 호출해 **크레딧 차감**만 요청한다.
@@ -322,7 +328,8 @@ domain/credit
    - 도메인 모델 `Payment` 생성
    - `PaymentRepositoryPort` 를 통해 저장
    - 필요 시 `PaymentGatewayPort.approve` 호출
-   - 성공 시 `PaymentEventPort.publishPaymentApproved(event)` 호출
+   - 성공 시 `PaymentEventPort.publishPaymentApproved(event)` 호출  
+     → **이벤트 발행은 아래 "이벤트 발행 신뢰성 규칙"을 준수한다.**
    - Application DTO (예: `PaymentApproveResultDto`) 반환
 
 3. Controller
@@ -341,7 +348,7 @@ domain/credit
    - (구현 시 락 방식은 Adapter/Persistence에서 선택. Port 계약에는 `findByIdForUpdate` 등 인프라 세부사항을 직접 노출하지 않는 것을 권장.)
    - `PaymentGatewayPort.cancel` 호출
    - 도메인 모델 상태 전이 (Canceled)
-   - `PaymentEventPort.publishPaymentCanceled(event)` 호출
+   - `PaymentEventPort.publishPaymentCanceled(event)` 호출 (이벤트 발행 신뢰성 규칙 준수)
    - Application DTO 반환
 
 3. Controller
@@ -384,9 +391,12 @@ domain/credit
 
 5. **크레딧 도메인 도입을 고려한 이벤트 설계**
    - Payment 도메인이 Credit 도메인으로 확장되기 쉽게, 도메인 이벤트/Port 단위로 결제 결과를 노출.
+   - **이벤트 발행 시** 8.2의 이벤트 발행 신뢰성 규칙(커밋 후 발행, idempotency key, 재시도 정책)을 준수한다.
    - **완료 기준**: 이벤트 페이로드·이름이 확장 시나리오와 충돌하지 않음.
 
 6. **동작 동일성 검증**
-   - 리팩토링 전/후 주요 API (결제 요청/승인/취소/환불/조회) 가 동일하게 동작하는지 최소한의 스모크 테스트 또는 수동/단위 테스트 추가/가이드.
-   - **완료 기준**: 해당 API에 대한 테스트 또는 수동 시나리오 체크리스트 통과.
+   - 리팩토링 전/후 주요 API(결제 요청/승인/취소/환불/조회)가 동일하게 동작하는지 검증.
+   - **완료 기준**: 스모크/수동 테스트만으로는 결제·환불·웹훅 재전송 등 회귀 리스크를 방지하기 어렵으므로, **최소한 핵심 시나리오는 자동화 테스트를 필수**로 둔다.
+     - 필수 자동화 테스트 시나리오: 결제 승인, 취소, 환불, 웹훅 중복 처리.
+     - 해당 API에 대한 자동화 테스트 또는 수동 시나리오 체크리스트 통과.
 

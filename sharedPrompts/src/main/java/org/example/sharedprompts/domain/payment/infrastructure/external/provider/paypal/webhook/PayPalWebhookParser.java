@@ -77,7 +77,7 @@ public class PayPalWebhookParser {
                     .metadata(objectMapper.writeValueAsString(resource))
                     .build();
 
-            return new WebhookEvent(eventType, externalPaymentId, externalPaymentId, paymentResult);
+            return new WebhookEvent(eventType, externalPaymentId, orderId != null ? orderId : externalPaymentId, paymentResult);
         } catch (JsonProcessingException e) {
             log.error("PayPal Webhook JSON 파싱 실패: error={}", e.getMessage(), e);
             throw new RuntimeException("PayPal Webhook JSON 파싱 실패: " + e.getMessage(), e);
@@ -97,7 +97,8 @@ public class PayPalWebhookParser {
             @SuppressWarnings("unchecked")
             Map<String, Object> relatedIds = (Map<String, Object>) supplementaryData.get("related_ids");
             if (relatedIds != null) {
-                return (String) relatedIds.get("order_id");
+                Object rawOrderId = relatedIds.get("order_id");
+                return rawOrderId instanceof String ? (String) rawOrderId : (rawOrderId != null ? String.valueOf(rawOrderId) : null);
             }
         }
         return null;

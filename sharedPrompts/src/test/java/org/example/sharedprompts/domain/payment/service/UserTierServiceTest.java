@@ -55,10 +55,9 @@ class UserTierServiceTest {
     @Mock
     private ModuleUsageRepository moduleUsageRepository;
 
+    /** upgradeTierIfEligible()에서 자동 티어 업그레이드 시 calculateTier() 호출에 사용됨. */
     @Mock
     private TierUpgradePolicy tierUpgradePolicy;
-
-    /** upgradeTierIfEligible()에서 자동 티어 업그레이드 시 calculateTier() 호출에 사용됨. */
 
     @Mock
     private TierLimitPolicy tierLimitPolicy;
@@ -266,6 +265,7 @@ class UserTierServiceTest {
         when(paymentJpaAdapter.countTodaySuccessfulPayments(1L, PaymentStatus.SUCCESS)).thenReturn(0L);
         when(moduleUsageRepository.countTodayByUserIdAndModuleType(anyLong(), any(ModuleType.class), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(0L);
         when(tierLimitPolicy.getDailyLimit(any(UserTier.class))).thenReturn(100);
+        when(tierLimitPolicy.getConsumptionAmount(any(ModuleType.class))).thenReturn(1);
 
         userTierService.upgradeTierIfEligible(1L, BigDecimal.valueOf(50_000));
 
