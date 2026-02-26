@@ -1,7 +1,9 @@
 package org.example.sharedprompts.domain.prompt.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.guideline.DomainResolution;
 import org.example.sharedprompts.dto.prompt.request.InputRequestDto;
 import org.springframework.stereotype.Component;
@@ -68,6 +70,25 @@ public class DomainResolver {
      */
     public TaskDomain resolveDomainSimple(InputRequestDto request) {
         return resolveDomain(request).domain();
+    }
+
+    /**
+     * 헥사고날 어댑터용 오버로드 — ActionTypeInterface + PromptCategory로 도메인 결정.
+     * InputRequestDto 없이 직접 파라미터를 받는 버전.
+     */
+    public TaskDomain resolveDomain(ActionTypeInterface actionType, PromptCategory promptCategory) {
+        if (actionType == null) {
+            return TaskDomain.GENERAL;
+        }
+        java.util.Optional<TaskDomain> fromAction = actionType.getTaskDomain();
+        if (fromAction.isPresent() && fromAction.get() != TaskDomain.GENERAL) {
+            return fromAction.get();
+        }
+        if (promptCategory != null) {
+            TaskDomain fromCategory = promptCategory.getDefaultDomain();
+            if (fromCategory != TaskDomain.GENERAL) return fromCategory;
+        }
+        return fromAction.orElse(TaskDomain.GENERAL);
     }
 }
 
