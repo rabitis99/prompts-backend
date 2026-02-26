@@ -229,7 +229,8 @@ private Long version;
 // 동시 업데이트 감지 시 OptimisticLockingFailureException 발생
 // DefaultPaymentConfirmationService에서 처리
 try {
-    payment = paymentRepository.findByIdForUpdate(paymentId);
+    payment = paymentRepository.findById(paymentId)
+            .orElseThrow(() -> new PaymentNotFoundException(paymentId));
     // 업데이트
     paymentRepository.save(payment);
 } catch (ObjectOptimisticLockingFailureException e) {

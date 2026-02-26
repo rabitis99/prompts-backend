@@ -48,7 +48,7 @@ public class PayPalWebhookParser {
             }
 
             String eventType = (String) webhookData.get("event_type");
-            if (eventType == null || eventType.isEmpty()) {
+            if (eventType == null || eventType.isBlank()) {
                 throw new IllegalStateException("PayPal Webhook payload에 event_type이 없습니다");
             }
 
@@ -67,7 +67,7 @@ public class PayPalWebhookParser {
 
             // orderId가 null이면 captureId를 대체값으로 사용
             String externalPaymentId = orderId != null ? orderId : captureId;
-            if (externalPaymentId == null || externalPaymentId.isEmpty()) {
+            if (externalPaymentId == null || externalPaymentId.isBlank()) {
                 throw new IllegalStateException("PayPal Webhook payload에 orderId 또는 captureId가 없습니다");
             }
 
@@ -77,7 +77,7 @@ public class PayPalWebhookParser {
                     .metadata(objectMapper.writeValueAsString(resource))
                     .build();
 
-            return new WebhookEvent(eventType, externalPaymentId, orderId != null ? orderId : captureId, paymentResult);
+            return new WebhookEvent(eventType, externalPaymentId, externalPaymentId, paymentResult);
         } catch (JsonProcessingException e) {
             log.error("PayPal Webhook JSON 파싱 실패: error={}", e.getMessage(), e);
             throw new RuntimeException("PayPal Webhook JSON 파싱 실패: " + e.getMessage(), e);

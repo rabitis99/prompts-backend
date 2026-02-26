@@ -58,10 +58,10 @@ public class DefaultPaymentCancellationService implements PaymentCancellationUse
         // 5. 외부 PG에 취소 요청 (SUCCESS 상태인 경우만)
         if (payment.getStatus() == PaymentStatus.SUCCESS) {
             PaymentGatewayPort.PaymentGatewayResult gatewayResult = paymentGateway.cancelPayment(payment);
-            if (!gatewayResult.success) {
+            if (!gatewayResult.isSuccess()) {
                 throw new PaymentValidationException(
-                        "결제 취소 중 오류가 발생했습니다: " + gatewayResult.message,
-                        gatewayResult.exception
+                        "결제 취소 중 오류가 발생했습니다: " + gatewayResult.getMessage(),
+                        gatewayResult.getException()
                 );
             }
         }

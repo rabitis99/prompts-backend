@@ -48,5 +48,12 @@ public enum PaymentStatus {
                 || this == IN_PROGRESS
                 || this == WAITING_FOR_DEPOSIT;
     }
+
+    /**
+     * 환불이 처리 중인 상태인지 확인합니다.
+     */
+    public boolean isRefundInProgress() {
+        return this == REFUND_IN_PROGRESS;
+    }
 }
 

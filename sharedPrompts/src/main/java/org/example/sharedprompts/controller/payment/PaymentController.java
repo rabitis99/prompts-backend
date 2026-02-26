@@ -28,7 +28,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.example.sharedprompts.domain.auth.AuthUser;
@@ -166,11 +165,7 @@ public class PaymentController {
         var query = mapper.toHistoryQuery(authUser.getId(), pageable);
         var resultPage = paymentQueryUseCase.getHistory(query);
 
-        var responseDtoList = resultPage.getContent().stream()
-                .map(mapper::toHistoryItemResponse)
-                .toList();
-
-        Page<PaymentResponseDto> responsePage = new PageImpl<>(responseDtoList, pageable, resultPage.getTotalElements());
+        Page<PaymentResponseDto> responsePage = resultPage.map(mapper::toHistoryItemResponse);
         PageResponse<PaymentResponseDto> response = PageResponse.of(responsePage);
         return CustomResponseHelper.ok(response);
     }

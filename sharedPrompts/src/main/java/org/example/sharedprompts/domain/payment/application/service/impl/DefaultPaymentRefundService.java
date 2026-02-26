@@ -52,7 +52,7 @@ public class DefaultPaymentRefundService implements PaymentRefundUseCase {
 
         // 2단계: 외부 PG 환불 호출 (DB 락 없음)
         PaymentGatewayPort.PaymentGatewayResult gatewayResult = paymentGateway.refundPayment(paymentAfterPrepare, refundAmount);
-        if (!gatewayResult.success) {
+        if (!gatewayResult.isSuccess()) {
             transactionManager.executeInTransaction(() -> {
                 Payment p = paymentRepository.findByIdForUpdate(command.getPaymentId())
                         .orElseThrow(() -> new PaymentNotFoundException(
@@ -62,8 +62,8 @@ public class DefaultPaymentRefundService implements PaymentRefundUseCase {
                 return null;
             });
             throw new PaymentValidationException(
-                    "결제 환불 중 오류가 발생했습니다: " + gatewayResult.message,
-                    gatewayResult.exception
+                    "결제 환불 중 오류가 발생했습니다: " + gatewayResult.getMessage(),
+                    gatewayResult.getException()
             );
         }
 
@@ -107,12 +107,11 @@ public class DefaultPaymentRefundService implements PaymentRefundUseCase {
         BigDecimal refundableAmount = PaymentStatusTransitionPolicy.calculateRefundableAmount(payment);
         if (refundAmount == null) {
             refundAmount = refundableAmount;
-        } else {
-            if (refundAmount.compareTo(BigDecimal.ZERO) <= 0
-                    || refundAmount.compareTo(refundableAmount) > 0) {
-                throw new PaymentValidationException(
-                        "유효하지 않은 환불 금액입니다. 환불 가능: " + refundableAmount + ", 요청: " + refundAmount);
-            }
+        }
+        if (refundAmount.compareTo(BigDecimal.ZERO) <= 0
+                || refundAmount.compareTo(refundableAmount) > 0) {
+            throw new PaymentValidationException(
+                    "유효하지 않은 환불 금액입니다. 환불 가능: " + refundableAmount + ", 요청: " + refundAmount);
         }
 
         payment.markRefundInProgress();
@@ -128,7 +127,7 @@ public class DefaultPaymentRefundService implements PaymentRefundUseCase {
                 .orElseThrow(() -> new PaymentNotFoundException(
                         "결제를 찾을 수 없습니다. paymentId=" + paymentId));
         if (payment.getStatus() != PaymentStatus.REFUND_IN_PROGRESS) {
-            throw new IllegalStateException(
+            throw new PaymentValidationException(
                     "환불 진행 중 상태가 아닙니다. paymentId=" + paymentId + ", status=" + payment.getStatus());
         }
         payment.refund(refundAmount);

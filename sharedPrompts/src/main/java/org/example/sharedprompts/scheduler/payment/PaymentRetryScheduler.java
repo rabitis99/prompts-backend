@@ -18,7 +18,6 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 결제 재시도 스케줄러
@@ -78,7 +77,7 @@ public class PaymentRetryScheduler {
         
         List<Payment> retryablePayments = pendingPayments.stream()
                 .filter(payment -> payment.getPaymentMethod() != PaymentMethod.KAKAO_PAY)
-                .collect(Collectors.toList());
+                .toList();
 
         if (retryablePayments.isEmpty()) {
             log.debug("재시도할 결제가 없습니다 (KakaoPay 제외 후).");

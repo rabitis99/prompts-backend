@@ -214,6 +214,7 @@ class UserTierServiceTest {
     @DisplayName("LITERARY 2회 사용 시 통합 한도에서 4 소비, EMAIL 조회 시 동일 remaining")
     void consumeModuleUsage_countsByModuleType() {
         when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testUser));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(tierLimitPolicy.getDailyLimit(UserTier.FREE)).thenReturn(15);
         when(tierLimitPolicy.getConsumptionAmount(any(ModuleType.class))).thenReturn(1);
         when(tierLimitPolicy.getConsumptionAmount(ModuleType.LITERARY)).thenReturn(2);

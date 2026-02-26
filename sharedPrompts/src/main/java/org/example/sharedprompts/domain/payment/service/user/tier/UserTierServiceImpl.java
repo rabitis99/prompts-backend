@@ -149,14 +149,13 @@ public class UserTierServiceImpl implements UserTierService {
         log.info("일일 제한 재계산: userId={}, tier={}, dailyLimit={}, todayUsedWeighted={}, remaining={}",
                 user.getId(), currentTier.name(), dailyLimit, todayUsed, remaining);
 
-        long todayPaymentCount = paymentJpaAdapter.countTodaySuccessfulPayments(user.getId(), PaymentStatus.SUCCESS);
-        if (todayPaymentCount >= dailyLimit) {
-            log.warn("티어 변경 후 일일 결제 제한 초과: userId={}, tier={}, todayPaymentCount={}, dailyLimit={}",
-                    user.getId(), currentTier.name(), todayPaymentCount, dailyLimit);
-        } else if (todayPaymentCount >= dailyLimit * 0.8) {
-            log.warn("티어 변경 후 일일 결제 제한 근접: userId={}, tier={}, todayPaymentCount={}, dailyLimit={}, usageRate={}%",
-                    user.getId(), currentTier.name(), todayPaymentCount, dailyLimit,
-                    (int) (todayPaymentCount * 100.0 / dailyLimit));
+        if (todayUsed >= dailyLimit) {
+            log.warn("티어 변경 후 일일 사용량 제한 초과: userId={}, tier={}, todayUsedWeighted={}, dailyLimit={}",
+                    user.getId(), currentTier.name(), todayUsed, dailyLimit);
+        } else if (todayUsed >= dailyLimit * 0.8) {
+            log.warn("티어 변경 후 일일 사용량 제한 근접: userId={}, tier={}, todayUsedWeighted={}, dailyLimit={}, usageRate={}%",
+                    user.getId(), currentTier.name(), todayUsed, dailyLimit,
+                    (int) (todayUsed * 100.0 / dailyLimit));
         }
     }
 

@@ -56,27 +56,27 @@ public class DefaultPaymentConfirmationService implements PaymentConfirmationUse
                     command.getProviderToken()
             );
 
-            if (!confirmResult.success) {
+            if (!confirmResult.isSuccess()) {
                 // 실패 처리
-                payment.markFailed("결제 제공자 승인 실패: " + confirmResult.message);
+                payment.markFailed("결제 제공자 승인 실패: " + confirmResult.getMessage());
                 paymentRepository.save(payment);
 
                 PaymentFailedEvent failedEvent = PaymentFailedEvent.of(
                         payment.getId(),
                         command.getUserId(),
                         "GATEWAY_CONFIRM_FAILED",
-                        confirmResult.message
+                        confirmResult.getErrorMessage()
                 );
                 eventPublisher.publishPaymentFailed(failedEvent);
 
                 throw new PaymentValidationException(
-                        "결제 확인 중 오류가 발생했습니다: " + confirmResult.message,
-                        confirmResult.exception
+                        "결제 확인 중 오류가 발생했습니다: " + confirmResult.getMessage(),
+                        confirmResult.getException()
                 );
             }
 
             // 5. 결제 상태를 SUCCESS로 업데이트
-            payment.approve(confirmResult.externalPaymentId);
+            payment.approve(confirmResult.getExternalPaymentId());
             payment = paymentRepository.save(payment);
 
             // 6. 확인 이벤트 발행 (트랜잭션 후)
@@ -85,7 +85,7 @@ public class DefaultPaymentConfirmationService implements PaymentConfirmationUse
                     command.getUserId(),
                     payment.getAmount(),
                     payment.getCurrency(),
-                    confirmResult.externalPaymentId
+                    confirmResult.getExternalPaymentId()
             );
             eventPublisher.publishPaymentConfirmed(event);
 
@@ -94,7 +94,7 @@ public class DefaultPaymentConfirmationService implements PaymentConfirmationUse
             return PaymentConfirmationResult.builder()
                     .paymentId(payment.getId())
                     .status(payment.getStatus())
-                    .externalPaymentId(confirmResult.externalPaymentId)
+                    .externalPaymentId(confirmResult.getExternalPaymentId())
                     .amount(payment.getAmount())
                     .currency(payment.getCurrency())
                     .build();

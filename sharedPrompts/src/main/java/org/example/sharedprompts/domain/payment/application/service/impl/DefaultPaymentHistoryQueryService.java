@@ -9,7 +9,6 @@ import org.example.sharedprompts.domain.payment.application.port.out.repository.
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -20,7 +19,6 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @RequiredArgsConstructor
-@Service
 @Transactional(readOnly = true)
 public class DefaultPaymentHistoryQueryService implements PaymentHistoryQueryUseCase {
 
@@ -31,7 +29,7 @@ public class DefaultPaymentHistoryQueryService implements PaymentHistoryQueryUse
         if (query == null || query.getUserId() == null || query.getPageable() == null) {
             throw new IllegalArgumentException("query.userId, query.pageable 는 필수입니다.");
         }
-        log.info("결제 내역 조회 시작: userId={}, page={}, size={}",
+        log.debug("결제 내역 조회 시작: userId={}, page={}, size={}",
                 query.getUserId(), query.getPageable().getPageNumber(), query.getPageable().getPageSize());
 
         Page<Payment> paymentPage = paymentRepository.findByUserId(query.getUserId(), query.getPageable());
@@ -47,7 +45,7 @@ public class DefaultPaymentHistoryQueryService implements PaymentHistoryQueryUse
                         .build())
                 .collect(Collectors.toList());
 
-        log.info("결제 내역 조회 완료: userId={}, totalElements={}, totalPages={}",
+        log.debug("결제 내역 조회 완료: userId={}, totalElements={}, totalPages={}",
                 query.getUserId(), paymentPage.getTotalElements(), paymentPage.getTotalPages());
 
         return new PageImpl<>(results, query.getPageable(), paymentPage.getTotalElements());

@@ -22,7 +22,8 @@ public class PaymentWebhookCommand {
     private PaymentMethod paymentMethod;
     private String payload;
     private String signature;
-    private Map<String, String> headers;
+    @Builder.Default
+    private Map<String, String> headers = new HashMap<>();
 
     /**
      * 기본 정보로만 커맨드 생성
@@ -32,12 +33,7 @@ public class PaymentWebhookCommand {
             String payload,
             String signature
     ) {
-        return PaymentWebhookCommand.builder()
-                .paymentMethod(paymentMethod)
-                .payload(payload)
-                .signature(signature)
-                .headers(Map.of())
-                .build();
+        return of(paymentMethod, payload, signature, null);
     }
 
     /**

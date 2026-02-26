@@ -230,7 +230,8 @@ domain/payment
 ## 7. 금지 사항
 
 - 유스케이스 내부에서 WebClient/RestTemplate/외부 SDK 직접 사용 금지.
-- application/domain 에서 JPA Entity 직접 참조 금지 (`@Entity` 는 adapter/persistence 전용).
+- application/domain 에서 JPA Entity 직접 참조 금지 (`@Entity` 는 adapter/persistence 전용).  
+  → **단계:** 6장 구현 지침의 **5단계(JPA 분리)** 완료 후 적용되는 **최종 목표 규칙**. 현재 `domain/entity/Payment` 등이 `@Entity`인 구조는 리팩터링 진행 중이라 예외로 두고, 5단계에서 persistence 어댑터로 분리 후 준수.
 - controller 에서 repository 직접 호출 금지.
 - “편하니까 static util로 땜빵” 금지.
 - FQCN 남발 금지 (불필요한 전체 패키지명을 import 로 대체).

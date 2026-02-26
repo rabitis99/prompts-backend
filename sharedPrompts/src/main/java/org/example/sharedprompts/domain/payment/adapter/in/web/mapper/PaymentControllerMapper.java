@@ -156,7 +156,7 @@ public class PaymentControllerMapper {
     }
 
     /**
-     * List<PaymentHistoryResult> → Page<PaymentResponseDto> (내부적으로 사용)
+     * PaymentHistoryResult → PaymentResponseDto (단건 매핑)
      */
     public PaymentResponseDto toHistoryItemResponse(PaymentHistoryResult result) {
         return PaymentResponseDto.builder()

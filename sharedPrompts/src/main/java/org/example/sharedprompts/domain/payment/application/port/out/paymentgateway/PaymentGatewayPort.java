@@ -94,7 +94,7 @@ public interface PaymentGatewayPort {
             return exception;
         }
 
-        public PaymentGatewayResult(boolean success, String externalPaymentId, String approvalCode, String message) {
+        private PaymentGatewayResult(boolean success, String externalPaymentId, String approvalCode, String message) {
             this.success = success;
             this.externalPaymentId = externalPaymentId;
             this.approvalCode = approvalCode;
@@ -102,7 +102,7 @@ public interface PaymentGatewayPort {
             this.exception = null;
         }
 
-        public PaymentGatewayResult(boolean success, String message, Exception exception) {
+        private PaymentGatewayResult(boolean success, String message, Exception exception) {
             this.success = success;
             this.externalPaymentId = null;
             this.approvalCode = null;

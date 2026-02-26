@@ -25,7 +25,8 @@ public class PaymentEventPublisherAdapter implements PaymentEventPublisherPort {
     private final ApplicationEventPublisher applicationEventPublisher;
 
     private void publishAfterCommit(Object event) {
-        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+        if (TransactionSynchronizationManager.isActualTransactionActive()
+                && TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
