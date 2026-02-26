@@ -55,14 +55,27 @@ public class DefaultPaymentRefundService implements PaymentRefundUseCase {
         try {
             gatewayResult = paymentGateway.refundPayment(paymentAfterPrepare, refundAmount);
         } catch (Exception e) {
-            revertRefundInProgress(command.getPaymentId());
+            try {
+                revertRefundInProgress(command.getPaymentId());
+            } catch (Exception revertEx) {
+                log.error("환불 보상 트랜잭션 실패: paymentId={}", command.getPaymentId(), revertEx);
+                e.addSuppressed(revertEx);
+            }
             throw new PaymentValidationException(
                     "결제 환불 중 오류가 발생했습니다: " + e.getMessage(),
                     e
             );
         }
         if (!gatewayResult.isSuccess()) {
-            revertRefundInProgress(command.getPaymentId());
+            try {
+                revertRefundInProgress(command.getPaymentId());
+            } catch (Exception revertEx) {
+                log.error("환불 보상 트랜잭션 실패: paymentId={}", command.getPaymentId(), revertEx);
+                Throwable original = gatewayResult.getException();
+                if (original != null) {
+                    original.addSuppressed(revertEx);
+                }
+            }
             throw new PaymentValidationException(
                     "결제 환불 중 오류가 발생했습니다: " + gatewayResult.getMessage(),
                     gatewayResult.getException()

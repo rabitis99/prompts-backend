@@ -113,6 +113,11 @@ domain/payment
 
 ### D: DIP
 
+- **포트 분리/통합 휴리스틱 (구체적 기준)**
+  - **분리 기준**: (1) 서로 다른 유스케이스 그룹이 사용하는 경우, (2) 구현체가 명확히 달라지는 경우(예: 다른 외부 시스템·목적).
+  - **통합 기준**: (1) 동일한 외부 시스템/리소스에 대한 작업, (2) 항상 함께 사용되는 메서드들.
+  - **예시**: `PaymentGatewayPort`는 승인/취소/조회를 모두 포함(동일 PG 시스템). `PaymentLoggingPort`는 분리(로깅 목적·구현체가 다름).
+
 - 유스케이스는 외부 PG SDK/JPA Entity/Controller DTO 를 직접 알면 안 된다.
 - 유스케이스는 `port.out` 인터페이스만 의존하고, 구현은 adapter 에서 주입한다.
 
@@ -151,7 +156,8 @@ domain/payment
 - `ConfirmPaymentUseCase`
 - `CheckPaymentStatusUseCase`
 - `GetPaymentHistoryUseCase`
-- `ProcessPaymentWebhookUseCase`
+- `HandlePaymentWebhookUseCase`  
+  (다른 UseCase와 동일한 동사 패턴 유지를 위해 Process 대신 Handle 사용 권장. 기존 `PaymentWebhookUseCase` 유지 시 `handle()` 메서드로 의도 표현.)
 
 ### Command
 
@@ -166,10 +172,12 @@ domain/payment
 
 `application.port.out` 패키지:
 
-- `PaymentRepositoryPort`
-- `PaymentGatewayPort`
-- `PaymentEventPort`
-- (필요 시) `PaymentLoggingPort`, `PaymentMonitoringPort` 등
+- `PaymentRepositoryPort` — 결제 영속화(동일 리소스·항상 함께 사용).
+- `PaymentGatewayPort` — 동일 PG 시스템에 대한 승인/취소/조회 통합.
+- `PaymentEventPort` — 이벤트 발행(목적·구현체가 로깅·Gateway와 다름).
+- (필요 시) `PaymentLoggingPort`, `PaymentMonitoringPort` — 로깅/모니터링은 별도 포트로 분리(다른 유스케이스 그룹·다른 구현체).
+
+- **Port 설계 원칙**: Port 인터페이스는 **유스케이스 관점의 의도**를 표현하며, 락·트랜잭션·쿼리 최적화 등 **인프라 세부사항을 메서드 시그니처에 노출하지 않는다**. 구체 구현(예: `findByIdForUpdate` 사용 여부, 락 방식)은 Adapter/Persistence에서 선택한다.
 
 ### Domain
 
@@ -213,10 +221,16 @@ domain/payment
 5. **JPA 분리**
    - JPA 관련 코드는 `adapter/out/persistence` 로 이동.
    - `PaymentRepositoryPort` 를 구현하는 어댑터로 정리.
+   - **JPA 분리 마이그레이션 구체 단계** (현재 `domain/entity/Payment`가 `@Entity`인 경우 참고):
+     - **Domain 모델과 JPA Entity 분리 전략**: (A) 도메인에는 순수 `Payment` 모델만 두고, (B) adapter/out/persistence에는 `PaymentJpaEntity`(또는 `PaymentPersistenceEntity`)를 두어 `@Entity` 매핑. 변환은 어댑터 내부에서만 수행(도메인 모델 ↔ JPA Entity 매핑 계층).
+     - **Repository Port와 JPA Repository 간 변환**: Port 메서드는 도메인 `Payment`를 인수/반환. 어댑터에서 `PaymentRepository`(Spring Data JPA)를 주입받고, 저장·조회 시 도메인 ↔ JPA Entity 변환 메서드를 두어 변환 레이어로 구현.
+     - **기존 @Entity 제거 시점과 순서**: (1) `PaymentJpaEntity` 생성 및 Repository가 해당 엔티티 사용하도록 변경, (2) Port 구현 어댑터에서 조회/저장 시 변환 적용, (3) 모든 호출 경로가 Port 경유하는지 확인 후 `domain/entity/Payment`에서 `@Entity` 및 JPA 어노테이션 제거, (4) 필요 시 도메인 클래스명/패키지 정리(예: `domain.model.Payment`).
+     - **마이그레이션 중 공존 전략**: 한 시점에는 "도메인 Payment에 @Entity가 남아 있는 구조"와 "JPA Entity를 별도 클래스로 두고 변환하는 구조" 중 하나만 선택. 공존 시에는 기존 Repository가 도메인 엔티티를 그대로 사용하던 것을, 새 어댑터에서는 JPA 전용 엔티티만 사용하고 Port 경계에서만 도메인 모델로 변환하도록 단계적으로 전환.
 
 6. **트랜잭션 경계**
    - 트랜잭션은 application service 에 둔다.
    - 도메인/엔티티에 @Transactional 금지.
+   - **Port 설계**: Repository Port 등에는 락·트랜잭션 전파 등 인프라 세부사항을 메서드 시그니처에 노출하지 않는다(위 5장 Out Port 설계 원칙 참고).
 
 7. **예외 표준화**
    - domain.exception 또는 application 전용 예외로 표준화.
@@ -287,7 +301,9 @@ domain/credit
 
 - **이벤트 발행 신뢰성 규칙 (Payment↔Credit 연계 핵심)**  
   Payment 이벤트는 Credit 도메인 연계의 핵심이므로, 다음을 문서 규칙으로 둔다.
-  - **커밋 후 발행 보장**: 트랜잭션 커밋이 성공한 뒤에만 이벤트를 발행하여, DB 반영 전 이벤트 유실을 방지한다. (Outbox 패턴 또는 트랜잭션 커밋 후 비동기 발행 등 구현 선택.)
+  - **커밋 후 발행 보장**: 트랜잭션 커밋이 성공한 뒤에만 이벤트를 발행하여, DB 반영 전 이벤트 유실을 방지한다.
+  - **기본 권장 구현 방식**: **기본적으로 Outbox 패턴 사용을 권장**한다. 동일 트랜잭션에서 Outbox 테이블에 이벤트를 기록한 뒤, 별도 퍼블리셔가 커밋 후 발행하여 유실·중복을 줄인다. 단순 시나리오(연계 구독자가 없거나 실패 시 재시도가 불필요한 경우)에 한해, 트랜잭션 커밋 후 동기/비동기 발행(`TransactionSynchronization.afterCommit` 또는 `@TransactionalEventListener(phase = AFTER_COMMIT)`)을 허용한다.
+  - **트레이드오프**: Outbox — 복잡도·인프라 부담 증가, 신뢰성·재시도·정합성 높음. 커밋 후 발행만 사용 — 구현 단순, 메시지 브로커 장애 시 유실 가능·재시도는 브로커/구독자 책임.
   - **Idempotency key**: 이벤트 또는 구독 측 처리 시 idempotency key(예: paymentId + eventType)를 사용하여 동일 이벤트의 중복 처리·중복 적립을 방지한다.
   - **재시도 정책**: 발행 실패 시 재시도(백오프, 최대 횟수) 정책을 두고, 유실 없이 Credit 연계가 이루어지도록 한다.
 
@@ -345,7 +361,7 @@ domain/credit
 
 2. UseCase
    - 결제 로딩(취소 가능 결제 + 동시성 보장) → 소유자/상태 검증
-   - (구현 시 락 방식은 Adapter/Persistence에서 선택. Port 계약에는 `findByIdForUpdate` 등 인프라 세부사항을 직접 노출하지 않는 것을 권장.)
+   - (위 **Port 설계 원칙** 준수: 락 방식은 Adapter/Persistence에서 선택.)
    - `PaymentGatewayPort.cancel` 호출
    - 도메인 모델 상태 전이 (Canceled)
    - `PaymentEventPort.publishPaymentCanceled(event)` 호출 (이벤트 발행 신뢰성 규칙 준수)
@@ -399,4 +415,16 @@ domain/credit
    - **완료 기준**: 스모크/수동 테스트만으로는 결제·환불·웹훅 재전송 등 회귀 리스크를 방지하기 어렵으므로, **최소한 핵심 시나리오는 자동화 테스트를 필수**로 둔다.
      - 필수 자동화 테스트 시나리오: 결제 승인, 취소, 환불, 웹훅 중복 처리.
      - 해당 API에 대한 자동화 테스트 또는 수동 시나리오 체크리스트 통과.
+
+   - **테스트 완료 기준 구체화 (회귀 방지 목표)**
+     - **시나리오별 권장 테스트 레벨**
+       - 결제 승인/취소/환불/확인: **UseCase 단위 테스트**(Mock: Repository, PaymentGatewayPort, EventPublisher) + **End-to-End API 테스트**(실 DB 또는 테스트 컨테이너, PG는 Stub/Mock).
+       - 웹훅 중복 처리·재전송: **UseCase 단위 테스트** + **API 테스트**(웹훅 엔드포인트 호출·중복 요청 검증).
+       - 상태 조회/내역 조회: UseCase 단위 테스트 + 필요 시 API 테스트.
+     - **최소 커버리지 기준**: 핵심 유스케이스(승인/취소/환불/확인/웹훅)에 대한 **라인 커버리지 80% 이상**을 목표로 하되, 실패·예외 분기(권한 없음, 이미 처리됨, PG 실패 등)를 반드시 포함한다.
+     - **Mock/Stub 전략**
+       - **PaymentGatewayPort**: Mock(단위 테스트), Stub 또는 테스트용 Fake(통합/API 테스트 시 선택적).
+       - **Repository (PaymentCommandRepositoryPort 등)**: 단위 테스트에서는 Mock. 통합/API 테스트에서는 **실제 DB(또는 테스트 컨테이너)** 사용 권장.
+       - **PaymentEventPublisherPort**: 단위 테스트에서는 Mock(발행 호출 검증). 이벤트 구독자 연동이 필요하면 통합 테스트에서 실제 메시징 또는 In-memory 브로커 사용.
+     - 위를 통해 "체크박스형 최소 테스트"가 아닌 **실질적인 회귀 방지**가 가능하도록 한다.
 

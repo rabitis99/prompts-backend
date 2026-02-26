@@ -71,7 +71,10 @@ public class UserTierServiceImpl implements UserTierService {
         Map<String, Integer> remainingByModuleType = new LinkedHashMap<>();
         for (ModuleType mt : USAGE_MODULE_TYPES) {
             int consumption = tierLimitPolicy.getConsumptionAmount(mt);
-            remainingByModuleType.put(mt.name(), Math.max(0, remaining - consumption));
+            remainingByModuleType.put(
+                    mt.name(),
+                    consumption <= 0 ? 0 : Math.max(0, remaining / consumption)
+            );
         }
 
         return TierInfoResponseDto.from(user, limit, todayUsed, remaining, remainingByModuleType);
@@ -79,6 +82,9 @@ public class UserTierServiceImpl implements UserTierService {
 
     @Override
     public TierInfoResponseDto getTierInfo(Long userId, ModuleType moduleType) {
+        if (moduleType == null || moduleType == ModuleType.UNKNOWN) {
+            throw new ApiException(ErrorCode.UNSUPPORTED_MODULE_TYPE);
+        }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
         UserTier tier = user.getTier();
@@ -211,6 +217,9 @@ public class UserTierServiceImpl implements UserTierService {
     @Override
     @Transactional
     public ConsumeModuleUsageResponseDto consumeModuleUsage(Long userId, ModuleType moduleType) {
+        if (moduleType == null || moduleType == ModuleType.UNKNOWN) {
+            throw new ApiException(ErrorCode.UNSUPPORTED_MODULE_TYPE);
+        }
         // 비관적 락으로 동일 사용자에 대한 동시 차감을 직렬화 (검증·차감을 하나의 임계구역으로)
         User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));

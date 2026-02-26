@@ -56,9 +56,15 @@ public class PaymentBeanConfiguration {
     public PaymentConfirmationUseCase paymentConfirmationUseCase(
             PaymentCommandRepositoryPort paymentRepository,
             PaymentGatewayPort paymentGateway,
-            PaymentEventPublisherPort eventPublisher
+            PaymentEventPublisherPort eventPublisher,
+            PaymentTransactionManager transactionManager
     ) {
-        return new DefaultPaymentConfirmationService(paymentRepository, paymentGateway, eventPublisher);
+        return new DefaultPaymentConfirmationService(
+                paymentRepository,
+                paymentGateway,
+                eventPublisher,
+                transactionManager
+        );
     }
 
     /**
@@ -68,9 +74,15 @@ public class PaymentBeanConfiguration {
     public PaymentCancellationUseCase paymentCancellationUseCase(
             PaymentCommandRepositoryPort paymentRepository,
             PaymentGatewayPort paymentGateway,
-            PaymentEventPublisherPort eventPublisher
+            PaymentEventPublisherPort eventPublisher,
+            PaymentTransactionManager transactionManager
     ) {
-        return new DefaultPaymentCancellationService(paymentRepository, paymentGateway, eventPublisher);
+        return new DefaultPaymentCancellationService(
+                paymentRepository,
+                paymentGateway,
+                eventPublisher,
+                transactionManager
+        );
     }
 
     /**

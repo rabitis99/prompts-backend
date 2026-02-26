@@ -103,7 +103,7 @@ class DefaultPaymentConfirmationServiceTest {
         assertNotNull(result);
         assertEquals(paymentId, result.getPaymentId());
         assertEquals("EXT_PAY_ID_123", result.getExternalPaymentId());
-        verify(paymentRepository).findByIdForUpdate(paymentId);
+        verify(paymentRepository, times(2)).findByIdForUpdate(paymentId);
         verify(paymentGateway).confirmPayment(mockPayment, providerToken);
         verify(paymentRepository).save(mockPayment);
         verify(eventPublisher).publishPaymentConfirmed(any());
@@ -235,6 +235,7 @@ class DefaultPaymentConfirmationServiceTest {
         assertEquals(paymentId, result.getPaymentId());
         assertEquals(PaymentStatus.FAILED, result.getStatus());
         assertNull(result.getExternalPaymentId());
+        verify(paymentRepository, times(2)).findByIdForUpdate(paymentId);
         verify(paymentRepository).save(any(Payment.class));
         verify(eventPublisher).publishPaymentFailed(any());
     }

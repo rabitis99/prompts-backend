@@ -65,7 +65,10 @@ public class PayPalWebhookParser {
             String statusStr = rawStatus instanceof String ? (String) rawStatus : (rawStatus != null ? String.valueOf(rawStatus) : null);
             PaymentStatus status = statusMapper.map(statusStr);
 
-            // orderId가 null이면 captureId를 대체값으로 사용
+            // orderId가 null이면 captureId를 대체값으로 사용 (PayPal이 주문 ID를 보내지 않는 경우).
+            // WebhookEvent.orderId 필드에는 "결제/주문 식별자"가 들어가며, 하위 검증(PaymentValidator 등)이
+            // 이 값을 기준으로 매칭할 수 있도록 설계되어 있음. order_id가 없을 때 captureId를 사용하는 것은
+            // 의도된 폴백이며, 실제 주문 ID와 결제 ID를 구분하는 정책이 필요하면 여기서 null 전달 또는 별도 플래그 고려.
             String externalPaymentId = orderId != null ? orderId : captureId;
             if (externalPaymentId == null || externalPaymentId.isBlank()) {
                 throw new IllegalStateException("PayPal Webhook payload에 orderId 또는 captureId가 없습니다");
