@@ -77,12 +77,44 @@ public class PromptSpecRendererAdapter implements PromptSpecRendererPort {
 
     @Override
     public String renderRepair(String draft, PromptSpec spec, String failureHints) {
-        return "You are an expert AI prompt engineer. Repair the following prompt draft.\n\n"
-                + failureHints + "\n"
-                + "## Original Draft\n\"\"\"\n" + draft + "\n\"\"\"\n\n"
-                + "## Objective\n" + spec.getObjective().name() + "\n\n"
-                + "Output ONLY the repaired prompt body. Keep all correct parts unchanged.\n"
-                + "Language: " + spec.getLocale().getDescription() + "\n";
+        StringBuilder sb = new StringBuilder();
+        sb.append("You are an expert AI prompt engineer. Repair the following prompt draft.\n\n");
+
+        // 실패 항목 힌트
+        sb.append(failureHints).append("\n");
+
+        // 원본 초안
+        sb.append("## Original Draft\n\"\"\"\n").append(draft).append("\n\"\"\"\n\n");
+
+        // Objective (수리 범위 명확화)
+        sb.append("## Objective\n").append(spec.getObjective().name()).append("\n\n");
+
+        // 전략 유지 (Solve와 동일한 전략으로 수리)
+        sb.append(renderStrategies(spec.getStrategyBundle().getStrategies()));
+
+        // 제약 조건 (수리 후에도 동일 제약 준수)
+        sb.append("## Constraints\n")
+          .append("- Output ONLY the core prompt body.\n");
+        if (spec.getConstraints().getMaxLength() != null) {
+            sb.append("- Keep output under ").append(spec.getConstraints().getMaxLength()).append(" characters.\n");
+        }
+        if (spec.getConstraints().isRequireStepByStep()) {
+            sb.append("- Must include step-by-step reasoning.\n");
+        }
+        if (spec.getConstraints().isRequireCitations()) {
+            sb.append("- Must include citations or uncertainty markers.\n");
+        }
+        sb.append("\n");
+
+        // 톤/스타일 유지
+        sb.append("## Tone & Style\n")
+          .append("- **Tone**: ").append(spec.getTone().getGuidelineEn()).append("\n")
+          .append("- **Style**: ").append(spec.getStyle().getGuidelineEn()).append("\n\n");
+
+        sb.append("Keep all correct parts unchanged. ")
+          .append("Language: ").append(spec.getLocale().getDescription()).append("\n");
+
+        return sb.toString();
     }
 
     private String renderStrategies(Set<PromptingStrategy> strategies) {

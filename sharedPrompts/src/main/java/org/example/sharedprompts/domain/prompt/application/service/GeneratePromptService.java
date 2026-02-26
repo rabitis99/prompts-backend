@@ -8,6 +8,7 @@ import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromp
 import org.example.sharedprompts.domain.prompt.application.port.in.QualityBadge;
 import org.example.sharedprompts.domain.prompt.application.port.out.ConstrainedDecodingPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.LLMClientPort;
+import org.example.sharedprompts.domain.prompt.application.port.out.PromptSpecRendererPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.SavePromptVersionPort;
 import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
 import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
@@ -16,6 +17,7 @@ import org.example.sharedprompts.domain.prompt.service.DomainResolver;
 import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecFactory;
 import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecValidator;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
+import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
 import org.springframework.stereotype.Service;
@@ -51,10 +53,14 @@ public class GeneratePromptService implements GeneratePromptUseCase {
     private final LLMClientPort llmClientPort;
     private final ConstrainedDecodingPort constrainedDecodingPort;
     private final SavePromptVersionPort savePromptVersionPort;
+    private final PromptSpecRendererPort promptSpecRenderer;
 
     @Override
     public GeneratePromptResult generate(GeneratePromptCommand command) {
         log.info("[GeneratePrompt] 시작: userId={}, objective 결정 중", command.userId());
+
+        // ─── 유저 사전 검증 (LLM 호출 전): 탈퇴·삭제 유저로 인한 비용 낭비 방지 ──
+        savePromptVersionPort.validateUserExists(command.userId());
 
         // ─── 1. Clarify ──────────────────────────────────────────────────────
         PromptSpec spec = clarify(command);
@@ -137,7 +143,9 @@ public class GeneratePromptService implements GeneratePromptUseCase {
                 command.tone(),
                 command.style(),
                 command.language(),
-                command.experimentalEnabled()
+                command.experimentalEnabled(),
+                ExperienceLevel.INTERMEDIATE,
+                command.jsonSchema()
         );
 
         // 입력 정규화: 과도한 공백·특수문자 제거
@@ -153,14 +161,14 @@ public class GeneratePromptService implements GeneratePromptUseCase {
         if (spec.getObjective() == PromptObjective.EXTRACTION
                 && spec.getOutputContract().hasJsonSchema()) {
             try {
-                // Constrained Decoding 우선 시도
-                String renderedPrompt = llmClientPort.solve(spec);
+                // 렌더링된 메타프롬프트를 constrainedDecoding에 전달 (LLM draft가 아님)
+                String metaPrompt = promptSpecRenderer.render(spec);
                 String constrained = constrainedDecodingPort.generateConstrained(
-                        renderedPrompt, spec.getOutputContract());
-                if (constrained != null && !constrained.isBlank()) {
-                    return constrained;
-                }
+                        metaPrompt, spec.getOutputContract());
+                // null/blank 결과는 verify의 FORMAT_COMPLIANCE로 처리 (LLM 예산 초과 방지)
+                return constrained != null ? constrained : "";
             } catch (Exception e) {
+                // 예외 시만 일반 LLM으로 fallback (1회 예산 내 대체 경로)
                 log.warn("[GeneratePrompt] ConstrainedDecoding 실패, 일반 LLM 호출로 fallback: {}", e.getMessage());
             }
         }

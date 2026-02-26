@@ -5,6 +5,7 @@ import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
 import org.example.sharedprompts.domain.prompt.domain.policy.StrategyBundlePolicy;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptingStrategy;
+import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
@@ -14,8 +15,6 @@ import org.example.sharedprompts.domain.prompt.enums.role.EtcRoleType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -27,7 +26,7 @@ class PromptSpecFactoryTest {
 
     @BeforeEach
     void setUp() {
-        factory = new PromptSpecFactory(new StrategyBundlePolicy());
+        factory = new PromptSpecFactory(new StrategyBundlePolicy(), new ObjectiveMappingRegistry());
     }
 
     @Test
@@ -45,6 +44,7 @@ class PromptSpecFactoryTest {
         );
 
         assertThat(spec.getObjective()).isEqualTo(PromptObjective.FACTUAL);
+        assertThat(spec.getTaskDomain()).isEqualTo(TaskDomain.ANALYTICAL);
     }
 
     @Test
@@ -76,6 +76,66 @@ class PromptSpecFactoryTest {
                 StyleType.NARRATIVE,
                 LanguageType.KOREAN,
                 false
+        );
+
+        assertThat(spec.getObjective()).isEqualTo(PromptObjective.PLANNING);
+    }
+
+    @Test
+    @DisplayName("ActionType override Objective가 있으면 최우선으로 사용된다")
+    void actionTypeDefaultObjectiveHasHighestPriority() {
+        ActionTypeWithDefault actionType = new ActionTypeWithDefault(PromptObjective.EXTRACTION, "custom_action");
+
+        PromptSpec spec = factory.create(
+                "입력",
+                TaskDomain.TECHNICAL,
+                actionType,
+                EtcRoleType.GENERAL_CONSULTANT,
+                ToneType.NEUTRAL,
+                StyleType.NARRATIVE,
+                LanguageType.KOREAN,
+                false,
+                ExperienceLevel.INTERMEDIATE
+        );
+
+        assertThat(spec.getObjective()).isEqualTo(PromptObjective.EXTRACTION);
+    }
+
+    @Test
+    @DisplayName("ActionType override가 없으면 이름 휴리스틱으로 Objective를 추론한다")
+    void heuristicMappingUsedWhenNoOverride() {
+        ActionTypeWithDefault summarizeAction = new ActionTypeWithDefault(null, "SUMMARIZE_NOTES");
+
+        PromptSpec spec = factory.create(
+                "입력",
+                TaskDomain.GENERAL,
+                summarizeAction,
+                EtcRoleType.GENERAL_CONSULTANT,
+                ToneType.NEUTRAL,
+                StyleType.NARRATIVE,
+                LanguageType.KOREAN,
+                false,
+                ExperienceLevel.INTERMEDIATE
+        );
+
+        assertThat(spec.getObjective()).isEqualTo(PromptObjective.FACTUAL);
+    }
+
+    @Test
+    @DisplayName("ActionType 매핑이 없으면 TaskDomain 기본 Objective를 사용한다")
+    void domainDefaultUsedWhenNoMapping() {
+        ActionTypeWithDefault unknownAction = new ActionTypeWithDefault(null, "UNKNOWN_ACTION");
+
+        PromptSpec spec = factory.create(
+                "입력",
+                TaskDomain.PRACTICAL,
+                unknownAction,
+                EtcRoleType.GENERAL_CONSULTANT,
+                ToneType.NEUTRAL,
+                StyleType.NARRATIVE,
+                LanguageType.KOREAN,
+                false,
+                ExperienceLevel.INTERMEDIATE
         );
 
         assertThat(spec.getObjective()).isEqualTo(PromptObjective.PLANNING);
@@ -180,5 +240,103 @@ class PromptSpecFactoryTest {
 
         assertThat(rubric.getItems()).contains(QualityRubric.RubricItem.FORMAT_COMPLIANCE);
         assertThat(rubric.getItems()).doesNotContain(QualityRubric.RubricItem.UNCERTAINTY_HANDLING);
+    }
+
+    @Test
+    @DisplayName("BEGINNER 경험 레벨은 INTERMEDIATE보다 더 긴 maxLength와 step-by-step을 요구한다")
+    void beginnerHasLongerMaxLengthAndStepByStep() {
+        PromptSpec intermediate = factory.create(
+                "입력",
+                TaskDomain.TECHNICAL,
+                EtcActionType.GENERAL_CONSULTATION,
+                EtcRoleType.GENERAL_CONSULTANT,
+                ToneType.NEUTRAL,
+                StyleType.NARRATIVE,
+                LanguageType.KOREAN,
+                false,
+                ExperienceLevel.INTERMEDIATE
+        );
+
+        PromptSpec beginner = factory.create(
+                "입력",
+                TaskDomain.TECHNICAL,
+                EtcActionType.GENERAL_CONSULTATION,
+                EtcRoleType.GENERAL_CONSULTANT,
+                ToneType.NEUTRAL,
+                StyleType.NARRATIVE,
+                LanguageType.KOREAN,
+                false,
+                ExperienceLevel.BEGINNER
+        );
+
+        assertThat(beginner.getConstraints().getMaxLength())
+                .isGreaterThan(intermediate.getConstraints().getMaxLength());
+        assertThat(beginner.getConstraints().isRequireStepByStep()).isTrue();
+    }
+
+    @Test
+    @DisplayName("EXPERT 경험 레벨은 INTERMEDIATE보다 짧은 maxLength를 가진다")
+    void expertHasShorterMaxLength() {
+        PromptSpec intermediate = factory.create(
+                "입력",
+                TaskDomain.TECHNICAL,
+                EtcActionType.GENERAL_CONSULTATION,
+                EtcRoleType.GENERAL_CONSULTANT,
+                ToneType.NEUTRAL,
+                StyleType.NARRATIVE,
+                LanguageType.KOREAN,
+                false,
+                ExperienceLevel.INTERMEDIATE
+        );
+
+        PromptSpec expert = factory.create(
+                "입력",
+                TaskDomain.TECHNICAL,
+                EtcActionType.GENERAL_CONSULTATION,
+                EtcRoleType.GENERAL_CONSULTANT,
+                ToneType.NEUTRAL,
+                StyleType.NARRATIVE,
+                LanguageType.KOREAN,
+                false,
+                ExperienceLevel.EXPERT
+        );
+
+        assertThat(expert.getConstraints().getMaxLength())
+                .isLessThan(intermediate.getConstraints().getMaxLength());
+    }
+
+    private static final class ActionTypeWithDefault implements org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface {
+        private final PromptObjective defaultObjective;
+        private final String name;
+
+        private ActionTypeWithDefault(PromptObjective defaultObjective, String name) {
+            this.defaultObjective = defaultObjective;
+            this.name = name;
+        }
+
+        @Override
+        public String getDisplayNameKo() {
+            return name;
+        }
+
+        @Override
+        public String getDisplayNameEn() {
+            return name;
+        }
+
+        @Override
+        public String getDisplayNameJa() {
+            return name;
+        }
+
+        @Override
+        public PromptObjective getDefaultObjective() {
+            return defaultObjective;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 }

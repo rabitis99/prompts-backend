@@ -31,6 +31,12 @@ public class SavePromptVersionAdapter implements SavePromptVersionPort {
     private final PromptTagService promptTagService;
 
     @Override
+    public void validateUserExists(Long userId) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    @Override
     @Transactional(timeout = 30)
     public Long save(GeneratePromptCommand command, PromptSpec spec,
                      String finalContent, int repairCount, boolean finallyPassed) {

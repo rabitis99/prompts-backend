@@ -32,6 +32,10 @@ public class PromptSpecValidator {
     private static final Pattern CONTRADICTION_PATTERN =
             Pattern.compile("(?i)(\\b\\w+\\b)\\s+.{0,50}\\b(아니다|아닙니다|not|isn't|is not)\\b");
 
+    // String.matches()는 매 호출마다 Pattern.compile()을 실행하므로 static으로 캐시
+    private static final Pattern QUANTITATIVE_CLAIM_PATTERN =
+            Pattern.compile("\\d+%|\\d+배");
+
     /**
      * 초안(draft)을 PromptSpec 기준으로 검증한다.
      * Objective별 Verify 모드에 따라 검증 강도가 달라진다.
@@ -183,8 +187,7 @@ public class PromptSpecValidator {
 
     private boolean hasUnsubstantiatedClaim(String draft) {
         if (draft == null) return false;
-        // 퍼센트/숫자 주장이 있고 근거 표현이 없으면 true
-        boolean hasQuantitativeClaim = draft.matches(".*\\d+%.*") || draft.matches(".*\\d+배.*");
+        boolean hasQuantitativeClaim = QUANTITATIVE_CLAIM_PATTERN.matcher(draft).find();
         boolean hasHedging = draft.contains("추정") || draft.contains("참고")
                 || draft.contains("approximately") || draft.contains("likely")
                 || draft.contains("약 ") || draft.contains("출처:");
@@ -193,9 +196,9 @@ public class PromptSpecValidator {
 
     private boolean draftPreservesKeywords(String draft, String input) {
         if (draft == null || input == null) return true;
-        // 한국어 포함: 최소 1자 이상 단어를 키워드로 취급
+        // 최소 2자 이상: 1자짜리 조사·접속사는 키워드에서 제외
         List<String> keywords = java.util.Arrays.stream(input.split("\\s+"))
-                .filter(w -> w.length() >= 1)
+                .filter(w -> w.length() >= 2)
                 .limit(5)
                 .toList();
         if (keywords.isEmpty()) return true;

@@ -7,6 +7,8 @@ import org.example.sharedprompts.domain.prompt.domain.model.OutputContract;
 import org.example.sharedprompts.global.google.gemini.SyncGoogleGeminiClient;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 /**
  * Constrained Decoding 어댑터 — 현재는 JSON 형식 강제를 프롬프트 레벨에서 구현한 스텁.
  *
@@ -23,7 +25,8 @@ public class ConstrainedDecodingAdapter implements ConstrainedDecodingPort {
     private final SyncGoogleGeminiClient syncGoogleGeminiClient;
 
     // 내부 compliance rate 추적용 (실제 운영에서는 메트릭 시스템 연동)
-    private volatile double complianceRate = 1.0;
+    // AtomicReference: EMA 업데이트가 read-modify-write이므로 volatile double은 원자성 미보장
+    private final AtomicReference<Double> complianceRate = new AtomicReference<>(1.0);
 
     @Override
     public String generateConstrained(String prompt, OutputContract outputContract) {
@@ -57,7 +60,7 @@ public class ConstrainedDecodingAdapter implements ConstrainedDecodingPort {
 
     @Override
     public double getComplianceRate() {
-        return complianceRate;
+        return complianceRate.get();
     }
 
     private String buildConstrainedPrompt(String prompt, OutputContract contract) {
@@ -68,11 +71,12 @@ public class ConstrainedDecodingAdapter implements ConstrainedDecodingPort {
     }
 
     private void updateComplianceRate(boolean compliant) {
-        // 지수 이동 평균 (EMA) 방식으로 compliance rate 추적
-        complianceRate = 0.95 * complianceRate + 0.05 * (compliant ? 1.0 : 0.0);
-        if (complianceRate < 0.9) {
-            log.error("[ConstrainedDecoding] compliance rate 임계값 위반: rate={:.2f}. 대체 adapter 검토 필요",
-                    complianceRate);
+        // 지수 이동 평균 (EMA) 방식으로 compliance rate 추적 (원자적 업데이트)
+        double current = complianceRate.updateAndGet(
+                rate -> 0.95 * rate + 0.05 * (compliant ? 1.0 : 0.0));
+        if (current < 0.9) {
+            log.error("[ConstrainedDecoding] compliance rate 임계값 위반: rate={}. 대체 adapter 검토 필요",
+                    current);
         }
     }
 }

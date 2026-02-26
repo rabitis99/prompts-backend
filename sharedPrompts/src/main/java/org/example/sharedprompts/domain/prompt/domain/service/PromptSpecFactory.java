@@ -11,6 +11,7 @@ import org.example.sharedprompts.domain.prompt.domain.policy.StrategyBundlePolic
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptStrategyBundle;
 import org.example.sharedprompts.domain.prompt.domain.value.QualityPriority;
+import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
@@ -34,6 +35,7 @@ import java.util.List;
 public class PromptSpecFactory {
 
     private final StrategyBundlePolicy strategyBundlePolicy;
+    private final ObjectiveMappingRegistry objectiveMappingRegistry;
 
     /**
      * 사용자 입력으로부터 PromptSpec을 생성한다.
@@ -48,18 +50,62 @@ public class PromptSpecFactory {
             LanguageType locale,
             boolean experimentalEnabled
     ) {
+        return create(rawInput, taskDomain, actionType, role, tone, style, locale,
+                experimentalEnabled, ExperienceLevel.INTERMEDIATE, null);
+    }
+
+    public PromptSpec create(
+            String rawInput,
+            TaskDomain taskDomain,
+            ActionTypeInterface actionType,
+            RoleTypeInterface role,
+            ToneType tone,
+            StyleType style,
+            LanguageType locale,
+            boolean experimentalEnabled,
+            ExperienceLevel experienceLevel
+    ) {
+        return create(rawInput, taskDomain, actionType, role, tone, style, locale,
+                experimentalEnabled, experienceLevel, null);
+    }
+
+    /**
+     * 전체 파라미터 버전.
+     *
+     * @param jsonSchema EXTRACTION 시 사용할 JSON Schema (null이면 기본 스키마 사용)
+     */
+    public PromptSpec create(
+            String rawInput,
+            TaskDomain taskDomain,
+            ActionTypeInterface actionType,
+            RoleTypeInterface role,
+            ToneType tone,
+            StyleType style,
+            LanguageType locale,
+            boolean experimentalEnabled,
+            ExperienceLevel experienceLevel,
+            String jsonSchema
+    ) {
+        if (rawInput == null) {
+            throw new IllegalArgumentException("rawInput은 null일 수 없습니다.");
+        }
+
+        ExperienceLevel level = experienceLevel != null ? experienceLevel : ExperienceLevel.INTERMEDIATE;
+
         PromptObjective objective = resolveObjective(taskDomain, actionType);
         QualityPriority priority = resolvePriority(objective);
         QualityRubric rubric = buildRubric(objective);
         List<PromptSection> sections = buildSections(objective, role, taskDomain, locale);
-        Constraints constraints = buildConstraints(objective);
-        OutputContract outputContract = buildOutputContract(objective);
+        Constraints constraints = buildConstraints(objective, level);
+        OutputContract outputContract = buildOutputContract(objective, jsonSchema);
         PromptStrategyBundle bundle = strategyBundlePolicy.resolveBundle(objective, experimentalEnabled);
 
         return PromptSpec.builder()
                 .objective(objective)
                 .priority(priority)
                 .rubric(rubric)
+                .taskDomain(taskDomain)
+                .experienceLevel(level)
                 .sections(sections)
                 .constraints(constraints)
                 .outputContract(outputContract)
@@ -76,27 +122,29 @@ public class PromptSpecFactory {
 
     /**
      * TaskDomain과 ActionType으로부터 Objective를 결정한다.
-     * 사용자에게는 노출하지 않는 내부 매핑이다.
+     * 우선순위:
+     * 1) ActionType 기본 Objective
+     * 2) ObjectiveMappingRegistry 명시/휴리스틱 매핑
+     * 3) TaskDomain 기본값
      */
     PromptObjective resolveObjective(TaskDomain taskDomain, ActionTypeInterface actionType) {
-        if (taskDomain == null) return PromptObjective.REASONING;
+        if (actionType != null) {
+            PromptObjective defaultObjective = actionType.getDefaultObjective();
+            if (defaultObjective != null) {
+                return defaultObjective;
+            }
+        }
 
-        return switch (taskDomain) {
-            case TECHNICAL -> PromptObjective.REASONING;
-            case ANALYTICAL -> PromptObjective.FACTUAL;
-            case CREATIVE -> PromptObjective.CREATIVE_WITH_CONSTRAINTS;
-            case PRACTICAL -> PromptObjective.PLANNING;
-            case EDUCATIONAL -> PromptObjective.REASONING;
-            default -> PromptObjective.REASONING;
-        };
+        return objectiveMappingRegistry
+                .findByActionType(actionType)
+                .orElseGet(() -> objectiveMappingRegistry.getDomainDefault(taskDomain));
     }
 
     private QualityPriority resolvePriority(PromptObjective objective) {
         return switch (objective) {
-            case FACTUAL -> QualityPriority.ACCURACY_FIRST;
-            case EXTRACTION -> QualityPriority.STRUCTURE_FIRST;
+            case FACTUAL, REASONING, ANALYTICAL -> QualityPriority.ACCURACY_FIRST;
+            case EXTRACTION, PLANNING -> QualityPriority.STRUCTURE_FIRST;
             case CREATIVE_WITH_CONSTRAINTS -> QualityPriority.CREATIVITY_SECOND;
-            default -> QualityPriority.ACCURACY_FIRST;
         };
     }
 
@@ -129,6 +177,12 @@ public class PromptSpecFactory {
             case CREATIVE_WITH_CONSTRAINTS -> {
                 items.add(QualityRubric.RubricItem.FORMAT_COMPLIANCE);
                 // CREATIVE_WITH_CONSTRAINTS: 의미적 창의성 판단은 제외 (Soft-verify)
+            }
+            case ANALYTICAL -> {
+                // ANALYTICAL: 분석 근거 보존 + 모순 없음 + 불확실성 처리 (CHAIN_OF_VERIFICATION)
+                items.add(QualityRubric.RubricItem.INPUT_PRESERVATION);
+                items.add(QualityRubric.RubricItem.NO_CONTRADICTION);
+                items.add(QualityRubric.RubricItem.UNCERTAINTY_HANDLING);
             }
         }
 
@@ -163,8 +217,10 @@ public class PromptSpecFactory {
             ));
         }
 
-        // Objective별 추가 구조 섹션 (내용은 Renderer에서 채워질 수 있도록 비워 둔다)
-        sections.add(PromptSection.required(PromptSection.SectionType.INSTRUCTION, ""));
+        // Objective별 지시 방향을 섹션 내용으로 제공 (Renderer가 메타프롬프트에 포함)
+        sections.add(PromptSection.required(
+                PromptSection.SectionType.INSTRUCTION,
+                buildInstructionContent(objective)));
 
         if (objective == PromptObjective.EXTRACTION) {
             sections.add(PromptSection.required(PromptSection.SectionType.OUTPUT_FORMAT, ""));
@@ -191,45 +247,95 @@ public class PromptSpecFactory {
         }
     }
 
-    private Constraints buildConstraints(PromptObjective objective) {
-        return switch (objective) {
-            case FACTUAL -> Constraints.builder()
-                    .maxLength(3000)
-                    .requireCitations(true)
-                    .build();
-            case REASONING -> Constraints.builder()
-                    .maxLength(2500)
-                    .requireStepByStep(true)
-                    .build();
-            case EXTRACTION -> Constraints.builder()
-                    .maxLength(1000)
-                    .build();
-            case PLANNING -> Constraints.builder()
-                    .maxLength(3000)
-                    .requireStepByStep(true)
-                    .build();
-            case CREATIVE_WITH_CONSTRAINTS -> Constraints.builder()
-                    .maxLength(2000)
-                    .build();
+    private Constraints buildConstraints(PromptObjective objective, ExperienceLevel level) {
+        ExperienceLevel effectiveLevel = level != null ? level : ExperienceLevel.INTERMEDIATE;
+
+        int baseMaxLength;
+        boolean requireStepByStep = false;
+        boolean requireCitations = false;
+
+        switch (objective) {
+            case FACTUAL -> {
+                baseMaxLength = 3000;
+                requireCitations = true;
+            }
+            case REASONING -> {
+                baseMaxLength = 2500;
+                requireStepByStep = true;
+            }
+            case EXTRACTION -> {
+                baseMaxLength = 1000;
+            }
+            case PLANNING -> {
+                baseMaxLength = 3000;
+                requireStepByStep = true;
+            }
+            case CREATIVE_WITH_CONSTRAINTS -> {
+                baseMaxLength = 2000;
+            }
+            case ANALYTICAL -> {
+                baseMaxLength = 3000;
+                requireCitations = true;  // 분석은 근거 필요
+            }
+        }
+
+        double factor = switch (effectiveLevel) {
+            case BEGINNER -> 1.2;
+            case INTERMEDIATE -> 1.0;
+            case ADVANCED -> 0.9;
+            case EXPERT -> 0.75;
         };
+
+        int adjustedMaxLength = (int) Math.round(baseMaxLength * factor);
+
+        if (effectiveLevel == ExperienceLevel.BEGINNER) {
+            requireStepByStep = true;
+        }
+        if (effectiveLevel == ExperienceLevel.EXPERT &&
+                (objective == PromptObjective.FACTUAL || objective == PromptObjective.REASONING)) {
+            requireCitations = true;
+        }
+
+        return Constraints.builder()
+                .maxLength(adjustedMaxLength)
+                .requireStepByStep(requireStepByStep)
+                .requireCitations(requireCitations)
+                .build();
     }
 
-    private OutputContract buildOutputContract(PromptObjective objective) {
+    private OutputContract buildOutputContract(PromptObjective objective, String jsonSchema) {
         if (objective == PromptObjective.EXTRACTION) {
-            // EXTRACTION: JSON Schema 기반 출력 계약 (실제 스키마는 입력에서 추출하거나 기본값 사용)
-            return OutputContract.jsonStructured(
-                    """
-                    {
-                      "type": "object",
-                      "properties": {
-                        "result": { "type": "string" }
-                      },
-                      "required": ["result"]
-                    }
-                    """,
-                    1000
-            );
+            // 사용자 제공 스키마를 우선 사용, 없으면 제네릭 기본값 적용
+            String schema = (jsonSchema != null && !jsonSchema.isBlank())
+                    ? jsonSchema
+                    : """
+                      {
+                        "type": "object",
+                        "properties": {
+                          "result": { "type": "string" }
+                        },
+                        "required": ["result"]
+                      }
+                      """;
+            return OutputContract.jsonStructured(schema, 1000);
         }
         return OutputContract.freeText(2000);
+    }
+
+    private String buildInstructionContent(PromptObjective objective) {
+        return switch (objective) {
+            case FACTUAL ->
+                    "Provide accurate, well-sourced information. Include citations or uncertainty markers where appropriate.";
+            case REASONING ->
+                    "Analyze the problem step-by-step. Show your reasoning process clearly at each stage.";
+            case EXTRACTION ->
+                    "Extract and structure the requested information strictly according to the specified output schema.";
+            case PLANNING ->
+                    "Create a structured, actionable plan with clear steps, dependencies, and success criteria.";
+            case CREATIVE_WITH_CONSTRAINTS ->
+                    "Generate creative content that fully respects the given constraints and requirements.";
+            case ANALYTICAL ->
+                    "Analyze the subject thoroughly, evaluating evidence from multiple perspectives. Compare and contrast key aspects with supporting rationale.";
+        };
     }
 }

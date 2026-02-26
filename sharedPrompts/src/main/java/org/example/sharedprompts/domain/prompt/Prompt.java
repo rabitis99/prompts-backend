@@ -2,8 +2,13 @@ package org.example.sharedprompts.domain.prompt;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.example.sharedprompts.domain.tag.PromptTag;
+import org.example.sharedprompts.domain.prompt.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
+import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
+import org.example.sharedprompts.domain.prompt.enums.StyleType;
+import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.enums.ToneType;
+import org.example.sharedprompts.domain.tag.PromptTag;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.global.entity.BaseEntity;
 
@@ -48,6 +53,35 @@ public class Prompt extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PromptCategory promptCategory;
+
+    /**
+     * 프롬프트 엔진이 결정한 작업 도메인(TaskDomain)
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "task_domain")
+    private TaskDomain taskDomain;
+
+    /**
+     * 프롬프트 생성 목적(Objective)
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "objective")
+    private PromptObjective objective;
+
+    /**
+     * 기본 톤/스타일/언어 — 프롬프트 생성 시점의 엔진 결정 값
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tone")
+    private ToneType tone;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "style")
+    private StyleType style;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "language")
+    private LanguageType language;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

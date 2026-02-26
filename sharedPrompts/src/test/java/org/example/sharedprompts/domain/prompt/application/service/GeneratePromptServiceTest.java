@@ -5,11 +5,13 @@ import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromp
 import org.example.sharedprompts.domain.prompt.application.port.in.QualityBadge;
 import org.example.sharedprompts.domain.prompt.application.port.out.ConstrainedDecodingPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.LLMClientPort;
+import org.example.sharedprompts.domain.prompt.application.port.out.PromptSpecRendererPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.SavePromptVersionPort;
 import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
 import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
 import org.example.sharedprompts.domain.prompt.domain.model.VerifyResult;
 import org.example.sharedprompts.domain.prompt.domain.policy.StrategyBundlePolicy;
+import org.example.sharedprompts.domain.prompt.domain.service.ObjectiveMappingRegistry;
 import org.example.sharedprompts.domain.prompt.service.DomainResolver;
 import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecFactory;
 import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecValidator;
@@ -46,18 +48,19 @@ class GeneratePromptServiceTest {
     @Mock private ConstrainedDecodingPort constrainedDecodingPort;
     @Mock private SavePromptVersionPort savePromptVersionPort;
     @Mock private PromptSpecValidator mockValidator;
+    @Mock private PromptSpecRendererPort promptSpecRenderer;
 
     private GeneratePromptService service;
     private GeneratePromptCommand command;
 
     @BeforeEach
     void setUp() {
-        PromptSpecFactory factory = new PromptSpecFactory(new StrategyBundlePolicy());
+        PromptSpecFactory factory = new PromptSpecFactory(new StrategyBundlePolicy(), new ObjectiveMappingRegistry());
         DomainResolver domainResolver = new DomainResolver();
 
         service = new GeneratePromptService(
                 factory, mockValidator, domainResolver,
-                llmClientPort, constrainedDecodingPort, savePromptVersionPort
+                llmClientPort, constrainedDecodingPort, savePromptVersionPort, promptSpecRenderer
         );
 
         command = new GeneratePromptCommand(
@@ -68,7 +71,7 @@ class GeneratePromptServiceTest {
                 EtcActionType.GENERAL_CONSULTATION,
                 EtcRoleType.GENERAL_CONSULTANT,
                 ToneType.NEUTRAL, StyleType.NARRATIVE, LanguageType.KOREAN,
-                false
+                false, null
         );
     }
 

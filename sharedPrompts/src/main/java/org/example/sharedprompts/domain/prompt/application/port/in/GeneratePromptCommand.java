@@ -26,7 +26,9 @@ public record GeneratePromptCommand(
         ToneType tone,
         StyleType style,
         LanguageType language,
-        boolean experimentalEnabled
+        boolean experimentalEnabled,
+        /** EXTRACTION 시 사용할 JSON Schema. null이면 팩토리 기본값 적용. */
+        String jsonSchema
 ) {
     public GeneratePromptCommand {
         if (userId == null) throw new IllegalArgumentException("userId는 null일 수 없습니다.");

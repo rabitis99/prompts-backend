@@ -79,6 +79,16 @@ public class StrategyBundlePolicy {
                 PromptingStrategy.FEW_SHOT_EXEMPLAR
             ))
         );
+
+        DEFAULT_BUNDLES.put(PromptObjective.ANALYTICAL,
+            PromptStrategyBundle.of("ANALYTICAL_DEFAULT", EnumSet.of(
+                PromptingStrategy.CLARIFY_FIRST,
+                PromptingStrategy.STEP_BY_STEP,
+                PromptingStrategy.CHECKLIST_VERIFY,
+                PromptingStrategy.CHAIN_OF_VERIFICATION,
+                PromptingStrategy.CITE_OR_UNCERTAIN
+            ))
+        );
     }
 
     /**
@@ -133,21 +143,4 @@ public class StrategyBundlePolicy {
                 filtered.isEmpty() ? EnumSet.of(PromptingStrategy.CLARIFY_FIRST) : EnumSet.copyOf(filtered));
     }
 
-    /**
-     * Experimental 전략 중복 요청 시 우선순위 낮은 것을 자동 비활성화한다.
-     * SELF_CONSISTENCY > TREE_OF_THOUGHTS 순서로 우선순위를 정한다.
-     */
-    public static PromptingStrategy resolveExperimentalStrategy(List<PromptingStrategy> requested) {
-        if (requested.size() <= 1) {
-            return requested.isEmpty() ? null : requested.get(0);
-        }
-
-        log.warn("[StrategyBundlePolicy] Experimental 전략 2개 이상 요청 → 우선순위 낮은 것 자동 비활성화: requested={}",
-                requested);
-
-        // 우선순위: SELF_CONSISTENCY > TREE_OF_THOUGHTS
-        return requested.contains(PromptingStrategy.SELF_CONSISTENCY)
-                ? PromptingStrategy.SELF_CONSISTENCY
-                : requested.get(0);
-    }
 }

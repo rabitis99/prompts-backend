@@ -62,7 +62,10 @@ public record GeneratePromptRequest(
 
         ToneType tone,
         StyleType style,
-        LanguageType language
+        LanguageType language,
+
+        @JsonProperty("json_schema")
+        String jsonSchema
 ) {
     /** 커맨드 변환 */
     public GeneratePromptCommand toCommand(Long userId) {
@@ -79,7 +82,8 @@ public record GeneratePromptRequest(
                 tone != null ? tone : ToneType.NEUTRAL,
                 style != null ? style : StyleType.NARRATIVE,
                 language != null ? language : LanguageType.KOREAN,
-                false  // experimental: 기본 비활성화
+                false,  // experimental: 기본 비활성화
+                jsonSchema
         );
     }
 }

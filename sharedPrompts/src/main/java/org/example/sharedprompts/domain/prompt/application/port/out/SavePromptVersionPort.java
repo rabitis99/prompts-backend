@@ -2,14 +2,20 @@ package org.example.sharedprompts.domain.prompt.application.port.out;
 
 import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
-import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
-import org.example.sharedprompts.domain.prompt.domain.value.PromptStrategyBundle;
 
 /**
  * 생성된 프롬프트를 저장하는 포트.
  * JPA 엔티티(Prompt) 저장을 담당하며, 도메인 모델과 JPA 엔티티 간 변환도 수행한다.
  */
 public interface SavePromptVersionPort {
+
+    /**
+     * LLM 호출 전 사용자 존재 여부를 검증한다.
+     * 탈퇴·삭제된 유저로 인한 불필요한 LLM 비용을 방지한다.
+     *
+     * @throws org.example.sharedprompts.global.exception.ApiException USER_NOT_FOUND
+     */
+    void validateUserExists(Long userId);
 
     /**
      * 생성 결과를 저장하고 저장된 프롬프트 ID를 반환한다.

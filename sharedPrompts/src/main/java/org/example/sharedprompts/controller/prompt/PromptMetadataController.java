@@ -1,5 +1,7 @@
 package org.example.sharedprompts.controller.prompt;
 
+import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.domain.prompt.domain.service.RecommendationRegistry;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.enums.ToneType;
@@ -17,10 +19,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.concurrent.TimeUnit;
-
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 프롬프트 메타데이터 API 컨트롤러
@@ -28,7 +29,10 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/prompts/metadata")
+@RequiredArgsConstructor
 public class PromptMetadataController {
+
+    private final RecommendationRegistry recommendationRegistry;
 
     /**
      * 모든 TaskDomain의 메타데이터 조회
@@ -37,7 +41,7 @@ public class PromptMetadataController {
     @GetMapping("/domains")
     public ResponseEntity<CustomResponse<List<DomainMetadataResponseDto>>> getAllDomainMetadata() {
         List<DomainMetadataResponseDto> metadata = Arrays.stream(TaskDomain.values())
-                .map(DomainMetadataResponseDto::from)
+                .map(domain -> DomainMetadataResponseDto.from(domain, recommendationRegistry))
                 .toList();
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
@@ -51,7 +55,7 @@ public class PromptMetadataController {
     public ResponseEntity<CustomResponse<DomainMetadataResponseDto>> getDomainMetadata(
             @PathVariable TaskDomain domain
     ) {
-        DomainMetadataResponseDto metadata = DomainMetadataResponseDto.from(domain);
+        DomainMetadataResponseDto metadata = DomainMetadataResponseDto.from(domain, recommendationRegistry);
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
                 .body(CustomResponse.ok(metadata));
@@ -64,7 +68,7 @@ public class PromptMetadataController {
     public ResponseEntity<CustomResponse<List<SimpleStyleResponseDto>>> getRecommendedStyles(
             @PathVariable TaskDomain domain
     ) {
-        List<SimpleStyleResponseDto> styles = domain.getRecommendedStyles().stream()
+        List<SimpleStyleResponseDto> styles = recommendationRegistry.getRecommendedStyles(domain).stream()
                 .map(SimpleStyleResponseDto::from)
                 .toList();
         return ResponseEntity.ok()
@@ -79,7 +83,7 @@ public class PromptMetadataController {
     public ResponseEntity<CustomResponse<List<SimpleToneResponseDto>>> getRecommendedTones(
             @PathVariable TaskDomain domain
     ) {
-        List<SimpleToneResponseDto> tones = domain.getRecommendedTones().stream()
+        List<SimpleToneResponseDto> tones = recommendationRegistry.getRecommendedTones(domain).stream()
                 .map(SimpleToneResponseDto::from)
                 .toList();
         return ResponseEntity.ok()
@@ -94,7 +98,7 @@ public class PromptMetadataController {
     @GetMapping("/styles")
     public ResponseEntity<CustomResponse<List<StyleMetadataResponseDto>>> getAllStyleMetadata() {
         List<StyleMetadataResponseDto> metadata = Arrays.stream(StyleType.values())
-                .map(StyleMetadataResponseDto::from)
+                .map(style -> StyleMetadataResponseDto.from(style, recommendationRegistry))
                 .toList();
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
@@ -108,7 +112,7 @@ public class PromptMetadataController {
     public ResponseEntity<CustomResponse<StyleMetadataResponseDto>> getStyleMetadata(
             @PathVariable StyleType style
     ) {
-        StyleMetadataResponseDto metadata = StyleMetadataResponseDto.from(style);
+        StyleMetadataResponseDto metadata = StyleMetadataResponseDto.from(style, recommendationRegistry);
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
                 .body(CustomResponse.ok(metadata));
@@ -121,7 +125,7 @@ public class PromptMetadataController {
     public ResponseEntity<CustomResponse<List<SimpleDomainResponseDto>>> getRecommendedDomainsForStyle(
             @PathVariable StyleType style
     ) {
-        List<SimpleDomainResponseDto> domains = style.getRecommendedDomains().stream()
+        List<SimpleDomainResponseDto> domains = recommendationRegistry.getRecommendedDomainsForStyle(style).stream()
                 .map(SimpleDomainResponseDto::from)
                 .toList();
         return ResponseEntity.ok()
@@ -136,7 +140,7 @@ public class PromptMetadataController {
     @GetMapping("/tones")
     public ResponseEntity<CustomResponse<List<ToneMetadataResponseDto>>> getAllToneMetadata() {
         List<ToneMetadataResponseDto> metadata = Arrays.stream(ToneType.values())
-                .map(ToneMetadataResponseDto::from)
+                .map(tone -> ToneMetadataResponseDto.from(tone, recommendationRegistry))
                 .toList();
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
@@ -150,7 +154,7 @@ public class PromptMetadataController {
     public ResponseEntity<CustomResponse<ToneMetadataResponseDto>> getToneMetadata(
             @PathVariable ToneType tone
     ) {
-        ToneMetadataResponseDto metadata = ToneMetadataResponseDto.from(tone);
+        ToneMetadataResponseDto metadata = ToneMetadataResponseDto.from(tone, recommendationRegistry);
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
                 .body(CustomResponse.ok(metadata));
@@ -163,7 +167,7 @@ public class PromptMetadataController {
     public ResponseEntity<CustomResponse<List<SimpleDomainResponseDto>>> getRecommendedDomainsForTone(
             @PathVariable ToneType tone
     ) {
-        List<SimpleDomainResponseDto> domains = tone.getRecommendedDomains().stream()
+        List<SimpleDomainResponseDto> domains = recommendationRegistry.getRecommendedDomainsForTone(tone).stream()
                 .map(SimpleDomainResponseDto::from)
                 .toList();
         return ResponseEntity.ok()

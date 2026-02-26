@@ -9,6 +9,8 @@ import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromp
 import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptUseCase;
 import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.dto.common.CustomResponseHelper;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -63,10 +65,9 @@ public class PromptEngineController {
                 new WebAsyncTask<>(ASYNC_TIMEOUT_MS, callable);
 
         asyncTask.onTimeout(() -> {
-            org.example.sharedprompts.global.exception.ApiException timeoutEx =
-                    new org.example.sharedprompts.global.exception.ApiException(
-                            org.example.sharedprompts.global.exception.ErrorCode.AI_GENERATION_FAILED,
-                            "프롬프트 생성이 시간 초과되었습니다. 잠시 후 다시 시도해주세요.");
+            ApiException timeoutEx = new ApiException(
+                    ErrorCode.AI_GENERATION_FAILED,
+                    "프롬프트 생성이 시간 초과되었습니다. 잠시 후 다시 시도해주세요.");
             return ResponseEntity.status(timeoutEx.getErrorCode().getHttpStatus())
                     .body(CustomResponse.fail(timeoutEx));
         });

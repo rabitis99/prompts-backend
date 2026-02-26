@@ -3,8 +3,10 @@ package org.example.sharedprompts.domain.prompt.domain.model;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptStrategyBundle;
 import org.example.sharedprompts.domain.prompt.domain.value.QualityPriority;
+import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
+import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.enums.ToneType;
 import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.enums.role.RoleTypeInterface;
@@ -24,6 +26,10 @@ public final class PromptSpec {
     private final PromptObjective objective;
     private final QualityPriority priority;
     private final QualityRubric rubric;
+
+    // ─── 도메인/난이도 ───
+    private final TaskDomain taskDomain;
+    private final ExperienceLevel experienceLevel;
 
     // ─── 섹션/구조 ───
     private final List<PromptSection> sections;
@@ -49,6 +55,8 @@ public final class PromptSpec {
         this.objective = requireNonNull(builder.objective, "objective");
         this.priority = requireNonNull(builder.priority, "priority");
         this.rubric = requireNonNull(builder.rubric, "rubric");
+        this.taskDomain = builder.taskDomain;
+        this.experienceLevel = builder.experienceLevel != null ? builder.experienceLevel : ExperienceLevel.INTERMEDIATE;
         this.sections = builder.sections != null ? List.copyOf(builder.sections) : List.of();
         this.constraints = builder.constraints != null ? builder.constraints : Constraints.defaults();
         this.outputContract = builder.outputContract != null
@@ -75,6 +83,8 @@ public final class PromptSpec {
     public PromptObjective getObjective() { return objective; }
     public QualityPriority getPriority() { return priority; }
     public QualityRubric getRubric() { return rubric; }
+    public TaskDomain getTaskDomain() { return taskDomain; }
+    public ExperienceLevel getExperienceLevel() { return experienceLevel; }
     public List<PromptSection> getSections() { return sections; }
     public Constraints getConstraints() { return constraints; }
     public OutputContract getOutputContract() { return outputContract; }
@@ -96,6 +106,7 @@ public final class PromptSpec {
     public Builder toBuilder() {
         return new Builder()
                 .objective(objective).priority(priority).rubric(rubric)
+                .taskDomain(taskDomain).experienceLevel(experienceLevel)
                 .sections(sections).constraints(constraints).outputContract(outputContract)
                 .contentSandbox(contentSandbox).role(role).tone(tone).style(style)
                 .strategyBundle(strategyBundle).locale(locale)
@@ -108,6 +119,8 @@ public final class PromptSpec {
         private PromptObjective objective;
         private QualityPriority priority;
         private QualityRubric rubric;
+        private TaskDomain taskDomain;
+        private ExperienceLevel experienceLevel;
         private List<PromptSection> sections;
         private Constraints constraints;
         private OutputContract outputContract;
@@ -124,6 +137,8 @@ public final class PromptSpec {
         public Builder objective(PromptObjective v) { objective = v; return this; }
         public Builder priority(QualityPriority v) { priority = v; return this; }
         public Builder rubric(QualityRubric v) { rubric = v; return this; }
+        public Builder taskDomain(TaskDomain v) { taskDomain = v; return this; }
+        public Builder experienceLevel(ExperienceLevel v) { experienceLevel = v; return this; }
         public Builder sections(List<PromptSection> v) { sections = v; return this; }
         public Builder constraints(Constraints v) { constraints = v; return this; }
         public Builder outputContract(OutputContract v) { outputContract = v; return this; }
