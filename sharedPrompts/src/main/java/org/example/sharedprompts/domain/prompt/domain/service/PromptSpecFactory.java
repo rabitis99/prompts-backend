@@ -308,8 +308,8 @@ public class PromptSpecFactory {
         if (level == ExperienceLevel.BEGINNER) {
             requireStepByStep = true;
         }
-        if (level == ExperienceLevel.EXPERT &&
-                (objective == PromptObjective.FACTUAL || objective == PromptObjective.REASONING)) {
+        if (level == ExperienceLevel.EXPERT && objective == PromptObjective.REASONING) {
+            // FACTUAL은 위에서 이미 requireCitations = true 설정됨
             requireCitations = true;
         }
 

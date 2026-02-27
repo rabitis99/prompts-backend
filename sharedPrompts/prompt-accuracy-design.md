@@ -17,7 +17,7 @@
 | **Verify-Repair 지연** | 2회 Repair × LLM 호출 시간 = 최악 5~6× 지연 | Objective별 Verify 강도 차등화 (§3 참조), Repair 2회 상한 고수 | 상한 초과 시 현재 결과 반환 + Repair 실패 로깅 |
 | **Golden set 분포 불일치** | 수동 구성 샘플이 실제 트래픽과 다를 경우 회귀 지표 신뢰성 저하 | Static + Traffic-weighted Dynamic Set 이원화 (§6 참조) | Dynamic Set 분포 이탈 감지 시 경보 |
 | **Constrained Decoding 벤더 의존** | 프레임워크별 compliance rate 최대 2× 편차, 벤더 업데이트 시 동작 변경 위험 | adapter 인터페이스 뒤에 격리 | 벤더별 compliance rate 지표 별도 수집·임계 알림 |
-| **하드캡 vs 실사용 충돌** | 복잡한 FACTUAL 작업에서 상한이 실제 필요 호출 수보다 낮을 수 있음 | 상한 초과 시 완전 차단 아닌 async fallback — 동기 응답은 Core 전략으로 빠르게, 비동기로 Experimental 재검증 후 개선 버전 저장 | UX: 즉시 응답 → "개선 버전 사용 가능" 배지로 알림 |
+| **하드캡 vs 실사용 충돌** | 복잡한 FACTUAL 작업에서 상한이 실제 필요 호출 수보다 낮을 수 있음 | 상한 초과 시 완전 차단 아닌 async fallback — 동기 응답은 Core 전략으로 빠르게, 비동기로 Experimental 재검증 후 개선 버전 저장 (`prompt-hexagonal-architecture.md`의 async fallback 시퀀스 다이어그램 참조) | UX: 즉시 응답 → "개선 버전 사용 가능" 배지로 알림 |
 | **Soft-verify 기준 모호성** | CREATIVE soft-verify가 구체적으로 무엇인지 불명확하면 운영 중 판단 불일치 발생 | 체크리스트 명문화 (§3 참조) | Soft-verify 항목 외 Repair 유도 금지 |
 | **승격 가중치 단일값 고정** | 무료/유료 플랜별 비용 민감도가 다른데 동일 α·β 적용 시 플랜 전략과 충돌 | `StrategyPromotionPolicy`에 티어별 가중치 맵으로 분리 | 운영 중 티어별 가중치 독립 조정 가능 |
 
@@ -196,7 +196,7 @@
 
 ---
 
- ## 9. Result Badge UX `NEW`
+## 9. Result Badge UX `NEW`
 
 > 품질 지표는 내부에서 측정하고, 사용자에게는 배지 형태로만 전달한다.
 > 배지 변환 로직은 adapter/in/web 전용이다. 도메인·애플리케이션 레이어를 침범하지 않는다.

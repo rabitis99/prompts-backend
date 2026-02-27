@@ -87,8 +87,8 @@ public final class Constraints {
         return "Constraints{" +
                 "minLength=" + minLength +
                 ", maxLength=" + maxLength +
-                ", requiredKeywords=" + requiredKeywords +
-                ", prohibitedKeywords=" + prohibitedKeywords +
+                ", requiredKeywordsCount=" + (requiredKeywords != null ? requiredKeywords.size() : 0) +
+                ", prohibitedKeywordsCount=" + (prohibitedKeywords != null ? prohibitedKeywords.size() : 0) +
                 ", requireStepByStep=" + requireStepByStep +
                 ", requireCitations=" + requireCitations +
                 '}';
