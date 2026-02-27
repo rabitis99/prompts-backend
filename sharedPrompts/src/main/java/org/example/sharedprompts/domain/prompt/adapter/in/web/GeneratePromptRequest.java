@@ -48,13 +48,11 @@ public record GeneratePromptRequest(
         @Size(max = 10000, message = "입력은 최대 10000자까지 입력해주세요.")
         String input,
 
-        @NotNull(message = "작업 유형을 입력해주세요.")
         @JsonProperty("action_type")
         @JsonSerialize(using = ActionTypeSerializer.class)
         @JsonDeserialize(using = ActionTypeDeserializer.class)
         ActionTypeInterface actionType,
 
-        @NotNull(message = "역할 유형을 입력해주세요.")
         @JsonProperty("role_type")
         @JsonSerialize(using = RoleTypeSerializer.class)
         @JsonDeserialize(using = RoleTypeDeserializer.class)

@@ -69,13 +69,29 @@ public class PromptSpecValidator {
     }
 
     /**
-     * REASONING/PLANNING — 표준 검증: Coverage + 모순 탐지.
+     * REASONING/PLANNING — 표준 검증.
+     * <p>기본: Coverage + 모순 탐지.
+     * <p>추가:
+     * <ul>
+     *     <li>REASONING: UNCERTAINTY_HANDLING</li>
+     *     <li>PLANNING: INPUT_PRESERVATION</li>
+     * </ul>
      */
     private VerifyResult verifyStandard(String draft, PromptSpec spec) {
         Map<QualityRubric.RubricItem, Boolean> results = new EnumMap<>(QualityRubric.RubricItem.class);
         List<String> failures = new ArrayList<>();
 
+        PromptObjective objective = spec.getObjective();
+
         checkCoverage(draft, spec, results, failures);
+
+        // Objective별 추가 루브릭 검증
+        if (objective == PromptObjective.REASONING) {
+            checkUncertaintyHandling(draft, results, failures);
+        } else if (objective == PromptObjective.PLANNING) {
+            checkInputPreservation(draft, spec, results, failures);
+        }
+
         checkNoContradiction(draft, results, failures);
         checkNoProhibitedContent(draft, spec.getContentSandbox(), results, failures);
 
@@ -111,6 +127,11 @@ public class PromptSpecValidator {
     private VerifyResult verifySoft(String draft, PromptSpec spec) {
         Map<QualityRubric.RubricItem, Boolean> results = new EnumMap<>(QualityRubric.RubricItem.class);
         List<String> failures = new ArrayList<>();
+
+        if (draft == null || draft.isBlank()) {
+            failures.add("생성 결과가 비어 있습니다.");
+            return buildResult(results, failures);
+        }
 
         OutputContract contract = spec.getOutputContract();
         if (contract.hasJsonSchema()) {
@@ -195,7 +216,8 @@ public class PromptSpecValidator {
     }
 
     private boolean draftPreservesKeywords(String draft, String input) {
-        if (draft == null || input == null) return true;
+        if (input == null) return true;
+        if (draft == null || draft.isBlank()) return false;
         // 최소 2자 이상: 1자짜리 조사·접속사는 키워드에서 제외
         List<String> keywords = java.util.Arrays.stream(input.split("\\s+"))
                 .filter(w -> w.length() >= 2)

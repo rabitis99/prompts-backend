@@ -160,10 +160,10 @@ class PromptSpecFactoryTest {
     }
 
     @Test
-    @DisplayName("EXTRACTION Objective → JSON OutputContract 생성")
-    void extractionObjectiveHasJsonOutputContract() {
+    @DisplayName("TECHNICAL TaskDomain → REASONING Objective 및 StrategyBundle 생성")
+    void technicalDomainHasReasoningObjectiveAndStrategyBundle() {
         PromptSpec spec = factory.create(
-                "데이터 추출 입력",
+                "기술적 입력",
                 TaskDomain.TECHNICAL,
                 EtcActionType.GENERAL_CONSULTATION,
                 EtcRoleType.GENERAL_CONSULTANT,
@@ -173,7 +173,6 @@ class PromptSpecFactoryTest {
                 false
         );
 
-        // TECHNICAL → REASONING이지만, EXTRACTION 테스트용 직접 rubric 확인
         assertThat(spec.getObjective()).isEqualTo(PromptObjective.REASONING);
         assertThat(spec.getStrategyBundle()).isNotNull();
     }
@@ -199,7 +198,7 @@ class PromptSpecFactoryTest {
 
     @Test
     @DisplayName("PromptSpec은 Core 전략을 항상 포함한다")
-    void specAlwaysIncoreStrategies() {
+    void specAlwaysIncludesCoreStrategies() {
         PromptSpec spec = factory.create(
                 "테스트",
                 TaskDomain.TECHNICAL,

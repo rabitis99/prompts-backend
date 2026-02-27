@@ -54,23 +54,14 @@ public class Prompt extends BaseEntity {
     @Column(nullable = false)
     private PromptCategory promptCategory;
 
-    /**
-     * 프롬프트 엔진이 결정한 작업 도메인(TaskDomain)
-     */
     @Enumerated(EnumType.STRING)
     @Column(name = "task_domain")
     private TaskDomain taskDomain;
 
-    /**
-     * 프롬프트 생성 목적(Objective)
-     */
     @Enumerated(EnumType.STRING)
     @Column(name = "objective")
     private PromptObjective objective;
 
-    /**
-     * 기본 톤/스타일/언어 — 프롬프트 생성 시점의 엔진 결정 값
-     */
     @Enumerated(EnumType.STRING)
     @Column(name = "tone")
     private ToneType tone;
@@ -121,5 +112,25 @@ public class Prompt extends BaseEntity {
 
     public void updateCategory(PromptCategory promptCategory) {
         this.promptCategory = promptCategory;
+    }
+
+    public void updateTaskDomain(TaskDomain taskDomain) {
+        this.taskDomain = taskDomain;
+    }
+
+    public void updateObjective(PromptObjective objective) {
+        this.objective = objective;
+    }
+
+    public void updateTone(ToneType tone) {
+        this.tone = tone;
+    }
+
+    public void updateStyle(StyleType style) {
+        this.style = style;
+    }
+
+    public void updateLanguage(LanguageType language) {
+        this.language = language;
     }
 }

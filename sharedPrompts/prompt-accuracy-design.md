@@ -74,10 +74,11 @@
 
 | Objective | 기본 전략 | **최대 LLM 호출 상한** |
 |-----------|----------|-----------------------|
-| `FACTUAL` | CHAIN_OF_VERIFICATION + CITE_OR_UNCERTAIN | **≤ 3** |
+| `FACTUAL` | CHAIN_OF_VERIFICATION + CITE_OR_UNCERTAIN | **≤ 4** |
+| `ANALYTICAL` | CHAIN_OF_VERIFICATION + CITE_OR_UNCERTAIN | **≤ 4** |
 | `REASONING` | STEP_BY_STEP + REQUIRE_JUSTIFICATION | **≤ 2** |
 | `EXTRACTION` | OutputContract strict schema + Constrained Decoding adapter | **≤ 1** |
-| `PLANNING` | DECOMPOSITION + EDGE_CASE_SCAN | **≤ 2** |
+| `PLANNING` | DECOMPOSITION + EDGE_CASE_SCAN | **≤ 3** |
 | `CREATIVE_WITH_CONSTRAINTS` | FEW_SHOT_EXEMPLAR + CHECKLIST_VERIFY | **≤ 2** |
 
 ---
@@ -158,12 +159,14 @@
 > 정확도 상승만으로 승격하지 않는다. 비용·지연을 함께 고려한다.
 
 ```
-승격 점수 = 정확도 상승률 / (호출 증가 가중치 + 지연 증가 가중치)
+승격 점수 = 정확도 상승률 / max(호출 증가 가중치 + 지연 증가 가중치, ε)
 
   - 정확도 상승률  : A/B pass rate 차이 (%)
   - 호출 증가 가중치: (실험군 평균 호출 수 - 대조군 평균 호출 수) × α   [α = 0.4]
   - 지연 증가 가중치: (실험군 평균 응답시간 - 대조군 평균 응답시간)
                       / 기준 지연 × β                                  [β = 0.6]
+
+  - ε: 아주 작은 양수 (예: 0.1). 분모가 0 이하인 경우 ε를 사용해 점수 폭주를 방지한다.
 
 승격 조건: 승격 점수 > 임계값 (초기값 1.0, 운영 중 조정 가능)
 ```

@@ -1,7 +1,5 @@
 package org.example.sharedprompts.domain.prompt.domain.policy;
 
-import org.example.sharedprompts.domain.prompt.domain.value.PromptingStrategy;
-
 /**
  * Experimental 전략의 Core/Objective-specific 승격 정책.
  *
@@ -62,7 +60,14 @@ public class StrategyPromotionPolicy {
 
         double callWeight = callCountDiff * alpha;
         double latencyWeight = (latencyDiffMs / baseLatencyMs) * beta;
-        double score = accuracyGainPercent / (callWeight + latencyWeight);
+        double denominator = callWeight + latencyWeight;
+
+        // 비용·지연 증가 없이 정확도만 상승한 경우는 무조건 승격
+        if (denominator <= 0) {
+            return true;
+        }
+
+        double score = accuracyGainPercent / denominator;
 
         return score > threshold;
     }
@@ -70,7 +75,4 @@ public class StrategyPromotionPolicy {
     public double getAlpha() { return alpha; }
     public double getBeta() { return beta; }
     public double getThreshold() { return threshold; }
-
-    /** 전략 승격 결과 */
-    public record PromotionResult(PromptingStrategy strategy, boolean promoted, double score) {}
 }

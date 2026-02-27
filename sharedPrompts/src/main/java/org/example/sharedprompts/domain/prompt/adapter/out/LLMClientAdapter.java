@@ -59,12 +59,17 @@ public class LLMClientAdapter implements LLMClientPort {
 
     private String buildFailureHints(List<QualityRubric.RubricItem> failedItems,
                                       List<String> failureReasons) {
+        List<QualityRubric.RubricItem> safeFailedItems =
+                failedItems != null ? failedItems : List.of();
+        List<String> safeFailureReasons =
+                failureReasons != null ? failureReasons : List.of();
+
         StringBuilder sb = new StringBuilder();
         sb.append("다음 항목이 검증에 실패했습니다. 해당 항목만 수정하고 나머지는 유지하세요:\n");
-        for (int i = 0; i < failedItems.size(); i++) {
-            sb.append("- [").append(failedItems.get(i).getDescription()).append("]");
-            if (i < failureReasons.size()) {
-                sb.append(": ").append(failureReasons.get(i));
+        for (int i = 0; i < safeFailedItems.size(); i++) {
+            sb.append("- [").append(safeFailedItems.get(i).getDescription()).append("]");
+            if (i < safeFailureReasons.size()) {
+                sb.append(": ").append(safeFailureReasons.get(i));
             }
             sb.append("\n");
         }

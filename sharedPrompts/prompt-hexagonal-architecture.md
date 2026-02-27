@@ -245,7 +245,7 @@ class PromptStrategyBundle {
 
 > 정확도 상승만으로 승격하지 않는다. 비용·지연을 함께 측정한다.
 
-```
+```text
 승격 점수 = 정확도 상승률 / (호출 증가 가중치 + 지연 증가 가중치)
 
   - 정확도 상승률  : A/B pass rate 차이 (%)
@@ -339,7 +339,7 @@ class PromptStrategyBundle {
 | **Static Golden Set** (회귀 방지용) | 정책·전략 변경 시 기준선 pass rate 비교, 회귀 감지 | 수동 (PR 단위) | MVP 50개 → 장기 140개 |
 | **Traffic-weighted Dynamic Set** (분포 보정용) | 최근 30일 실제 트래픽 샘플 반영, Static Set의 분포 편향 교정 | 자동 (30일 롤링 샘플링) | Objective별 최소 20개 유지 |
 
-- Static MVP: Objective별 10개 × 5 = 50개 / 장기: FACTUAL 30 / REASONING 30 / EXTRACTION 30 / PLANNING 30 / CREATIVE 20 = 140개
+- Static MVP: Objective별 10개 × 5 = 50개 / 장기: FACTUAL 30 / REASONING 30 / EXTRACTION 30 / PLANNING 30 / CREATIVE_WITH_CONSTRAINTS 20 = 140개
 - 회귀 테스트 자동화: Static Golden Set 통과율 기준선 비교
 - Dynamic Set과 Static Set 분포 편차 임계값(±20%p) 초과 시 알림
 - **오류 유형 분류** — 누락, 환각, 모순, 장황, 요구 불충족 → 전략 최적화에 활용
@@ -515,7 +515,7 @@ class PromptBookmark {
 
 ### 10-3. 추천 기준
 
-```
+```text
 추천 점수 = Static Golden Set pass rate (가중 0.6)
            + 최근 30일 사용 빈도 정규화 (가중 0.4)
 

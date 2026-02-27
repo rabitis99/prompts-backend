@@ -26,7 +26,9 @@ public final class ContentSandbox {
 
     public static ContentSandbox strict(List<String> additionalPatterns) {
         List<String> combined = new java.util.ArrayList<>(DEFAULT_PROHIBITED_PATTERNS);
-        combined.addAll(additionalPatterns);
+        if (additionalPatterns != null) {
+            combined.addAll(additionalPatterns);
+        }
         return new ContentSandbox(List.copyOf(combined), true);
     }
 

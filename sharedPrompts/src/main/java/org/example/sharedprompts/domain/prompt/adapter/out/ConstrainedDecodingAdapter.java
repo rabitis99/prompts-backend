@@ -1,5 +1,7 @@
 package org.example.sharedprompts.domain.prompt.adapter.out;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.prompt.application.port.out.ConstrainedDecodingPort;
@@ -23,6 +25,8 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ConstrainedDecodingAdapter implements ConstrainedDecodingPort {
 
     private final SyncGoogleGeminiClient syncGoogleGeminiClient;
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     // 내부 compliance rate 추적용 (실제 운영에서는 메트릭 시스템 연동)
     // AtomicReference: EMA 업데이트가 read-modify-write이므로 volatile double은 원자성 미보장
@@ -52,10 +56,13 @@ public class ConstrainedDecodingAdapter implements ConstrainedDecodingPort {
         if (output == null || output.isBlank()) return false;
         if (!outputContract.hasJsonSchema()) return true;
 
-        String trimmed = output.trim();
-        // 기본 JSON 구조 검증 (실제 JSON Schema 검증은 JSON Schema 라이브러리 연동 필요)
-        return (trimmed.startsWith("{") && trimmed.endsWith("}"))
-                || (trimmed.startsWith("[") && trimmed.endsWith("]"));
+        try {
+            OBJECT_MAPPER.readTree(output);
+            return true;
+        } catch (JsonProcessingException e) {
+            log.debug("[ConstrainedDecoding] JSON 구문 검증 실패", e);
+            return false;
+        }
     }
 
     @Override
@@ -64,6 +71,10 @@ public class ConstrainedDecodingAdapter implements ConstrainedDecodingPort {
     }
 
     private String buildConstrainedPrompt(String prompt, OutputContract contract) {
+        if (!contract.hasJsonSchema()) {
+            return prompt;
+        }
+
         return prompt + "\n\n"
                 + "IMPORTANT: You MUST respond with valid JSON only. No explanation, no markdown.\n"
                 + "JSON Schema:\n```json\n" + contract.getJsonSchema() + "\n```\n"

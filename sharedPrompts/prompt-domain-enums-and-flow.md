@@ -112,7 +112,7 @@
 ### 2-1. 전체 파이프라인 개요
 
 - **입력**: 클라이언트가 `POST /api/v2/prompts/generate` (`PromptEngineController`) 호출
-  - `GeneratePromptRequest` 안에는 `PromptCategory`, `ToneType`, `StyleType`, `LanguageType`, `ActionType`(인터페이스), `RoleType` 등이 포함된다.
+  - `GeneratePromptRequest` 안에는 `PromptCategory`, `ToneType`, `StyleType`, `LanguageType`, `ActionTypeInterface`, `RoleType` 등이 포함된다.
 - **어댑터 → 애플리케이션**
   - `PromptEngineController.generate(...)`
     - `GeneratePromptCommand command = request.toCommand(authUser.getId());`
@@ -132,10 +132,10 @@
   - `PromptCategory`
   - 또는 `InputRequestDto` (내부적으로 위 값 포함)
 - **우선순위 규칙 (`resolveDomain(InputRequestDto)` 기준)**
-  - **1순위**: `ActionType.getTaskDomain()` 이 `GENERAL`이 아닌 경우 → 해당 도메인 사용
+  - **1순위**: `ActionTypeInterface.getTaskDomain()` 이 `GENERAL`이 아닌 경우 → 해당 도메인 사용
   - **2순위**: `PromptCategory.getDefaultDomain()` 이 `GENERAL`이 아닌 경우 → 해당 도메인 사용
-  - **3순위**: `ActionType`이 명시적으로 `GENERAL`을 반환하는 경우 → `GENERAL` 사용(폴백 아님)
-  - **폴백**: 위 조건 어디에도 해당하지 않거나, `ActionType`/`PromptCategory`가 `null`인 경우
+  - **3순위**: `ActionTypeInterface`가 명시적으로 `GENERAL`을 반환하는 경우 → `GENERAL` 사용(폴백 아님)
+  - **폴백**: 위 조건 어디에도 해당하지 않거나, `ActionTypeInterface`/`PromptCategory`가 `null`인 경우
     - `TaskDomain.GENERAL` + `isFallback = true`
     - 로그로 미매핑/이상 상황 경고
 - **오버로드**

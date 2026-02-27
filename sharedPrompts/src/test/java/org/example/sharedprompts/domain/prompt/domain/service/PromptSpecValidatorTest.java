@@ -3,14 +3,12 @@ package org.example.sharedprompts.domain.prompt.domain.service;
 import org.example.sharedprompts.domain.prompt.domain.model.Constraints;
 import org.example.sharedprompts.domain.prompt.domain.model.ContentSandbox;
 import org.example.sharedprompts.domain.prompt.domain.model.OutputContract;
-import org.example.sharedprompts.domain.prompt.domain.model.PromptSection;
 import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
 import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
 import org.example.sharedprompts.domain.prompt.domain.model.VerifyResult;
 import org.example.sharedprompts.domain.prompt.domain.policy.StrategyBundlePolicy;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptStrategyBundle;
-import org.example.sharedprompts.domain.prompt.domain.value.PromptingStrategy;
 import org.example.sharedprompts.domain.prompt.domain.value.QualityPriority;
 import org.example.sharedprompts.domain.prompt.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
@@ -20,8 +18,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.util.EnumSet;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -34,7 +30,7 @@ class PromptSpecValidatorTest {
     @BeforeEach
     void setUp() {
         validator = new PromptSpecValidator();
-        factory = new PromptSpecFactory(new StrategyBundlePolicy());
+        factory = new PromptSpecFactory(new StrategyBundlePolicy(), new ObjectiveMappingRegistry());
     }
 
     private PromptSpec buildSpec(PromptObjective objective, String input) {

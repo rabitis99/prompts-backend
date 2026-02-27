@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.Set;
 
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -43,6 +44,9 @@ class PromptMetadataControllerTest {
                 .andExpect(jsonPath("$.data.display_name").isNotEmpty())
                 .andExpect(jsonPath("$.data.recommended_styles[0]").value("TECHNICAL"))
                 .andExpect(jsonPath("$.data.recommended_tones[0]").value("PROFESSIONAL"));
+
+        then(recommendationRegistry).should().getRecommendedStyles(TaskDomain.TECHNICAL);
+        then(recommendationRegistry).should().getRecommendedTones(TaskDomain.TECHNICAL);
     }
 
     @Test
@@ -57,6 +61,8 @@ class PromptMetadataControllerTest {
                 .andExpect(jsonPath("$.data.tone").value("FRIENDLY"))
                 .andExpect(jsonPath("$.data.display_name").isNotEmpty())
                 .andExpect(jsonPath("$.data.recommended_domains[0]").value("GENERAL"));
+
+        then(recommendationRegistry).should().getRecommendedDomainsForTone(ToneType.FRIENDLY);
     }
 }
 

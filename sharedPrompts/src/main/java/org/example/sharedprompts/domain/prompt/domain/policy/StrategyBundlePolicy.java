@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,8 +26,6 @@ import java.util.Set;
 @Slf4j
 @Component
 public class StrategyBundlePolicy {
-
-    private static final int MAX_BUNDLES_PER_OBJECTIVE = 3;
 
     /** Objective → 기본 전략 번들 매핑 */
     private static final Map<PromptObjective, PromptStrategyBundle> DEFAULT_BUNDLES;
@@ -114,21 +113,6 @@ public class StrategyBundlePolicy {
         return bundle;
     }
 
-    /**
-     * 번들 목록 등록 유효성 검증 (애플리케이션 시작 시 또는 빌드 타임 검증용).
-     * Objective당 최대 3개 초과 시 예외 발생.
-     */
-    public static void validateBundleCount(PromptObjective objective, List<PromptStrategyBundle> bundles) {
-        if (bundles.size() > MAX_BUNDLES_PER_OBJECTIVE) {
-            throw new IllegalStateException(
-                String.format(
-                    "[StrategyBundlePolicy] Objective [%s]에 허용된 최대 번들 수(%d)를 초과했습니다: %d개",
-                    objective, MAX_BUNDLES_PER_OBJECTIVE, bundles.size()
-                )
-            );
-        }
-    }
-
     private PromptStrategyBundle removeExperimentalStrategies(PromptStrategyBundle bundle, PromptObjective objective) {
         List<PromptingStrategy> experimental = bundle.getExperimentalStrategies();
         if (experimental.isEmpty()) return bundle;
@@ -136,7 +120,7 @@ public class StrategyBundlePolicy {
         log.debug("[StrategyBundlePolicy] Experimental 전략 비활성화 (플래그 미설정): objective={}, removed={}",
                 objective, experimental);
 
-        Set<PromptingStrategy> filtered = new java.util.LinkedHashSet<>(bundle.getStrategies());
+        Set<PromptingStrategy> filtered = new LinkedHashSet<>(bundle.getStrategies());
         filtered.removeAll(experimental);
 
         return PromptStrategyBundle.of(bundle.getName() + "_NO_EXP",

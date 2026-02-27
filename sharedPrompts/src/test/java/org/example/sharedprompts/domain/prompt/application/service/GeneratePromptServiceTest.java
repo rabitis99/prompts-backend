@@ -37,6 +37,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -97,7 +98,7 @@ class GeneratePromptServiceTest {
         assertThat(result.badges()).contains(QualityBadge.CONDITIONS_MET);
 
         // Repair 호출 없음
-        verify(llmClientPort, times(0)).repair(any(), any(), any(), any());
+        verify(llmClientPort, never()).repair(any(), any(), any(), any());
     }
 
     @Test

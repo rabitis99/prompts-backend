@@ -1,6 +1,7 @@
 package org.example.sharedprompts.domain.prompt.domain.model;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 프롬프트 생성 제약 조건.
@@ -17,6 +18,9 @@ public final class Constraints {
     private Constraints(Builder builder) {
         this.minLength = builder.minLength;
         this.maxLength = builder.maxLength;
+        if (this.minLength != null && this.maxLength != null && this.minLength > this.maxLength) {
+            throw new IllegalArgumentException("minLength cannot be greater than maxLength");
+        }
         this.requiredKeywords = builder.requiredKeywords != null
                 ? List.copyOf(builder.requiredKeywords)
                 : List.of();
@@ -41,6 +45,37 @@ public final class Constraints {
     public List<String> getProhibitedKeywords() { return prohibitedKeywords; }
     public boolean isRequireStepByStep() { return requireStepByStep; }
     public boolean isRequireCitations() { return requireCitations; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Constraints that = (Constraints) o;
+        return requireStepByStep == that.requireStepByStep &&
+                requireCitations == that.requireCitations &&
+                Objects.equals(minLength, that.minLength) &&
+                Objects.equals(maxLength, that.maxLength) &&
+                Objects.equals(requiredKeywords, that.requiredKeywords) &&
+                Objects.equals(prohibitedKeywords, that.prohibitedKeywords);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(minLength, maxLength, requiredKeywords,
+                prohibitedKeywords, requireStepByStep, requireCitations);
+    }
+
+    @Override
+    public String toString() {
+        return "Constraints{" +
+                "minLength=" + minLength +
+                ", maxLength=" + maxLength +
+                ", requiredKeywords=" + requiredKeywords +
+                ", prohibitedKeywords=" + prohibitedKeywords +
+                ", requireStepByStep=" + requireStepByStep +
+                ", requireCitations=" + requireCitations +
+                '}';
+    }
 
     public static final class Builder {
         private Integer minLength;

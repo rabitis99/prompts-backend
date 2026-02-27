@@ -104,8 +104,11 @@ public class ObjectiveMappingRegistry {
     }
 
     private String safeName(ActionTypeInterface actionType) {
+        if (actionType == null) {
+            return "";
+        }
         String s = String.valueOf(actionType);
-        return s == null ? "" : s.trim();
+        return s.trim();
     }
 
     private boolean hasAny(String name, String... tokens) {

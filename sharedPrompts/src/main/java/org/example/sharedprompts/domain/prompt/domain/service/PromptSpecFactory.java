@@ -95,16 +95,17 @@ public class PromptSpecFactory {
         PromptObjective objective = resolveObjective(taskDomain, actionType);
         QualityPriority priority = resolvePriority(objective);
         QualityRubric rubric = buildRubric(objective);
-        List<PromptSection> sections = buildSections(objective, role, taskDomain, locale);
+        TaskDomain effectiveTaskDomain = taskDomain != null ? taskDomain : TaskDomain.GENERAL;
+        List<PromptSection> sections = buildSections(objective, role, effectiveTaskDomain, locale);
         Constraints constraints = buildConstraints(objective, level);
-        OutputContract outputContract = buildOutputContract(objective, jsonSchema);
+        OutputContract outputContract = buildOutputContract(objective, jsonSchema, constraints.getMaxLength());
         PromptStrategyBundle bundle = strategyBundlePolicy.resolveBundle(objective, experimentalEnabled);
 
         return PromptSpec.builder()
                 .objective(objective)
                 .priority(priority)
                 .rubric(rubric)
-                .taskDomain(taskDomain)
+                .taskDomain(effectiveTaskDomain)
                 .experienceLevel(level)
                 .sections(sections)
                 .constraints(constraints)
@@ -223,7 +224,11 @@ public class PromptSpecFactory {
                 buildInstructionContent(objective)));
 
         if (objective == PromptObjective.EXTRACTION) {
-            sections.add(PromptSection.required(PromptSection.SectionType.OUTPUT_FORMAT, ""));
+            sections.add(PromptSection.required(
+                    PromptSection.SectionType.OUTPUT_FORMAT,
+                    "Respond strictly in JSON that matches the provided schema. "
+                            + "Do not include explanations, comments, or additional fields."
+            ));
         }
 
         if (objective == PromptObjective.PLANNING) {
@@ -250,7 +255,7 @@ public class PromptSpecFactory {
     private Constraints buildConstraints(PromptObjective objective, ExperienceLevel level) {
         ExperienceLevel effectiveLevel = level != null ? level : ExperienceLevel.INTERMEDIATE;
 
-        int baseMaxLength;
+        int baseMaxLength = 2000;
         boolean requireStepByStep = false;
         boolean requireCitations = false;
 
@@ -303,7 +308,11 @@ public class PromptSpecFactory {
                 .build();
     }
 
-    private OutputContract buildOutputContract(PromptObjective objective, String jsonSchema) {
+    private OutputContract buildOutputContract(
+            PromptObjective objective,
+            String jsonSchema,
+            Integer maxTokens
+    ) {
         if (objective == PromptObjective.EXTRACTION) {
             // 사용자 제공 스키마를 우선 사용, 없으면 제네릭 기본값 적용
             String schema = (jsonSchema != null && !jsonSchema.isBlank())
@@ -317,9 +326,10 @@ public class PromptSpecFactory {
                         "required": ["result"]
                       }
                       """;
-            return OutputContract.jsonStructured(schema, 1000);
+            int extractionMax = maxTokens != null ? Math.min(maxTokens, 1000) : 1000;
+            return OutputContract.jsonStructured(schema, extractionMax);
         }
-        return OutputContract.freeText(2000);
+        return OutputContract.freeText(maxTokens);
     }
 
     private String buildInstructionContent(PromptObjective objective) {

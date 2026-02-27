@@ -31,6 +31,10 @@ public final class OutputContract {
         return new OutputContract(OutputFormat.MARKDOWN, null, maxTokens);
     }
 
+    public static OutputContract bulletedList(Integer maxTokens) {
+        return new OutputContract(OutputFormat.BULLETED_LIST, null, maxTokens);
+    }
+
     public OutputFormat getFormat() { return format; }
     public String getJsonSchema() { return jsonSchema; }
     public Integer getMaxTokens() { return maxTokens; }

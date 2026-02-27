@@ -19,7 +19,6 @@ import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecValidato
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
-import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -57,7 +56,7 @@ public class GeneratePromptService implements GeneratePromptUseCase {
 
     @Override
     public GeneratePromptResult generate(GeneratePromptCommand command) {
-        log.info("[GeneratePrompt] 시작: userId={}, objective 결정 중", command.userId());
+        log.info("[GeneratePrompt] 시작: objective 결정 중");
 
         // ─── 유저 사전 검증 (LLM 호출 전): 탈퇴·삭제 유저로 인한 비용 낭비 방지 ──
         savePromptVersionPort.validateUserExists(command.userId());
@@ -82,8 +81,8 @@ public class GeneratePromptService implements GeneratePromptUseCase {
 
         if (!firstPassSuccess) {
             for (int attempt = 1; attempt <= MAX_REPAIR_ATTEMPTS; attempt++) {
-                log.info("[GeneratePrompt] Repair 시도 {}/{}: userId={}, failedItems={}",
-                        attempt, MAX_REPAIR_ATTEMPTS, command.userId(),
+                log.info("[GeneratePrompt] Repair 시도 {}/{}: failedItems={}",
+                        attempt, MAX_REPAIR_ATTEMPTS,
                         lastVerifyResult.getFailedItems());
 
                 draft = repair(draft, spec, lastVerifyResult);
@@ -91,14 +90,14 @@ public class GeneratePromptService implements GeneratePromptUseCase {
 
                 lastVerifyResult = verify(draft, spec);
                 if (lastVerifyResult.isPassed()) {
-                    log.info("[GeneratePrompt] Repair {}회 후 Verify 통과: userId={}", attempt, command.userId());
+                    log.info("[GeneratePrompt] Repair {}회 후 Verify 통과", attempt);
                     break;
                 }
 
                 if (attempt == MAX_REPAIR_ATTEMPTS && !lastVerifyResult.isPassed()) {
                     // 무한 루프 방지: 상한 도달 시 현재 결과 반환 + 로깅
-                    log.warn("[GeneratePrompt] Repair {}회 실패 — 현재 결과 반환: userId={}, failureReasons={}",
-                            MAX_REPAIR_ATTEMPTS, command.userId(), lastVerifyResult.getFailureReasons());
+                    log.warn("[GeneratePrompt] Repair {}회 실패 — 현재 결과 반환: failureReasons={}",
+                            MAX_REPAIR_ATTEMPTS, lastVerifyResult.getFailureReasons());
                 }
             }
         }
@@ -107,8 +106,8 @@ public class GeneratePromptService implements GeneratePromptUseCase {
 
         // ─── 저장 ─────────────────────────────────────────────────────────────
         Long promptId = savePromptVersionPort.save(command, spec, draft, repairCount, finallyPassed);
-        log.info("[GeneratePrompt] 완료: userId={}, promptId={}, repairCount={}, finallyPassed={}",
-                command.userId(), promptId, repairCount, finallyPassed);
+        log.info("[GeneratePrompt] 완료: promptId={}, repairCount={}, finallyPassed={}",
+                promptId, repairCount, finallyPassed);
 
         // ─── 배지 결정 (내부 지표 → 배지 변환은 여기서 수행, 수치는 Result에서 분리) ──
         List<QualityBadge> badges = resolveBadges(lastVerifyResult, firstPassSuccess, repairCount, finallyPassed);
