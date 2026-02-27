@@ -86,8 +86,8 @@ public class PromptSpecFactory {
             ExperienceLevel experienceLevel,
             String jsonSchema
     ) {
-        if (rawInput == null) {
-            throw new IllegalArgumentException("rawInput은 null일 수 없습니다.");
+        if (rawInput == null || rawInput.isBlank()) {
+            throw new IllegalArgumentException("rawInput은 null/blank일 수 없습니다.");
         }
 
         ExperienceLevel level = experienceLevel != null ? experienceLevel : ExperienceLevel.INTERMEDIATE;
@@ -233,7 +233,7 @@ public class PromptSpecFactory {
         // Objective별 지시 방향을 섹션 내용으로 제공 (Renderer가 메타프롬프트에 포함)
         sections.add(PromptSection.required(
                 PromptSection.SectionType.INSTRUCTION,
-                buildInstructionContent(objective)));
+                buildInstructionContent(objective, locale)));
 
         if (objective == PromptObjective.EXTRACTION) {
             sections.add(PromptSection.required(
@@ -345,7 +345,18 @@ public class PromptSpecFactory {
         return OutputContract.freeText(freeTextMax);
     }
 
-    private String buildInstructionContent(PromptObjective objective) {
+    private String buildInstructionContent(PromptObjective objective, LanguageType locale) {
+        LanguageType effectiveLocale = locale != null ? locale : LanguageType.KOREAN;
+        if (effectiveLocale == LanguageType.KOREAN) {
+            return switch (objective) {
+                case FACTUAL -> "정확하고 근거 기반으로 답변하세요. 필요 시 출처 또는 불확실성 표기를 포함하세요.";
+                case REASONING -> "문제를 단계적으로 분석하고 각 단계의 추론을 명확히 제시하세요.";
+                case EXTRACTION -> "요청된 정보를 지정된 출력 스키마에 맞게 엄격히 추출·구조화하세요.";
+                case PLANNING -> "실행 가능한 계획을 단계, 의존성, 성공 기준과 함께 구조화해 제시하세요.";
+                case CREATIVE_WITH_CONSTRAINTS -> "주어진 제약을 모두 준수하면서 창의적인 결과를 생성하세요.";
+                case ANALYTICAL -> "대상을 다각도로 분석하고, 주요 측면을 비교·대조하며 근거를 제시하세요.";
+            };
+        }
         return switch (objective) {
             case FACTUAL ->
                     "Provide accurate, well-sourced information. Include citations or uncertainty markers where appropriate.";
