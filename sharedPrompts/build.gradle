@@ -109,8 +109,8 @@ dependencies {
 	implementation 'io.github.openhtmltopdf:openhtmltopdf-pdfbox:1.1.37'
 	implementation 'io.github.openhtmltopdf:openhtmltopdf-slf4j:1.1.37'
 
-	// JSON Schema Validator
-	implementation 'com.networknt:json-schema-validator:2.0.1'
+	// JSON Schema Validator (includes security fixes; requires JDK 17+)
+	implementation 'com.networknt:json-schema-validator:3.0.0'
 
 	// Testing
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'

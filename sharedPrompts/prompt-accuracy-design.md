@@ -34,7 +34,7 @@
 
 ### 0-2. 내부 도메인 모델
 
-- [ ] **PromptObjective** enum 도입 (FACTUAL, REASONING, EXTRACTION, PLANNING, CREATIVE_WITH_CONSTRAINTS)
+- [ ] **PromptObjective** enum 도입 (FACTUAL, ANALYTICAL, REASONING, EXTRACTION, PLANNING, CREATIVE_WITH_CONSTRAINTS)
 - [ ] **QualityPriority** enum 도입 (ACCURACY_FIRST, STRUCTURE_FIRST, BREVITY_SECOND, CREATIVITY_SECOND)
 - [ ] **QualityRubric** 도메인 규칙 정의 (필수 요구사항, 입력 유지, 숫자/엔티티 보존, 모순 없음, 근거/불확실성 명시)
 
@@ -90,6 +90,7 @@
 | Objective | Verify 모드 | 적용 방식 |
 |-----------|-----------|---------|
 | `FACTUAL` | **CoV 강화** | Chain-of-Verification 전체 실행, 사실·수치·인용 검증 우선 |
+| `ANALYTICAL` | **표준** (또는 별도 정의) | 분석형 추론 일관성·근거 연결성 검증 |
 | `REASONING` | **표준** | 루브릭 Coverage + 모순 탐지 |
 | `EXTRACTION` | **Schema 우선** | JSON Schema 기반 검증 우선, 통과 시 LLM Verify 생략 가능 |
 | `PLANNING` | **표준** | 단계 순서·선행조건 커버리지 |
@@ -134,10 +135,10 @@
 
 | 종류 | 목적 | 갱신 주기 | 규모 |
 |------|------|---------|------|
-| **Static Golden Set** (회귀 방지용) | 정책·전략 변경 시 기준선 통과율 비교, 회귀 감지 | 수동 (PR 단위) | MVP 50개 → 장기 140개+ |
+| **Static Golden Set** (회귀 방지용) | 정책·전략 변경 시 기준선 통과율 비교, 회귀 감지 | 수동 (PR 단위) | MVP 60개 → 장기 160개+ |
 | **Traffic-weighted Dynamic Set** (분포 보정용) | 최근 30일 실제 트래픽 샘플 반영, Static Set의 분포 편향 교정 | 자동 (30일 롤링) | Objective별 최소 20개 유지 |
 
-- [ ] Static MVP: Objective별 10개 × 5 = 50개 / 장기: FACTUAL 30 / REASONING 30 / EXTRACTION 30 / PLANNING 30 / CREATIVE 20 = 140개
+- [ ] Static MVP: Objective별 10개 × 6 = 60개 / 장기: FACTUAL 30 / ANALYTICAL 20 / REASONING 30 / EXTRACTION 30 / PLANNING 30 / CREATIVE 20 = 160개
 - [ ] 회귀 테스트 자동화: Static Golden Set 통과율 기준선 비교
 - [ ] 오류 유형 분류 (누락, 환각, 모순, 장황, 요구 불충족)
 
@@ -189,15 +190,13 @@
 | 1 (1~2주) | Objective·Rubric 추가, Verify 단계 추가, 전략 3계층 정의, Objective별 매핑 확정, **UX-우선 원칙·계층 분리 적용** |
 | 2 | StrategyBundle 도입; Core + Objective-specific 적용; **Objective별 호출 상한·Bundle 3개 가드레일 구현**; 평균 LLM 호출 지표 수집 시작 |
 | 3 | **Static Golden Set** MVP 50개 구축; 환각 탐지 Validator 연결; **Verify 선택적 실행 정책·Soft-verify 기준 적용**; **하드캡 async fallback 구현**; 회귀 지표 연동 |
-| 4 | SELF_CONSISTENCY·TREE_OF_THOUGHTS A/B 실험; **3축 승격 점수 + 티어별 가중치 측정**; **Traffic-weighted Dynamic Set 구축**; Golden set 140개 확장 |
+| 4 | SELF_CONSISTENCY·TREE_OF_THOUGHTS A/B 실험; **3축 승격 점수 + 티어별 가중치 측정**; **Traffic-weighted Dynamic Set 구축**; Golden set 160개 확장 |
 | **5 (NEW)** | **Result Badge UX 구현** (adapter 레이어); **PromptLifecycle 도메인 구축** (버전 저장·이력 조회); 성공률 기반 추천 서비스 |
 | **6 (NEW)** | 버전 diff UI; **즐겨찾기 → Dynamic Golden Set 연동**; 재실행 이력 기반 개인화 |
 
 ---
 
----
-
-## 9. Result Badge UX `NEW`
+ ## 9. Result Badge UX `NEW`
 
 > 품질 지표는 내부에서 측정하고, 사용자에게는 배지 형태로만 전달한다.
 > 배지 변환 로직은 adapter/in/web 전용이다. 도메인·애플리케이션 레이어를 침범하지 않는다.

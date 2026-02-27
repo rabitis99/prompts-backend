@@ -92,10 +92,10 @@ public class PromptSpecFactory {
 
         ExperienceLevel level = experienceLevel != null ? experienceLevel : ExperienceLevel.INTERMEDIATE;
 
-        PromptObjective objective = resolveObjective(taskDomain, actionType);
+        TaskDomain effectiveTaskDomain = taskDomain != null ? taskDomain : TaskDomain.GENERAL;
+        PromptObjective objective = resolveObjective(effectiveTaskDomain, actionType);
         QualityPriority priority = resolvePriority(objective);
         QualityRubric rubric = buildRubric(objective);
-        TaskDomain effectiveTaskDomain = taskDomain != null ? taskDomain : TaskDomain.GENERAL;
         List<PromptSection> sections = buildSections(objective, role, effectiveTaskDomain, locale);
         Constraints constraints = buildConstraints(objective, level);
         OutputContract outputContract = buildOutputContract(objective, jsonSchema, constraints.getMaxLength());
@@ -199,9 +199,21 @@ public class PromptSpecFactory {
         List<PromptSection> sections = new ArrayList<>();
 
         if (role != null) {
+            LanguageType effectiveLocale = locale != null ? locale : LanguageType.KOREAN;
+            String roleName = switch (effectiveLocale) {
+                case ENGLISH -> role.getRoleNameEn();
+                case JAPANESE -> role.getRoleNameJa();
+                default -> role.getRoleNameKo();
+            };
+            String roleDesc = switch (effectiveLocale) {
+                case ENGLISH -> role.getDescriptionEn();
+                case JAPANESE -> role.getDescriptionJa();
+                default -> role.getDescriptionKo();
+            };
+
             sections.add(PromptSection.required(
                     PromptSection.SectionType.ROLE,
-                    "You are a " + role.getRoleNameEn() + ". " + role.getDescriptionEn()
+                    "You are a " + roleName + ". " + roleDesc
             ));
         }
 
@@ -254,7 +266,6 @@ public class PromptSpecFactory {
 
     private Constraints buildConstraints(PromptObjective objective, ExperienceLevel level) {
         // level은 create()에서 이미 null 방지 처리됨
-        ExperienceLevel effectiveLevel = level;
 
         int baseMaxLength = 2000;
         boolean requireStepByStep = false;
@@ -285,7 +296,7 @@ public class PromptSpecFactory {
             }
         }
 
-        double factor = switch (effectiveLevel) {
+        double factor = switch (level) {
             case BEGINNER -> 1.2;
             case INTERMEDIATE -> 1.0;
             case ADVANCED -> 0.9;
@@ -294,10 +305,10 @@ public class PromptSpecFactory {
 
         int adjustedMaxLength = (int) Math.round(baseMaxLength * factor);
 
-        if (effectiveLevel == ExperienceLevel.BEGINNER) {
+        if (level == ExperienceLevel.BEGINNER) {
             requireStepByStep = true;
         }
-        if (effectiveLevel == ExperienceLevel.EXPERT &&
+        if (level == ExperienceLevel.EXPERT &&
                 (objective == PromptObjective.FACTUAL || objective == PromptObjective.REASONING)) {
             requireCitations = true;
         }
@@ -330,7 +341,8 @@ public class PromptSpecFactory {
             int extractionMax = maxTokens != null ? Math.min(maxTokens, 1000) : 1000;
             return OutputContract.jsonStructured(schema, extractionMax);
         }
-        return OutputContract.freeText(maxTokens);
+        int freeTextMax = maxTokens != null ? maxTokens : 1000;
+        return OutputContract.freeText(freeTextMax);
     }
 
     private String buildInstructionContent(PromptObjective objective) {

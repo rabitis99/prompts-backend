@@ -8,6 +8,8 @@ import java.util.Objects;
  */
 public final class Constraints {
 
+    private static final int DEFAULT_MAX_LENGTH = 2000;
+
     private final Integer minLength;
     private final Integer maxLength;
     private final List<String> requiredKeywords;
@@ -51,7 +53,7 @@ public final class Constraints {
      * @return 기본 {@link Constraints} 인스턴스
      */
     public static Constraints defaults() {
-        return builder().maxLength(2000).build();
+        return builder().maxLength(DEFAULT_MAX_LENGTH).build();
     }
 
     public Integer getMinLength() { return minLength; }

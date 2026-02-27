@@ -14,7 +14,9 @@ import org.example.sharedprompts.domain.prompt.domain.model.OutputContract;
 import org.example.sharedprompts.global.google.gemini.SyncGoogleGeminiClient;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -34,6 +36,9 @@ public class ConstrainedDecodingAdapter implements ConstrainedDecodingPort {
     private final SyncGoogleGeminiClient syncGoogleGeminiClient;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonSchemaFactory SCHEMA_FACTORY =
+            JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
+    private static final Map<String, JsonSchema> SCHEMA_CACHE = new ConcurrentHashMap<>();
 
     // 내부 compliance rate 추적용 (실제 운영에서는 메트릭 시스템 연동)
     // AtomicReference: EMA 업데이트가 read-modify-write이므로 volatile double은 원자성 미보장
@@ -69,10 +74,18 @@ public class ConstrainedDecodingAdapter implements ConstrainedDecodingPort {
             if (schemaJson == null || schemaJson.isBlank()) {
                 return true;
             }
-            JsonNode schemaNode = OBJECT_MAPPER.readTree(schemaJson);
-            JsonSchema schema = JsonSchemaFactory
-                    .getInstance(SpecVersion.VersionFlag.V202012)
-                    .getSchema(schemaNode);
+            JsonSchema schema = SCHEMA_CACHE.computeIfAbsent(schemaJson, key -> {
+                try {
+                    JsonNode schemaNode = OBJECT_MAPPER.readTree(key);
+                    return SCHEMA_FACTORY.getSchema(schemaNode);
+                } catch (JsonProcessingException e) {
+                    log.debug("[ConstrainedDecoding] JSON 스키마 파싱 실패", e);
+                    return null;
+                }
+            });
+            if (schema == null) {
+                return false;
+            }
             Set<ValidationMessage> errors = schema.validate(outputNode);
             if (!errors.isEmpty()) {
                 String errorMessages = errors.stream()
