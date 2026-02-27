@@ -38,6 +38,15 @@ public class StrategyPromotionPolicy {
     }
 
     public static StrategyPromotionPolicy custom(double alpha, double beta, double threshold) {
+        if (!Double.isFinite(alpha) || alpha < 0) {
+            throw new IllegalArgumentException("alpha는 0 이상의 유한값이어야 합니다.");
+        }
+        if (!Double.isFinite(beta) || beta < 0) {
+            throw new IllegalArgumentException("beta는 0 이상의 유한값이어야 합니다.");
+        }
+        if (!Double.isFinite(threshold) || threshold <= 0) {
+            throw new IllegalArgumentException("threshold는 0보다 큰 유한값이어야 합니다.");
+        }
         return new StrategyPromotionPolicy(alpha, beta, threshold);
     }
 

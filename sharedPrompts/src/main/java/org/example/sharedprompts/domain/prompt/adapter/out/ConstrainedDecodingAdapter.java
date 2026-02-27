@@ -1,7 +1,12 @@
 package org.example.sharedprompts.domain.prompt.adapter.out;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
+import com.networknt.schema.ValidationMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.prompt.application.port.out.ConstrainedDecodingPort;
@@ -9,7 +14,9 @@ import org.example.sharedprompts.domain.prompt.domain.model.OutputContract;
 import org.example.sharedprompts.global.google.gemini.SyncGoogleGeminiClient;
 import org.springframework.stereotype.Component;
 
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 /**
  * Constrained Decoding 어댑터 — 현재는 JSON 형식 강제를 프롬프트 레벨에서 구현한 스텁.
@@ -45,7 +52,7 @@ public class ConstrainedDecodingAdapter implements ConstrainedDecodingPort {
         updateComplianceRate(compliant);
 
         if (!compliant) {
-            log.warn("[ConstrainedDecoding] Schema 미준수 응답 감지: complianceRate={}", complianceRate);
+            log.warn("[ConstrainedDecoding] Schema 미준수 응답 감지: complianceRate={}", complianceRate.get());
         }
 
         return response;
@@ -57,10 +64,26 @@ public class ConstrainedDecodingAdapter implements ConstrainedDecodingPort {
         if (!outputContract.hasJsonSchema()) return true;
 
         try {
-            OBJECT_MAPPER.readTree(output);
+            JsonNode outputNode = OBJECT_MAPPER.readTree(output);
+            String schemaJson = outputContract.getJsonSchema();
+            if (schemaJson == null || schemaJson.isBlank()) {
+                return true;
+            }
+            JsonNode schemaNode = OBJECT_MAPPER.readTree(schemaJson);
+            JsonSchema schema = JsonSchemaFactory
+                    .getInstance(SpecVersion.VersionFlag.V202012)
+                    .getSchema(schemaNode);
+            Set<ValidationMessage> errors = schema.validate(outputNode);
+            if (!errors.isEmpty()) {
+                String errorMessages = errors.stream()
+                        .map(ValidationMessage::getMessage)
+                        .collect(Collectors.joining(", "));
+                log.debug("[ConstrainedDecoding] JSON Schema 검증 실패: {}", errorMessages);
+                return false;
+            }
             return true;
         } catch (JsonProcessingException e) {
-            log.debug("[ConstrainedDecoding] JSON 구문 검증 실패", e);
+            log.debug("[ConstrainedDecoding] JSON 구문/스키마 파싱 실패", e);
             return false;
         }
     }

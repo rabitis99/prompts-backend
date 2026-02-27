@@ -132,6 +132,7 @@ class PromptSpecValidatorTest {
                     .rubric(factory.buildRubric(PromptObjective.EXTRACTION))
                     .strategyBundle(PromptStrategyBundle.coreOnly())
                     .rawInput("데이터")
+                    .clarifiedInput("데이터")
                     .contentSandbox(ContentSandbox.defaults())
                     .outputContract(OutputContract.jsonStructured("{\"type\":\"object\"}", 500))
                     .constraints(Constraints.defaults())

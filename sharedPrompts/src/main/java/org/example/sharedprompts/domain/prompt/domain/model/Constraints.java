@@ -18,6 +18,12 @@ public final class Constraints {
     private Constraints(Builder builder) {
         this.minLength = builder.minLength;
         this.maxLength = builder.maxLength;
+        if (this.minLength != null && this.minLength < 0) {
+            throw new IllegalArgumentException("minLength cannot be negative");
+        }
+        if (this.maxLength != null && this.maxLength < 0) {
+            throw new IllegalArgumentException("maxLength cannot be negative");
+        }
         if (this.minLength != null && this.maxLength != null && this.minLength > this.maxLength) {
             throw new IllegalArgumentException("minLength cannot be greater than maxLength");
         }
@@ -35,6 +41,15 @@ public final class Constraints {
         return new Builder();
     }
 
+    /**
+     * 기본 제약 조건을 반환한다.
+     * <ul>
+     *   <li>maxLength: 2000</li>
+     *   <li>minLength: null (제한 없음)</li>
+     * </ul>
+     *
+     * @return 기본 {@link Constraints} 인스턴스
+     */
     public static Constraints defaults() {
         return builder().maxLength(2000).build();
     }

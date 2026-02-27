@@ -169,6 +169,7 @@ public class GeneratePromptService implements GeneratePromptUseCase {
             } catch (Exception e) {
                 // 예외 시만 일반 LLM으로 fallback (1회 예산 내 대체 경로)
                 log.warn("[GeneratePrompt] ConstrainedDecoding 실패, 일반 LLM 호출로 fallback: {}", e.getMessage());
+                log.debug("[GeneratePrompt] ConstrainedDecoding 예외 상세", e);
             }
         }
         return llmClientPort.solve(spec);

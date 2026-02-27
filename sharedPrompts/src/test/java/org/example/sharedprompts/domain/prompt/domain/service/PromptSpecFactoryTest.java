@@ -197,6 +197,25 @@ class PromptSpecFactoryTest {
     }
 
     @Test
+    @DisplayName("Experimental 활성화 시 Experimental 전략 포함")
+    void experimentalEnabledIncludesExperimentalStrategies() {
+        PromptSpec spec = factory.create(
+                "입력",
+                TaskDomain.ANALYTICAL,
+                EtcActionType.GENERAL_CONSULTATION,
+                EtcRoleType.GENERAL_CONSULTANT,
+                ToneType.NEUTRAL,
+                StyleType.NARRATIVE,
+                LanguageType.KOREAN,
+                true  // experimental enabled
+        );
+
+        boolean hasExperimental = spec.getStrategyBundle().getStrategies().stream()
+                .anyMatch(PromptingStrategy::isExperimental);
+        assertThat(hasExperimental).isTrue();
+    }
+
+    @Test
     @DisplayName("PromptSpec은 Core 전략을 항상 포함한다")
     void specAlwaysIncludesCoreStrategies() {
         PromptSpec spec = factory.create(

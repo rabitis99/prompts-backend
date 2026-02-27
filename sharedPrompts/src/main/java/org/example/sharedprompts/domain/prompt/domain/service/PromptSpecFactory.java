@@ -253,7 +253,8 @@ public class PromptSpecFactory {
     }
 
     private Constraints buildConstraints(PromptObjective objective, ExperienceLevel level) {
-        ExperienceLevel effectiveLevel = level != null ? level : ExperienceLevel.INTERMEDIATE;
+        // level은 create()에서 이미 null 방지 처리됨
+        ExperienceLevel effectiveLevel = level;
 
         int baseMaxLength = 2000;
         boolean requireStepByStep = false;
