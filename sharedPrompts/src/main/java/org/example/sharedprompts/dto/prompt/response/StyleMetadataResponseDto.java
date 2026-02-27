@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.sharedprompts.domain.prompt.domain.service.RecommendationRegistry;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 
@@ -24,14 +25,26 @@ public class StyleMetadataResponseDto {
     private String displayName;
     @JsonProperty("recommended_domains")
     private List<String> recommendedDomains;
+    @JsonProperty("axis")
+    private String axis;
+    @JsonProperty("list_friendly")
+    private boolean listFriendly;
+    @JsonProperty("long_form_friendly")
+    private boolean longFormFriendly;
+    @JsonProperty("high_hallucination_risk")
+    private boolean highHallucinationRisk;
 
-    public static StyleMetadataResponseDto from(StyleType style) {
+    public static StyleMetadataResponseDto from(StyleType style, RecommendationRegistry recommendationRegistry) {
         return StyleMetadataResponseDto.builder()
                 .style(style)
                 .displayName(style.getDisplayName())
-                .recommendedDomains(style.getRecommendedDomains().stream()
+                .recommendedDomains(recommendationRegistry.getRecommendedDomainsForStyle(style).stream()
                         .map(TaskDomain::name)
                         .toList())
+                .axis(style.getAxis().name())
+                .listFriendly(style.isListFriendly())
+                .longFormFriendly(style.isLongFormFriendly())
+                .highHallucinationRisk(style.isHighHallucinationRisk())
                 .build();
     }
 }

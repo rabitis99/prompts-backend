@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.sharedprompts.domain.prompt.domain.service.RecommendationRegistry;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.enums.ToneType;
@@ -28,14 +29,14 @@ public class DomainMetadataResponseDto {
     @JsonProperty("recommended_tones")
     private List<String> recommendedTones;
 
-    public static DomainMetadataResponseDto from(TaskDomain domain) {
+    public static DomainMetadataResponseDto from(TaskDomain domain, RecommendationRegistry recommendationRegistry) {
         return DomainMetadataResponseDto.builder()
                 .domain(domain)
                 .displayName(domain.getDisplayName())
-                .recommendedStyles(domain.getRecommendedStyles().stream()
+                .recommendedStyles(recommendationRegistry.getRecommendedStyles(domain).stream()
                         .map(StyleType::name)
                         .toList())
-                .recommendedTones(domain.getRecommendedTones().stream()
+                .recommendedTones(recommendationRegistry.getRecommendedTones(domain).stream()
                         .map(ToneType::name)
                         .toList())
                 .build();

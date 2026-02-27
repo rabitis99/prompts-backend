@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.prompt.enums.action;
 
+import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.example.sharedprompts.domain.prompt.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 
@@ -23,6 +24,14 @@ public interface ActionTypeInterface {
      */
     default Optional<TaskDomain> getTaskDomain() {
         return Optional.empty();
+    }
+
+    /**
+     * 이 ActionType에 정책적으로 고정된 Objective가 있을 경우 반환한다.
+     * null이면 레지스트리/도메인 기본값을 따른다.
+     */
+    default PromptObjective getDefaultObjective() {
+        return null;
     }
 
     /**

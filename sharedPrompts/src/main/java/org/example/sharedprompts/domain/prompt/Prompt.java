@@ -2,8 +2,13 @@ package org.example.sharedprompts.domain.prompt;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.example.sharedprompts.domain.tag.PromptTag;
+import org.example.sharedprompts.domain.prompt.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
+import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
+import org.example.sharedprompts.domain.prompt.enums.StyleType;
+import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.enums.ToneType;
+import org.example.sharedprompts.domain.tag.PromptTag;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.global.entity.BaseEntity;
 
@@ -49,6 +54,26 @@ public class Prompt extends BaseEntity {
     @Column(nullable = false)
     private PromptCategory promptCategory;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "task_domain")
+    private TaskDomain taskDomain;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "objective")
+    private PromptObjective objective;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tone")
+    private ToneType tone;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "style")
+    private StyleType style;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "language")
+    private LanguageType language;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User author;
@@ -87,5 +112,25 @@ public class Prompt extends BaseEntity {
 
     public void updateCategory(PromptCategory promptCategory) {
         this.promptCategory = promptCategory;
+    }
+
+    public void updateTaskDomain(TaskDomain taskDomain) {
+        this.taskDomain = taskDomain;
+    }
+
+    public void updateObjective(PromptObjective objective) {
+        this.objective = objective;
+    }
+
+    public void updateTone(ToneType tone) {
+        this.tone = tone;
+    }
+
+    public void updateStyle(StyleType style) {
+        this.style = style;
+    }
+
+    public void updateLanguage(LanguageType language) {
+        this.language = language;
     }
 }

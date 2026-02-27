@@ -1,7 +1,9 @@
 package org.example.sharedprompts.domain.prompt.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.guideline.DomainResolution;
 import org.example.sharedprompts.dto.prompt.request.InputRequestDto;
 import org.springframework.stereotype.Component;
@@ -27,37 +29,7 @@ public class DomainResolver {
      * @return 도메인 해결 결과 (도메인 + 폴백 여부)
      */
     public DomainResolution resolveDomain(InputRequestDto request) {
-        // null 체크: PromptRequestDto.toInputRequestDto()에서 기본값 제공하지만, 방어적 코딩
-        if (request.getActionType() == null) {
-            log.warn("ActionType is null — using GENERAL fallback");
-            return new DomainResolution(TaskDomain.GENERAL, true);
-        }
-
-        Optional<TaskDomain> fromAction = request.getActionType().getTaskDomain();
-
-        if (fromAction.isPresent() && fromAction.get() != TaskDomain.GENERAL) {
-            return new DomainResolution(fromAction.get(), false);
-        }
-
-        // null 체크: PromptRequestDto에서 @NotNull이지만, 방어적 코딩
-        if (request.getPromptCategory() == null) {
-            log.warn("PromptCategory is null — using GENERAL fallback");
-            return new DomainResolution(TaskDomain.GENERAL, true);
-        }
-
-        TaskDomain fromCategory = request.getPromptCategory().getDefaultDomain();
-        if (fromCategory != TaskDomain.GENERAL) {
-            return new DomainResolution(fromCategory, false);
-        }
-
-        if (fromAction.isPresent()) {
-            return new DomainResolution(TaskDomain.GENERAL, false); // 의도적
-        }
-
-        log.warn("Unmapped ActionType: {} (category={}) — GENERAL fallback. 매핑 추가 필요.",
-                 request.getActionType() instanceof Enum<?> e ? e.name() : request.getActionType().getClass().getSimpleName(),
-                 request.getPromptCategory());
-        return new DomainResolution(TaskDomain.GENERAL, true); // 미매핑 폴백
+        return resolveDomainInternal(request.getActionType(), request.getPromptCategory());
     }
 
     /**
@@ -68,6 +40,50 @@ public class DomainResolver {
      */
     public TaskDomain resolveDomainSimple(InputRequestDto request) {
         return resolveDomain(request).domain();
+    }
+
+    /**
+     * 헥사고날 어댑터용 오버로드 — ActionTypeInterface + PromptCategory로 도메인 결정.
+     * InputRequestDto 없이 직접 파라미터를 받는 버전.
+     */
+    public TaskDomain resolveDomain(ActionTypeInterface actionType, PromptCategory promptCategory) {
+        return resolveDomainInternal(actionType, promptCategory).domain();
+    }
+
+    /**
+     * 공통 도메인 결정 로직.
+     * DTO 유무와 관계없이 동일한 우선순위·폴백 규칙과 로깅을 적용한다.
+     */
+    private DomainResolution resolveDomainInternal(ActionTypeInterface actionType, PromptCategory promptCategory) {
+        if (actionType == null) {
+            log.warn("ActionType is null — using GENERAL fallback");
+            return new DomainResolution(TaskDomain.GENERAL, true);
+        }
+
+        Optional<TaskDomain> fromAction = actionType.getTaskDomain();
+
+        if (fromAction.isPresent() && fromAction.get() != TaskDomain.GENERAL) {
+            return new DomainResolution(fromAction.get(), false);
+        }
+
+        if (promptCategory == null) {
+            log.warn("PromptCategory is null — using GENERAL fallback");
+            return new DomainResolution(TaskDomain.GENERAL, true);
+        }
+
+        TaskDomain fromCategory = promptCategory.getDefaultDomain();
+        if (fromCategory != TaskDomain.GENERAL) {
+            return new DomainResolution(fromCategory, false);
+        }
+
+        if (fromAction.isPresent()) {
+            return new DomainResolution(TaskDomain.GENERAL, false); // 의도적 GENERAL
+        }
+
+        log.warn("Unmapped ActionType: {} (category={}) — GENERAL fallback. 매핑 추가 필요.",
+                 actionType instanceof Enum<?> e ? e.name() : actionType.getClass().getSimpleName(),
+                 promptCategory);
+        return new DomainResolution(TaskDomain.GENERAL, true); // 미매핑 폴백
     }
 }
 
