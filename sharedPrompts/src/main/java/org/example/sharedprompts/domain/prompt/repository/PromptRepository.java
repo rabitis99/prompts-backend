@@ -10,7 +10,15 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public interface PromptRepository extends JpaRepository<Prompt, Long>,CustomPromptRepository {
+/**
+ * 프롬프트 영속성용 JPA Repository.
+ * <p><b>연관:</b> Application 레이어는 이 인터페이스를 직접 사용하지 않는다.
+ * {@link org.example.sharedprompts.domain.prompt.adapter.out.PromptPersistenceAdapter}가
+ * {@link org.example.sharedprompts.domain.prompt.application.port.out.PromptQueryPort}와
+ * {@link org.example.sharedprompts.domain.prompt.application.port.out.PromptCommandPort}를 구현할 때
+ * 본 Repository를 주입받아 사용한다. (Application → Port ← Adapter → Repository)
+ */ 
+public interface PromptRepository extends JpaRepository<Prompt, Long>, CustomPromptRepository {
     @Query("""
         select p.id
         from Prompt p

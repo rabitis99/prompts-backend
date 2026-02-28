@@ -6,13 +6,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.example.sharedprompts.domain.prompt.enums.LanguageType;
-import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
-import org.example.sharedprompts.domain.prompt.enums.StyleType;
-import org.example.sharedprompts.domain.prompt.enums.ToneType;
+import org.example.sharedprompts.domain.prompt.enums.*;
 import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.enums.action.EtcActionType;
-import org.example.sharedprompts.domain.prompt.enums.role.EtcRoleType;
 import org.example.sharedprompts.domain.prompt.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.enums.serializer.ActionTypeDeserializer;
 import org.example.sharedprompts.domain.prompt.enums.serializer.ActionTypeSerializer;
@@ -61,7 +56,7 @@ public record GeneratePromptRequest(
         ToneType tone,
         StyleType style,
         LanguageType language,
-
+        ExperienceLevel experienceLevel,
         @JsonProperty("json_schema")
         String jsonSchema
 ) {
@@ -71,15 +66,16 @@ public record GeneratePromptRequest(
                 userId,
                 title,
                 description,
-                isPublic != null ? isPublic : false,
+                isPublic,
                 promptCategory,
-                tags != null ? List.copyOf(tags) : List.of(),
+                tags,
                 input,
-                actionType != null ? actionType : EtcActionType.GENERAL_CONSULTATION,
-                roleType != null ? roleType : EtcRoleType.GENERAL_CONSULTANT,
-                tone != null ? tone : ToneType.NEUTRAL,
-                style != null ? style : StyleType.NARRATIVE,
-                language != null ? language : LanguageType.KOREAN,
+                actionType,
+                roleType,
+                tone,
+                style,
+                language,
+                experienceLevel,
                 false,  // experimental: 기본 비활성화
                 jsonSchema
         );

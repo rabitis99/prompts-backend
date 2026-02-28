@@ -6,11 +6,11 @@ import org.example.sharedprompts.domain.prompt.application.port.out.LLMClientPor
 import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
 import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptingStrategy;
+import org.example.sharedprompts.domain.prompt.application.port.out.PromptSpecRendererPort;
 import org.example.sharedprompts.global.google.gemini.SyncGoogleGeminiClient;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * LLM 클라이언트 어댑터 — 현재 Google Gemini를 사용한다.
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 public class LLMClientAdapter implements LLMClientPort {
 
     private final SyncGoogleGeminiClient syncGoogleGeminiClient;
-    private final PromptSpecRendererAdapter promptSpecRenderer;
+    private final PromptSpecRendererPort promptSpecRenderer;
 
     @Override
     public String solve(PromptSpec spec) {

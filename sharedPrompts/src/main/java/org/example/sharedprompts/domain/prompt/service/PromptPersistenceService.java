@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.prompt.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.prompt.Prompt;
-import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
+import org.example.sharedprompts.domain.prompt.application.port.out.PromptCommandPort;
 import org.example.sharedprompts.domain.prompt.event.PromptEventPublisher;
 import org.example.sharedprompts.domain.tag.Tag;
 import org.example.sharedprompts.domain.tag.service.PromptTagService;
@@ -22,7 +22,7 @@ import java.util.List;
 public class PromptPersistenceService {
 
     private final UserRepository userRepository;
-    private final PromptRepository promptRepository;
+    private final PromptCommandPort promptCommandPort;
     private final PromptTagService promptTagService;
     private final PromptNotificationService promptNotificationService;
     private final PromptEventPublisher promptEventPublisher;
@@ -40,7 +40,7 @@ public class PromptPersistenceService {
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
         Prompt promptEntity = request.toEntity(user, aiGeneratedContent);
-        promptEntity = promptRepository.save(promptEntity);
+        promptEntity = promptCommandPort.save(promptEntity);
 
         List<Tag> tags = (request.getTags() != null)
                 ? promptTagService.addTags(promptEntity, request.getTags())

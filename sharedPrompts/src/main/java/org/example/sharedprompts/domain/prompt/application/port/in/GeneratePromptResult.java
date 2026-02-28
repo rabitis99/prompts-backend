@@ -1,6 +1,7 @@
 package org.example.sharedprompts.domain.prompt.application.port.in;
 
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
+import org.example.sharedprompts.domain.prompt.domain.value.QualityBadge;
 
 import java.util.List;
 

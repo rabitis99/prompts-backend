@@ -2,23 +2,36 @@ package org.example.sharedprompts.domain.prompt.application.service;
 
 import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptResult;
-import org.example.sharedprompts.domain.prompt.application.port.in.QualityBadge;
 import org.example.sharedprompts.domain.prompt.application.port.out.ConstrainedDecodingPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.LLMClientPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.PromptSpecRendererPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.SavePromptVersionPort;
+import org.example.sharedprompts.domain.prompt.application.port.out.ValidateUserPort;
 import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
 import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
 import org.example.sharedprompts.domain.prompt.domain.model.VerifyResult;
+import org.example.sharedprompts.domain.prompt.domain.objective.DefaultObjectiveRegistry;
+import org.example.sharedprompts.domain.prompt.domain.objective.ObjectiveRegistry;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.AnalyticalObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.CreativeObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.ExtractionObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.FactualObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.PlanningObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.ReasoningObjectiveProfile;
 import org.example.sharedprompts.domain.prompt.domain.policy.StrategyBundlePolicy;
-import org.example.sharedprompts.domain.prompt.domain.service.ObjectiveMappingRegistry;
-import org.example.sharedprompts.domain.prompt.service.DomainResolver;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolver;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolverPort;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistry;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolver;
+import org.example.sharedprompts.domain.prompt.domain.service.BadgeResolver;
 import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecFactory;
 import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecValidator;
+import org.example.sharedprompts.domain.prompt.domain.value.QualityBadge;
 import org.example.sharedprompts.domain.prompt.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.ToneType;
+import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.enums.action.EtcActionType;
 import org.example.sharedprompts.domain.prompt.enums.role.EtcRoleType;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +50,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -48,6 +62,7 @@ class GeneratePromptServiceTest {
     @Mock private LLMClientPort llmClientPort;
     @Mock private ConstrainedDecodingPort constrainedDecodingPort;
     @Mock private SavePromptVersionPort savePromptVersionPort;
+    @Mock private ValidateUserPort validateUserPort;
     @Mock private PromptSpecValidator mockValidator;
     @Mock private PromptSpecRendererPort promptSpecRenderer;
 
@@ -56,12 +71,24 @@ class GeneratePromptServiceTest {
 
     @BeforeEach
     void setUp() {
-        PromptSpecFactory factory = new PromptSpecFactory(new StrategyBundlePolicy(), new ObjectiveMappingRegistry());
-        DomainResolver domainResolver = new DomainResolver();
+        ObjectiveRegistry registry = new DefaultObjectiveRegistry(java.util.List.of(
+                new FactualObjectiveProfile(),
+                new ReasoningObjectiveProfile(),
+                new ExtractionObjectiveProfile(),
+                new PlanningObjectiveProfile(),
+                new CreativeObjectiveProfile(),
+                new AnalyticalObjectiveProfile()
+        ));
+        StrategyBundlePolicy bundlePolicy = new StrategyBundlePolicy(registry);
+        PromptSpecFactory factory = new PromptSpecFactory(registry, bundlePolicy,
+                new ObjectiveResolver(new ObjectiveMappingRegistry()));
+        DomainResolverPort domainResolver = new DomainResolver();
+        BadgeResolver badgeResolver = new BadgeResolver();
 
         service = new GeneratePromptService(
                 factory, mockValidator, domainResolver,
-                llmClientPort, constrainedDecodingPort, savePromptVersionPort, promptSpecRenderer
+                llmClientPort, constrainedDecodingPort, validateUserPort, savePromptVersionPort, promptSpecRenderer,
+                registry, badgeResolver
         );
 
         command = new GeneratePromptCommand(
@@ -72,8 +99,12 @@ class GeneratePromptServiceTest {
                 EtcActionType.GENERAL_CONSULTATION,
                 EtcRoleType.GENERAL_CONSULTANT,
                 ToneType.NEUTRAL, StyleType.NARRATIVE, LanguageType.KOREAN,
+                ExperienceLevel.INTERMEDIATE,
                 false, null
         );
+
+        // ValidateUserPort: generate() 내부에서 호출되며 예외 없이 통과하도록 stubbing (void — 명시적 문서화)
+        doNothing().when(validateUserPort).validateUserExists(any());
     }
 
     @Test
@@ -91,6 +122,7 @@ class GeneratePromptServiceTest {
                 .willReturn(42L);
 
         GeneratePromptResult result = service.generate(command);
+        verify(validateUserPort).validateUserExists(eq(1L));
 
         assertThat(result.firstPassSuccess()).isTrue();
         assertThat(result.repairCount()).isZero();
@@ -122,6 +154,7 @@ class GeneratePromptServiceTest {
                 .willReturn(99L);
 
         GeneratePromptResult result = service.generate(command);
+        verify(validateUserPort).validateUserExists(eq(1L));
 
         // Repair는 정확히 2회만 호출
         verify(llmClientPort, times(2)).repair(any(), any(), any(), any());
@@ -156,6 +189,7 @@ class GeneratePromptServiceTest {
                 .willReturn(55L);
 
         GeneratePromptResult result = service.generate(command);
+        verify(validateUserPort).validateUserExists(eq(1L));
 
         assertThat(result.repairCount()).isEqualTo(1);
         assertThat(result.finallyPassed()).isTrue();
@@ -175,6 +209,7 @@ class GeneratePromptServiceTest {
         given(savePromptVersionPort.save(any(), any(), anyString(), anyInt(), eq(true))).willReturn(1L);
 
         GeneratePromptResult result = service.generate(command);
+        verify(validateUserPort).validateUserExists(eq(1L));
 
         // 내부 지표는 Result에 존재
         assertThat(result.firstPassSuccess()).isTrue();

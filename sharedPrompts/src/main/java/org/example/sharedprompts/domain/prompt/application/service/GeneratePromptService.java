@@ -5,23 +5,27 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptUseCase;
-import org.example.sharedprompts.domain.prompt.application.port.in.QualityBadge;
 import org.example.sharedprompts.domain.prompt.application.port.out.ConstrainedDecodingPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.LLMClientPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.PromptSpecRendererPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.SavePromptVersionPort;
+import org.example.sharedprompts.domain.prompt.application.port.out.ValidateUserPort;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolverPort;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ResolvedDomain;
 import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
 import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
 import org.example.sharedprompts.domain.prompt.domain.model.VerifyResult;
-import org.example.sharedprompts.domain.prompt.service.DomainResolver;
+import org.example.sharedprompts.domain.prompt.domain.objective.ObjectiveRegistry;
+import org.example.sharedprompts.domain.prompt.domain.value.QualityBadge;
+
+import org.example.sharedprompts.domain.prompt.domain.service.BadgeResolver;
+import org.example.sharedprompts.domain.prompt.domain.service.InputNormalizer;
 import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecFactory;
 import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecValidator;
-import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
-import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
+
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -48,18 +52,21 @@ public class GeneratePromptService implements GeneratePromptUseCase {
 
     private final PromptSpecFactory promptSpecFactory;
     private final PromptSpecValidator promptSpecValidator;
-    private final DomainResolver domainResolver;
+    private final DomainResolverPort domainResolver;
     private final LLMClientPort llmClientPort;
     private final ConstrainedDecodingPort constrainedDecodingPort;
+    private final ValidateUserPort validateUserPort;
     private final SavePromptVersionPort savePromptVersionPort;
     private final PromptSpecRendererPort promptSpecRenderer;
+    private final ObjectiveRegistry objectiveRegistry;
+    private final BadgeResolver badgeResolver;
 
     @Override
     public GeneratePromptResult generate(GeneratePromptCommand command) {
         log.info("[GeneratePrompt] 시작: objective 결정 중");
 
         // ─── 유저 사전 검증 (LLM 호출 전): 탈퇴·삭제 유저로 인한 비용 낭비 방지 ──
-        savePromptVersionPort.validateUserExists(command.userId());
+        validateUserPort.validateUserExists(command.userId());
 
         // ─── 1. Clarify ──────────────────────────────────────────────────────
         PromptSpec spec = clarify(command);
@@ -109,8 +116,8 @@ public class GeneratePromptService implements GeneratePromptUseCase {
         log.info("[GeneratePrompt] 완료: promptId={}, repairCount={}, finallyPassed={}",
                 promptId, repairCount, finallyPassed);
 
-        // ─── 배지 결정 (내부 지표 → 배지 변환은 여기서 수행, 수치는 Result에서 분리) ──
-        List<QualityBadge> badges = resolveBadges(lastVerifyResult, firstPassSuccess, repairCount, finallyPassed);
+        // ─── 배지 결정 ────────────────────────────────────────────────────────
+        List<QualityBadge> badges = badgeResolver.resolve(lastVerifyResult, firstPassSuccess, repairCount, finallyPassed);
 
         return new GeneratePromptResult(
                 promptId,
@@ -131,8 +138,13 @@ public class GeneratePromptService implements GeneratePromptUseCase {
      * 누락된 필수 조건은 질문 대신 자동 보강 우선.
      */
     private PromptSpec clarify(GeneratePromptCommand command) {
-        TaskDomain taskDomain = domainResolver.resolveDomain(
+        ResolvedDomain resolved = domainResolver.resolveDomainWithFallback(
                 command.actionType(), command.promptCategory());
+        if (resolved.isFallback()) {
+            log.warn("[GeneratePrompt] Domain fallback used — actionType={}, category={}, fallbackDomain={}. Consider adding mapping.",
+                    command.actionType(), command.promptCategory(), resolved.domain());
+        }
+        TaskDomain taskDomain = resolved.domain();
 
         PromptSpec spec = promptSpecFactory.create(
                 command.input(),
@@ -143,31 +155,35 @@ public class GeneratePromptService implements GeneratePromptUseCase {
                 command.style(),
                 command.language(),
                 command.experimentalEnabled(),
-                ExperienceLevel.INTERMEDIATE,
+                command.experienceLevel(),
                 command.jsonSchema()
         );
 
         // 입력 정규화: 과도한 공백·특수문자 제거
-        String clarifiedInput = normalizeInput(command.input());
+        String clarifiedInput = InputNormalizer.normalize(command.input());
         return spec.withClarifiedInput(clarifiedInput);
     }
 
     /**
      * Solve 단계 — PromptSpec 기반 초안 생성.
-     * EXTRACTION Objective는 ConstrainedDecodingPort 우선 사용.
+     * supportsConstrainedDecoding()이 true인 Objective는 ConstrainedDecodingPort 우선 사용.
+     * ObjectiveRegistry에서 판단 — 직접 enum 비교 없음.
      */
     private String solve(PromptSpec spec) {
-        if (spec.getObjective() == PromptObjective.EXTRACTION
-                && spec.getOutputContract().hasJsonSchema()) {
+        boolean useConstrainedDecoding = objectiveRegistry
+                .get(spec.getObjective())
+                .supportsConstrainedDecoding();
+
+        if (useConstrainedDecoding && spec.getOutputContract().hasJsonSchema()) {
             try {
-                // 렌더링된 메타프롬프트를 constrainedDecoding에 전달 (LLM draft가 아님)
                 String metaPrompt = promptSpecRenderer.render(spec);
                 String constrained = constrainedDecodingPort.generateConstrained(
                         metaPrompt, spec.getOutputContract());
-                // null/blank 결과는 verify의 FORMAT_COMPLIANCE로 처리 (LLM 예산 초과 방지)
-                return constrained != null ? constrained : "";
+                if (constrained != null && !constrained.isBlank()) {
+                    return constrained;
+                }
+                log.warn("[GeneratePrompt] ConstrainedDecoding 결과가 비어 일반 LLM 호출로 fallback");
             } catch (Exception e) {
-                // 예외 시만 일반 LLM으로 fallback (1회 예산 내 대체 경로)
                 log.warn("[GeneratePrompt] ConstrainedDecoding 실패, 일반 LLM 호출로 fallback: {}", e.getMessage());
                 log.debug("[GeneratePrompt] ConstrainedDecoding 예외 상세", e);
             }
@@ -197,49 +213,5 @@ public class GeneratePromptService implements GeneratePromptUseCase {
             return draft;
         }
         return repairedDraft;
-    }
-
-    /**
-     * 배지 결정 — 내부 지표를 배지 목록으로 변환.
-     * UX에는 수치가 아닌 배지만 노출한다.
-     */
-    private List<QualityBadge> resolveBadges(VerifyResult lastResult,
-                                              boolean firstPassSuccess,
-                                              int repairCount,
-                                              boolean finallyPassed) {
-        List<QualityBadge> badges = new ArrayList<>();
-
-        if (finallyPassed) {
-            badges.add(QualityBadge.CONDITIONS_MET);
-
-            Boolean formatOk = lastResult.getItemResults().get(QualityRubric.RubricItem.FORMAT_COMPLIANCE);
-            if (Boolean.TRUE.equals(formatOk)) {
-                badges.add(QualityBadge.FORMAT_VERIFIED);
-            }
-
-            Boolean noProhibited = lastResult.getItemResults().get(QualityRubric.RubricItem.NO_PROHIBITED_CONTENT);
-            if (Boolean.TRUE.equals(noProhibited)) {
-                badges.add(QualityBadge.NO_PROHIBITED_CONTENT);
-            }
-
-            if (firstPassSuccess && repairCount == 0) {
-                badges.add(QualityBadge.FAST_GENERATION);
-            } else if (repairCount > 0) {
-                badges.add(QualityBadge.REVERIFIED);
-            }
-        } else {
-            // 최종 실패 시에도 개별 통과 항목의 배지는 부여
-            Boolean noProhibited = lastResult.getItemResults().get(QualityRubric.RubricItem.NO_PROHIBITED_CONTENT);
-            if (Boolean.TRUE.equals(noProhibited)) {
-                badges.add(QualityBadge.NO_PROHIBITED_CONTENT);
-            }
-        }
-
-        return badges;
-    }
-
-    private String normalizeInput(String input) {
-        if (input == null) return "";
-        return input.strip().replaceAll("\\s{3,}", "  ");
     }
 }

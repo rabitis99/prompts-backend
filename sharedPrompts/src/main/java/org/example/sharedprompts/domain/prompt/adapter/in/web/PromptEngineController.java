@@ -31,10 +31,10 @@ import java.util.concurrent.Callable;
  * </ul>
  *
  * <p>기존 {@code POST /prompts} 엔드포인트는 v1으로 유지되며 별도 컨트롤러(PromptController)가 담당한다.
- * 새 클라이언트는 이 엔드포인트({@code POST /api/v2/prompts/generate})를 사용한다.
+ * 새 클라이언트는 이 엔드포인트({@code POST /v2/prompts/generate})를 사용한다.
  */
 @RestController
-@RequestMapping("/api/v2/prompts")
+@RequestMapping("/v2/prompts")
 @RequiredArgsConstructor
 public class PromptEngineController {
 

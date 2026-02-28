@@ -23,7 +23,7 @@ public class CustomResponseHelper {
         return ResponseEntity.noContent().build();
     }
 
-    public static ResponseEntity<CustomResponse<Void>> fail(ApiException e) {
+    public static <T> ResponseEntity<CustomResponse<T>> fail(ApiException e) {
         return ResponseEntity
                 .status(e.getErrorCode().getHttpStatus())
                 .body(CustomResponse.fail(e));

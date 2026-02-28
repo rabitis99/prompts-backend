@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.application.port.in;
+package org.example.sharedprompts.domain.prompt.domain.value;
 
 /**
  * 품질 배지 — UX에 노출되는 유일한 품질 지표.

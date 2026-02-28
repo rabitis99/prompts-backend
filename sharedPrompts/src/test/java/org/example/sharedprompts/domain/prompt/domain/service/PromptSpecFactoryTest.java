@@ -2,9 +2,25 @@ package org.example.sharedprompts.domain.prompt.domain.service;
 
 import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
 import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
+import org.example.sharedprompts.domain.prompt.domain.model.VerifyResult;
+import org.example.sharedprompts.domain.prompt.domain.model.Constraints;
+import org.example.sharedprompts.domain.prompt.domain.model.OutputContract;
+import org.example.sharedprompts.domain.prompt.domain.objective.DefaultObjectiveRegistry;
+import org.example.sharedprompts.domain.prompt.domain.objective.ObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.ObjectiveRegistry;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.CreativeObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.ExtractionObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.FactualObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.PlanningObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.ReasoningObjectiveProfile;
 import org.example.sharedprompts.domain.prompt.domain.policy.StrategyBundlePolicy;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistry;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolver;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptingStrategy;
+import org.example.sharedprompts.domain.prompt.domain.value.PromptStrategyBundle;
+import org.example.sharedprompts.domain.prompt.domain.value.QualityPriority;
+import org.example.sharedprompts.domain.prompt.domain.verification.VerificationStrategy;
 import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
@@ -16,6 +32,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -23,15 +43,25 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class PromptSpecFactoryTest {
 
     private PromptSpecFactory factory;
+    private ObjectiveRegistry registry;
 
     @BeforeEach
     void setUp() {
-        factory = new PromptSpecFactory(new StrategyBundlePolicy(), new ObjectiveMappingRegistry());
+        registry = new DefaultObjectiveRegistry(java.util.List.of(
+                new FactualObjectiveProfile(),
+                new ReasoningObjectiveProfile(),
+                new ExtractionObjectiveProfile(),
+                new PlanningObjectiveProfile(),
+                new CreativeObjectiveProfile(),
+                new AnalyticalObjectiveProfileWithExperimental()
+        ));
+        factory = new PromptSpecFactory(registry, new StrategyBundlePolicy(registry),
+                new ObjectiveResolver(new ObjectiveMappingRegistry()));
     }
 
     @Test
-    @DisplayName("ANALYTICAL TaskDomain → FACTUAL Objective 매핑")
-    void analyticalDomainMapsToFactualObjective() {
+    @DisplayName("ANALYTICAL TaskDomain → ANALYTICAL Objective 매핑")
+    void analyticalDomainMapsToAnalyticalObjective() {
         PromptSpec spec = factory.create(
                 "테스트 입력",
                 TaskDomain.ANALYTICAL,
@@ -43,7 +73,7 @@ class PromptSpecFactoryTest {
                 false
         );
 
-        assertThat(spec.getObjective()).isEqualTo(PromptObjective.FACTUAL);
+        assertThat(spec.getObjective()).isEqualTo(PromptObjective.ANALYTICAL);
         assertThat(spec.getTaskDomain()).isEqualTo(TaskDomain.ANALYTICAL);
     }
 
@@ -144,10 +174,11 @@ class PromptSpecFactoryTest {
     @Test
     @DisplayName("FACTUAL Objective → QualityRubric에 UNCERTAINTY_HANDLING 포함")
     void factualObjectiveHasUncertaintyHandlingRubric() {
+        ActionTypeWithDefault factualAction = new ActionTypeWithDefault(null, "SUMMARIZE_NOTES");
         PromptSpec spec = factory.create(
                 "사실 기반 입력",
                 TaskDomain.ANALYTICAL,
-                EtcActionType.GENERAL_CONSULTATION,
+                factualAction,
                 EtcRoleType.GENERAL_CONSULTANT,
                 ToneType.NEUTRAL,
                 StyleType.NARRATIVE,
@@ -244,7 +275,7 @@ class PromptSpecFactoryTest {
     @Test
     @DisplayName("FACTUAL Objective Rubric에는 COVERAGE와 NO_PROHIBITED_CONTENT가 항상 포함된다")
     void factualRubricAlwaysHasCommonItems() {
-        QualityRubric rubric = factory.buildRubric(PromptObjective.FACTUAL);
+        QualityRubric rubric = registry.get(PromptObjective.FACTUAL).rubric();
 
         assertThat(rubric.getItems())
                 .contains(QualityRubric.RubricItem.COVERAGE,
@@ -254,7 +285,7 @@ class PromptSpecFactoryTest {
     @Test
     @DisplayName("CREATIVE_WITH_CONSTRAINTS Rubric에는 FORMAT_COMPLIANCE 포함, UNCERTAINTY_HANDLING 미포함")
     void creativeRubricHasFormatButNotUncertainty() {
-        QualityRubric rubric = factory.buildRubric(PromptObjective.CREATIVE_WITH_CONSTRAINTS);
+        QualityRubric rubric = registry.get(PromptObjective.CREATIVE_WITH_CONSTRAINTS).rubric();
 
         assertThat(rubric.getItems()).contains(QualityRubric.RubricItem.FORMAT_COMPLIANCE);
         assertThat(rubric.getItems()).doesNotContain(QualityRubric.RubricItem.UNCERTAINTY_HANDLING);
@@ -355,6 +386,57 @@ class PromptSpecFactoryTest {
         @Override
         public String toString() {
             return name;
+        }
+    }
+
+    /**
+     * 테스트 전용: 기본 번들에 Experimental 전략을 포함한 ANALYTICAL 프로파일.
+     * experimentalEnabled=false일 때 필터링이 동작하는지 검증하기 위함.
+     */
+    private static final class AnalyticalObjectiveProfileWithExperimental implements ObjectiveProfile {
+        @Override public PromptObjective objective() { return PromptObjective.ANALYTICAL; }
+        @Override public int maxLlmCallCount() { return 10; }
+        @Override public boolean supportsConstrainedDecoding() { return false; }
+        @Override public QualityPriority priority() { return QualityPriority.STRUCTURE_FIRST; }
+
+        @Override
+        public QualityRubric rubric() {
+            return QualityRubric.of(List.of(QualityRubric.RubricItem.COVERAGE));
+        }
+
+        @Override
+        public Constraints constraints(ExperienceLevel level) {
+            return Constraints.defaults();
+        }
+
+        @Override
+        public OutputContract outputContract(String jsonSchema, int maxTokens) {
+            return OutputContract.freeText(maxTokens);
+        }
+
+        @Override
+        public VerificationStrategy verificationStrategy() {
+            return ctx -> VerifyResult.pass(Map.of());
+        }
+
+        @Override
+        public PromptStrategyBundle defaultBundle() {
+            return PromptStrategyBundle.of("ANALYTICAL_WITH_EXPERIMENTAL", EnumSet.of(
+                    PromptingStrategy.CLARIFY_FIRST,
+                    PromptingStrategy.STEP_BY_STEP,
+                    PromptingStrategy.CHECKLIST_VERIFY,
+                    PromptingStrategy.TREE_OF_THOUGHTS
+            ));
+        }
+
+        @Override
+        public List<org.example.sharedprompts.domain.prompt.domain.model.PromptSection> extraSections() {
+            return List.of();
+        }
+
+        @Override
+        public String instructionContent(LanguageType locale) {
+            return "Test analytical instruction";
         }
     }
 }
