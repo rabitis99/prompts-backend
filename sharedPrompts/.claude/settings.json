@@ -3,7 +3,17 @@
     "allow": [
       "WebFetch(domain:arxiv.org)",
       "WebFetch(domain:www.themoonlight.io)",
-      "WebFetch(domain:www.researchgate.net)"
+      "WebFetch(domain:www.researchgate.net)",
+      "Bash(grep -i \"domain/prompt\\\\|domain\\\\\\\\prompt\\\\|objective\\\\|verification\\\\|PromptObjective\\\\|PromptSpec\\\\|GeneratePrompt\\\\|StrategyBundle\\\\|DomainResolver\")",
+      "Bash(grep \"domain/prompt\\\\|domain\\\\\\\\prompt\")",
+      "Bash(grep \"domain/prompt/domain\\\\|domain/prompt/application\\\\|domain/prompt/infrastructure\\\\|domain\\\\\\\\prompt\\\\\\\\domain\\\\|domain\\\\\\\\prompt\\\\\\\\application\\\\|domain\\\\\\\\prompt\\\\\\\\infrastructure\")",
+      "Bash(git stash)",
+      "Bash(./gradlew dependencies --configuration compileClasspath)",
+      "Read(//c/Users/joo/.gradle/caches/**)",
+      "Bash(jar tf ~/.gradle/caches/modules-2/files-2.1/com.networknt/json-schema-validator/3.0.0/f192fc0d75734f5e49cf97fb619a2a7afe22c620/json-schema-validator-3.0.0.jar)",
+      "Bash(javap -public json-schema-validator-3.0.0.jar)",
+      "Bash(javap -p -classpath json-schema-validator-3.0.0.jar com.networknt.schema.SchemaRegistry)",
+      "Bash(javap -p -classpath json-schema-validator-3.0.0.jar com.networknt.schema.Schema)"
     ],
     "additionalDirectories": [
       "C:\\Users\\joo\\prompts\\backend\\sharedPrompts\\$BASE\\domain",

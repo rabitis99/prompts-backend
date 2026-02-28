@@ -6,7 +6,14 @@ import org.example.sharedprompts.domain.prompt.domain.model.OutputContract;
 import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
 import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
 import org.example.sharedprompts.domain.prompt.domain.model.VerifyResult;
-import org.example.sharedprompts.domain.prompt.domain.policy.StrategyBundlePolicy;
+import org.example.sharedprompts.domain.prompt.domain.objective.DefaultObjectiveRegistry;
+import org.example.sharedprompts.domain.prompt.domain.objective.ObjectiveRegistry;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.AnalyticalObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.CreativeObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.ExtractionObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.FactualObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.PlanningObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.ReasoningObjectiveProfile;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptStrategyBundle;
 import org.example.sharedprompts.domain.prompt.domain.value.QualityPriority;
@@ -25,19 +32,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PromptSpecValidatorTest {
 
     private PromptSpecValidator validator;
-    private PromptSpecFactory factory;
+    private ObjectiveRegistry registry;
 
     @BeforeEach
     void setUp() {
-        validator = new PromptSpecValidator();
-        factory = new PromptSpecFactory(new StrategyBundlePolicy(), new ObjectiveMappingRegistry());
+        registry = new DefaultObjectiveRegistry(java.util.List.of(
+                new FactualObjectiveProfile(),
+                new ReasoningObjectiveProfile(),
+                new ExtractionObjectiveProfile(),
+                new PlanningObjectiveProfile(),
+                new CreativeObjectiveProfile(),
+                new AnalyticalObjectiveProfile()
+        ));
+        validator = new PromptSpecValidator(registry);
     }
 
     private PromptSpec buildSpec(PromptObjective objective, String input) {
         return PromptSpec.builder()
                 .objective(objective)
                 .priority(QualityPriority.ACCURACY_FIRST)
-                .rubric(factory.buildRubric(objective))
+                .rubric(registry.get(objective).rubric())
                 .strategyBundle(PromptStrategyBundle.coreOnly())
                 .rawInput(input)
                 .clarifiedInput(input)
@@ -101,7 +115,7 @@ class PromptSpecValidatorTest {
             PromptSpec spec = PromptSpec.builder()
                     .objective(PromptObjective.EXTRACTION)
                     .priority(QualityPriority.STRUCTURE_FIRST)
-                    .rubric(factory.buildRubric(PromptObjective.EXTRACTION))
+                    .rubric(registry.get(PromptObjective.EXTRACTION).rubric())
                     .strategyBundle(PromptStrategyBundle.coreOnly())
                     .rawInput("데이터 추출")
                     .clarifiedInput("데이터를 추출하세요. 필드: name, age")
@@ -129,7 +143,7 @@ class PromptSpecValidatorTest {
             PromptSpec spec = PromptSpec.builder()
                     .objective(PromptObjective.EXTRACTION)
                     .priority(QualityPriority.STRUCTURE_FIRST)
-                    .rubric(factory.buildRubric(PromptObjective.EXTRACTION))
+                    .rubric(registry.get(PromptObjective.EXTRACTION).rubric())
                     .strategyBundle(PromptStrategyBundle.coreOnly())
                     .rawInput("데이터")
                     .clarifiedInput("데이터")

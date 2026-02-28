@@ -4,13 +4,15 @@ import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.follow.policy.FollowBlockPolicy;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.like.service.LikeCountService;
+import org.example.sharedprompts.domain.prompt.application.port.in.PromptCommandUseCase;
+import org.example.sharedprompts.domain.prompt.application.port.in.PromptQueryUseCase;
+import org.example.sharedprompts.domain.prompt.application.port.out.PromptCommandPort;
+import org.example.sharedprompts.domain.prompt.application.port.out.PromptQueryPort;
 import org.example.sharedprompts.domain.prompt.event.PromptEventPublisher;
-import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
 import org.example.sharedprompts.domain.tag.PromptTag;
 import org.example.sharedprompts.domain.tag.Tag;
 import org.example.sharedprompts.domain.tag.service.PromptTagService;
 import org.example.sharedprompts.dto.prompt.request.PromptSearchCondition;
-import org.example.sharedprompts.domain.prompt.repository.PromptSearchContext;
 import org.example.sharedprompts.dto.prompt.request.PromptUpdateDto;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
 import org.example.sharedprompts.global.exception.ApiException;
@@ -31,30 +33,27 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
-public class PromptServiceImpl implements PromptService {
+public class PromptServiceImpl implements PromptService, PromptQueryUseCase, PromptCommandUseCase {
 
-    private final PromptRepository promptRepository;
+    private final PromptQueryPort promptQueryPort;
+    private final PromptCommandPort promptCommandPort;
     private final FollowBlockPolicy followBlockPolicy;
     private final PromptTagService promptTagService;
     private final LikeCountService likeCountService;
     private final PromptSanitizationService promptSanitizationService;
     private final PromptEventPublisher promptEventPublisher;
 
-    // ============ 조회 ===============
     @Override
     @Transactional(readOnly = true)
     public PageResponse<PromptResponseDto> getPrompts(PromptSearchCondition condition, Long viewerId) {
-        // 검색 조건(condition)과 viewer 컨텍스트를 분리하여 전달
-        PromptSearchContext context = PromptSearchContext.of(condition, viewerId);
-
-        Page<Prompt> page = promptRepository.searchPrompts(context);
+        Page<Prompt> page = promptQueryPort.searchPrompts(condition, viewerId);
         return mapToPromptResponsePage(page);
     }
 
     @Override
     @Transactional(readOnly = true)
     public PromptResponseDto getPromptDetail(Long promptId, Long viewerId) {
-        Prompt prompt = promptRepository.findById(promptId)
+        Prompt prompt = promptQueryPort.findById(promptId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
 
         // viewer와 author 간 BLOCKED 관계가 존재하면 접근 차단
@@ -78,7 +77,7 @@ public class PromptServiceImpl implements PromptService {
     @Override
     @Transactional
     public PromptResponseDto updatePrompt(Long promptId, PromptUpdateDto promptUpdateDto, Long userId) {
-        Prompt prompt = promptRepository.findById(promptId)
+        Prompt prompt = promptQueryPort.findById(promptId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
 
         if (!prompt.getAuthor().getId().equals(userId)) {
@@ -92,6 +91,8 @@ public class PromptServiceImpl implements PromptService {
             promptTagService.updateTags(prompt, sanitizedDto.getTags());
         }
 
+        promptCommandPort.save(prompt);
+
         List<Tag> tags = promptTagService.getTags(prompt);
         return PromptResponseDto.from(prompt, tags);
     }
@@ -100,7 +101,7 @@ public class PromptServiceImpl implements PromptService {
     @Override
     @Transactional
     public void deletePrompt(Long promptId, Long userId) {
-        Prompt prompt = promptRepository.findById(promptId)
+        Prompt prompt = promptQueryPort.findById(promptId)
                 .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
 
         if (!prompt.getAuthor().getId().equals(userId)) {
@@ -108,10 +109,10 @@ public class PromptServiceImpl implements PromptService {
         }
 
         Long authorId = prompt.getAuthor().getId();
-        
+
         promptTagService.updateTags(prompt, List.of());
-        promptRepository.delete(prompt);
-        
+        promptCommandPort.delete(prompt);
+
         // 통계 캐시 무효화를 위한 이벤트 발행 (트랜잭션 내부에서 발행, 커밋 후 처리됨)
         promptEventPublisher.publishPromptDeleted(promptId, authorId);
     }
@@ -120,7 +121,7 @@ public class PromptServiceImpl implements PromptService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<PromptResponseDto> getMyPrompts(Long userId, PromptSearchCondition condition) {
-        Page<Prompt> page = promptRepository.searchMyPrompts(userId, condition);
+        Page<Prompt> page = promptQueryPort.searchMyPrompts(userId, condition);
         return mapToPromptResponsePage(page);
     }
 
@@ -128,7 +129,7 @@ public class PromptServiceImpl implements PromptService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<PromptResponseDto> getUserPrompts(Long userId, PromptSearchCondition condition, Long viewerId) {
-        Page<Prompt> page = promptRepository.searchUserPrompts(userId, condition, viewerId);
+        Page<Prompt> page = promptQueryPort.searchUserPrompts(userId, condition, viewerId);
         return mapToPromptResponsePage(page);
     }
 

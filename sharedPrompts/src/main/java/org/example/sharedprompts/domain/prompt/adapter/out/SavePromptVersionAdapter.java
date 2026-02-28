@@ -4,9 +4,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptCommand;
+import org.example.sharedprompts.domain.prompt.application.port.out.PromptCommandPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.SavePromptVersionPort;
+import org.example.sharedprompts.domain.prompt.application.port.out.ValidateUserPort;
 import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
-import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
 import org.example.sharedprompts.domain.tag.service.PromptTagService;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
@@ -24,16 +25,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SavePromptVersionAdapter implements SavePromptVersionPort {
+public class SavePromptVersionAdapter implements SavePromptVersionPort, ValidateUserPort {
 
     private final UserRepository userRepository;
-    private final PromptRepository promptRepository;
+    private final PromptCommandPort promptCommandPort;
     private final PromptTagService promptTagService;
 
     @Override
     public void validateUserExists(Long userId) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+        if (!userRepository.existsById(userId)) {
+            throw new ApiException(ErrorCode.USER_NOT_FOUND);
+        }
     }
 
     @Override
@@ -52,7 +54,7 @@ public class SavePromptVersionAdapter implements SavePromptVersionPort {
                 .author(user)
                 .build();
 
-        Prompt saved = promptRepository.save(prompt);
+        Prompt saved = promptCommandPort.save(prompt);
 
         if (command.tags() != null && !command.tags().isEmpty()) {
             promptTagService.addTags(saved, command.tags());

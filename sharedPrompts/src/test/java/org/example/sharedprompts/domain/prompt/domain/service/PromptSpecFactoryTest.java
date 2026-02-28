@@ -2,7 +2,19 @@ package org.example.sharedprompts.domain.prompt.domain.service;
 
 import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
 import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
+import org.example.sharedprompts.domain.prompt.domain.objective.DefaultObjectiveRegistry;
+import org.example.sharedprompts.domain.prompt.domain.objective.ObjectiveRegistry;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.AnalyticalObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.CreativeObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.ExtractionObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.FactualObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.PlanningObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.ReasoningObjectiveProfile;
 import org.example.sharedprompts.domain.prompt.domain.policy.StrategyBundlePolicy;
+import org.example.sharedprompts.domain.prompt.domain.resolution.ExplicitObjectiveMapping;
+import org.example.sharedprompts.domain.prompt.domain.resolution.ObjectiveMappingRegistry;
+import org.example.sharedprompts.domain.prompt.domain.resolution.ObjectiveResolver;
+import org.example.sharedprompts.domain.prompt.domain.resolution.ObjectiveResolverPort;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptingStrategy;
 import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
@@ -23,10 +35,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class PromptSpecFactoryTest {
 
     private PromptSpecFactory factory;
+    private ObjectiveRegistry registry;
 
     @BeforeEach
     void setUp() {
-        factory = new PromptSpecFactory(new StrategyBundlePolicy(), new ObjectiveMappingRegistry());
+        registry = new DefaultObjectiveRegistry(java.util.List.of(
+                new FactualObjectiveProfile(),
+                new ReasoningObjectiveProfile(),
+                new ExtractionObjectiveProfile(),
+                new PlanningObjectiveProfile(),
+                new CreativeObjectiveProfile(),
+                new AnalyticalObjectiveProfile()
+        ));
+        factory = new PromptSpecFactory(registry, new StrategyBundlePolicy(registry),
+                new ObjectiveResolver(new ExplicitObjectiveMapping(), new ObjectiveMappingRegistry()));
     }
 
     @Test
@@ -244,7 +266,7 @@ class PromptSpecFactoryTest {
     @Test
     @DisplayName("FACTUAL Objective Rubric에는 COVERAGE와 NO_PROHIBITED_CONTENT가 항상 포함된다")
     void factualRubricAlwaysHasCommonItems() {
-        QualityRubric rubric = factory.buildRubric(PromptObjective.FACTUAL);
+        QualityRubric rubric = registry.get(PromptObjective.FACTUAL).rubric();
 
         assertThat(rubric.getItems())
                 .contains(QualityRubric.RubricItem.COVERAGE,
@@ -254,7 +276,7 @@ class PromptSpecFactoryTest {
     @Test
     @DisplayName("CREATIVE_WITH_CONSTRAINTS Rubric에는 FORMAT_COMPLIANCE 포함, UNCERTAINTY_HANDLING 미포함")
     void creativeRubricHasFormatButNotUncertainty() {
-        QualityRubric rubric = factory.buildRubric(PromptObjective.CREATIVE_WITH_CONSTRAINTS);
+        QualityRubric rubric = registry.get(PromptObjective.CREATIVE_WITH_CONSTRAINTS).rubric();
 
         assertThat(rubric.getItems()).contains(QualityRubric.RubricItem.FORMAT_COMPLIANCE);
         assertThat(rubric.getItems()).doesNotContain(QualityRubric.RubricItem.UNCERTAINTY_HANDLING);

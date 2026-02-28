@@ -2,19 +2,32 @@ package org.example.sharedprompts.domain.prompt.application.service;
 
 import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptResult;
-import org.example.sharedprompts.domain.prompt.application.port.in.QualityBadge;
 import org.example.sharedprompts.domain.prompt.application.port.out.ConstrainedDecodingPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.LLMClientPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.PromptSpecRendererPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.SavePromptVersionPort;
+import org.example.sharedprompts.domain.prompt.application.port.out.ValidateUserPort;
 import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
 import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
 import org.example.sharedprompts.domain.prompt.domain.model.VerifyResult;
+import org.example.sharedprompts.domain.prompt.domain.objective.DefaultObjectiveRegistry;
+import org.example.sharedprompts.domain.prompt.domain.objective.ObjectiveRegistry;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.AnalyticalObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.CreativeObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.ExtractionObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.FactualObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.PlanningObjectiveProfile;
+import org.example.sharedprompts.domain.prompt.domain.objective.profiles.ReasoningObjectiveProfile;
 import org.example.sharedprompts.domain.prompt.domain.policy.StrategyBundlePolicy;
-import org.example.sharedprompts.domain.prompt.domain.service.ObjectiveMappingRegistry;
-import org.example.sharedprompts.domain.prompt.service.DomainResolver;
+import org.example.sharedprompts.domain.prompt.domain.resolution.DomainResolver;
+import org.example.sharedprompts.domain.prompt.domain.resolution.DomainResolverPort;
+import org.example.sharedprompts.domain.prompt.domain.resolution.ExplicitObjectiveMapping;
+import org.example.sharedprompts.domain.prompt.domain.resolution.ObjectiveMappingRegistry;
+import org.example.sharedprompts.domain.prompt.domain.resolution.ObjectiveResolver;
+import org.example.sharedprompts.domain.prompt.domain.service.BadgeResolver;
 import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecFactory;
 import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecValidator;
+import org.example.sharedprompts.domain.prompt.domain.value.QualityBadge;
 import org.example.sharedprompts.domain.prompt.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
@@ -48,6 +61,7 @@ class GeneratePromptServiceTest {
     @Mock private LLMClientPort llmClientPort;
     @Mock private ConstrainedDecodingPort constrainedDecodingPort;
     @Mock private SavePromptVersionPort savePromptVersionPort;
+    @Mock private ValidateUserPort validateUserPort;
     @Mock private PromptSpecValidator mockValidator;
     @Mock private PromptSpecRendererPort promptSpecRenderer;
 
@@ -56,12 +70,24 @@ class GeneratePromptServiceTest {
 
     @BeforeEach
     void setUp() {
-        PromptSpecFactory factory = new PromptSpecFactory(new StrategyBundlePolicy(), new ObjectiveMappingRegistry());
-        DomainResolver domainResolver = new DomainResolver();
+        ObjectiveRegistry registry = new DefaultObjectiveRegistry(java.util.List.of(
+                new FactualObjectiveProfile(),
+                new ReasoningObjectiveProfile(),
+                new ExtractionObjectiveProfile(),
+                new PlanningObjectiveProfile(),
+                new CreativeObjectiveProfile(),
+                new AnalyticalObjectiveProfile()
+        ));
+        StrategyBundlePolicy bundlePolicy = new StrategyBundlePolicy(registry);
+        PromptSpecFactory factory = new PromptSpecFactory(registry, bundlePolicy,
+                new ObjectiveResolver(new ExplicitObjectiveMapping(), new ObjectiveMappingRegistry()));
+        DomainResolverPort domainResolver = new DomainResolver();
+        BadgeResolver badgeResolver = new BadgeResolver();
 
         service = new GeneratePromptService(
                 factory, mockValidator, domainResolver,
-                llmClientPort, constrainedDecodingPort, savePromptVersionPort, promptSpecRenderer
+                llmClientPort, constrainedDecodingPort, validateUserPort, savePromptVersionPort, promptSpecRenderer,
+                registry, badgeResolver
         );
 
         command = new GeneratePromptCommand(

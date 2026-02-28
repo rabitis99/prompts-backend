@@ -6,7 +6,7 @@ import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.guideline.DomainResolution;
 import org.example.sharedprompts.domain.prompt.guideline.GuidelineRule;
 import org.example.sharedprompts.domain.prompt.guideline.RuleLevel;
-import org.example.sharedprompts.domain.prompt.service.DomainResolver;
+import org.example.sharedprompts.domain.prompt.service.DomainResolutionService;
 import org.example.sharedprompts.dto.prompt.request.InputRequestDto;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +22,7 @@ import java.util.List;
 public class PromptGuidelineBuilder {
 
     private final GuidelineRendererFactory rendererFactory;
-    private final DomainResolver domainResolver;
+    private final DomainResolutionService domainResolutionService;
 
     /**
      * 최종 프롬프트 구성:
@@ -93,9 +93,9 @@ public class PromptGuidelineBuilder {
     }
 
     /**
-     * 도메인 결정 (DomainResolver 사용)
+     * 도메인 결정 (DomainResolverPort 구현체 사용)
      */
     private DomainResolution resolveDomain(InputRequestDto request) {
-        return domainResolver.resolveDomain(request);
+        return domainResolutionService.resolveDomain(request);
     }
 }

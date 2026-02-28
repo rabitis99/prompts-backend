@@ -1,6 +1,7 @@
 package org.example.sharedprompts.domain.prompt.facade;
 
 import lombok.RequiredArgsConstructor;
+import org.example.sharedprompts.domain.prompt.application.port.in.CreatePromptUseCase;
 import org.example.sharedprompts.domain.prompt.service.PromptAIService;
 import org.example.sharedprompts.domain.prompt.service.PromptPersistenceService;
 import org.example.sharedprompts.domain.prompt.service.PromptSanitizationService;
@@ -19,12 +20,13 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 @RequiredArgsConstructor
-public class PromptCreationFlow {
+public class PromptCreationFlow implements CreatePromptUseCase {
 
     private final PromptSanitizationService promptSanitizationService;
     private final PromptAIService promptAIService;
     private final PromptPersistenceService promptPersistenceService;
 
+    @Override
     @Transactional(timeout = 30)
     public PromptResponseDto create(PromptRequestDto request, Long userId) {
         // 1. 입력값 Sanitization

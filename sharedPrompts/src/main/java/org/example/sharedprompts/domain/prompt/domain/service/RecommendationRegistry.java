@@ -4,14 +4,16 @@ import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.enums.ToneType;
-import org.springframework.stereotype.Component;
-
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
-@Component
+/**
+ * TaskDomain별 톤·스타일 추천 프로파일 레지스트리.
+ *
+ * <p>Spring 의존 없음 — {@code PromptDomainConfig}에서 @Bean으로 등록한다.
+ */
 public class RecommendationRegistry {
 
     public record DomainProfile(

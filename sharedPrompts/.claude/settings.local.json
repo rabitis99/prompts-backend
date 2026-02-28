@@ -14,7 +14,9 @@
       "Bash(git add:*)",
       "Bash(.gradlew.bat:*)",
       "Bash(./gradlew.bat compileJava:*)",
-      "Bash(./gradlew.bat compileTestJava:*)"
+      "Bash(./gradlew.bat compileTestJava:*)",
+      "Bash(./gradlew generateQuerydslSources --no-daemon -q)",
+      "Bash(./gradlew tasks --no-daemon -q)"
     ]
   }
 }
