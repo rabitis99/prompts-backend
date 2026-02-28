@@ -427,7 +427,7 @@ domain/prompt/
 
 ---
 
-## 4. 가장 위험한 혼동 포인트 5개 (및 수정 반영)
+## 5. 가장 위험한 혼동 포인트 5개 (및 수정 반영)
 
 문서/트리에서 독자가 "어디에 둘지" 헷갈리기 쉬운 부분을 정리하고, 위 To-Be에 반영한 결정을 명시합니다.
 
@@ -464,7 +464,7 @@ domain/prompt/
 
 ---
 
-## 5. 적용 시 유의사항
+## 6. 적용 시 유의사항
 
 1. **점진적 적용**: 한 번에 옮기지 말고, 새 코드는 To-Be 구조에 맞추고 기존 코드는 리팩터 시점에 이동 권장.
 2. **entity 위치**: 현재는 `entity/`. 장기적으로는 `infrastructure/persistence/entity/`로 옮기고 도메인은 프레임워크 무의존 유지.
@@ -474,7 +474,7 @@ domain/prompt/
 
 ---
 
-## 6. 요약
+## 7. 요약
 
 - **현재**: adapter / application / domain / enums / guideline / service / facade / infrastructure / repository / event 가 한 단계로 나뉘어 있음.
 - **제안(결정 사항 반영)**:
@@ -490,7 +490,7 @@ domain/prompt/
 
 ---
 
-## 7. 리팩터링 시 지키면 좋은 규칙
+## 8. 리팩터링 시 지키면 좋은 규칙
 
 - **모든 파일은 `domain/prompt/` 아래에 위치시킨다.** (adapter, application, domain, common, infrastructure, event 등 동일 루트)
 - **새 기능 클래스는 To-Be 구조에만 생성한다.** (기존 코드는 점진 이동)

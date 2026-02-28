@@ -8,6 +8,7 @@ import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResol
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolverPort;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.example.sharedprompts.domain.prompt.enums.action.AnalysisActionType;
+import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.enums.action.CodingActionType;
 import org.example.sharedprompts.domain.prompt.enums.action.CreativeActionType;
 import org.example.sharedprompts.domain.prompt.enums.action.EtcActionType;
@@ -15,6 +16,8 @@ import org.example.sharedprompts.domain.prompt.enums.action.ProductivityActionTy
 import org.example.sharedprompts.domain.prompt.enums.action.WritingActionType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.Map;
 
 /**
  * TaskDomain / PromptObjective 해석 빈 설정.
@@ -34,20 +37,23 @@ public class ResolutionConfig {
     public ObjectiveMappingRegistryPort objectiveMappingRegistry() {
         ObjectiveMappingRegistry registry = new ObjectiveMappingRegistry();
         // 명시 매핑: ActionType.getDefaultObjective()가 null일 때 사용
-        registry.put(CodingActionType.CODE_REVIEW, PromptObjective.REASONING);
-        registry.put(CodingActionType.DEBUGGING, PromptObjective.REASONING);
-        registry.put(CodingActionType.REFACTORING, PromptObjective.REASONING);
-        registry.put(AnalysisActionType.DATA_ANALYSIS, PromptObjective.ANALYTICAL);
-        registry.put(AnalysisActionType.COMPARATIVE_ANALYSIS, PromptObjective.ANALYTICAL);
-        registry.put(AnalysisActionType.ROOT_CAUSE_ANALYSIS, PromptObjective.ANALYTICAL);
-        registry.put(CreativeActionType.CREATIVE_WRITING, PromptObjective.CREATIVE_WITH_CONSTRAINTS);
-        registry.put(CreativeActionType.IDEA_GENERATION, PromptObjective.CREATIVE_WITH_CONSTRAINTS);
-        registry.put(EtcActionType.PROBLEM_SOLVING, PromptObjective.REASONING);
-        registry.put(EtcActionType.EXPLANATION, PromptObjective.REASONING);
-        registry.put(WritingActionType.TRANSLATION, PromptObjective.FACTUAL);
-        registry.put(WritingActionType.PROOFREADING, PromptObjective.FACTUAL);
-        registry.put(ProductivityActionType.SCHEDULE_PLANNING, PromptObjective.PLANNING);
-        registry.put(ProductivityActionType.TASK_AUTOMATION, PromptObjective.PLANNING);
+        Map<ActionTypeInterface, PromptObjective> explicitMappings = Map.ofEntries(
+                Map.entry(CodingActionType.CODE_REVIEW, PromptObjective.REASONING),
+                Map.entry(CodingActionType.DEBUGGING, PromptObjective.REASONING),
+                Map.entry(CodingActionType.REFACTORING, PromptObjective.REASONING),
+                Map.entry(AnalysisActionType.DATA_ANALYSIS, PromptObjective.ANALYTICAL),
+                Map.entry(AnalysisActionType.COMPARATIVE_ANALYSIS, PromptObjective.ANALYTICAL),
+                Map.entry(AnalysisActionType.ROOT_CAUSE_ANALYSIS, PromptObjective.ANALYTICAL),
+                Map.entry(CreativeActionType.CREATIVE_WRITING, PromptObjective.CREATIVE_WITH_CONSTRAINTS),
+                Map.entry(CreativeActionType.IDEA_GENERATION, PromptObjective.CREATIVE_WITH_CONSTRAINTS),
+                Map.entry(EtcActionType.PROBLEM_SOLVING, PromptObjective.REASONING),
+                Map.entry(EtcActionType.EXPLANATION, PromptObjective.REASONING),
+                Map.entry(WritingActionType.TRANSLATION, PromptObjective.FACTUAL),
+                Map.entry(WritingActionType.PROOFREADING, PromptObjective.FACTUAL),
+                Map.entry(ProductivityActionType.SCHEDULE_PLANNING, PromptObjective.PLANNING),
+                Map.entry(ProductivityActionType.TASK_AUTOMATION, PromptObjective.PLANNING)
+        );
+        explicitMappings.forEach(registry::put);
         return registry;
     }
 

@@ -94,7 +94,7 @@ public class ObjectiveMappingRegistry implements ObjectiveMappingRegistryPort {
         }
         return switch (taskDomain) {
             case TECHNICAL   -> PromptObjective.REASONING;
-            case ANALYTICAL  -> PromptObjective.FACTUAL;
+            case ANALYTICAL  -> PromptObjective.ANALYTICAL;
             case CREATIVE    -> PromptObjective.CREATIVE_WITH_CONSTRAINTS;
             case PRACTICAL   -> PromptObjective.PLANNING;
             case EDUCATIONAL -> PromptObjective.REASONING;

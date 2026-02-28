@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.WebAsyncTask;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -90,6 +91,21 @@ public class PromptController {
 
             } catch (ApiException e) {
                 return createFailResponse(e);
+
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof ApiException apiException) {
+                    return createFailResponse(apiException);
+                }
+                return createFailResponse(new ApiException(ErrorCode.AI_GENERATION_FAILED));
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                Future<PromptResponseDto> f = futureHolder.get();
+                if (f != null) {
+                    f.cancel(true);
+                }
+                return createFailResponse(new ApiException(ErrorCode.AI_GENERATION_FAILED));
 
             } catch (TimeoutException e) {
                 Future<PromptResponseDto> f = futureHolder.get();

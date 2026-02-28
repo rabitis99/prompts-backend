@@ -28,7 +28,7 @@
 
 ### 1.3 포트 위치
 
-- **ObjectiveResolverPort**가 `domain.resolution`에 정의되어 있음.
+- **ObjectiveResolverPort**가 `domain.resolutions`에 정의되어 있음.
 - 정통 헥사고날에서는 포트를 "애플리케이션(유즈케이스) 계층"에 두는 경우가 많지만, "도메인이 해석 계약(포트)을 소유"하는 방식도 흔히 쓴다.
 - 현재는 "해석 규칙은 도메인 소유, 구현은 인프라(ResolutionConfig)에서 주입"으로 일관되게 적용됨. ✅
 
@@ -61,7 +61,7 @@
 
 - **새 Objective 추가**: `ObjectiveProfile` 구현체 추가 + `DefaultObjectiveRegistry` 등록.  
   `PromptSpecFactory`, `PromptSpecValidator`, `StrategyBundlePolicy`는 수정 불필요. ✅
-- **새 액션 타입 / 해석 규칙**: `ExplicitObjectiveMapping` 또는 도메인 기본값에 항목 추가.  
+- **새 액션 타입 / 해석 규칙**: `ObjectiveMappingRegistry`(명시 매핑/키워드 규칙) 또는 도메인 기본값에 항목 추가.  
   `ObjectiveResolver` 알고리즘은 그대로 둠. ✅
 - **새 검증 방식**: `VerificationStrategy` 구현체 추가.  
   `PromptSpecValidator`는 수정 불필요. ✅

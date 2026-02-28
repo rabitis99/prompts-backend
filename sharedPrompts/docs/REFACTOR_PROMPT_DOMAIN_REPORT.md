@@ -57,7 +57,7 @@
 
 ### 2.1 To-Be 패키지 트리 (최소 변경 / 최대 효과)
 
-```
+```text
 domain/prompt/
 ├── adapter/
 │   ├── in/
@@ -195,7 +195,7 @@ domain/prompt/
 
 ## 6. 최종 패키지 트리 (텍스트)
 
-```
+```text
 domain/prompt/
 ├── adapter/in/web/
 ├── adapter/out/
@@ -223,7 +223,7 @@ domain/prompt/
 
 ---
 
-## 8. 빌드/테스트 결과 기록
+## 7. 빌드/테스트 결과 기록
 
 - **실행 명령**
   - 컴파일: `.\gradlew compileJava` (PowerShell) / `./gradlew compileJava` (Unix)

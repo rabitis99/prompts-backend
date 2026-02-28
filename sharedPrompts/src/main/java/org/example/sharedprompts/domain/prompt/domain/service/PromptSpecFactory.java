@@ -22,6 +22,7 @@ import org.example.sharedprompts.domain.prompt.guideline.GuidelineRule;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 사용자 입력을 받아 {@link PromptSpec}을 생성하는 도메인 팩토리.
@@ -41,9 +42,9 @@ public class PromptSpecFactory {
     public PromptSpecFactory(ObjectiveRegistry objectiveRegistry,
                              StrategyBundlePolicy strategyBundlePolicy,
                              ObjectiveResolverPort objectiveResolver) {
-        this.objectiveRegistry = objectiveRegistry;
-        this.strategyBundlePolicy = strategyBundlePolicy;
-        this.objectiveResolver = objectiveResolver;
+        this.objectiveRegistry = Objects.requireNonNull(objectiveRegistry, "objectiveRegistry must not be null");
+        this.strategyBundlePolicy = Objects.requireNonNull(strategyBundlePolicy, "strategyBundlePolicy must not be null");
+        this.objectiveResolver = Objects.requireNonNull(objectiveResolver, "objectiveResolver must not be null");
     }
 
     public PromptSpec create(
@@ -169,7 +170,10 @@ public class PromptSpecFactory {
         ));
 
         // 4) Objective별 추가 섹션 (OUTPUT_FORMAT, CONSTRAINTS 등)
-        sections.addAll(profile.extraSections());
+        List<PromptSection> extra = profile.extraSections();
+        if (extra != null) {
+            sections.addAll(extra);
+        }
 
         return sections;
     }

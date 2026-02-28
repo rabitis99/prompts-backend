@@ -8,8 +8,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.example.sharedprompts.domain.prompt.enums.*;
 import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.enums.action.EtcActionType;
-import org.example.sharedprompts.domain.prompt.enums.role.EtcRoleType;
 import org.example.sharedprompts.domain.prompt.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.enums.serializer.ActionTypeDeserializer;
 import org.example.sharedprompts.domain.prompt.enums.serializer.ActionTypeSerializer;
@@ -68,16 +66,16 @@ public record GeneratePromptRequest(
                 userId,
                 title,
                 description,
-                isPublic != null ? isPublic : false,
+                isPublic,
                 promptCategory,
-                tags != null ? List.copyOf(tags) : List.of(),
+                tags,
                 input,
-                actionType != null ? actionType : EtcActionType.GENERAL_CONSULTATION,
-                roleType != null ? roleType : EtcRoleType.GENERAL_CONSULTANT,
-                tone != null ? tone : ToneType.NEUTRAL,
-                style != null ? style : StyleType.NARRATIVE,
-                language != null ? language : LanguageType.KOREAN,
-                experienceLevel != null ? experienceLevel : ExperienceLevel.INTERMEDIATE,
+                actionType,
+                roleType,
+                tone,
+                style,
+                language,
+                experienceLevel,
                 false,  // experimental: 기본 비활성화
                 jsonSchema
         );

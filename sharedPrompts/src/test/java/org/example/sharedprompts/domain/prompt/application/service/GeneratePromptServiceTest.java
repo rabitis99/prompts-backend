@@ -122,6 +122,7 @@ class GeneratePromptServiceTest {
                 .willReturn(42L);
 
         GeneratePromptResult result = service.generate(command);
+        verify(validateUserPort).validateUserExists(eq(1L));
 
         assertThat(result.firstPassSuccess()).isTrue();
         assertThat(result.repairCount()).isZero();
@@ -153,6 +154,7 @@ class GeneratePromptServiceTest {
                 .willReturn(99L);
 
         GeneratePromptResult result = service.generate(command);
+        verify(validateUserPort).validateUserExists(eq(1L));
 
         // Repair는 정확히 2회만 호출
         verify(llmClientPort, times(2)).repair(any(), any(), any(), any());
@@ -187,6 +189,7 @@ class GeneratePromptServiceTest {
                 .willReturn(55L);
 
         GeneratePromptResult result = service.generate(command);
+        verify(validateUserPort).validateUserExists(eq(1L));
 
         assertThat(result.repairCount()).isEqualTo(1);
         assertThat(result.finallyPassed()).isTrue();
@@ -206,6 +209,7 @@ class GeneratePromptServiceTest {
         given(savePromptVersionPort.save(any(), any(), anyString(), anyInt(), eq(true))).willReturn(1L);
 
         GeneratePromptResult result = service.generate(command);
+        verify(validateUserPort).validateUserExists(eq(1L));
 
         // 내부 지표는 Result에 존재
         assertThat(result.firstPassSuccess()).isTrue();

@@ -6,6 +6,8 @@ import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.ToneType;
 import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.enums.action.EtcActionType;
+import org.example.sharedprompts.domain.prompt.enums.role.EtcRoleType;
 import org.example.sharedprompts.domain.prompt.enums.role.RoleTypeInterface;
 
 import java.util.List;
@@ -35,7 +37,16 @@ public record GeneratePromptCommand(
     public GeneratePromptCommand {
         if (userId == null) throw new IllegalArgumentException("userId는 null일 수 없습니다.");
         if (input == null || input.isBlank()) throw new IllegalArgumentException("input은 비어있을 수 없습니다.");
+
+        isPublic = isPublic != null ? isPublic : false;
         tags = tags != null ? List.copyOf(tags) : List.of();
+
+        actionType = actionType != null ? actionType : EtcActionType.GENERAL_CONSULTATION;
+        roleType = roleType != null ? roleType : EtcRoleType.GENERAL_CONSULTANT;
+
+        tone = tone != null ? tone : ToneType.NEUTRAL;
+        style = style != null ? style : StyleType.NARRATIVE;
+        language = language != null ? language : LanguageType.KOREAN;
         experienceLevel = experienceLevel != null ? experienceLevel : ExperienceLevel.INTERMEDIATE;
     }
 }

@@ -179,7 +179,11 @@ public class GeneratePromptService implements GeneratePromptUseCase {
                 String metaPrompt = promptSpecRenderer.render(spec);
                 String constrained = constrainedDecodingPort.generateConstrained(
                         metaPrompt, spec.getOutputContract());
-                return constrained != null ? constrained : "";
+                if (constrained != null && !constrained.isBlank()) {
+                    return constrained;
+                }
+                log.warn("[GeneratePrompt] ConstrainedDecoding 결과가 비어 일반 LLM 호출로 fallback");
+                return llmClientPort.solve(spec);
             } catch (Exception e) {
                 log.warn("[GeneratePrompt] ConstrainedDecoding 실패, 일반 LLM 호출로 fallback: {}", e.getMessage());
                 log.debug("[GeneratePrompt] ConstrainedDecoding 예외 상세", e);

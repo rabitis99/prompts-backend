@@ -23,50 +23,43 @@ public class DomainStrategyTextProvider {
         StringBuilder strategy = new StringBuilder();
         strategy.append("## Generation Strategy\n");
 
-        switch (domain) {
-            case TECHNICAL -> strategy.append(
-                    "This is a TECHNICAL domain prompt. The generated prompt must:\n"
-                    + "- Name specific technologies, tools, patterns, or methodologies relevant to the topic\n"
-                    + "- Request concrete implementation details (configurations, architecture decisions, code patterns)\n"
-                    + "- Include performance, security, and scalability aspects as sub-tasks\n"
-                    + "- Use precise technical terminology — avoid vague phrases without specifying them\n"
-                    + "- Break down the request into 3-5 specific deliverable areas\n");
-            case CREATIVE -> strategy.append(
-                    "This is a CREATIVE domain prompt. The generated prompt must:\n"
-                    + "- Encourage original perspectives and unexpected angles\n"
-                    + "- Emphasize emotional resonance and sensory details\n"
-                    + "- Allow open-ended exploration without forcing rigid structure\n"
-                    + "- Avoid clinical or list-based formatting — let the creative flow naturally\n"
-                    + "- Specify the desired mood, atmosphere, or emotional tone\n");
-            case ANALYTICAL -> strategy.append(
-                    "This is an ANALYTICAL domain prompt. The generated prompt must:\n"
-                    + "- Request evidence-based reasoning with data and concrete examples\n"
-                    + "- Demand multi-perspective analysis including pros, cons, and trade-offs\n"
-                    + "- Require clear cause-effect relationships and logical structure\n"
-                    + "- Ask for a summary/conclusion at the beginning followed by detailed analysis\n"
-                    + "- Distinguish between facts and interpretations explicitly\n");
-            case PRACTICAL -> strategy.append(
-                    "This is a PRACTICAL domain prompt. The generated prompt must:\n"
-                    + "- Request immediately actionable steps and real-world deliverables\n"
-                    + "- Demand concrete outputs (templates, checklists, step-by-step guides)\n"
-                    + "- Include realistic constraints (time, budget, resources) as context\n"
-                    + "- Ask for expected outcomes for each recommended action\n"
-                    + "- Focus on results over theory — minimize background explanation\n");
-            case EDUCATIONAL -> strategy.append(
-                    "This is an EDUCATIONAL domain prompt. The generated prompt must:\n"
-                    + "- Build progressively from foundational concepts to advanced topics\n"
-                    + "- Request real-world analogies and examples to illustrate concepts\n"
-                    + "- Include self-check questions or practice exercises\n"
-                    + "- Define key terms before using them in complex contexts\n"
-                    + "- Specify the target learner's level and adapt language accordingly\n");
-            case GENERAL -> strategy.append(
-                    "This is a GENERAL domain prompt. The generated prompt must:\n"
-                    + "- Adapt to the specific nature of the user's request\n"
-                    + "- Provide balanced, well-rounded guidance\n"
-                    + "- Keep language accessible and universally useful\n");
-            default -> strategy.append(
-                    "Adapt the prompt generation to the specific needs of the task.\n");
-        }
+        String domainStrategyText = switch (domain) {
+            case TECHNICAL -> "This is a TECHNICAL domain prompt. The generated prompt must:\n"
+                              + "- Name specific technologies, tools, patterns, or methodologies relevant to the topic\n"
+                              + "- Request concrete implementation details (configurations, architecture decisions, code patterns)\n"
+                              + "- Include performance, security, and scalability aspects as sub-tasks\n"
+                              + "- Use precise technical terminology — avoid vague phrases without specifying them\n"
+                              + "- Break down the request into 3-5 specific deliverable areas\n";
+            case CREATIVE -> "This is a CREATIVE domain prompt. The generated prompt must:\n"
+                             + "- Encourage original perspectives and unexpected angles\n"
+                             + "- Emphasize emotional resonance and sensory details\n"
+                             + "- Allow open-ended exploration without forcing rigid structure\n"
+                             + "- Avoid clinical or list-based formatting — let the creative flow naturally\n"
+                             + "- Specify the desired mood, atmosphere, or emotional tone\n";
+            case ANALYTICAL -> "This is an ANALYTICAL domain prompt. The generated prompt must:\n"
+                               + "- Request evidence-based reasoning with data and concrete examples\n"
+                               + "- Demand multi-perspective analysis including pros, cons, and trade-offs\n"
+                               + "- Require clear cause-effect relationships and logical structure\n"
+                               + "- Ask for a summary/conclusion at the beginning followed by detailed analysis\n"
+                               + "- Distinguish between facts and interpretations explicitly\n";
+            case PRACTICAL -> "This is a PRACTICAL domain prompt. The generated prompt must:\n"
+                              + "- Request immediately actionable steps and real-world deliverables\n"
+                              + "- Demand concrete outputs (templates, checklists, step-by-step guides)\n"
+                              + "- Include realistic constraints (time, budget, resources) as context\n"
+                              + "- Ask for expected outcomes for each recommended action\n"
+                              + "- Focus on results over theory — minimize background explanation\n";
+            case EDUCATIONAL -> "This is an EDUCATIONAL domain prompt. The generated prompt must:\n"
+                                + "- Build progressively from foundational concepts to advanced topics\n"
+                                + "- Request real-world analogies and examples to illustrate concepts\n"
+                                + "- Include self-check questions or practice exercises\n"
+                                + "- Define key terms before using them in complex contexts\n"
+                                + "- Specify the target learner's level and adapt language accordingly\n";
+            case GENERAL -> "This is a GENERAL domain prompt. The generated prompt must:\n"
+                            + "- Adapt to the specific nature of the user's request\n"
+                            + "- Provide balanced, well-rounded guidance\n"
+                            + "- Keep language accessible and universally useful\n";
+        };
+        strategy.append(domainStrategyText);
 
         strategy.append("\n");
         return strategy.toString();
