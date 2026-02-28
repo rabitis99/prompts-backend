@@ -1,13 +1,15 @@
-package org.example.sharedprompts.domain.prompt.domain.resolution;
+package org.example.sharedprompts.domain.prompt.domain.resolutions;
 
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
 
 /**
- * Port: (TaskDomain, ActionType) → PromptObjective.
+ * PromptObjective 해석용 도메인 인터페이스.
  *
- * <p>해석 책임은 이 추상화에만 두며, 애플리케이션/팩토리는 구현에 의존하지 않는다 (DIP).
+ * <p>(TaskDomain, ActionType) → PromptObjective. 도메인 서비스(예: PromptSpecFactory)는 이 추상에만 의존.
+ *
+ * <p><b>공개 API.</b> 구현: {@link ObjectiveResolver}.
  */
 public interface ObjectiveResolverPort {
 

@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.domain.resolution;
+package org.example.sharedprompts.domain.prompt.domain.resolutions;
 
 import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
@@ -10,17 +10,13 @@ import java.util.Optional;
  * TaskDomain 결정 전용 도메인 서비스.
  *
  * <p>단일 책임: ActionType + PromptCategory → TaskDomain (및 폴백 여부).
- * Spring 의존 없음. {@code PromptDomainConfig} / {@code ResolutionConfig}에서 생성·주입.
- * {@link DomainResolverPort} 기본 구현체.
+ * Spring/로깅 의존 없음. 인스턴스는 {@link org.example.sharedprompts.domain.prompt.infrastructure.config.ResolutionConfig}에서 생성.
  */
 public class DomainResolver implements DomainResolverPort {
 
-    /**
-     * ActionTypeInterface + PromptCategory로 TaskDomain을 결정한다.
-     */
     @Override
-    public TaskDomain resolveDomain(ActionTypeInterface actionType, PromptCategory promptCategory) {
-        return resolveDomainWithFallback(actionType, promptCategory).domain();
+    public ResolvedDomain resolveDomain(ActionTypeInterface actionType, PromptCategory promptCategory) {
+        return resolveDomainWithFallback(actionType, promptCategory);
     }
 
     /**

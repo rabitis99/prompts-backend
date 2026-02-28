@@ -8,6 +8,12 @@ import java.util.ArrayList;
 /**
  * CREATIVE_WITH_CONSTRAINTS — Soft-verify: 형식·금지어·명백한 모순만 체크.
  * 의미적 창의성 판단, 스타일·톤 평가는 제외한다.
+ *
+ * <p><b>Rubric과의 관계:</b> 프로필의 {@link QualityRubric}에는 COVERAGE 등이 포함될 수 있으나,
+ * 본 전략은 다음만 검증한다: FORMAT_COMPLIANCE, NO_PROHIBITED_CONTENT, NO_CONTRADICTION.
+ * COVERAGE(요구사항·필수 섹션 커버리지)는 길이·심층성 판단이 필요하므로 soft 모드에서는
+ * 의도적으로 검증하지 않으며, 이는 {@code PromptSpecValidatorTest#softVerifyDoesNotCheckCoverage}에서
+ * 기대 동작으로 검증된다.
  */
 public final class SoftVerification extends BaseVerification {
 

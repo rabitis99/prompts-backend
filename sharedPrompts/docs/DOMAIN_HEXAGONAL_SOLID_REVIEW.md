@@ -14,7 +14,7 @@
 | SLF4J / 로깅 | ✅ 제거됨 | `StrategyBundlePolicy`에 있던 `org.slf4j` 의존 제거 — 도메인은 이제 순수 POJO |
 | Repository / Adapter | ✅ 없음 | domain이 application.port.out, adapter, repository를 참조하지 않음 |
 
-**정통 헥사고날 원칙**: “도메인 코어는 프레임워크·인프라에 의존하지 않는다.”  
+**정통 헥사고날 원칙**: "도메인 코어는 프레임워크·인프라에 의존하지 않는다."  
 → **현재 준수**: domain은 `domain.*`, `enums`, `guideline`만 참조하며, 모두 같은 바운디드 컨텍스트(프롬프트) 내부다.
 
 ### 1.2 의존성 방향
@@ -24,19 +24,19 @@
 - **application → domain**: 유즈케이스가 도메인 서비스·포트 사용. ✅
 - **adapter → application.port.out / domain**: 포트 구현·도메인 모델 사용. ✅
 
-의존성은 “바깥 → 안(도메인)”으로만 흐르며, 도메인이 application/adapter를 알지 않는다.
+의존성은 "바깥 → 안(도메인)"으로만 흐르며, 도메인이 application/adapter를 알지 않는다.
 
 ### 1.3 포트 위치
 
 - **ObjectiveResolverPort**가 `domain.resolution`에 정의되어 있음.
-- 정통 헥사고날에서는 포트를 “애플리케이션(유즈케이스) 계층”에 두는 경우가 많지만, “도메인이 해석 계약(포트)을 소유”하는 방식도 흔히 쓴다.
-- 현재는 “해석 규칙은 도메인 소유, 구현은 인프라(ResolutionConfig)에서 주입”으로 일관되게 적용됨. ✅
+- 정통 헥사고날에서는 포트를 "애플리케이션(유즈케이스) 계층"에 두는 경우가 많지만, "도메인이 해석 계약(포트)을 소유"하는 방식도 흔히 쓴다.
+- 현재는 "해석 규칙은 도메인 소유, 구현은 인프라(ResolutionConfig)에서 주입"으로 일관되게 적용됨. ✅
 
 ### 1.4 요약 (헥사고날)
 
 - 도메인은 **프레임워크·인프라 무의존**하며, **외부 계층을 알지 못함**.
 - **의존성 방향**과 **포트 소유** 방식이 프로젝트 의도와 맞게 유지됨.
-- **수정 사항**: `StrategyBundlePolicy`에서 SLF4J 제거로 “순수 도메인” 원칙을 만족하도록 정리함. (다운그레이드 시 로깅이 필요하면 application/인프라에서 처리 권장.)
+- **수정 사항**: `StrategyBundlePolicy`에서 SLF4J 제거로 "순수 도메인" 원칙을 만족하도록 정리함. (다운그레이드 시 로깅이 필요하면 application/인프라에서 처리 권장.)
 
 ---
 
@@ -55,7 +55,7 @@
 | **ObjectiveProfile** | 한 목표(Objective)에 대한 제약·루브릭·검증·전략 번들 제공 | ✅ |
 | **VerificationStrategy** | VerificationContext → VerifyResult | ✅ |
 
-각 타입이 “한 가지 이유로만 변경”되는 구조로 잘 나뉘어 있음.
+각 타입이 "한 가지 이유로만 변경"되는 구조로 잘 나뉘어 있음.
 
 ### 2.2 O — Open/Closed (개방-폐쇄)
 
@@ -66,7 +66,7 @@
 - **새 검증 방식**: `VerificationStrategy` 구현체 추가.  
   `PromptSpecValidator`는 수정 불필요. ✅
 
-확장은 “추가”로 하고, 기존 도메인 클래스는 닫혀 있음.
+확장은 "추가"로 하고, 기존 도메인 클래스는 닫혀 있음.
 
 ### 2.3 L — Liskov Substitution (리스코프 치환)
 
@@ -81,7 +81,7 @@
 - **ObjectiveResolverPort**: `resolve` 하나만 노출. ✅
 - **VerificationStrategy**: `verify` 하나 (함수형 인터페이스). ✅
 - **ObjectiveProfile**: 한 목표에 필요한 메서드만 포함.  
-  여러 메서드가 있지만, 하나의 “목표 프로파일” 개념에 묶여 있어 과도하게 쪼개지 않은 수준. ✅
+  여러 메서드가 있지만, 하나의 "목표 프로파일" 개념에 묶여 있어 과도하게 쪼개지 않은 수준. ✅
 
 클라이언트가 불필요한 메서드에 의존하지 않도록 잘 나뉘어 있음.
 
@@ -90,9 +90,8 @@
 - **PromptSpecFactory**: `ObjectiveRegistry`, `ObjectiveResolverPort`, `StrategyBundlePolicy` 등 **추상(인터페이스/정책)**에 의존. ✅
 - **PromptSpecValidator**: `ObjectiveRegistry`(인터페이스)에 의존. ✅
 - **StrategyBundlePolicy**: `ObjectiveRegistry`(인터페이스)에 의존. ✅
-- **ObjectiveResolver**: `ExplicitObjectiveMapping`, `ObjectiveMappingRegistry` **구체 클래스**에 의존.  
-  → 현재 구현이 각각 하나라 실용적으로 허용 가능.  
-  → 추후 구현이 늘어나면 두 타입을 인터페이스로 끌어올려 “해석 규칙”이 추상에만 의존하도록 하면 DIP를 더 강하게 만족함. (선택 개선)
+- **ObjectiveResolver**: 해석 규칙 관련 포트(추상)에 의존하도록 정리됨.  
+  → 구현체 교체 시 상위 정책/서비스 수정 없이 확장 가능.
 
 고수준(팩토리·검증·정책)이 저수준 구현이 아니라 추상에 의존하는 구조가 유지됨.
 
@@ -111,6 +110,6 @@
 ## 4. 결론
 
 - **헥사고날**: 도메인 코어가 프레임워크·인프라에 의존하지 않으며, 의존성 방향과 포트 사용 방식이 정통 헥사고날 사고와 맞음.  
-  SLF4J 제거로 “순수 도메인” 원칙을 만족하도록 수정함.
+  SLF4J 제거로 "순수 도메인" 원칙을 만족하도록 수정함.
 - **SOLID**: 단일 책임, 개방-폐쇄, 리스코프 치환, 인터페이스 분리, 의존성 역전이 domain 패키지에서 전반적으로 준수됨.  
   DIP는 ObjectiveResolver·DomainResolver가 포트(추상)에만 의존하도록 반영 완료됨.

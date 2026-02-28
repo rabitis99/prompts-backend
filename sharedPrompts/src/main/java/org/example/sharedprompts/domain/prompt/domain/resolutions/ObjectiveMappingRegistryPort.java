@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.domain.resolution;
+package org.example.sharedprompts.domain.prompt.domain.resolutions;
 
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
@@ -7,10 +7,11 @@ import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
 import java.util.Optional;
 
 /**
- * Objective 해석 fallback: 액션 휴리스틱 + TaskDomain 기본값 조회 포트.
+ * Objective 해석 fallback: 액션 휴리스틱 + TaskDomain 기본값 (도메인 내부 전략).
  *
- * <p>해석 체인에서 명시 매핑 이후 fallback으로만 사용.
- * 도메인 서비스는 이 추상에 의존하며, 구현(키워드 휴리스틱 등)은 인프라에서 주입한다 (DIP).
+ * <p>명시 매핑 이후 fallback으로만 사용.
+ *
+ * <p><b>내부 전략.</b> 구현: {@link ObjectiveMappingRegistry}.
  */
 public interface ObjectiveMappingRegistryPort {
 

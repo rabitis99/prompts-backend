@@ -6,7 +6,7 @@ Production-grade AI prompt compiler: explicit mapping, stable engine, predictabl
 
 ## 1. New Package Tree
 
-```
+```text
 domain/prompt/
 ├── domain/                                  # Pure domain — zero framework
 │   ├── model/                               # PromptSpec, VerifyResult, OutputContract, ...
@@ -122,7 +122,7 @@ domain/prompt/
 
 ## 6. Flow: Clarify → Solve → Verify → Repair
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  GeneratePromptService.generate(command)                                     │
 └─────────────────────────────────────────────────────────────────────────────┘

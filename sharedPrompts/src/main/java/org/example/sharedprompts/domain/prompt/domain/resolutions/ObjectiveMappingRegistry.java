@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.domain.resolution;
+package org.example.sharedprompts.domain.prompt.domain.resolutions;
 
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
@@ -8,14 +8,17 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * ActionType 이름 휴리스틱 + TaskDomain 기본값.
+ * 명시 매핑 + 액션 이름 휴리스틱 + TaskDomain 기본값.
  *
- * <p>해석 체인에서 명시 매핑 이후 fallback으로만 사용. Spring 의존 없음.
- * {@link ObjectiveMappingRegistryPort} 구현체.
+ * <p>Config에서 put()으로 명시 매핑을 등록한 뒤, 조회 시 명시 → 휴리스틱 → 도메인 기본 순으로 사용.
+ * Spring/로깅 의존 없음. {@link ObjectiveMappingRegistryPort} 유일 구현체.
  */
 public class ObjectiveMappingRegistry implements ObjectiveMappingRegistryPort {
+
+    private final Map<ActionTypeInterface, PromptObjective> explicitMap = new ConcurrentHashMap<>();
 
     private static final Map<PromptObjective, Set<String>> KEYWORD_MAP;
 
@@ -65,10 +68,21 @@ public class ObjectiveMappingRegistry implements ObjectiveMappingRegistryPort {
         ));
     }
 
+    /** Config/테스트 전용. 명시 매핑 등록. */
+    public void put(ActionTypeInterface actionType, PromptObjective objective) {
+        if (actionType != null && objective != null) {
+            explicitMap.put(actionType, objective);
+        }
+    }
+
     @Override
     public Optional<PromptObjective> findByActionType(ActionTypeInterface actionType) {
         if (actionType == null) {
             return Optional.empty();
+        }
+        PromptObjective explicit = explicitMap.get(actionType);
+        if (explicit != null) {
+            return Optional.of(explicit);
         }
         return Optional.ofNullable(inferByActionName(actionType));
     }
@@ -93,6 +107,13 @@ public class ObjectiveMappingRegistry implements ObjectiveMappingRegistryPort {
         if (name.isEmpty()) {
             return null;
         }
+        // 1) 정확 매칭 우선 (예: CODE_REVIEW)
+        for (Map.Entry<PromptObjective, Set<String>> entry : KEYWORD_MAP.entrySet()) {
+            if (entry.getValue().contains(name)) {
+                return entry.getKey();
+            }
+        }
+        // 2) 부분 매칭 fallback
         for (Map.Entry<PromptObjective, Set<String>> entry : KEYWORD_MAP.entrySet()) {
             for (String keyword : entry.getValue()) {
                 if (name.contains(keyword)) {

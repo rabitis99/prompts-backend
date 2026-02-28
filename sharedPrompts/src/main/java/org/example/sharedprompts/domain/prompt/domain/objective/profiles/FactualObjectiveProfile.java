@@ -61,6 +61,7 @@ public final class FactualObjectiveProfile extends BaseObjectiveProfile {
     public String instructionContent(LanguageType locale) {
         return i18n(locale,
                 "정확하고 근거 기반으로 답변하세요. 필요 시 출처 또는 불확실성 표기를 포함하세요.",
-                "Provide accurate, well-sourced information. Include citations or uncertainty markers where appropriate.");
+                "Provide accurate, well-sourced information. Include citations or uncertainty markers where appropriate.",
+                "正確かつ根拠に基づいて回答してください。必要に応じて出典または不確実性の表記を含めてください。");
     }
 }

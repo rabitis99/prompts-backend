@@ -1,8 +1,10 @@
 package org.example.sharedprompts.domain.prompt.domain.service;
 
+import org.example.sharedprompts.domain.prompt.application.service.GeneratePromptService;
 import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
 import org.example.sharedprompts.domain.prompt.domain.model.VerifyResult;
 import org.example.sharedprompts.domain.prompt.domain.value.QualityBadge;
+import org.example.sharedprompts.global.util.ValidationUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +32,10 @@ public class BadgeResolver {
                                       boolean firstPassSuccess,
                                       int repairCount,
                                       boolean finallyPassed) {
+        ValidationUtils.requireNonNull(lastResult, "lastResult");
+        if (repairCount < 0) {
+            throw new IllegalArgumentException("repairCount must be >= 0");
+        }
         List<QualityBadge> badges = new ArrayList<>();
 
         if (finallyPassed) {

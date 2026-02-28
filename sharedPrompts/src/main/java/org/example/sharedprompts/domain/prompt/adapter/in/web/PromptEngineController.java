@@ -34,7 +34,7 @@ import java.util.concurrent.Callable;
  * 새 클라이언트는 이 엔드포인트({@code POST /api/v2/prompts/generate})를 사용한다.
  */
 @RestController
-@RequestMapping("/api/v2/prompts")
+@RequestMapping("/v2/prompts")
 @RequiredArgsConstructor
 public class PromptEngineController {
 

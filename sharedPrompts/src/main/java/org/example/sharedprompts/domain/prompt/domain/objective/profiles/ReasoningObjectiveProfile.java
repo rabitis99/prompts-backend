@@ -60,6 +60,7 @@ public final class ReasoningObjectiveProfile extends BaseObjectiveProfile {
     public String instructionContent(LanguageType locale) {
         return i18n(locale,
                 "문제를 단계적으로 분석하고 각 단계의 추론을 명확히 제시하세요.",
-                "Analyze the problem step-by-step. Show your reasoning process clearly at each stage.");
+                "Analyze the problem step-by-step. Show your reasoning process clearly at each stage.",
+                "問題を段階的に分析し、各段階の推論を明確に示してください。");
     }
 }

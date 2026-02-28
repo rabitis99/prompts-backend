@@ -60,6 +60,7 @@ public final class AnalyticalObjectiveProfile extends BaseObjectiveProfile {
     public String instructionContent(LanguageType locale) {
         return i18n(locale,
                 "대상을 다각도로 분석하고, 주요 측면을 비교·대조하며 근거를 제시하세요.",
-                "Analyze the subject thoroughly, evaluating evidence from multiple perspectives. Compare and contrast key aspects with supporting rationale.");
+                "Analyze the subject thoroughly, evaluating evidence from multiple perspectives. Compare and contrast key aspects with supporting rationale.",
+                "対象を多角的に分析し、主要な側面を比較・対照しつつ根拠を示してください。");
     }
 }

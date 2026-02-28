@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.prompt.adapter.in.web;
 
 import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptResult;
-import org.example.sharedprompts.domain.prompt.application.port.in.QualityBadge;
+import org.example.sharedprompts.domain.prompt.domain.value.QualityBadge;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

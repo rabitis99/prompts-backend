@@ -13,7 +13,7 @@ import org.example.sharedprompts.domain.prompt.domain.service.BadgeResolver;
 import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecFactory;
 import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecValidator;
 import org.example.sharedprompts.domain.prompt.domain.service.RecommendationRegistry;
-import org.example.sharedprompts.domain.prompt.domain.resolution.ObjectiveResolverPort;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolverPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -32,6 +32,7 @@ public class PromptDomainConfig {
 
     @Bean
     public ObjectiveRegistry objectiveRegistry() {
+        // DefaultObjectiveRegistry 생성자에서 validate() 호출 — 모든 PromptObjective에 프로파일 등록 여부 검증 (등록 누락 시 기동 시점 IllegalStateException)
         return new DefaultObjectiveRegistry(List.of(
                 new FactualObjectiveProfile(),
                 new ReasoningObjectiveProfile(),

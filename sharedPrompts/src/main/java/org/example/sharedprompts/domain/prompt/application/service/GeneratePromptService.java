@@ -10,15 +10,19 @@ import org.example.sharedprompts.domain.prompt.application.port.out.LLMClientPor
 import org.example.sharedprompts.domain.prompt.application.port.out.PromptSpecRendererPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.SavePromptVersionPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.ValidateUserPort;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolverPort;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ResolvedDomain;
 import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
 import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
 import org.example.sharedprompts.domain.prompt.domain.model.VerifyResult;
 import org.example.sharedprompts.domain.prompt.domain.objective.ObjectiveRegistry;
-import org.example.sharedprompts.domain.prompt.domain.resolution.DomainResolverPort;
+import org.example.sharedprompts.domain.prompt.domain.value.QualityBadge;
+
 import org.example.sharedprompts.domain.prompt.domain.service.BadgeResolver;
+import org.example.sharedprompts.domain.prompt.domain.service.InputNormalizer;
 import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecFactory;
 import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecValidator;
-import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
+
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.springframework.stereotype.Service;
 
@@ -134,8 +138,13 @@ public class GeneratePromptService implements GeneratePromptUseCase {
      * 누락된 필수 조건은 질문 대신 자동 보강 우선.
      */
     private PromptSpec clarify(GeneratePromptCommand command) {
-        TaskDomain taskDomain = domainResolver.resolveDomain(
+        ResolvedDomain resolved = domainResolver.resolveDomainWithFallback(
                 command.actionType(), command.promptCategory());
+        if (resolved.isFallback()) {
+            log.warn("[GeneratePrompt] Domain fallback used — actionType={}, category={}. Consider adding mapping.",
+                    command.actionType(), command.promptCategory());
+        }
+        TaskDomain taskDomain = resolved.domain();
 
         PromptSpec spec = promptSpecFactory.create(
                 command.input(),
@@ -146,12 +155,12 @@ public class GeneratePromptService implements GeneratePromptUseCase {
                 command.style(),
                 command.language(),
                 command.experimentalEnabled(),
-                ExperienceLevel.INTERMEDIATE,
+                command.experienceLevel(),
                 command.jsonSchema()
         );
 
         // 입력 정규화: 과도한 공백·특수문자 제거
-        String clarifiedInput = normalizeInput(command.input());
+        String clarifiedInput = InputNormalizer.normalize(command.input());
         return spec.withClarifiedInput(clarifiedInput);
     }
 
@@ -201,10 +210,5 @@ public class GeneratePromptService implements GeneratePromptUseCase {
             return draft;
         }
         return repairedDraft;
-    }
-
-    private String normalizeInput(String input) {
-        if (input == null) return "";
-        return input.strip().replaceAll("\\s{3,}", "  ");
     }
 }

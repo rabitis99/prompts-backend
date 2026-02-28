@@ -6,10 +6,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.example.sharedprompts.domain.prompt.enums.LanguageType;
-import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
-import org.example.sharedprompts.domain.prompt.enums.StyleType;
-import org.example.sharedprompts.domain.prompt.enums.ToneType;
+import org.example.sharedprompts.domain.prompt.enums.*;
 import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.enums.action.EtcActionType;
 import org.example.sharedprompts.domain.prompt.enums.role.EtcRoleType;
@@ -61,7 +58,7 @@ public record GeneratePromptRequest(
         ToneType tone,
         StyleType style,
         LanguageType language,
-
+        ExperienceLevel experienceLevel,
         @JsonProperty("json_schema")
         String jsonSchema
 ) {
@@ -80,6 +77,7 @@ public record GeneratePromptRequest(
                 tone != null ? tone : ToneType.NEUTRAL,
                 style != null ? style : StyleType.NARRATIVE,
                 language != null ? language : LanguageType.KOREAN,
+                experienceLevel != null ? experienceLevel : ExperienceLevel.INTERMEDIATE,
                 false,  // experimental: 기본 비활성화
                 jsonSchema
         );

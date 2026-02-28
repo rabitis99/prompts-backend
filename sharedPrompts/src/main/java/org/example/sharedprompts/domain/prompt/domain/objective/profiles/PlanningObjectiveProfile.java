@@ -64,6 +64,7 @@ public final class PlanningObjectiveProfile extends BaseObjectiveProfile {
     public String instructionContent(LanguageType locale) {
         return i18n(locale,
                 "실행 가능한 계획을 단계, 의존성, 성공 기준과 함께 구조화해 제시하세요.",
-                "Create a structured, actionable plan with clear steps, dependencies, and success criteria.");
+                "Create a structured, actionable plan with clear steps, dependencies, and success criteria.",
+                "実行可能な計画を、ステップ・依存関係・成功基準とともに構造化して提示してください。");
     }
 }

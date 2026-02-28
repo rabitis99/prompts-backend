@@ -14,7 +14,9 @@ import java.util.Optional;
 
 /**
  * 프롬프트 조회·저장·삭제를 Repository에 위임하는 아웃바운드 어댑터.
- * <p>헥사고날: {@link PromptQueryPort}, {@link PromptCommandPort} 구현체.</p>
+ * <p>헥사고날: {@link PromptQueryPort}, {@link PromptCommandPort} 구현체.
+ * Application({@link org.example.sharedprompts.domain.prompt.service.PromptServiceImpl} 등)은
+ * Port에만 의존하고, 본 어댑터는 {@link PromptRepository}를 주입받아 Port 메서드를 구현한다.</p>
  */
 @Component
 @RequiredArgsConstructor

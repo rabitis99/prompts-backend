@@ -53,8 +53,15 @@ abstract class BaseObjectiveProfile implements ObjectiveProfile {
             }
             """;
 
-    /** locale에 따라 한국어/기타(영어) 문구를 선택한다 */
-    protected String i18n(LanguageType locale, String ko, String en) {
-        return locale == LanguageType.KOREAN ? ko : en;
+    /**
+     * locale에 따라 한국어/일본어/영어 문구를 선택한다.
+     * <p>KOREAN → ko, JAPANESE → ja, 그 외(ENGLISH 등) → en.
+     */
+    protected String i18n(LanguageType locale, String ko, String en, String ja) {
+        return switch (locale != null ? locale : LanguageType.ENGLISH) {
+            case KOREAN -> ko;
+            case JAPANESE -> ja;
+            default -> en;
+        };
     }
 }

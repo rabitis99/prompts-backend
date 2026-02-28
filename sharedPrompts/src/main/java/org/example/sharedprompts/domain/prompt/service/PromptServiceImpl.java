@@ -27,7 +27,6 @@ import java.util.List;
 /**
  * 프롬프트 조회 / 수정 / 삭제를 담당하는 도메인 서비스 구현체입니다.
  * <p>
- * 프롬프트 생성(create) 플로우는 {@link org.example.sharedprompts.domain.prompt.facade.PromptFacade}
  * 및 하위 서비스(PromptSanitizationService, PromptAIService, PromptPersistenceService)가 담당합니다.
  * 이 구현체는 생성 이외의 CRUD 책임만 가집니다.
  */

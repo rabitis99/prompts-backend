@@ -67,6 +67,7 @@ public final class ExtractionObjectiveProfile extends BaseObjectiveProfile {
     public String instructionContent(LanguageType locale) {
         return i18n(locale,
                 "요청된 정보를 지정된 출력 스키마에 맞게 엄격히 추출·구조화하세요.",
-                "Extract and structure the requested information strictly according to the specified output schema.");
+                "Extract and structure the requested information strictly according to the specified output schema.",
+                "要求された情報を指定された出力スキーマに厳密に従って抽出・構造化してください。");
     }
 }

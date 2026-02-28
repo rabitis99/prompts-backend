@@ -13,7 +13,8 @@ import java.util.Map;
  *
  * <p><b>Fail-fast 보장:</b> 생성 시점에 {@link PromptObjective}의 모든 값에 대응하는
  * 프로파일이 없으면 {@link IllegalStateException}을 발생시킨다.
- * → 새 Objective 추가 후 레지스트리 등록을 빠뜨리면 앱 기동 직후 즉시 감지된다.
+ * 동일한 objective를 가진 프로파일이 두 번 등록되면 역시 {@link IllegalStateException}을 발생시킨다.
+ * → 새 Objective 추가 후 레지스트리 등록을 빠뜨리거나, 중복 등록 시 앱 기동 직후 즉시 감지된다.
  */
 public final class DefaultObjectiveRegistry implements ObjectiveRegistry {
 
@@ -22,6 +23,10 @@ public final class DefaultObjectiveRegistry implements ObjectiveRegistry {
     public DefaultObjectiveRegistry(List<ObjectiveProfile> profiles) {
         EnumMap<PromptObjective, ObjectiveProfile> map = new EnumMap<>(PromptObjective.class);
         for (ObjectiveProfile p : profiles) {
+            if (map.containsKey(p.objective())) {
+                throw new IllegalStateException(
+                        "ObjectiveProfile 중복 등록: " + p.objective());
+            }
             map.put(p.objective(), p);
         }
         this.index = Map.copyOf(map);
@@ -30,6 +35,9 @@ public final class DefaultObjectiveRegistry implements ObjectiveRegistry {
 
     @Override
     public ObjectiveProfile get(PromptObjective objective) {
+        if (objective == null) {
+            throw new IllegalArgumentException("objective는 null일 수 없습니다.");
+        }
         ObjectiveProfile profile = index.get(objective);
         if (profile == null) {
             throw new IllegalArgumentException(

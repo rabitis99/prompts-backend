@@ -165,8 +165,6 @@ public class PromptGenerator {
             case EXPERT -> directive.append(
                     "  → The prompt must demand cutting-edge insights, edge-case handling, "
                     + "performance benchmarks, and expert-level architectural decisions.\n");
-            default -> directive.append(
-                    "  → Adapt the depth and complexity to the user's experience level.\n");
         }
 
         return directive.toString();

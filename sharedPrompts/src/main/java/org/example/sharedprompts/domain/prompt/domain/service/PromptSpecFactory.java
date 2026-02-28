@@ -8,7 +8,7 @@ import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
 import org.example.sharedprompts.domain.prompt.domain.objective.ObjectiveProfile;
 import org.example.sharedprompts.domain.prompt.domain.objective.ObjectiveRegistry;
 import org.example.sharedprompts.domain.prompt.domain.policy.StrategyBundlePolicy;
-import org.example.sharedprompts.domain.prompt.domain.resolution.ObjectiveResolverPort;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolverPort;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptStrategyBundle;
 import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;

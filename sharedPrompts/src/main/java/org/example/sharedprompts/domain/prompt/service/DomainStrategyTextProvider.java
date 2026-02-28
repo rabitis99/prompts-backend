@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.prompt.service;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.guideline.GuidelineRule;
 import org.example.sharedprompts.domain.prompt.guideline.RuleLevel;
+import org.example.sharedprompts.global.util.ValidationUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -18,6 +19,7 @@ public class DomainStrategyTextProvider {
      * 도메인별 AI 생성 전략 문단 — 도메인 특성에 맞는 프롬프트 생성 방향 지시
      */
     public String buildDomainStrategy(TaskDomain domain) {
+        ValidationUtils.requireNonNull(domain, "domain");
         StringBuilder strategy = new StringBuilder();
         strategy.append("## Generation Strategy\n");
 
@@ -74,6 +76,7 @@ public class DomainStrategyTextProvider {
      * SOFT 규칙을 AI 생성 품질 힌트 문단으로 변환
      */
     public String buildQualityHints(TaskDomain domain) {
+        ValidationUtils.requireNonNull(domain, "domain");
         List<GuidelineRule> softRules = domain.getRulesByLevel(RuleLevel.SOFT);
         if (softRules.isEmpty()) {
             return "";

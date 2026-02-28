@@ -57,6 +57,7 @@ public final class CreativeObjectiveProfile extends BaseObjectiveProfile {
     public String instructionContent(LanguageType locale) {
         return i18n(locale,
                 "주어진 제약을 모두 준수하면서 창의적인 결과를 생성하세요.",
-                "Generate creative content that fully respects the given constraints and requirements.");
+                "Generate creative content that fully respects the given constraints and requirements.",
+                "与えられた制約をすべて守りながら、創造的な結果を生成してください。");
     }
 }

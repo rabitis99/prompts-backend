@@ -4,6 +4,7 @@ import org.example.sharedprompts.domain.prompt.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.ToneType;
+import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.enums.role.RoleTypeInterface;
 
@@ -26,6 +27,7 @@ public record GeneratePromptCommand(
         ToneType tone,
         StyleType style,
         LanguageType language,
+        ExperienceLevel experienceLevel,
         boolean experimentalEnabled,
         /** EXTRACTION 시 사용할 JSON Schema. null이면 팩토리 기본값 적용. */
         String jsonSchema
@@ -34,5 +36,6 @@ public record GeneratePromptCommand(
         if (userId == null) throw new IllegalArgumentException("userId는 null일 수 없습니다.");
         if (input == null || input.isBlank()) throw new IllegalArgumentException("input은 비어있을 수 없습니다.");
         tags = tags != null ? List.copyOf(tags) : List.of();
+        experienceLevel = experienceLevel != null ? experienceLevel : ExperienceLevel.INTERMEDIATE;
     }
 }

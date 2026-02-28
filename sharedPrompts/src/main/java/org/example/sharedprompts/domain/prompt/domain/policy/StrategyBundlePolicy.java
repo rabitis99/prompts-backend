@@ -60,9 +60,12 @@ public class StrategyBundlePolicy {
         Set<PromptingStrategy> filtered = new LinkedHashSet<>(bundle.getStrategies());
         filtered.removeAll(experimental);
 
+        if (filtered.isEmpty()) {
+            return PromptStrategyBundle.coreOnly();
+        }
         return PromptStrategyBundle.of(
                 bundle.getName() + "_NO_EXP",
-                filtered.isEmpty() ? EnumSet.of(PromptingStrategy.CLARIFY_FIRST) : EnumSet.copyOf(filtered)
+                EnumSet.copyOf(filtered)
         );
     }
 }

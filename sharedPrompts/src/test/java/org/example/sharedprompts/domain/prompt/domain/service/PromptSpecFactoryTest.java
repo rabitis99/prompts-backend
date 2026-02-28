@@ -11,10 +11,9 @@ import org.example.sharedprompts.domain.prompt.domain.objective.profiles.Factual
 import org.example.sharedprompts.domain.prompt.domain.objective.profiles.PlanningObjectiveProfile;
 import org.example.sharedprompts.domain.prompt.domain.objective.profiles.ReasoningObjectiveProfile;
 import org.example.sharedprompts.domain.prompt.domain.policy.StrategyBundlePolicy;
-import org.example.sharedprompts.domain.prompt.domain.resolution.ExplicitObjectiveMapping;
-import org.example.sharedprompts.domain.prompt.domain.resolution.ObjectiveMappingRegistry;
-import org.example.sharedprompts.domain.prompt.domain.resolution.ObjectiveResolver;
-import org.example.sharedprompts.domain.prompt.domain.resolution.ObjectiveResolverPort;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistry;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolver;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolverPort;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptingStrategy;
 import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
@@ -48,7 +47,7 @@ class PromptSpecFactoryTest {
                 new AnalyticalObjectiveProfile()
         ));
         factory = new PromptSpecFactory(registry, new StrategyBundlePolicy(registry),
-                new ObjectiveResolver(new ExplicitObjectiveMapping(), new ObjectiveMappingRegistry()));
+                new ObjectiveResolver(new ObjectiveMappingRegistry()));
     }
 
     @Test

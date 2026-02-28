@@ -2,8 +2,8 @@ package org.example.sharedprompts.domain.prompt.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.prompt.domain.resolution.DomainResolverPort;
-import org.example.sharedprompts.domain.prompt.domain.resolution.ResolvedDomain;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolverPort;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ResolvedDomain;
 import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
@@ -47,11 +47,16 @@ public class DomainResolutionService {
         return resolveDomainInternal(actionType, promptCategory).domain();
     }
 
+    private String actionTypeName(ActionTypeInterface actionType) {
+        if (actionType == null) return "null";
+        return actionType instanceof Enum<?> e ? e.name() : actionType.getClass().getSimpleName();
+    }
+
     private DomainResolution resolveDomainInternal(ActionTypeInterface actionType, PromptCategory promptCategory) {
         ResolvedDomain resolved = domainResolver.resolveDomainWithFallback(actionType, promptCategory);
         if (resolved.isFallback()) {
             log.warn("Domain fallback used — ActionType: {}, category: {}. Consider adding mapping.",
-                    actionType instanceof Enum<?> e ? e.name() : actionType != null ? actionType.getClass().getSimpleName() : "null",
+                    actionTypeName(actionType),
                     promptCategory);
         }
         return new DomainResolution(resolved.domain(), resolved.isFallback());

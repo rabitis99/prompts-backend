@@ -8,7 +8,7 @@
 
 ## 1. 현재 구조 (As-Is)
 
-```
+```text
 domain/prompt/
 ├── Prompt.java                          # 엔티티 (JPA) — 루트에 위치
 ├── adapter/
@@ -172,7 +172,7 @@ domain/prompt/
 아래는 **헥사고날 + DDD**를 유지하면서, **역할별·기능별로 더 쪼갠** 폴더 구조 제안입니다.  
 새 기능(예: 새 목표 타입, 새 검증 방식, 새 어댑터) 추가 시 **어디에 넣을지**가 명확해지도록 구성했습니다.
 
-```
+```text
 domain/prompt/
 │
 ├── entity/                              # [1] 영속성 엔티티 (JPA). 현재 단계: 여기. 장기: infrastructure/persistence/entity

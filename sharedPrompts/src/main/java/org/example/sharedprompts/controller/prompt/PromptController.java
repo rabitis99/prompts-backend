@@ -1,7 +1,6 @@
 package org.example.sharedprompts.controller.prompt;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.prompt.application.port.in.CreatePromptUseCase;
@@ -36,19 +35,31 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 @RestController
 @RequestMapping("/prompts")
-@RequiredArgsConstructor
 public class PromptController {
 
     private final PromptQueryUseCase promptQueryUseCase;
     private final PromptCommandUseCase promptCommandUseCase;
     private final CreatePromptUseCase createPromptUseCase;
     private final PromptCreationProperties promptCreationProperties;
-
-    @Qualifier("aiCallTaskExecutorWithSecurityContext")
     private final ExecutorService aiCallTaskExecutorWithSecurityContext;
+
+    public PromptController(
+            PromptQueryUseCase promptQueryUseCase,
+            PromptCommandUseCase promptCommandUseCase,
+            CreatePromptUseCase createPromptUseCase,
+            PromptCreationProperties promptCreationProperties,
+            @Qualifier("aiCallTaskExecutorWithSecurityContext") ExecutorService aiCallTaskExecutorWithSecurityContext
+    ) {
+        this.promptQueryUseCase = promptQueryUseCase;
+        this.promptCommandUseCase = promptCommandUseCase;
+        this.createPromptUseCase = createPromptUseCase;
+        this.promptCreationProperties = promptCreationProperties;
+        this.aiCallTaskExecutorWithSecurityContext = aiCallTaskExecutorWithSecurityContext;
+    }
 
     @PostMapping
     public WebAsyncTask<ResponseEntity<CustomResponse<PromptResponseDto>>> createPrompt(
@@ -60,11 +71,14 @@ public class PromptController {
         long timeoutMs = promptCreationProperties.getTimeoutMs();
         long futureTimeoutMs = promptCreationProperties.getFutureTimeoutMs();
 
+        final AtomicReference<Future<PromptResponseDto>> futureHolder = new AtomicReference<>();
+
         Callable<ResponseEntity<CustomResponse<PromptResponseDto>>> callable = () -> {
             try {
-                Future<PromptResponseDto> future = aiCallTaskExecutorWithSecurityContext.submit(
+                futureHolder.set(aiCallTaskExecutorWithSecurityContext.submit(
                         () -> createPromptUseCase.create(request, userId)
-                );
+                ));
+                Future<PromptResponseDto> future = futureHolder.get();
 
                 PromptResponseDto result = future.get(futureTimeoutMs, TimeUnit.MILLISECONDS);
 
@@ -78,6 +92,10 @@ public class PromptController {
                 return createFailResponse(e);
 
             } catch (TimeoutException e) {
+                Future<PromptResponseDto> f = futureHolder.get();
+                if (f != null) {
+                    f.cancel(true);
+                }
                 return createFailResponse(new ApiException(
                         ErrorCode.AI_GENERATION_FAILED,
                         "프롬프트 생성이 시간 초과되었습니다. 잠시 후 다시 시도해주세요."
@@ -91,10 +109,16 @@ public class PromptController {
         WebAsyncTask<ResponseEntity<CustomResponse<PromptResponseDto>>> asyncTask =
                 new WebAsyncTask<>(timeoutMs, callable);
 
-        asyncTask.onTimeout(() -> createFailResponse(new ApiException(
-                ErrorCode.AI_GENERATION_FAILED,
-                "프롬프트 생성이 시간 초과되었습니다. 잠시 후 다시 시도해주세요."
-        )));
+        asyncTask.onTimeout(() -> {
+            Future<PromptResponseDto> f = futureHolder.get();
+            if (f != null) {
+                f.cancel(true);
+            }
+            return createFailResponse(new ApiException(
+                    ErrorCode.AI_GENERATION_FAILED,
+                    "프롬프트 생성이 시간 초과되었습니다. 잠시 후 다시 시도해주세요."
+            ));
+        });
 
         asyncTask.onError(() -> createFailResponse(new ApiException(ErrorCode.INTERNAL_SERVER_ERROR)));
 

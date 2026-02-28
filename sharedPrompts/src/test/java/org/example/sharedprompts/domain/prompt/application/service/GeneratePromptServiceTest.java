@@ -19,11 +19,10 @@ import org.example.sharedprompts.domain.prompt.domain.objective.profiles.Factual
 import org.example.sharedprompts.domain.prompt.domain.objective.profiles.PlanningObjectiveProfile;
 import org.example.sharedprompts.domain.prompt.domain.objective.profiles.ReasoningObjectiveProfile;
 import org.example.sharedprompts.domain.prompt.domain.policy.StrategyBundlePolicy;
-import org.example.sharedprompts.domain.prompt.domain.resolution.DomainResolver;
-import org.example.sharedprompts.domain.prompt.domain.resolution.DomainResolverPort;
-import org.example.sharedprompts.domain.prompt.domain.resolution.ExplicitObjectiveMapping;
-import org.example.sharedprompts.domain.prompt.domain.resolution.ObjectiveMappingRegistry;
-import org.example.sharedprompts.domain.prompt.domain.resolution.ObjectiveResolver;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolver;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolverPort;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistry;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolver;
 import org.example.sharedprompts.domain.prompt.domain.service.BadgeResolver;
 import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecFactory;
 import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecValidator;
@@ -32,6 +31,7 @@ import org.example.sharedprompts.domain.prompt.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.ToneType;
+import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.enums.action.EtcActionType;
 import org.example.sharedprompts.domain.prompt.enums.role.EtcRoleType;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +50,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -80,7 +81,7 @@ class GeneratePromptServiceTest {
         ));
         StrategyBundlePolicy bundlePolicy = new StrategyBundlePolicy(registry);
         PromptSpecFactory factory = new PromptSpecFactory(registry, bundlePolicy,
-                new ObjectiveResolver(new ExplicitObjectiveMapping(), new ObjectiveMappingRegistry()));
+                new ObjectiveResolver(new ObjectiveMappingRegistry()));
         DomainResolverPort domainResolver = new DomainResolver();
         BadgeResolver badgeResolver = new BadgeResolver();
 
@@ -98,8 +99,12 @@ class GeneratePromptServiceTest {
                 EtcActionType.GENERAL_CONSULTATION,
                 EtcRoleType.GENERAL_CONSULTANT,
                 ToneType.NEUTRAL, StyleType.NARRATIVE, LanguageType.KOREAN,
+                ExperienceLevel.INTERMEDIATE,
                 false, null
         );
+
+        // ValidateUserPort: generate() 내부에서 호출되며 예외 없이 통과하도록 stubbing (void — 명시적 문서화)
+        doNothing().when(validateUserPort).validateUserExists(any());
     }
 
     @Test

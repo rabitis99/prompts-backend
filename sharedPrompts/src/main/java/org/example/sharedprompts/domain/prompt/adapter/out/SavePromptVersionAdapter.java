@@ -6,7 +6,6 @@ import org.example.sharedprompts.domain.prompt.Prompt;
 import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.out.PromptCommandPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.SavePromptVersionPort;
-import org.example.sharedprompts.domain.prompt.application.port.out.ValidateUserPort;
 import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
 import org.example.sharedprompts.domain.tag.service.PromptTagService;
 import org.example.sharedprompts.domain.user.User;
@@ -20,23 +19,17 @@ import org.springframework.transaction.annotation.Transactional;
  * 생성된 프롬프트를 JPA 엔티티로 저장하는 어댑터.
  *
  * <p>도메인 모델(PromptSpec)과 JPA 엔티티(Prompt) 간 변환을 담당한다.
+ * 사용자 존재 검증은 ValidateUserPort를 구현한 별도 어댑터(예: ValidateUserAdapter)가 담당한다.
  * repairCount 등 내부 지표는 이 레이어에서 로깅하지만 JPA 엔티티에는 포함하지 않는다.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SavePromptVersionAdapter implements SavePromptVersionPort, ValidateUserPort {
+public class SavePromptVersionAdapter implements SavePromptVersionPort {
 
     private final UserRepository userRepository;
     private final PromptCommandPort promptCommandPort;
     private final PromptTagService promptTagService;
-
-    @Override
-    public void validateUserExists(Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new ApiException(ErrorCode.USER_NOT_FOUND);
-        }
-    }
 
     @Override
     @Transactional(timeout = 30)
