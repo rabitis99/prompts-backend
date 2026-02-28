@@ -78,7 +78,14 @@ public class DomainStrategyTextProvider {
         hints.append("## Quality Hints\n");
         hints.append("The generated prompt should encourage these qualities in the AI's response:\n");
         for (GuidelineRule rule : softRules) {
-            hints.append("- ").append(rule.description().en()).append("\n");
+            if (rule == null || rule.description() == null) {
+                continue;
+            }
+            String descriptionEn = rule.description().en();
+            if (descriptionEn == null || descriptionEn.isBlank()) {
+                continue;
+            }
+            hints.append("- ").append(descriptionEn).append("\n");
         }
         hints.append("\n");
         return hints.toString();

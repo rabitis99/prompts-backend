@@ -292,15 +292,13 @@ domain/prompt/
 │   │   ├── spi/                         # 해석 계약(도메인 내부 전략 인터페이스)
 │   │   │   ├── DomainResolverPort.java
 │   │   │   ├── ObjectiveResolverPort.java
-│   │   │   ├── ExplicitObjectiveMappingPort.java
-│   │   │   └── ObjectiveMappingRegistryPort.java
+│   │   │   └── ExplicitObjectiveMappingPort.java
 │   │   ├── domain/                      # 도메인 해석 구현
 │   │   │   ├── DomainResolver.java
 │   │   │   └── ResolvedDomain.java
 │   │   ├── objective/                   # 목표 해석 구현
 │   │   │   ├── ObjectiveResolver.java
-│   │   │   ├── ExplicitObjectiveMapping.java
-│   │   │   └── ObjectiveMappingRegistry.java
+│   │   │   └── ExplicitObjectiveMapping.java
 │   │   └── (추후) locale/, tenant/ 등
 │   ├── objective/                       # 목표 프로파일(레지스트리)
 │   │   ├── ObjectiveProfile.java
@@ -419,10 +417,10 @@ domain/prompt/
 
 ## 4. 적용 시 유의사항
 
-1. **점진적 적용**: 한 번에 옮기지 말고, 새 코드는 제안 구조에 맞추고 기존 코드는 리팩터 시점에 이동하는 것을 권장합니다.
+1. **점진적 적용**: 한 번에 옮기지 말고, 새 코드는 제안(To-Be) 구조에 맞추고 기존 코드는 리팩터 시점에 점진적으로 이동하는 것을 권장합니다.
 2. **entity 위치**: `Prompt.java`가 JPA에 의존하므로 `domain` 코어보다는 `entity/` 또는 `infrastructure/persistence/entity/`에 두는 것이 헥사고날 관점에서는 더 일관됩니다. 기존 `controller`(프로젝트 루트의 `controller.prompt`)와의 관계는 유지한 채, 도메인 패키지 내에서는 `entity/`로만 옮겨도 됩니다.
-3. **service vs appservice**: 현재 `domain/prompt/service`는 “애플리케이션 서비스”에 가깝습니다. `domain.service`는 “도메인 서비스”로 한정하고, 애플리케이션 오케스트레이션은 `appservice/` 또는 `application/service` 쪽으로 모으면 역할이 분리됩니다.
-4. **enums → shared/enums**: `enums`를 `shared/enums`로 두면 “도메인 공용” 열거형임이 드러나고, 다른 shared 개념(guideline 등)과 대칭됩니다.
+3. **service vs appservice**: 현재 `domain/prompt/service`는 “애플리케이션 서비스”에 가깝습니다. `domain.service`는 “도메인 서비스”로 한정하고, 애플리케이션 오케스트레이션은 `application/service` 쪽으로 모으면 역할이 분리됩니다.
+4. **enums → common/enums**: `enums`를 `common/enums`로 두면 “프롬프트 도메인 내부 공용” 열거형임이 드러나고, 다른 common 개념(guideline 등)과 대칭됩니다.
 5. **포트 패키지 분리**: `application/port/out`을 persistence, llm, render, identity 등으로 나누면 새 아웃바운드가 생길 때마다 새 폴더만 추가하면 되어 확장이 쉽습니다.
 
 ---
@@ -464,13 +462,16 @@ domain/prompt/
 
 ---
 
-## 6. 적용 시 유의사항
+## 6. 적용 시 유의사항 (요약·재참조)
 
-1. **점진적 적용**: 한 번에 옮기지 말고, 새 코드는 To-Be 구조에 맞추고 기존 코드는 리팩터 시점에 이동 권장.
-2. **entity 위치**: 현재는 `entity/`. 장기적으로는 `infrastructure/persistence/entity/`로 옮기고 도메인은 프레임워크 무의존 유지.
-3. **common 명명**: `common/`은 프롬프트 BC 내부 공용만 의미. 전사 공용이면 상위 루트(예: `org.example.sharedprompts.shared`)로 승격 검토.
-4. **resolution 계약**: `domain/resolution/spi`는 "도메인 내부 전략/계약"이지, application의 아웃바운드 포트가 아님.
-5. **application/port/out** persistence, llm, render, identity 등 역할별로 나두면 새 아웃바운드 추가 시 위치가 명확해짐.
+상세 가이드는 위 **4. 적용 시 유의사항**을 기준으로 유지합니다.  
+이 절에서는 핵심만 다시 요약합니다.
+
+1. **점진적 적용**: 새 코드는 To-Be 구조에만 생성하고, 기존 코드는 리팩터 타이밍에 이동합니다.
+2. **entity 위치**: 현재는 `entity/`에 두되, 장기적으로는 `infrastructure/persistence/entity/`로 옮겨 도메인 코어를 프레임워크 무의존으로 유지합니다.
+3. **common 명명**: `common/`은 프롬프트 BC 내부 공용만 의미합니다. 전사 공용이면 상위 루트(예: `org.example.sharedprompts.shared`)로 승격을 검토합니다.
+4. **resolution 계약**: `domain/resolution/spi`는 "도메인 내부 전략/계약"이며, application 레이어의 아웃바운드 포트와는 구분됩니다.
+5. **application/port/out 분리**: persistence, llm, render, identity 등 역할별 폴더로 나누면 새 아웃바운드 추가 시 위치가 명확해집니다.
 
 ---
 

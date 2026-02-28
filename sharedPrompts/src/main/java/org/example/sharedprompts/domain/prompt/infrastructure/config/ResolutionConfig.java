@@ -37,6 +37,7 @@ public class ResolutionConfig {
     public ObjectiveMappingRegistryPort objectiveMappingRegistry() {
         ObjectiveMappingRegistry registry = new ObjectiveMappingRegistry();
         // 명시 매핑: ActionType.getDefaultObjective()가 null일 때 사용
+        // 나머지 ActionType은 레지스트리의 키워드 기반 추론 규칙을 통해 적절한 PromptObjective로 매핑된다.
         Map<ActionTypeInterface, PromptObjective> explicitMappings = Map.ofEntries(
                 Map.entry(CodingActionType.CODE_REVIEW, PromptObjective.REASONING),
                 Map.entry(CodingActionType.DEBUGGING, PromptObjective.REASONING),
@@ -58,7 +59,7 @@ public class ResolutionConfig {
     }
 
     @Bean
-    public ObjectiveResolverPort objectiveResolver(ObjectiveMappingRegistryPort objectiveMappingRegistry) {
-        return new ObjectiveResolver(objectiveMappingRegistry);
+    public ObjectiveResolverPort objectiveResolver(ObjectiveMappingRegistryPort mappingRegistry) {
+        return new ObjectiveResolver(mappingRegistry);
     }
 }

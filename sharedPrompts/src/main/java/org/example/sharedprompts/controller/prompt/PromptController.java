@@ -89,9 +89,6 @@ public class PromptController {
 
                 return response;
 
-            } catch (ApiException e) {
-                return createFailResponse(e);
-
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof ApiException apiException) {
@@ -204,8 +201,6 @@ public class PromptController {
     }
 
     private ResponseEntity<CustomResponse<PromptResponseDto>> createFailResponse(ApiException e) {
-        return ResponseEntity
-                .status(e.getErrorCode().getHttpStatus())
-                .body(CustomResponse.fail(e));
+        return CustomResponseHelper.fail(e);
     }
 }
