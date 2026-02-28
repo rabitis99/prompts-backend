@@ -1,6 +1,7 @@
 package org.example.sharedprompts.controller.prompt;
 
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.prompt.application.port.in.CreatePromptUseCase;
@@ -38,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
+@Slf4j
 @RestController
 @RequestMapping("/prompts")
 public class PromptController {
@@ -105,16 +107,11 @@ public class PromptController {
                 return createFailResponse(new ApiException(ErrorCode.AI_GENERATION_FAILED));
 
             } catch (TimeoutException e) {
-                Future<PromptResponseDto> f = futureHolder.get();
-                if (f != null) {
-                    f.cancel(true);
-                }
-                return createFailResponse(new ApiException(
-                        ErrorCode.AI_GENERATION_FAILED,
-                        "프롬프트 생성이 시간 초과되었습니다. 잠시 후 다시 시도해주세요."
-                ));
+                cancelFuture(futureHolder);
+                return createFailResponse(timeoutApiException());
 
             } catch (Exception e) {
+                log.error("[PromptController] Unexpected error during prompt creation", e);
                 return createFailResponse(new ApiException(ErrorCode.AI_GENERATION_FAILED));
             }
         };
@@ -123,14 +120,8 @@ public class PromptController {
                 new WebAsyncTask<>(timeoutMs, callable);
 
         asyncTask.onTimeout(() -> {
-            Future<PromptResponseDto> f = futureHolder.get();
-            if (f != null) {
-                f.cancel(true);
-            }
-            return createFailResponse(new ApiException(
-                    ErrorCode.AI_GENERATION_FAILED,
-                    "프롬프트 생성이 시간 초과되었습니다. 잠시 후 다시 시도해주세요."
-            ));
+            cancelFuture(futureHolder);
+            return createFailResponse(timeoutApiException());
         });
 
         asyncTask.onError(() -> createFailResponse(new ApiException(ErrorCode.INTERNAL_SERVER_ERROR)));
@@ -198,6 +189,20 @@ public class PromptController {
         Long viewerId = authUser != null ? authUser.getId() : null;
         PageResponse<PromptResponseDto> response = promptQueryUseCase.getUserPrompts(userId, condition, viewerId);
         return CustomResponseHelper.ok(response);
+    }
+
+    private void cancelFuture(AtomicReference<Future<PromptResponseDto>> futureHolder) {
+        Future<PromptResponseDto> f = futureHolder.get();
+        if (f != null) {
+            f.cancel(true);
+        }
+    }
+
+    private ApiException timeoutApiException() {
+        return new ApiException(
+                ErrorCode.AI_GENERATION_FAILED,
+                "프롬프트 생성이 시간 초과되었습니다. 잠시 후 다시 시도해주세요."
+        );
     }
 
     private ResponseEntity<CustomResponse<PromptResponseDto>> createFailResponse(ApiException e) {

@@ -74,9 +74,7 @@ public class DomainStrategyTextProvider {
         if (softRules.isEmpty()) {
             return "";
         }
-        StringBuilder hints = new StringBuilder();
-        hints.append("## Quality Hints\n");
-        hints.append("The generated prompt should encourage these qualities in the AI's response:\n");
+        StringBuilder items = new StringBuilder();
         for (GuidelineRule rule : softRules) {
             if (rule == null || rule.description() == null) {
                 continue;
@@ -85,8 +83,15 @@ public class DomainStrategyTextProvider {
             if (descriptionEn == null || descriptionEn.isBlank()) {
                 continue;
             }
-            hints.append("- ").append(descriptionEn).append("\n");
+            items.append("- ").append(descriptionEn).append("\n");
         }
+        if (items.length() == 0) {
+            return "";
+        }
+        StringBuilder hints = new StringBuilder();
+        hints.append("## Quality Hints\n");
+        hints.append("The generated prompt should encourage these qualities in the AI's response:\n");
+        hints.append(items);
         hints.append("\n");
         return hints.toString();
     }
