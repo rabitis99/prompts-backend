@@ -1,0 +1,82 @@
+package org.example.sharedprompts.domain.prompt.domain.policy.strategy;
+
+import lombok.Getter;
+
+/**
+ * Experimental 전략의 Core/Objective-specific 승격 정책.
+ *
+ * <p>승격 점수 = 정확도 상승률 / (호출 증가 가중치 + 지연 증가 가중치)
+ * <pre>
+ * 호출 증가 가중치 = (실험군 평균 호출 수 - 대조군 평균 호출 수) × α
+ * 지연 증가 가중치 = (실험군 평균 응답시간 - 대조군 평균 응답시간) / 기준 지연 × β
+ * </pre>
+ *
+ * <p>플랜별 가중치:
+ * <ul>
+ *   <li>무료 플랜: α=0.6, β=0.4 (비용 우선)</li>
+ *   <li>유료 플랜: α=0.3, β=0.3 (정확도 우선)</li>
+ * </ul>
+ */
+@Getter
+public class StrategyPromotionPolicy {
+
+    private static final double DEFAULT_THRESHOLD = 1.0;
+
+    private final double alpha;  // 호출 증가 가중치
+    private final double beta;   // 지연 증가 가중치
+    private final double threshold;
+
+    private StrategyPromotionPolicy(double alpha, double beta, double threshold) {
+        this.alpha = alpha;
+        this.beta = beta;
+        this.threshold = threshold;
+    }
+
+    public static StrategyPromotionPolicy forFreeTier() {
+        return new StrategyPromotionPolicy(0.6, 0.4, DEFAULT_THRESHOLD);
+    }
+
+    public static StrategyPromotionPolicy forPaidTier() {
+        return new StrategyPromotionPolicy(0.3, 0.3, DEFAULT_THRESHOLD);
+    }
+
+    public static StrategyPromotionPolicy custom(double alpha, double beta, double threshold) {
+        if (!Double.isFinite(alpha) || alpha < 0) {
+            throw new IllegalArgumentException("alpha는 0 이상의 유한값이어야 합니다.");
+        }
+        if (!Double.isFinite(beta) || beta < 0) {
+            throw new IllegalArgumentException("beta는 0 이상의 유한값이어야 합니다.");
+        }
+        if (!Double.isFinite(threshold) || threshold <= 0) {
+            throw new IllegalArgumentException("threshold는 0보다 큰 유한값이어야 합니다.");
+        }
+        return new StrategyPromotionPolicy(alpha, beta, threshold);
+    }
+
+    /**
+     * 전략 승격 여부 판정.
+     */
+    public boolean shouldPromote(
+            double accuracyGainPercent,
+            double callCountDiff,
+            double latencyDiffMs,
+            double baseLatencyMs
+    ) {
+        if (accuracyGainPercent <= 0) return false;
+        if (baseLatencyMs <= 0) throw new IllegalArgumentException("기준 지연은 0보다 커야 합니다.");
+
+        double callWeight = callCountDiff * alpha;
+        double latencyWeight = (latencyDiffMs / baseLatencyMs) * beta;
+        double denominator = callWeight + latencyWeight;
+
+        // 비용·지연 증가 없이 정확도만 상승한 경우는 무조건 승격
+        if (denominator <= 0) {
+            return true;
+        }
+
+        double score = accuracyGainPercent / denominator;
+
+        return score > threshold;
+    }
+
+}

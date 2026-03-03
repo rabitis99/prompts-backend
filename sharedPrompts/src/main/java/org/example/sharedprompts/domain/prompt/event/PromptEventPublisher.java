@@ -20,9 +20,6 @@ public class PromptEventPublisher {
 
     /**
      * 프롬프트 생성 이벤트 발행
-     * 
-     * @param promptId 생성된 프롬프트 ID
-     * @param userId 프롬프트 작성자 ID
      */
     public void publishPromptCreated(Long promptId, Long userId) {
         PromptEvent.Created event = new PromptEvent.Created(promptId, userId);
@@ -32,9 +29,6 @@ public class PromptEventPublisher {
 
     /**
      * 프롬프트 삭제 이벤트 발행
-     * 
-     * @param promptId 삭제된 프롬프트 ID
-     * @param userId 프롬프트 작성자 ID
      */
     public void publishPromptDeleted(Long promptId, Long userId) {
         PromptEvent.Deleted event = new PromptEvent.Deleted(promptId, userId);
@@ -44,9 +38,6 @@ public class PromptEventPublisher {
 
     /**
      * 프롬프트 조회 이벤트 발행
-     * 
-     * @param promptId 조회된 프롬프트 ID
-     * @param viewerId 조회자 ID (nullable - 비로그인 사용자)
      */
     public void publishPromptViewed(Long promptId, Long viewerId) {
         PromptEvent.Viewed event = new PromptEvent.Viewed(promptId, viewerId);

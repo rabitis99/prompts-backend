@@ -4,9 +4,9 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
-import org.example.sharedprompts.domain.prompt.application.port.in.CreatePromptUseCase;
-import org.example.sharedprompts.domain.prompt.application.port.in.PromptCommandUseCase;
-import org.example.sharedprompts.domain.prompt.application.port.in.PromptQueryUseCase;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.CreatePromptUseCase;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.PromptCommandUseCase;
+import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptQueryUseCase;
 import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import org.example.sharedprompts.dto.common.PageResponse;
@@ -200,7 +200,7 @@ public class PromptController {
 
     private ApiException timeoutApiException() {
         return new ApiException(
-                ErrorCode.AI_GENERATION_FAILED,
+                ErrorCode.AI_GENERATION_TIMEOUT,
                 "프롬프트 생성이 시간 초과되었습니다. 잠시 후 다시 시도해주세요."
         );
     }

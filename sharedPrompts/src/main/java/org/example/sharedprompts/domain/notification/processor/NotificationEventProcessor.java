@@ -16,8 +16,8 @@ import org.example.sharedprompts.domain.notification.repository.NotificationRepo
 import org.example.sharedprompts.domain.notification.setting.repository.UserNotificationSettingRepository;
 import org.example.sharedprompts.domain.notification.service.batch.NotificationGroupingService;
 import org.example.sharedprompts.domain.notification.service.formatter.NotificationMessageFormatter;
-import org.example.sharedprompts.domain.prompt.Prompt;
-import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
+import org.example.sharedprompts.domain.prompt.entity.Prompt;
+import org.example.sharedprompts.domain.prompt.infrastructure.persistence.PromptRepository;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.global.exception.ApiException;

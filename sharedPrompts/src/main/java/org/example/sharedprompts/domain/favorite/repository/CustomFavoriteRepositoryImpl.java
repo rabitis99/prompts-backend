@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.favorite.repository;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.domain.prompt.Prompt;
+import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -10,7 +10,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 import static org.example.sharedprompts.domain.favorite.QFavorite.favorite;
-import static org.example.sharedprompts.domain.prompt.QPrompt.prompt;
+import static org.example.sharedprompts.domain.prompt.entity.QPrompt.prompt;
 import static org.example.sharedprompts.domain.tag.QPromptTag.promptTag;
 import static org.example.sharedprompts.domain.tag.QTag.tag;
 

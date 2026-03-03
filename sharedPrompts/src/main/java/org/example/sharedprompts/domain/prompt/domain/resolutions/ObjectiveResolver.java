@@ -1,8 +1,8 @@
 package org.example.sharedprompts.domain.prompt.domain.resolutions;
 
-import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
-import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
-import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
+import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 
 /**
  * Objective 해석 구현: actionType 기본값 → 명시/휴리스틱/도메인기본.

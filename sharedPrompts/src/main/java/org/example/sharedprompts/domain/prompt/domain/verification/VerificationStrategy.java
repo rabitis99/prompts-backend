@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.domain.verification;
 
-import org.example.sharedprompts.domain.prompt.domain.model.VerifyResult;
+import org.example.sharedprompts.domain.prompt.domain.model.result.VerifyResult;
 
 @FunctionalInterface
 public interface VerificationStrategy {

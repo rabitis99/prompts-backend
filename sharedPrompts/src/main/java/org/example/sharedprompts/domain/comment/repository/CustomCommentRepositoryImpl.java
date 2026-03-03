@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.comment.repository;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.comment.Comment;
-import org.example.sharedprompts.domain.prompt.Prompt;
+import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.example.sharedprompts.domain.comment.QComment.comment;
-import static org.example.sharedprompts.domain.prompt.QPrompt.prompt;
+import static org.example.sharedprompts.domain.prompt.entity.QPrompt.prompt;
 import static org.example.sharedprompts.domain.user.QUser.user;
 
 @RequiredArgsConstructor

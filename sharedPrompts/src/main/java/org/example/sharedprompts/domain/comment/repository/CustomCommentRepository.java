@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.comment.repository;
 
 import org.example.sharedprompts.domain.comment.Comment;
-import org.example.sharedprompts.domain.prompt.Prompt;
+import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

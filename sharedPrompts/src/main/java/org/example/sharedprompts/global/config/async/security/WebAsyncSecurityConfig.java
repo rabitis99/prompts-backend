@@ -82,15 +82,27 @@ public class WebAsyncSecurityConfig implements WebMvcConfigurer {
 
         @Override
         public <T> Object handleTimeout(@NotNull NativeWebRequest request, @NotNull Callable<T> task) {
-            // 타임아웃 발생 시 SecurityContext 복원
+            // 타임아웃 발생 시 SecurityContext 복원 및 로깅
             restoreSecurityContext(request);
+            HttpServletRequest httpRequest = request.getNativeRequest(HttpServletRequest.class);
+            if (httpRequest != null) {
+                log.warn("[WebAsyncSecurityConfig] Async Callable timeout: thread={}, uri={}",
+                        Thread.currentThread().getName(), httpRequest.getRequestURI());
+            } else {
+                log.warn("[WebAsyncSecurityConfig] Async Callable timeout: thread={}, uri=unknown",
+                        Thread.currentThread().getName());
+            }
             return null;
         }
 
         @Override
         public <T> Object handleError(@NotNull NativeWebRequest request, @NotNull Callable<T> task, @NotNull Throwable t) {
-            // 에러 발생 시 SecurityContext 복원
+            // 에러 발생 시 SecurityContext 복원 및 원인 로깅
             restoreSecurityContext(request);
+            HttpServletRequest httpRequest = request.getNativeRequest(HttpServletRequest.class);
+            String uri = httpRequest != null ? httpRequest.getRequestURI() : "unknown";
+            log.error("[WebAsyncSecurityConfig] Async Callable error: thread={}, uri={}, message={}",
+                    Thread.currentThread().getName(), uri, t.getMessage(), t);
             return null;
         }
 
@@ -135,8 +147,16 @@ public class WebAsyncSecurityConfig implements WebMvcConfigurer {
 
         @Override
         public <T> boolean handleTimeout(@NotNull NativeWebRequest request, @NotNull DeferredResult<T> deferredResult) {
-            // 타임아웃 발생 시 SecurityContext 복원
+            // 타임아웃 발생 시 SecurityContext 복원 및 로깅
             restoreSecurityContext(request);
+            HttpServletRequest httpRequest = request.getNativeRequest(HttpServletRequest.class);
+            if (httpRequest != null) {
+                log.warn("[WebAsyncSecurityConfig] DeferredResult timeout: thread={}, uri={}",
+                        Thread.currentThread().getName(), httpRequest.getRequestURI());
+            } else {
+                log.warn("[WebAsyncSecurityConfig] DeferredResult timeout: thread={}, uri=unknown",
+                        Thread.currentThread().getName());
+            }
             return true;
         }
 
@@ -148,8 +168,12 @@ public class WebAsyncSecurityConfig implements WebMvcConfigurer {
 
         @Override
         public <T> boolean handleError(@NotNull NativeWebRequest request, @NotNull DeferredResult<T> deferredResult, @NotNull Throwable t) {
-            // 에러 발생 시 SecurityContext 복원
+            // 에러 발생 시 SecurityContext 복원 및 원인 로깅
             restoreSecurityContext(request);
+            HttpServletRequest httpRequest = request.getNativeRequest(HttpServletRequest.class);
+            String uri = httpRequest != null ? httpRequest.getRequestURI() : "unknown";
+            log.error("[WebAsyncSecurityConfig] DeferredResult error: thread={}, uri={}, message={}",
+                    Thread.currentThread().getName(), uri, t.getMessage(), t);
             return true;
         }
     }

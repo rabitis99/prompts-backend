@@ -1,10 +1,11 @@
 package org.example.sharedprompts.domain.prompt.domain.service;
 
-import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
-import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
-import org.example.sharedprompts.domain.prompt.domain.model.VerifyResult;
-import org.example.sharedprompts.domain.prompt.domain.model.Constraints;
-import org.example.sharedprompts.domain.prompt.domain.model.OutputContract;
+import org.example.sharedprompts.domain.prompt.domain.model.spec.PromptSection;
+import org.example.sharedprompts.domain.prompt.domain.model.spec.PromptSpec;
+import org.example.sharedprompts.domain.prompt.domain.model.result.QualityRubric;
+import org.example.sharedprompts.domain.prompt.domain.model.result.VerifyResult;
+import org.example.sharedprompts.domain.prompt.domain.model.spec.Constraints;
+import org.example.sharedprompts.domain.prompt.domain.model.contract.OutputContract;
 import org.example.sharedprompts.domain.prompt.domain.objective.DefaultObjectiveRegistry;
 import org.example.sharedprompts.domain.prompt.domain.objective.ObjectiveProfile;
 import org.example.sharedprompts.domain.prompt.domain.objective.ObjectiveRegistry;
@@ -16,7 +17,7 @@ import org.example.sharedprompts.domain.prompt.domain.objective.profiles.Reasoni
 import org.example.sharedprompts.domain.prompt.domain.policy.StrategyBundlePolicy;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistry;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolver;
-import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
+import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptingStrategy;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptStrategyBundle;
 import org.example.sharedprompts.domain.prompt.domain.value.QualityPriority;
@@ -430,7 +431,7 @@ class PromptSpecFactoryTest {
         }
 
         @Override
-        public List<org.example.sharedprompts.domain.prompt.domain.model.PromptSection> extraSections() {
+        public List<PromptSection> extraSections() {
             return List.of();
         }
 

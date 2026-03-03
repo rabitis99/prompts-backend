@@ -5,8 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.statistics.service.aicall.AiCallStatisticsService;
 import org.example.sharedprompts.domain.statistics.service.prompt.PromptStatisticsService;
 import org.example.sharedprompts.domain.statistics.service.user.UserStatisticsService;
-import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
-import org.example.sharedprompts.domain.prompt.repository.UserStatisticsProjection;
+import org.example.sharedprompts.domain.prompt.infrastructure.persistence.PromptRepository;
+import org.example.sharedprompts.domain.prompt.infrastructure.persistence.UserStatisticsProjection;
 import org.example.sharedprompts.dto.statistics.response.AiCallStatisticsResponseDto;
 import org.example.sharedprompts.dto.statistics.response.MyStatisticsResponseDto;
 import org.example.sharedprompts.dto.statistics.response.PromptStatisticsResponseDto;
@@ -17,9 +17,10 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
+
 /**
  * 통계 서비스 구현체 (Facade)
- * 
  * 각 도메인별 통계 서비스를 조합하여 통합 통계를 제공합니다.
  */
 @Slf4j
@@ -64,25 +65,6 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     /**
      * 캐시 갱신을 위한 전체 통계 강제 조회 메서드.
-     *
-     * <p>
-     * 이 메서드는 캐시를 완전히 우회하지 않고,
-     * 조회 전에 관련 캐시 키를 evict하여 DB에서 데이터를 재조회한다.
-     * </p>
-     *
-     * <p><b>주의 사항</b></p>
-     * <ul>
-     *   <li>캐시를 직접 수정하는 side-effect를 가진다.</li>
-     *   <li>조회 중 예외 발생 시 일부 캐시 키만 evict될 수 있다.</li>
-     *   <li>전체 캐시 clear 및 재생성은 스케줄러에서만 수행된다.</li>
-     * </ul>
-     *
-     * <p>
-     * 스케줄러의 데이터 정합성 검증 및 캐시 재생성 판단 용도로만 사용하며,
-     * 일반 API 요청에서는 사용하지 않는다.
-     * </p>
-     *
-     * @return 통합 통계 응답 DTO
      */
     @Override
     public StatisticsResponseDto getAllStatisticsWithoutCache() {
@@ -90,10 +72,10 @@ public class StatisticsServiceImpl implements StatisticsService {
         
         // 관련 캐시 키를 임시로 evict하여 DB에서 직접 조회
         if (cacheManager.getCache(CACHE_NAME) != null) {
-            cacheManager.getCache(CACHE_NAME).evictIfPresent("user");
-            cacheManager.getCache(CACHE_NAME).evictIfPresent("prompt");
-            cacheManager.getCache(CACHE_NAME).evictIfPresent("ai-call");
-            cacheManager.getCache(CACHE_NAME).evictIfPresent("all");
+            Objects.requireNonNull(cacheManager.getCache(CACHE_NAME)).evictIfPresent("user");
+            Objects.requireNonNull(cacheManager.getCache(CACHE_NAME)).evictIfPresent("prompt");
+            Objects.requireNonNull(cacheManager.getCache(CACHE_NAME)).evictIfPresent("ai-call");
+            Objects.requireNonNull(cacheManager.getCache(CACHE_NAME)).evictIfPresent("all");
         }
         
         // 캐시가 evict된 상태에서 조회 (DB에서 직접 조회됨)
@@ -113,8 +95,8 @@ public class StatisticsServiceImpl implements StatisticsService {
         // SUM은 결과가 없거나 null인 경우 null을 반환할 수 있으므로 Java에서 처리
         UserStatisticsProjection statistics = promptRepository.getUserStatisticsByUserId(userId);
         
-        Long myPromptsCount = 0L;
-        Long totalLikesReceived = 0L;
+        long myPromptsCount = 0L;
+        long totalLikesReceived = 0L;
         
         if (statistics != null) {
             // COUNT는 항상 0 이상의 값을 반환하므로 null 체크는 선택적

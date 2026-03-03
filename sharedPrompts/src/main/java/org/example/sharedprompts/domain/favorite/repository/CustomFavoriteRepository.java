@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.favorite.repository;
 
-import org.example.sharedprompts.domain.prompt.Prompt;
+import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

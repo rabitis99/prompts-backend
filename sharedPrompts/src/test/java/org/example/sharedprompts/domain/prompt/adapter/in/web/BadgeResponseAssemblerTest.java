@@ -1,8 +1,11 @@
 package org.example.sharedprompts.domain.prompt.adapter.in.web;
 
-import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptResult;
-import org.example.sharedprompts.domain.prompt.domain.value.QualityBadge;
-import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
+import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.response.BadgeDto;
+import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.response.BadgeResponseAssembler;
+import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.response.GeneratePromptResponse;
+import org.example.sharedprompts.domain.prompt.application.port.in.query.GeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
+import org.example.sharedprompts.domain.prompt.domain.value.quality.QualityBadge;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,7 +47,7 @@ class BadgeResponseAssemblerTest {
 
         // 배지 코드와 표시명 확인
         assertThat(response.qualityBadges())
-                .extracting(GeneratePromptResponse.BadgeDto::code)
+                .extracting(BadgeDto::code)
                 .containsExactlyInAnyOrder("CONDITIONS_MET", "FAST_GENERATION");
 
         // 수치 지표 필드 없음 (GeneratePromptResponse는 id, title, content, qualityBadges만 포함)
@@ -71,10 +74,10 @@ class BadgeResponseAssemblerTest {
         GeneratePromptResponse response = assembler.assemble(result);
 
         assertThat(response.qualityBadges())
-                .extracting(GeneratePromptResponse.BadgeDto::code)
+                .extracting(BadgeDto::code)
                 .contains("REVERIFIED");
         assertThat(response.qualityBadges())
-                .extracting(GeneratePromptResponse.BadgeDto::code)
+                .extracting(BadgeDto::code)
                 .doesNotContain("FAST_GENERATION");
     }
 

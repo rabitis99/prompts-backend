@@ -1,15 +1,13 @@
 package org.example.sharedprompts.domain.report.repository;
 
 import org.example.sharedprompts.domain.comment.Comment;
-import org.example.sharedprompts.domain.prompt.Prompt;
+import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.example.sharedprompts.domain.report.Report;
 import org.example.sharedprompts.domain.report.enums.ReportStatus;
-import org.example.sharedprompts.domain.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface ReportRepository extends JpaRepository<Report, Long>, CustomReportRepository {

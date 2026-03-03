@@ -1,8 +1,8 @@
 package org.example.sharedprompts.domain.prompt.domain.resolutions;
 
-import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
-import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
-import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
+import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 
 import java.util.Optional;
 

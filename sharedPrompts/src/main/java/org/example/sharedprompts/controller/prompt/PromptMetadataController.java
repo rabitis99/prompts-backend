@@ -1,10 +1,10 @@
 package org.example.sharedprompts.controller.prompt;
 
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.domain.prompt.domain.service.RecommendationRegistry;
-import org.example.sharedprompts.domain.prompt.enums.StyleType;
-import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
-import org.example.sharedprompts.domain.prompt.enums.ToneType;
+import org.example.sharedprompts.domain.prompt.domain.service.recommendation.RecommendationRegistry;
+import org.example.sharedprompts.domain.prompt.common.enums.StyleType;
+import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
 import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.dto.prompt.response.DomainMetadataResponseDto;
 import org.example.sharedprompts.dto.prompt.response.SimpleDomainResponseDto;

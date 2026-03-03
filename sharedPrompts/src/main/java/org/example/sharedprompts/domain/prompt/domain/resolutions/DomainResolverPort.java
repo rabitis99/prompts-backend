@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.prompt.domain.resolutions;
 
-import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
-import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 
 /**
  * TaskDomain 해석용 도메인 인터페이스.
@@ -15,7 +15,6 @@ public interface DomainResolverPort {
 
     /**
      * ActionType + PromptCategory로 TaskDomain을 결정한다.
-     * (도메인만 필요할 때는 반환값의 {@link ResolvedDomain#domain()} 사용.)
      */
     ResolvedDomain resolveDomain(ActionTypeInterface actionType, PromptCategory promptCategory);
 

@@ -7,13 +7,13 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.sharedprompts.domain.prompt.enums.*;
-import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.enums.role.RoleTypeInterface;
-import org.example.sharedprompts.domain.prompt.enums.serializer.ActionTypeDeserializer;
-import org.example.sharedprompts.domain.prompt.enums.serializer.ActionTypeSerializer;
-import org.example.sharedprompts.domain.prompt.enums.serializer.RoleTypeDeserializer;
-import org.example.sharedprompts.domain.prompt.enums.serializer.RoleTypeSerializer;
+import org.example.sharedprompts.domain.prompt.common.enums.*;
+import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTypeDeserializer;
+import org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTypeSerializer;
+import org.example.sharedprompts.domain.prompt.common.enums.serializer.RoleTypeDeserializer;
+import org.example.sharedprompts.domain.prompt.common.enums.serializer.RoleTypeSerializer;
 
 import java.util.List;
 
@@ -23,17 +23,17 @@ import java.util.List;
  * <strong>필수 필드:</strong>
  * <ul>
  *   <li>{@code input} - 사용자 입력 (null이면 빈 문자열로 처리)</li>
- *   <li>{@code actionType} - 작업 유형 (null이면 {@link org.example.sharedprompts.domain.prompt.enums.action.EtcActionType#GENERAL_CONSULTATION} 사용)</li>
- *   <li>{@code roleType} - 역할 유형 (null이면 {@link org.example.sharedprompts.domain.prompt.enums.role.EtcRoleType#GENERAL_CONSULTANT} 사용)</li>
+ *   <li>{@code actionType} - 작업 유형 (null이면 {@link org.example.sharedprompts.domain.prompt.common.enums.action.EtcActionType#GENERAL_CONSULTATION} 사용)</li>
+ *   <li>{@code roleType} - 역할 유형 (null이면 {@link org.example.sharedprompts.domain.prompt.common.enums.role.EtcRoleType#GENERAL_CONSULTANT} 사용)</li>
  *   <li>{@code promptCategory} - 프롬프트 카테고리 (null이면 도메인 결정 실패 가능)</li>
  * </ul>
  * <p>
  * <strong>선택 필드 (기본값 제공):</strong>
  * <ul>
- *   <li>{@code tone} - 톤 타입 (null이면 {@link org.example.sharedprompts.domain.prompt.enums.ToneType#NEUTRAL} 사용)</li>
- *   <li>{@code style} - 스타일 타입 (null이면 {@link org.example.sharedprompts.domain.prompt.enums.StyleType#NARRATIVE} 사용)</li>
- *   <li>{@code experience} - 경험 수준 (null이면 {@link org.example.sharedprompts.domain.prompt.enums.ExperienceLevel#INTERMEDIATE} 사용)</li>
- *   <li>{@code language} - 언어 타입 (null이면 {@link org.example.sharedprompts.domain.prompt.enums.LanguageType#KOREAN} 사용)</li>
+ *   <li>{@code tone} - 톤 타입 (null이면 {@link org.example.sharedprompts.domain.prompt.common.enums.ToneType#NEUTRAL} 사용)</li>
+ *   <li>{@code style} - 스타일 타입 (null이면 {@link org.example.sharedprompts.domain.prompt.common.enums.StyleType#NARRATIVE} 사용)</li>
+ *   <li>{@code experience} - 경험 수준 (null이면 {@link org.example.sharedprompts.domain.prompt.common.enums.ExperienceLevel#INTERMEDIATE} 사용)</li>
+ *   <li>{@code language} - 언어 타입 (null이면 {@link org.example.sharedprompts.domain.prompt.common.enums.LanguageType#KOREAN} 사용)</li>
  *   <li>{@code tags} - 태그 목록 (null 허용)</li>
  * </ul>
  * <p>

@@ -1,15 +1,15 @@
 package org.example.sharedprompts.domain.prompt.domain.objective;
 
-import org.example.sharedprompts.domain.prompt.domain.model.Constraints;
-import org.example.sharedprompts.domain.prompt.domain.model.OutputContract;
-import org.example.sharedprompts.domain.prompt.domain.model.PromptSection;
-import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
-import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
-import org.example.sharedprompts.domain.prompt.domain.value.PromptStrategyBundle;
-import org.example.sharedprompts.domain.prompt.domain.value.QualityPriority;
+import org.example.sharedprompts.domain.prompt.domain.model.spec.Constraints;
+import org.example.sharedprompts.domain.prompt.domain.model.contract.OutputContract;
+import org.example.sharedprompts.domain.prompt.domain.model.spec.PromptSection;
+import org.example.sharedprompts.domain.prompt.domain.model.result.QualityRubric;
+import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
+import org.example.sharedprompts.domain.prompt.domain.value.strategy.PromptStrategyBundle;
+import org.example.sharedprompts.domain.prompt.domain.value.quality.QualityPriority;
 import org.example.sharedprompts.domain.prompt.domain.verification.VerificationStrategy;
-import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
-import org.example.sharedprompts.domain.prompt.enums.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.ExperienceLevel;
+import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
 
 import java.util.List;
 

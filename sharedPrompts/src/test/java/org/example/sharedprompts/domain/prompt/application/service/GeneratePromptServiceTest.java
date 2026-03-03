@@ -1,15 +1,16 @@
 package org.example.sharedprompts.domain.prompt.application.service;
 
-import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptCommand;
-import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptResult;
-import org.example.sharedprompts.domain.prompt.application.port.out.ConstrainedDecodingPort;
-import org.example.sharedprompts.domain.prompt.application.port.out.LLMClientPort;
-import org.example.sharedprompts.domain.prompt.application.port.out.PromptSpecRendererPort;
-import org.example.sharedprompts.domain.prompt.application.port.out.SavePromptVersionPort;
-import org.example.sharedprompts.domain.prompt.application.port.out.ValidateUserPort;
-import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
-import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
-import org.example.sharedprompts.domain.prompt.domain.model.VerifyResult;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.GeneratePromptCommand;
+import org.example.sharedprompts.domain.prompt.application.port.in.query.GeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.application.port.out.llm.ConstrainedDecodingPort;
+import org.example.sharedprompts.domain.prompt.application.port.out.llm.LLMClientPort;
+import org.example.sharedprompts.domain.prompt.application.port.out.render.PromptSpecRendererPort;
+import org.example.sharedprompts.domain.prompt.application.port.out.persistence.SavePromptVersionPort;
+import org.example.sharedprompts.domain.prompt.application.port.out.identity.ValidateUserPort;
+import org.example.sharedprompts.domain.prompt.application.service.generate.GeneratePromptService;
+import org.example.sharedprompts.domain.prompt.domain.model.spec.PromptSpec;
+import org.example.sharedprompts.domain.prompt.domain.model.result.QualityRubric;
+import org.example.sharedprompts.domain.prompt.domain.model.result.VerifyResult;
 import org.example.sharedprompts.domain.prompt.domain.objective.DefaultObjectiveRegistry;
 import org.example.sharedprompts.domain.prompt.domain.objective.ObjectiveRegistry;
 import org.example.sharedprompts.domain.prompt.domain.objective.profiles.AnalyticalObjectiveProfile;

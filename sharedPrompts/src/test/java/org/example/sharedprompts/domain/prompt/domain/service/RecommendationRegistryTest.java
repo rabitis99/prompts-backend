@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.domain.service;
 
-import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
+import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 import org.example.sharedprompts.domain.prompt.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.enums.ToneType;

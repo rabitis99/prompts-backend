@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.report;
 
 import lombok.Getter;
 import org.example.sharedprompts.domain.comment.Comment;
-import org.example.sharedprompts.domain.prompt.Prompt;
+import org.example.sharedprompts.domain.prompt.entity.Prompt;
 
 @Getter
 public class ReportTargetEntity {

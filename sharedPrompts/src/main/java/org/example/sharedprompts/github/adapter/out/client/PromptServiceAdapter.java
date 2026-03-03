@@ -2,13 +2,13 @@ package org.example.sharedprompts.github.adapter.out.client;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.prompt.service.PromptService;
+import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptQueryUseCase;
 import org.example.sharedprompts.github.port.exception.TemplateException;
 import org.example.sharedprompts.github.port.out.BodyTemplatePort;
 import org.springframework.stereotype.Component;
 
 /**
- * Prompt Service 기반 BodyTemplate 포트 구현.
+ * PromptQueryUseCase 기반 BodyTemplate 포트 구현.
  * Custom 템플릿(DB) 또는 기본값(상수) 반환.
  */
 @Component
@@ -49,7 +49,7 @@ public class PromptServiceAdapter implements BodyTemplatePort {
       {{DELIVERY_ID}}
       """;
 
-  private final PromptService promptService;
+  private final PromptQueryUseCase promptQueryUseCase;
 
   @Override
   public String resolveTemplate(Long promptId, TemplateKind kind) {
@@ -62,7 +62,7 @@ public class PromptServiceAdapter implements BodyTemplatePort {
     }
 
     try {
-      var detail = promptService.getPromptDetail(promptId, null);
+      var detail = promptQueryUseCase.getPromptDetail(promptId, null);
       if (detail != null && detail.getContent() != null && !detail.getContent().isBlank()) {
         log.debug("Prompt template loaded - promptId: {}, kind: {}", promptId, kind);
         return detail.getContent();

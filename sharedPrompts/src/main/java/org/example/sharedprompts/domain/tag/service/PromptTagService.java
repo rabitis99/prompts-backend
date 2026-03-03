@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.tag.service;
 
 import org.example.sharedprompts.domain.tag.Tag;
-import org.example.sharedprompts.domain.prompt.Prompt;
+import org.example.sharedprompts.domain.prompt.entity.Prompt;
 
 import java.util.List;
 

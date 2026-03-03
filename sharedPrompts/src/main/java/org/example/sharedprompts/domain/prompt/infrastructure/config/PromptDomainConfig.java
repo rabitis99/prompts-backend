@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.infrastructure.config;
 
-import org.example.sharedprompts.domain.prompt.domain.objective.DefaultObjectiveRegistry;
+import org.example.sharedprompts.domain.prompt.domain.objective.registry.DefaultObjectiveRegistry;
 import org.example.sharedprompts.domain.prompt.domain.objective.ObjectiveRegistry;
 import org.example.sharedprompts.domain.prompt.domain.objective.profiles.AnalyticalObjectiveProfile;
 import org.example.sharedprompts.domain.prompt.domain.objective.profiles.CreativeObjectiveProfile;
@@ -8,11 +8,11 @@ import org.example.sharedprompts.domain.prompt.domain.objective.profiles.Extract
 import org.example.sharedprompts.domain.prompt.domain.objective.profiles.FactualObjectiveProfile;
 import org.example.sharedprompts.domain.prompt.domain.objective.profiles.PlanningObjectiveProfile;
 import org.example.sharedprompts.domain.prompt.domain.objective.profiles.ReasoningObjectiveProfile;
-import org.example.sharedprompts.domain.prompt.domain.policy.StrategyBundlePolicy;
-import org.example.sharedprompts.domain.prompt.domain.service.BadgeResolver;
-import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecFactory;
-import org.example.sharedprompts.domain.prompt.domain.service.PromptSpecValidator;
-import org.example.sharedprompts.domain.prompt.domain.service.RecommendationRegistry;
+import org.example.sharedprompts.domain.prompt.domain.policy.strategy.StrategyBundlePolicy;
+import org.example.sharedprompts.domain.prompt.domain.service.badge.BadgeResolver;
+import org.example.sharedprompts.domain.prompt.domain.service.spec.PromptSpecFactory;
+import org.example.sharedprompts.domain.prompt.domain.service.spec.PromptSpecValidator;
+import org.example.sharedprompts.domain.prompt.domain.service.recommendation.RecommendationRegistry;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolverPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

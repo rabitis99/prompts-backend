@@ -7,8 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.sharedprompts.domain.prompt.Prompt;
-import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
+import org.example.sharedprompts.domain.prompt.entity.Prompt;
+import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
 
 import java.util.List;
 
