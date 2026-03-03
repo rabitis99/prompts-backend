@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.notification.factory.PromptCreatedMessageFactory;
 import org.example.sharedprompts.domain.notification.message.PromptCreatedMessage;
 import org.example.sharedprompts.domain.notification.producer.PromptCreatedSseProducer;
-import org.example.sharedprompts.domain.prompt.Prompt;
+import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.global.util.TransactionUtils;
 import org.springframework.beans.factory.annotation.Qualifier;

@@ -2,7 +2,7 @@ package org.example.sharedprompts.github.application.usecase;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.prompt.service.PromptService;
+import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptQueryUseCase;
 import org.example.sharedprompts.github.domain.model.GitHubWebhookConfig;
 import org.example.sharedprompts.github.port.in.CreateWebhookConfigUseCase;
 import org.example.sharedprompts.github.port.out.WebhookConfigPersistencePort;
@@ -34,7 +34,7 @@ import java.util.Base64;
 public class CreateWebhookConfigService implements CreateWebhookConfigUseCase {
 
   private final WebhookConfigPersistencePort configPort;
-  private final PromptService promptService;
+  private final PromptQueryUseCase promptQueryUseCase;
   private final CreateWebhookConfigNewTxHelper newTxHelper;
 
   private final SecureRandom secureRandom = new SecureRandom();
@@ -43,7 +43,7 @@ public class CreateWebhookConfigService implements CreateWebhookConfigUseCase {
   @Override
   public GitHubWebhookConfig createOrGet(Long ownerUserId, Long promptId, String repoFullName, String webhookSecret) {
     // Prompt 존재 및 권한 검증
-    promptService.getPromptDetail(promptId, ownerUserId);
+    promptQueryUseCase.getPromptDetail(promptId, ownerUserId);
 
     return configPort.findByOwner(ownerUserId, repoFullName)
         .map(existing -> updateExisting(existing, promptId, webhookSecret))

@@ -75,6 +75,7 @@ public enum ErrorCode {
     PROMPT_BLOCKED_VIEW("PR00602", HttpStatus.FORBIDDEN, "차단된 사용자의 프롬프트는 조회할 수 없습니다."),
     PROMPT_SEARCH_CONDITION_REQUIRED("PR00402", HttpStatus.BAD_REQUEST, "프롬프트 검색 조건은 필수입니다."),
     AI_GENERATION_FAILED("PR00401", HttpStatus.BAD_REQUEST, "프롬프트 생성에 실패하였습니다."),
+    AI_GENERATION_TIMEOUT("PR00403", HttpStatus.REQUEST_TIMEOUT, "프롬프트 생성이 시간 초과되었습니다. 잠시 후 다시 시도해주세요."),
     AI_RESPONSE_NO_CANDIDATES("PR01001", HttpStatus.INTERNAL_SERVER_ERROR, "AI 응답에 후보가 없습니다."),
     AI_RESPONSE_CANDIDATE_NULL("PR01002", HttpStatus.INTERNAL_SERVER_ERROR, "AI 응답의 후보가 null입니다."),
     AI_RESPONSE_NO_CONTENT_PARTS("PR01003", HttpStatus.INTERNAL_SERVER_ERROR, "AI 응답에 콘텐츠 파트가 없습니다."),

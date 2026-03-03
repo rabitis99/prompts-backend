@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.prompt.event;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.prompt.service.PromptUsageCountService;
+import org.example.sharedprompts.domain.prompt.application.service.usage.PromptUsageCountService;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;

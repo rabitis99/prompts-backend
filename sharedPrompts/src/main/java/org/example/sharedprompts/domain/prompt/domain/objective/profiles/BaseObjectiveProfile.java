@@ -1,10 +1,10 @@
 package org.example.sharedprompts.domain.prompt.domain.objective.profiles;
 
-import org.example.sharedprompts.domain.prompt.domain.model.Constraints;
-import org.example.sharedprompts.domain.prompt.domain.model.OutputContract;
+import org.example.sharedprompts.domain.prompt.domain.model.spec.Constraints;
+import org.example.sharedprompts.domain.prompt.domain.model.contract.OutputContract;
 import org.example.sharedprompts.domain.prompt.domain.objective.ObjectiveProfile;
-import org.example.sharedprompts.domain.prompt.enums.ExperienceLevel;
-import org.example.sharedprompts.domain.prompt.enums.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.ExperienceLevel;
+import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
 
 /**
  * 모든 ObjectiveProfile 구현체가 공유하는 스케일링 유틸리티.

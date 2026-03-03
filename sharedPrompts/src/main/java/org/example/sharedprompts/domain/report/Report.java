@@ -3,7 +3,7 @@ package org.example.sharedprompts.domain.report;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.sharedprompts.domain.comment.Comment;
-import org.example.sharedprompts.domain.prompt.Prompt;
+import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.example.sharedprompts.domain.report.enums.ReportReason;
 import org.example.sharedprompts.domain.report.enums.ReportStatus;
 import org.example.sharedprompts.domain.report.enums.ReportType;

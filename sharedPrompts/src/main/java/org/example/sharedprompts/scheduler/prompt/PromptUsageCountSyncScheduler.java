@@ -2,7 +2,7 @@ package org.example.sharedprompts.scheduler.prompt;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
+import org.example.sharedprompts.domain.prompt.infrastructure.persistence.PromptRepository;
 import net.javacrumbs.shedlock.spring.annotation.LockProviderToUse;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;

@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.statistics.service.prompt;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.prompt.repository.PromptRepository;
+import org.example.sharedprompts.domain.prompt.infrastructure.persistence.PromptRepository;
 import org.example.sharedprompts.domain.tag.repository.TagRepository;
 import org.example.sharedprompts.dto.statistics.response.PopularTagDto;
 import org.example.sharedprompts.dto.statistics.response.PromptStatisticsResponseDto;

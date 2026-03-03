@@ -1,11 +1,11 @@
 package org.example.sharedprompts.domain.prompt.domain.service;
 
-import org.example.sharedprompts.domain.prompt.domain.model.Constraints;
-import org.example.sharedprompts.domain.prompt.domain.model.ContentSandbox;
-import org.example.sharedprompts.domain.prompt.domain.model.OutputContract;
-import org.example.sharedprompts.domain.prompt.domain.model.PromptSpec;
-import org.example.sharedprompts.domain.prompt.domain.model.QualityRubric;
-import org.example.sharedprompts.domain.prompt.domain.model.VerifyResult;
+import org.example.sharedprompts.domain.prompt.domain.model.spec.Constraints;
+import org.example.sharedprompts.domain.prompt.domain.model.spec.ContentSandbox;
+import org.example.sharedprompts.domain.prompt.domain.model.contract.OutputContract;
+import org.example.sharedprompts.domain.prompt.domain.model.spec.PromptSpec;
+import org.example.sharedprompts.domain.prompt.domain.model.result.QualityRubric;
+import org.example.sharedprompts.domain.prompt.domain.model.result.VerifyResult;
 import org.example.sharedprompts.domain.prompt.domain.objective.DefaultObjectiveRegistry;
 import org.example.sharedprompts.domain.prompt.domain.objective.ObjectiveRegistry;
 import org.example.sharedprompts.domain.prompt.domain.objective.profiles.AnalyticalObjectiveProfile;
@@ -14,7 +14,7 @@ import org.example.sharedprompts.domain.prompt.domain.objective.profiles.Extract
 import org.example.sharedprompts.domain.prompt.domain.objective.profiles.FactualObjectiveProfile;
 import org.example.sharedprompts.domain.prompt.domain.objective.profiles.PlanningObjectiveProfile;
 import org.example.sharedprompts.domain.prompt.domain.objective.profiles.ReasoningObjectiveProfile;
-import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
+import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 import org.example.sharedprompts.domain.prompt.domain.value.PromptStrategyBundle;
 import org.example.sharedprompts.domain.prompt.domain.value.QualityPriority;
 import org.example.sharedprompts.domain.prompt.enums.LanguageType;

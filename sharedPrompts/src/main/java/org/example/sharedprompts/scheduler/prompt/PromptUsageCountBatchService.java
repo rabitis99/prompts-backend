@@ -2,7 +2,7 @@ package org.example.sharedprompts.scheduler.prompt;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.prompt.service.PromptUsageCountService;
+import org.example.sharedprompts.domain.prompt.application.service.usage.PromptUsageCountService;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

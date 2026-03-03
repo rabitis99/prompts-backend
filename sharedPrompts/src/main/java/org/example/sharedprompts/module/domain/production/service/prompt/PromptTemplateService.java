@@ -2,7 +2,7 @@ package org.example.sharedprompts.module.domain.production.service.prompt;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.prompt.service.PromptService;
+import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptQueryUseCase;
 import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommand;
 import org.example.sharedprompts.module.domain.production.model.executor.literary.LiteraryCommand;
@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class PromptTemplateService {
 
-    private final PromptService promptService;
+    private final PromptQueryUseCase promptQueryUseCase;
     private final PromptMerger promptMerger;
     private final PromptValidator promptValidator;
     private final LiteraryPromptComposer literaryPromptComposer;
@@ -25,7 +25,7 @@ public class PromptTemplateService {
         var commandType = command.getCommandType();
         log.info("Merging prompt - promptId: {}, userId: {}, commandType: {}", promptId, userId, commandType);
 
-        PromptResponseDto promptResult = promptService.getPromptDetail(promptId, userId);
+        PromptResponseDto promptResult = promptQueryUseCase.getPromptDetail(promptId, userId);
         String promptContent = promptResult.getContent();
         String promptVersion = "default";
 

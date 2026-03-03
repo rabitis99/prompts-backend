@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.comment.service;
 
 import org.example.sharedprompts.domain.comment.Comment;
-import org.example.sharedprompts.domain.prompt.Prompt;
+import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.enums.Role;
 import org.example.sharedprompts.global.exception.ApiException;

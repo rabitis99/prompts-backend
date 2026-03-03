@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.sharedprompts.domain.prompt.enums.StyleType;
+import org.example.sharedprompts.domain.prompt.common.enums.StyleType;
 
 /**
  * 간단한 StyleType 응답 DTO

@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.domain.resolutions;
 
-import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 /**
  * TaskDomain 해석 결과 (도메인 + 폴백 사용 여부).

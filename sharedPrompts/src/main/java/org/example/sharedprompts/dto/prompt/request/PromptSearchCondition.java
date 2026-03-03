@@ -6,8 +6,8 @@ import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.example.sharedprompts.domain.prompt.enums.PromptCategory;
-import org.example.sharedprompts.domain.prompt.enums.SortType;
+import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.SortType;
 
 @Getter
 @Setter

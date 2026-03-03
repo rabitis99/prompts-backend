@@ -288,17 +288,14 @@ domain/prompt/
 │   │   │   ├── StrategyBundlePolicy.java
 │   │   │   └── StrategyPromotionPolicy.java
 │   │   └── (추후) rate/, quota/ 등
-│   ├── resolution/                      # 도메인/목표 해석
-│   │   ├── spi/                         # 해석 계약(도메인 내부 전략 인터페이스)
-│   │   │   ├── DomainResolverPort.java
-│   │   │   ├── ObjectiveResolverPort.java
-│   │   │   └── ExplicitObjectiveMappingPort.java
-│   │   ├── domain/                      # 도메인 해석 구현
-│   │   │   ├── DomainResolver.java
-│   │   │   └── ResolvedDomain.java
-│   │   ├── objective/                   # 목표 해석 구현
-│   │   │   ├── ObjectiveResolver.java
-│   │   │   └── ExplicitObjectiveMapping.java
+│   ├── resolutions/                     # 도메인/목표 해석 (계약 + 구현)
+│   │   ├── DomainResolverPort.java
+│   │   ├── DomainResolver.java
+│   │   ├── ResolvedDomain.java
+│   │   ├── ObjectiveResolverPort.java
+│   │   ├── ObjectiveResolver.java
+│   │   ├── ExplicitObjectiveMappingPort.java
+│   │   ├── ExplicitObjectiveMapping.java
 │   │   └── (추후) locale/, tenant/ 등
 │   ├── objective/                       # 목표 프로파일(레지스트리)
 │   │   ├── ObjectiveProfile.java
@@ -403,8 +400,8 @@ domain/prompt/
 | **domain/value/objective, strategy, quality** | 값 객체 분류 | 새 값 객체는 목적에 맞는 하위에 추가 |
 | **domain/service/spec, badge, recommendation** | 도메인 서비스 | 새 도메인 서비스는 역할별 하위에 추가 |
 | **domain/policy/strategy** | 전략·번들 정책 | 정책 종류 늘면 하위 폴더 추가 |
-| **domain/resolution/spi** | 도메인 내부 해석 계약(전략 인터페이스). `port` 아님 → application/port/out와 혼동 방지 | 새 해석 차원(로케일 등)은 하위 추가 |
-| **domain/resolution/domain, objective** | 해석 구현 | 구현체 추가 |
+| **domain/resolutions (Port)** | 도메인 내부 해석 계약(전략 인터페이스). application/port/out와 혼동 방지 차원에서 "도메인 내부 해석"임을 명시 | 새 해석 차원(로케일 등)은 Port 추가 |
+| **domain/resolutions (impl)** | `DomainResolver`, `ObjectiveResolver` 등 해석 구현 | 구현체 추가 |
 | **domain/objective/registry** | 목표 등록 책임 분리. 등록 누락 방지 | 새 프로파일은 profiles에 추가 후 레지스트리 등록 |
 | **domain/objective/profiles** | 목표별 프로파일 | 새 목표는 새 Profile 클래스 + registry 등록 |
 | **domain/verification/** | 검증 전략 종류별 | 새 검증 방식은 새 하위 폴더 또는 클래스 |
@@ -497,3 +494,23 @@ domain/prompt/
 - **새 기능 클래스는 To-Be 구조에만 생성한다.** (기존 코드는 점진 이동)
 - **유즈케이스 구현(오케스트레이션 포함)은 `application/service` 아래에만 둔다.**
 - **도메인(domain/)은 프레임워크 import 금지(예: Spring, JPA).** (entity·infrastructure 예외)
+
+---
+
+## 9. 적용 현황 (코드베이스 반영)
+
+점진적 적용 원칙에 따라 아래 항목이 반영된 상태입니다.
+
+| 항목 | 상태 | 비고 |
+|------|------|------|
+| **adapter/out/identity** | ✅ 적용 | `ValidateUserAdapter` → `adapter/out/identity/` |
+| **application/facade** | ✅ 적용 | `PromptCreationFlow` → `application/facade/` |
+| **application/service** | ✅ 적용 | Sanitization/Notification → `orchestration/`, `service/service/` 제거 |
+| **infrastructure/persistence** | ✅ 적용 | `repository/` → `infrastructure/persistence/` |
+| **enums → common/enums** | ✅ 적용 | `enums/` → `common/enums/` 이동, import 일괄 수정 |
+| **guideline → common/guideline** | ✅ 적용 | rule/, policy/, i18n/, content/ 하위 구조 |
+| **domain/service** 하위 분리 | ✅ 적용 | spec/, badge/, recommendation/ |
+| **domain/value** 하위 분리 | ✅ 적용 | strategy/, quality/ (objective/ 기존 유지) |
+| **domain/policy/strategy** | ✅ 적용 | StrategyBundlePolicy, StrategyPromotionPolicy → policy/strategy/ |
+| **domain/objective/registry** | ✅ 적용 | DefaultObjectiveRegistry → objective/registry/ |
+| **domain/verification** 하위 분리 | ✅ 적용 | base/, chain/, schema/, soft/, standard/ |

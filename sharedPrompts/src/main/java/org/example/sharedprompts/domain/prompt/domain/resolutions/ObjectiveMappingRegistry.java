@@ -1,8 +1,8 @@
 package org.example.sharedprompts.domain.prompt.domain.resolutions;
 
-import org.example.sharedprompts.domain.prompt.domain.value.PromptObjective;
-import org.example.sharedprompts.domain.prompt.enums.TaskDomain;
-import org.example.sharedprompts.domain.prompt.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
+import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -93,12 +93,10 @@ public class ObjectiveMappingRegistry implements ObjectiveMappingRegistryPort {
             return PromptObjective.REASONING;
         }
         return switch (taskDomain) {
-            case TECHNICAL   -> PromptObjective.REASONING;
+            case TECHNICAL, EDUCATIONAL, GENERAL -> PromptObjective.REASONING;
             case ANALYTICAL  -> PromptObjective.ANALYTICAL;
             case CREATIVE    -> PromptObjective.CREATIVE_WITH_CONSTRAINTS;
             case PRACTICAL   -> PromptObjective.PLANNING;
-            case EDUCATIONAL -> PromptObjective.REASONING;
-            case GENERAL     -> PromptObjective.REASONING;
         };
     }
 
