@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 /**
  * 자기계발 관련 액션 타입 enum
- * 
+ *
  * <p>생성자 파라미터 순서 (모든 파라미터는 String 타입):
  * <ol>
  *   <li>displayNameKo - 표시 이름 (한국어)</li>
@@ -18,7 +19,7 @@ import java.util.Optional;
  */
 @Getter
 @AllArgsConstructor
-public enum PersonalDevelopmentActionType implements ActionTypeInterface {
+public enum PersonalDevelopmentActionType implements ActionTypeInterface, StableKeyedEnum {
     GOAL_SETTING("목표 설정", "Goal Setting", "目標設定"),
     HABIT_FORMATION("습관 형성", "Habit Formation", "習慣形成"),
     SELF_IMPROVEMENT("자기계발", "Self Improvement", "自己啓発"),
@@ -29,6 +30,11 @@ public enum PersonalDevelopmentActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.PERSONAL_DEVELOPMENT." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

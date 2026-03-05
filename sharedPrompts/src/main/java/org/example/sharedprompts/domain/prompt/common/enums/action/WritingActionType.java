@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum WritingActionType implements ActionTypeInterface {
+public enum WritingActionType implements ActionTypeInterface, StableKeyedEnum {
     ARTICLE_WRITING("기사 작성", "Article Writing", "記事執筆"),
     ESSAY_WRITING("에세이 작성", "Essay Writing", "エッセイ執筆"),
     TECHNICAL_WRITING("기술 문서 작성", "Technical Writing", "技術文書作成"),
@@ -33,6 +34,11 @@ public enum WritingActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.WRITING." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

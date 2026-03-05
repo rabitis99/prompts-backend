@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 /**
  * 커리어/취업 관련 액션 타입 enum
- * 
+ *
  * <p>생성자 파라미터 순서 (모든 파라미터는 String 타입):
  * <ol>
  *   <li>displayNameKo - 표시 이름 (한국어)</li>
@@ -18,7 +19,7 @@ import java.util.Optional;
  */
 @Getter
 @AllArgsConstructor
-public enum CareerActionType implements ActionTypeInterface {
+public enum CareerActionType implements ActionTypeInterface, StableKeyedEnum {
     RESUME_WRITING("이력서 작성", "Resume Writing", "履歴書作成"),
     COVER_LETTER("자기소개서", "Cover Letter", "カバーレター"),
     INTERVIEW_PREPARATION("면접 준비", "Interview Preparation", "面接準備"),
@@ -28,6 +29,11 @@ public enum CareerActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.CAREER." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

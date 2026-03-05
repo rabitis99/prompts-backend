@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.prompt.common.enums.role;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 
 /**
  * 고객 지원 관련 역할 유형 enum
@@ -21,7 +22,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
-public enum CustomerSupportRoleType implements RoleTypeInterface {
+public enum CustomerSupportRoleType implements RoleTypeInterface, StableKeyedEnum {
     CUSTOMER_SUPPORT_SPECIALIST(
             "고객 지원 전문가",                    // roleNameKo
             "고객 문의 응대 및 문제 해결 전문가",      // descriptionKo
@@ -61,5 +62,10 @@ public enum CustomerSupportRoleType implements RoleTypeInterface {
     private final String descriptionEn;
     private final String roleNameJa;
     private final String descriptionJa;
+
+    @Override
+    public String key() {
+        return "ROLE.CUSTOMER_SUPPORT." + name();
+    }
 }
 

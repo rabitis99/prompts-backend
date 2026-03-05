@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.prompt.common.enums.role;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 
 /**
  * 생산성 관련 역할 유형 enum
@@ -18,7 +19,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
-public enum ProductivityRoleType implements RoleTypeInterface {
+public enum ProductivityRoleType implements RoleTypeInterface, StableKeyedEnum {
     PRODUCTIVITY_EXPERT(
             "생산성 전문가",                    // roleNameKo
             "효율성을 극대화하고 작업 프로세스를 최적화하는 전문가",  // descriptionKo
@@ -66,5 +67,10 @@ public enum ProductivityRoleType implements RoleTypeInterface {
     private final String descriptionEn;
     private final String roleNameJa;
     private final String descriptionJa;
+
+    @Override
+    public String key() {
+        return "ROLE.PRODUCTIVITY." + name();
+    }
 }
 

@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
@@ -11,7 +12,7 @@ import java.util.Optional;
  */
 @Getter
 @AllArgsConstructor
-public enum EmailActionType implements ActionTypeInterface {
+public enum EmailActionType implements ActionTypeInterface, StableKeyedEnum {
     EMAIL_WRITING("이메일 작성", "Email Writing", "メール作成"),
     BUSINESS_EMAIL("비즈니스 이메일", "Business Email", "ビジネスメール"),
     PERSONAL_EMAIL("개인 이메일", "Personal Email", "個人メール"),
@@ -26,6 +27,11 @@ public enum EmailActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.EMAIL." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

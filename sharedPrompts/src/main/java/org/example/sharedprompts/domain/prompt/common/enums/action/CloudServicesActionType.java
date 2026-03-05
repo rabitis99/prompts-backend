@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum CloudServicesActionType implements ActionTypeInterface {
+public enum CloudServicesActionType implements ActionTypeInterface, StableKeyedEnum {
     CLOUD_DEPLOYMENT("클라우드 배포", "Cloud Deployment", "クラウドデプロイ"),
     CLOUD_SECURITY("클라우드 보안", "Cloud Security", "クラウドセキュリティ"),
     CLOUD_MONITORING("클라우드 모니터링", "Cloud Monitoring", "クラウド監視"),
@@ -28,6 +29,11 @@ public enum CloudServicesActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.CLOUD_SERVICES." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

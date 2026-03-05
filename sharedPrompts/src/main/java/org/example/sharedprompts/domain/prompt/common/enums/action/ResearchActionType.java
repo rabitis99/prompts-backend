@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum ResearchActionType implements ActionTypeInterface {
+public enum ResearchActionType implements ActionTypeInterface, StableKeyedEnum {
     RESEARCH_DESIGN("연구 설계", "Research Design", "研究設計"),
     PAPER_WRITING("논문 작성", "Paper Writing", "論文執筆"),
     METHODOLOGY_DEVELOPMENT("방법론 개발", "Methodology Development", "方法論開発"),
@@ -21,6 +22,11 @@ public enum ResearchActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.RESEARCH." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

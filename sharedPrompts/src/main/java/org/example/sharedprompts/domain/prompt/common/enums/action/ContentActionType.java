@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum ContentActionType implements ActionTypeInterface {
+public enum ContentActionType implements ActionTypeInterface, StableKeyedEnum {
     CONTENT_CREATION("콘텐츠 생성", "Content Creation", "コンテンツ作成"),
     CONTENT_REVISION("콘텐츠 수정", "Content Revision", "コンテンツ修正"),
     CONTENT_PLANNING("콘텐츠 기획", "Content Planning", "コンテンツ企画"),
@@ -27,6 +28,11 @@ public enum ContentActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.CONTENT." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

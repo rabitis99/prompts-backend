@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum DesignActionType implements ActionTypeInterface {
+public enum DesignActionType implements ActionTypeInterface, StableKeyedEnum {
     UI_DESIGN("UI 디자인", "UI Design", "UIデザイン"),
     UX_DESIGN("UX 디자인", "UX Design", "UXデザイン"),
     GRAPHIC_DESIGN("그래픽 디자인", "Graphic Design", "グラフィックデザイン"),
@@ -23,6 +24,11 @@ public enum DesignActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.DESIGN." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

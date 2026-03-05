@@ -2,10 +2,11 @@ package org.example.sharedprompts.domain.prompt.common.enums.role;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 
 @Getter
 @AllArgsConstructor
-public enum ContentRoleType implements RoleTypeInterface {
+public enum ContentRoleType implements RoleTypeInterface, StableKeyedEnum {
     CONTENT_CREATOR(
             "콘텐츠 제작자",
             "콘텐츠 생성 및 편집을 통한 브랜드 강화 전문가",
@@ -37,5 +38,10 @@ public enum ContentRoleType implements RoleTypeInterface {
     private final String descriptionEn;
     private final String roleNameJa;
     private final String descriptionJa;
+
+    @Override
+    public String key() {
+        return "ROLE.CONTENT." + name();
+    }
 }
 

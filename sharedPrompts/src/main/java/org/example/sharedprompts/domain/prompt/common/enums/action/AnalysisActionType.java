@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum AnalysisActionType implements ActionTypeInterface {
+public enum AnalysisActionType implements ActionTypeInterface, StableKeyedEnum {
     DATA_ANALYSIS("데이터 분석", "Data Analysis", "データ分析"),
     STATISTICAL_ANALYSIS("통계 분석", "Statistical Analysis", "統計分析"),
     INSIGHT_EXTRACTION("인사이트 도출", "Insight Extraction", "インサイト抽出"),
@@ -22,6 +23,11 @@ public enum AnalysisActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.ANALYSIS." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

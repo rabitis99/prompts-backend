@@ -12,6 +12,10 @@ import java.util.List;
 public class RoleTypeDeserializer extends JsonDeserializer<RoleTypeInterface> {
     
     private static final List<Class<? extends Enum<?>>> ROLE_TYPE_ENUMS = List.of(
+            // 코어 역할
+            CoreRoleType.class,
+
+            // 도메인별 세부 역할 (주로 페르소나/설명용)
             ProductivityRoleType.class,
             DevelopmentRoleType.class,
             AiMlRoleType.class,

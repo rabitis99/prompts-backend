@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum CodingActionType implements ActionTypeInterface {
+public enum CodingActionType implements ActionTypeInterface, StableKeyedEnum {
     CODE_GENERATION("코드 생성", "Code Generation", "コード生成"),
     CODE_MODIFICATION("코드 수정", "Code Modification", "コード修正"),
     CODE_REVIEW("코드 리뷰", "Code Review", "コードレビュー"),
@@ -23,6 +24,11 @@ public enum CodingActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.CODING." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

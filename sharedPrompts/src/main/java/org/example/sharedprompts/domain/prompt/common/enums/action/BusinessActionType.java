@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum BusinessActionType implements ActionTypeInterface {
+public enum BusinessActionType implements ActionTypeInterface, StableKeyedEnum {
     PROPOSAL_WRITING("기획서 작성", "Proposal Writing", "企画書作成"),
     REPORT_WRITING("보고서 작성", "Report Writing", "報告書作成"),
     BUSINESS_STRATEGY("사업 전략", "Business Strategy", "事業戦略"),
@@ -23,6 +24,11 @@ public enum BusinessActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.BUSINESS." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

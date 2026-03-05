@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum CreativeActionType implements ActionTypeInterface {
+public enum CreativeActionType implements ActionTypeInterface, StableKeyedEnum {
     IDEA_GENERATION("아이디어 생성", "Idea Generation", "アイデア生成"),
     CREATIVE_WRITING("창작 글쓰기", "Creative Writing", "創作執筆"),
     ARTISTIC_DESIGN("예술적 디자인", "Artistic Design", "芸術的デザイン"),
@@ -21,6 +22,11 @@ public enum CreativeActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.CREATIVE." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

@@ -140,7 +140,7 @@ public class GeneratePromptService implements GeneratePromptUseCase {
     private PromptSpec clarify(GeneratePromptCommand command) {
         ResolvedDomain resolved = domainResolver.resolveDomainWithFallback(
                 command.actionType(), command.promptCategory());
-        if (resolved.isFallback()) {
+        if (resolved.fallback()) {
             log.warn("[GeneratePrompt] Domain fallback used — actionType={}, category={}, fallbackDomain={}. Consider adding mapping.",
                     command.actionType(), command.promptCategory(), resolved.domain());
         }

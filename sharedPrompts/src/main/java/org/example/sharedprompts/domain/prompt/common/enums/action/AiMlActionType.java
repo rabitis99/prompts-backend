@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum AiMlActionType implements ActionTypeInterface {
+public enum AiMlActionType implements ActionTypeInterface, StableKeyedEnum {
     MODEL_TRAINING("모델 훈련", "Model Training", "モデル訓練"),
     PREDICTION("예측", "Prediction", "予測"),
     DATA_PREPROCESSING("데이터 전처리", "Data Preprocessing", "データ前処理"),
@@ -32,6 +33,11 @@ public enum AiMlActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.AIML." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

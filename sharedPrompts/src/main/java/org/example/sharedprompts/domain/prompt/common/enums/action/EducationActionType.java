@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum EducationActionType implements ActionTypeInterface {
+public enum EducationActionType implements ActionTypeInterface, StableKeyedEnum {
     CURRICULUM_DESIGN("교육과정 설계", "Curriculum Design", "カリキュラム設計"),
     MATERIAL_CREATION("교육 자료 생성", "Material Creation", "教材作成"),
     TEACHING_METHOD("교수법", "Teaching Method", "教授法"),
@@ -21,6 +22,11 @@ public enum EducationActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.EDUCATION." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

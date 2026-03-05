@@ -2,10 +2,11 @@ package org.example.sharedprompts.domain.prompt.common.enums.role;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 
 @Getter
 @AllArgsConstructor
-public enum SocialRoleType implements RoleTypeInterface {
+public enum SocialRoleType implements RoleTypeInterface, StableKeyedEnum {
     COMMUNITY_MANAGER(
             "커뮤니티 매니저",
             "커뮤니티 구축 및 관리 전문가",
@@ -61,5 +62,10 @@ public enum SocialRoleType implements RoleTypeInterface {
     private final String descriptionEn;
     private final String roleNameJa;
     private final String descriptionJa;
+
+    @Override
+    public String key() {
+        return "ROLE.SOCIAL." + name();
+    }
 }
 

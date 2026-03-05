@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 /**
  * 라이프스타일/개인 관련 액션 타입 enum
- * 
+ *
  * <p>생성자 파라미터 순서 (모든 파라미터는 String 타입):
  * <ol>
  *   <li>displayNameKo - 표시 이름 (한국어)</li>
@@ -18,7 +19,7 @@ import java.util.Optional;
  */
 @Getter
 @AllArgsConstructor
-public enum LifestyleActionType implements ActionTypeInterface {
+public enum LifestyleActionType implements ActionTypeInterface, StableKeyedEnum {
     HOME_ORGANIZATION("집 정리", "Home Organization", "家の整理"),
     CHILD_CARE_TIPS("육아 팁", "Child Care Tips", "子育てのコツ"),
     HOBBY_EXPLORATION("취미 탐색", "Hobby Exploration", "趣味探し"),
@@ -35,6 +36,11 @@ public enum LifestyleActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.LIFESTYLE." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

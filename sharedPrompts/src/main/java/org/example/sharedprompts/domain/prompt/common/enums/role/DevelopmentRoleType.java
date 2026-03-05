@@ -2,10 +2,11 @@ package org.example.sharedprompts.domain.prompt.common.enums.role;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 
 @Getter
 @AllArgsConstructor
-public enum DevelopmentRoleType implements RoleTypeInterface {
+public enum DevelopmentRoleType implements RoleTypeInterface, StableKeyedEnum {
     BACKEND_DEVELOPER(
             "백엔드 개발자",
             "시스템 아키텍처 설계, 기술 스택 선택 및 성능 최적화 전문가",
@@ -61,5 +62,10 @@ public enum DevelopmentRoleType implements RoleTypeInterface {
     private final String descriptionEn;
     private final String roleNameJa;
     private final String descriptionJa;
+
+    @Override
+    public String key() {
+        return "ROLE.DEVELOPMENT." + name();
+    }
 }
 

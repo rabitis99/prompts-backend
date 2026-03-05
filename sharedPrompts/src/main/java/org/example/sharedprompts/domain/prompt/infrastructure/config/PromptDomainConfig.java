@@ -14,6 +14,9 @@ import org.example.sharedprompts.domain.prompt.domain.service.spec.PromptSpecFac
 import org.example.sharedprompts.domain.prompt.domain.service.spec.PromptSpecValidator;
 import org.example.sharedprompts.domain.prompt.domain.service.recommendation.RecommendationRegistry;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolverPort;
+import org.example.sharedprompts.domain.prompt.common.guideline.bundle.GuidelineBundleBuilder;
+import org.example.sharedprompts.domain.prompt.domain.verification.guideline.DefaultGuidelineRuleChecker;
+import org.example.sharedprompts.domain.prompt.domain.verification.guideline.GuidelineVerifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -57,8 +60,19 @@ public class PromptDomainConfig {
     }
 
     @Bean
-    public PromptSpecValidator promptSpecValidator(ObjectiveRegistry objectiveRegistry) {
-        return new PromptSpecValidator(objectiveRegistry);
+    public GuidelineBundleBuilder guidelineBundleBuilder() {
+        return new GuidelineBundleBuilder();
+    }
+
+    @Bean
+    public GuidelineVerifier guidelineVerifier() {
+        return new GuidelineVerifier(new DefaultGuidelineRuleChecker());
+    }
+
+    @Bean
+    public PromptSpecValidator promptSpecValidator(ObjectiveRegistry objectiveRegistry,
+                                                   GuidelineVerifier guidelineVerifier) {
+        return new PromptSpecValidator(objectiveRegistry, guidelineVerifier);
     }
 
     @Bean

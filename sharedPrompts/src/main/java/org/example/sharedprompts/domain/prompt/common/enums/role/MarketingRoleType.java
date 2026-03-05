@@ -2,10 +2,11 @@ package org.example.sharedprompts.domain.prompt.common.enums.role;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 
 @Getter
 @AllArgsConstructor
-public enum MarketingRoleType implements RoleTypeInterface {
+public enum MarketingRoleType implements RoleTypeInterface, StableKeyedEnum {
     MARKETING_STRATEGIST(
             "마케팅 전략가",
             "시장 분석, 고객 분석 및 광고 캠페인 기획 전문가",
@@ -37,5 +38,10 @@ public enum MarketingRoleType implements RoleTypeInterface {
     private final String descriptionEn;
     private final String roleNameJa;
     private final String descriptionJa;
+
+    @Override
+    public String key() {
+        return "ROLE.MARKETING." + name();
+    }
 }
 

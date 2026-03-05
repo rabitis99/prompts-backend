@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum ProductivityActionType implements ActionTypeInterface {
+public enum ProductivityActionType implements ActionTypeInterface, StableKeyedEnum {
     WORKFLOW_OPTIMIZATION("워크플로우 최적화", "Workflow Optimization", "ワークフロー最適化"),
     TIME_MANAGEMENT("시간 관리", "Time Management", "時間管理"),
     SCHEDULE_PLANNING("일정 계획", "Schedule Planning", "スケジュール計画"),
@@ -28,6 +29,11 @@ public enum ProductivityActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.PRODUCTIVITY." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

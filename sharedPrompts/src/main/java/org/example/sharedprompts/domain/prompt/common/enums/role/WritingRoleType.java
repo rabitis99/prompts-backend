@@ -2,10 +2,11 @@ package org.example.sharedprompts.domain.prompt.common.enums.role;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 
 @Getter
 @AllArgsConstructor
-public enum WritingRoleType implements RoleTypeInterface {
+public enum WritingRoleType implements RoleTypeInterface, StableKeyedEnum {
     TECHNICAL_WRITER(
             "기술 문서 작성자",
             "기술 문서 작성 및 기술적 내용 설명 전문가",
@@ -53,5 +54,10 @@ public enum WritingRoleType implements RoleTypeInterface {
     private final String descriptionEn;
     private final String roleNameJa;
     private final String descriptionJa;
+
+    @Override
+    public String key() {
+        return "ROLE.WRITING." + name();
+    }
 }
 

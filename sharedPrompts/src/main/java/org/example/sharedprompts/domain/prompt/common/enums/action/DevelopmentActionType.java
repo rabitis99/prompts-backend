@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum DevelopmentActionType implements ActionTypeInterface {
+public enum DevelopmentActionType implements ActionTypeInterface, StableKeyedEnum {
     ARCHITECTURE_DESIGN("아키텍처 설계", "Architecture Design", "アーキテクチャ設計"),
     SYSTEM_DESIGN("시스템 설계", "System Design", "システム設計"),
     TECH_STACK_SELECTION("기술 스택 선택", "Tech Stack Selection", "技術スタック選択"),
@@ -22,6 +23,11 @@ public enum DevelopmentActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.DEVELOPMENT." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum ProgrammingActionType implements ActionTypeInterface {
+public enum ProgrammingActionType implements ActionTypeInterface, StableKeyedEnum {
     ALGORITHM_IMPLEMENTATION("알고리즘 구현", "Algorithm Implementation", "アルゴリズム実装"),
     DATA_STRUCTURE_DESIGN("자료구조 설계", "Data Structure Design", "データ構造設計"),
     LANGUAGE_LEARNING("언어 학습", "Language Learning", "言語学習"),
@@ -20,6 +21,11 @@ public enum ProgrammingActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.PROGRAMMING." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {
