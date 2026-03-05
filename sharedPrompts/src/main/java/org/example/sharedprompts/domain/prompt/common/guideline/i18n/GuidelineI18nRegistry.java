@@ -77,7 +77,7 @@ public final class GuidelineI18nRegistry {
     }
 
     public Map<String, I18nText> getResources() {
-        return Collections.unmodifiableMap(resources);
+        return Collections.unmodifiableMap(new HashMap<>(resources));
     }
 
     private static boolean isBlank(String s) {

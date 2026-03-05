@@ -67,12 +67,14 @@ public class RoutingRuleEngine {
         boolean duplicateExists = this.rules.stream()
                 .anyMatch(r -> r.getId().equals(rule.getId()));
         if (duplicateExists) {
-            log.warn("[RuleEngine] Duplicate rule id registered: {}", rule.getId());
+            throw new IllegalArgumentException("duplicate rule.id: " + rule.getId());
         }
         this.rules.add(rule);
     }
 
     public RoutingOverrides apply(UnifiedGeneratePromptCommand command, IntentDefaults defaults) {
+        Objects.requireNonNull(command, "command must not be null");
+        Objects.requireNonNull(defaults, "defaults must not be null");
         if (rules.isEmpty()) {
             return RoutingOverrides.empty();
         }
