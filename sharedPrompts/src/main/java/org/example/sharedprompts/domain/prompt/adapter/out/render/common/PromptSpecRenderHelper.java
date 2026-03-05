@@ -107,6 +107,9 @@ public final class PromptSpecRenderHelper {
         }
 
         // 길이 제한
+        if (constraints.getMinLength() != null) {
+            sb.append("- Min length: ").append(constraints.getMinLength()).append(" characters.\n");
+        }
         if (constraints.getMaxLength() != null) {
             sb.append("- Max length: ").append(constraints.getMaxLength()).append(" characters.\n");
         }

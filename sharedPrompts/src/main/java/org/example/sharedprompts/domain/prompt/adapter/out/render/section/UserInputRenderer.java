@@ -26,10 +26,12 @@ public final class UserInputRenderer {
             return "";
         }
 
+        String escapedContent = content.replace("\"\"\"", "\\\"\\\"\\\"");
+
         StringBuilder sb = new StringBuilder();
         sb.append("[USER INPUT]\n");
         sb.append("\"\"\"\n")
-                .append(content)
+                .append(escapedContent)
                 .append("\n\"\"\"\n\n");
         return sb.toString();
     }

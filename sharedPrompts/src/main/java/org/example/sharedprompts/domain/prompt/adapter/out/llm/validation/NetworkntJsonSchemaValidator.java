@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -25,7 +26,8 @@ public class NetworkntJsonSchemaValidator implements JsonSchemaValidator {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final JsonSchemaFactory SCHEMA_FACTORY =
             JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
-    private static final Map<String, JsonSchema> SCHEMA_CACHE = new ConcurrentHashMap<>();
+    private static final int MAX_SCHEMA_CACHE_SIZE = 1_000;
+    private static final Map<String, Optional<JsonSchema>> SCHEMA_CACHE = new ConcurrentHashMap<>();
 
     @Override
     public boolean isValid(String json, String schemaJson) {
@@ -38,19 +40,23 @@ public class NetworkntJsonSchemaValidator implements JsonSchemaValidator {
 
         try {
             JsonNode outputNode = OBJECT_MAPPER.readTree(json);
-            JsonSchema schema = SCHEMA_CACHE.computeIfAbsent(schemaJson, key -> {
+            if (SCHEMA_CACHE.size() >= MAX_SCHEMA_CACHE_SIZE) {
+                SCHEMA_CACHE.clear();
+            }
+
+            Optional<JsonSchema> schemaOpt = SCHEMA_CACHE.computeIfAbsent(schemaJson, key -> {
                 try {
                     JsonNode schemaNode = OBJECT_MAPPER.readTree(key);
-                    return SCHEMA_FACTORY.getSchema(schemaNode);
+                    return Optional.of(SCHEMA_FACTORY.getSchema(schemaNode));
                 } catch (JsonProcessingException e) {
                     log.debug("[ConstrainedDecoding] JSON 스키마 파싱 실패", e);
-                    return null;
+                    return Optional.empty();
                 }
             });
-            if (schema == null) {
+            if (schemaOpt.isEmpty()) {
                 return false;
             }
-            Set<ValidationMessage> errors = schema.validate(outputNode);
+            Set<ValidationMessage> errors = schemaOpt.get().validate(outputNode);
             if (!errors.isEmpty()) {
                 String errorMessages = errors.stream()
                         .map(ValidationMessage::getMessage)

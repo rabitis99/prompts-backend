@@ -29,8 +29,9 @@ public class RepairPromptRenderer {
         }
 
         String safeDraft = draft != null ? draft : "";
+        String escapedDraft = safeDraft.replace("\"\"\"", "\\\"\\\"\\\"");
         sb.append("[ORIGINAL DRAFT]\n\"\"\"\n")
-                .append(safeDraft)
+                .append(escapedDraft)
                 .append("\n\"\"\"\n\n");
 
         // 공통 섹션 렌더러 재사용
@@ -46,7 +47,8 @@ public class RepairPromptRenderer {
         sb.append("- Ensure the final answer strictly satisfies all constraints and the output format.\n");
         sb.append("- Preserve all correct and constraint‑satisfying parts of the original draft verbatim whenever possible.\n");
         sb.append("- Modify only the parts that are necessary to satisfy the constraints, failure hints, and output format; avoid rewriting the entire draft.\n");
-        sb.append("- If failure hints are empty, apply only the minimal modifications required by the constraints or output format; otherwise keep the draft unchanged.\n");
+        sb.append("- If failure hints are empty, apply only the minimal modifications required by the constraints or output format.\n");
+        sb.append("- If failure hints are provided, fix those failures with the smallest possible edits while preserving already-correct parts.\n");
         sb.append("- Do not introduce new assumptions that are not supported by the specification or [USER INPUT].\n");
         return sb.toString();
     }

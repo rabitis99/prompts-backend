@@ -36,11 +36,13 @@ public class ConstrainedDecodingAdapter implements ConstrainedDecodingPort {
         String response = syncGoogleGeminiClient.chatSync(constrainedPrompt);
 
         boolean compliant = validate(response, outputContract);
-        complianceTracker.record(compliant);
+        if (outputContract.hasJsonSchema()) {
+            complianceTracker.record(compliant);
 
-        if (!compliant) {
-            log.warn("[ConstrainedDecoding] Schema 미준수 응답 감지: complianceRate={}",
-                    complianceTracker.currentRate());
+            if (!compliant) {
+                log.warn("[ConstrainedDecoding] Schema 미준수 응답 감지: complianceRate={}",
+                        complianceTracker.currentRate());
+            }
         }
 
         return response;

@@ -25,6 +25,9 @@ public final class OutputContractRenderer {
         sb.append("- Do not include explanations, meta commentary, section headers, or system messages in your answer.\n");
         sb.append("- Return exactly one prompt body. Do not append notes, disclaimers, or any extra text before or after it.\n");
         sb.append("- Expected format: ").append(contract.getFormat().name()).append("\n");
+        if (contract.getMaxTokens() != null) {
+            sb.append("- Max tokens: ").append(contract.getMaxTokens()).append("\n");
+        }
 
         if (contract.hasJsonSchema()) {
             sb.append("- Strict JSON Schema (follow exactly):\n");

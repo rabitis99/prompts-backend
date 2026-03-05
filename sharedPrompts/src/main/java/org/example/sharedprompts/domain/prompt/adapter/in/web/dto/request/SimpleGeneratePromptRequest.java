@@ -41,23 +41,16 @@ public record SimpleGeneratePromptRequest(
 
     @Override
     public UnifiedGeneratePromptCommand toCommand(Long userId) {
-        return UnifiedGeneratePromptCommand.of(
+        return UnifiedGeneratePromptCommand.forSimple(
                 userId,
                 category,
                 intent,
                 variant,
                 input,
-                null,          // jsonSchema
-                null,          // engineMode
                 tone,
                 style,
                 language,
                 experience,
-                false,         // disableQualityPipeline
-                null,          // actionType
-                null,          // roleType
-                null,          // coreRole
-                null,          // domainRole
                 tags
         );
     }

@@ -116,5 +116,41 @@ public record UnifiedGeneratePromptCommand(
                 tags
         );
     }
+
+    /**
+     * 단순 프롬프트 생성 요청을 위한 전용 팩토리.
+     */
+    public static UnifiedGeneratePromptCommand forSimple(
+            Long userId,
+            PromptCategory category,
+            ActionIntent intent,
+            String variant,
+            String input,
+            ToneType tone,
+            StyleType style,
+            LanguageType language,
+            ExperienceLevel experience,
+            List<String> tags
+    ) {
+        return new UnifiedGeneratePromptCommand(
+                userId,
+                category,
+                intent,
+                variant,
+                input,
+                null,
+                null,
+                tone,
+                style,
+                language,
+                experience,
+                false,
+                null,
+                null,
+                null,
+                null,
+                tags
+        );
+    }
 }
 
