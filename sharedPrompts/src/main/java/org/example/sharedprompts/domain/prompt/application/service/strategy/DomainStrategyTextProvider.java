@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.prompt.application.service.strategy;
 
-import org.example.sharedprompts.domain.prompt.application.service.orchestration.PromptGenerator;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.guideline.rule.GuidelineRule;
 import org.example.sharedprompts.domain.prompt.common.guideline.rule.RuleLevel;
@@ -9,10 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/**
- * 도메인별 메타프롬프트 문단 제공.
- * <p>{@link PromptGenerator}의 도메인 전략·품질 힌트 문단을 분리하여 단일 책임을 갖는다.</p>
- */
 @Component
 public class DomainStrategyTextProvider {
 

@@ -2,6 +2,11 @@ package org.example.sharedprompts.domain.prompt.common.enums.serializer;
 
 import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 /**
  * Compatibility parser for enums that supports both legacy {@link Enum#name()}
  * values and new stable {@link StableKeyedEnum#key()} identifiers.
@@ -14,6 +19,13 @@ import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
  * </ul>
  */
 public final class EnumCompatParser {
+
+    /**
+     * Per-enum-class index from stable key to enum constant.
+     * Built lazily and treated as immutable snapshots for each class.
+     */
+    private static final ConcurrentMap<Class<?>, Map<String, ? extends Enum<?>>> KEY_INDEX =
+            new ConcurrentHashMap<>();
 
     private EnumCompatParser() {
     }
@@ -69,11 +81,22 @@ public final class EnumCompatParser {
 
         // 2) If enum implements StableKeyedEnum, try matching by key
         if (StableKeyedEnum.class.isAssignableFrom(enumClass)) {
-            for (E constant : enumClass.getEnumConstants()) {
-                StableKeyedEnum keyed = (StableKeyedEnum) constant;
-                if (value.equals(keyed.key())) {
-                    return constant;
+            @SuppressWarnings("unchecked")
+            Map<String, E> index = (Map<String, E>) KEY_INDEX.computeIfAbsent(enumClass, cls -> {
+                Map<String, E> map = new HashMap<>();
+                for (E constant : enumClass.getEnumConstants()) {
+                    StableKeyedEnum keyed = (StableKeyedEnum) constant;
+                    String key = keyed.key();
+                    if (key != null) {
+                        map.putIfAbsent(key, constant);
+                    }
                 }
+                return Map.copyOf(map);
+            });
+
+            E matched = index.get(value);
+            if (matched != null) {
+                return matched;
             }
         }
 

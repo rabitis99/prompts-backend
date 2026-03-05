@@ -64,6 +64,11 @@ public class RoutingRuleEngine {
             throw new IllegalArgumentException("rule.id must not be blank");
         }
         Objects.requireNonNull(rule.getCondition(), "rule.condition must not be null");
+        boolean duplicateExists = this.rules.stream()
+                .anyMatch(r -> r.getId().equals(rule.getId()));
+        if (duplicateExists) {
+            log.warn("[RuleEngine] Duplicate rule id registered: {}", rule.getId());
+        }
         this.rules.add(rule);
     }
 
@@ -224,6 +229,11 @@ public class RoutingRuleEngine {
             DomainRoleType domainRoleOverride,
             List<String> appliedRuleIds
     ) {
+
+        public RoutingOverrides {
+            appliedRuleIds = appliedRuleIds != null ? List.copyOf(appliedRuleIds) : Collections.emptyList();
+        }
+
         public static RoutingOverrides empty() {
             return new RoutingOverrides(
                     null,
@@ -235,10 +245,6 @@ public class RoutingRuleEngine {
                     null,
                     Collections.emptyList()
             );
-        }
-
-        public List<String> appliedRuleIds() {
-            return appliedRuleIds != null ? List.copyOf(appliedRuleIds) : Collections.emptyList();
         }
     }
 }

@@ -27,6 +27,9 @@ public final class GuidelineI18nRegistry {
      */
     public void register(String key, I18nText text) {
         if (key == null || key.isBlank()) return;
+        if (text == null) {
+            throw new IllegalArgumentException("I18nText must not be null for key: " + key);
+        }
         if (resources.containsKey(key)) {
             duplicateKeys.add(key);
         }
@@ -63,9 +66,12 @@ public final class GuidelineI18nRegistry {
                 errors.add("Null I18nText for key: " + e.getKey());
                 continue;
             }
-            if (isBlank(t.ko())) errors.add("Missing ko for key: " + e.getKey());
-            if (isBlank(t.en())) errors.add("Missing en for key: " + e.getKey());
-            if (isBlank(t.ja())) errors.add("Missing ja for key: " + e.getKey());
+            for (LanguageType lang : LanguageType.values()) {
+                String value = t.byLang(lang);
+                if (isBlank(value)) {
+                    errors.add("Missing " + lang.name().toLowerCase() + " for key: " + e.getKey());
+                }
+            }
         }
         return Collections.unmodifiableList(errors);
     }

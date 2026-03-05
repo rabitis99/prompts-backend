@@ -11,9 +11,12 @@ import org.example.sharedprompts.domain.prompt.metrics.PromptEngineMetrics;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class OrchestratorThinTest {
 
@@ -46,20 +49,8 @@ class OrchestratorThinTest {
                 List.of("intentDefaults:GENERATE")
         );
 
-        AtomicBoolean decideCalled = new AtomicBoolean(false);
-
-        UnifiedRoutingFacade routingFacade = new UnifiedRoutingFacade(
-                null,
-                null,
-                null,
-                null
-        ) {
-            @Override
-            public RoutingDecision decide(UnifiedGeneratePromptCommand command) {
-                decideCalled.set(true);
-                return routingDecision;
-            }
-        };
+        UnifiedRoutingFacade routingFacade = mock(UnifiedRoutingFacade.class);
+        when(routingFacade.decide(any(UnifiedGeneratePromptCommand.class))).thenReturn(routingDecision);
 
         SchemaContractEvaluator schemaContractEvaluator = new SchemaContractEvaluator();
         PromptEngineMetrics metrics = new PromptEngineMetrics(new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
@@ -95,7 +86,7 @@ class OrchestratorThinTest {
         UnifiedGeneratePromptResult result = orchestrator.generate(command);
 
         // then
-        assertThat(decideCalled.get()).isTrue();
+        verify(routingFacade).decide(any(UnifiedGeneratePromptCommand.class));
         assertThat(result.effectiveEngineMode()).isEqualTo(EngineMode.V2);
         assertThat(result.engineProfile()).isEqualTo(EngineProfile.QUALITY_PIPELINE);
         assertThat(result.appliedRuleIds()).containsExactly("r1");
