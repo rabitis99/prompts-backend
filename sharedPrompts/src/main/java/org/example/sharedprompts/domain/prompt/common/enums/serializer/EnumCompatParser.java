@@ -52,6 +52,9 @@ public final class EnumCompatParser {
         if (enumClass == null) {
             throw new IllegalArgumentException("enumClass must not be null");
         }
+        if (mode == null) {
+            throw new IllegalArgumentException("mode must not be null");
+        }
         if (value == null || value.isBlank()) {
             if (mode == Mode.LENIENT) {
                 return null;

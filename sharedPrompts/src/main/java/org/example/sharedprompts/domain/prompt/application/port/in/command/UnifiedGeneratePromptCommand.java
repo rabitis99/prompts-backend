@@ -34,6 +34,48 @@ public record UnifiedGeneratePromptCommand(
         List<String> tags
 ) {
 
+    public UnifiedGeneratePromptCommand {
+        if (userId == null) {
+            throw new IllegalArgumentException("userId는 null일 수 없습니다.");
+        }
+        if (input == null || input.isBlank()) {
+            throw new IllegalArgumentException("input은 비어있을 수 없습니다.");
+        }
+
+        PromptCategory safeCategory = category != null ? category : PromptCategory.ETC;
+        ActionIntent safeIntent = intent != null ? intent : ActionIntent.GENERATE;
+        EngineMode safeEngineMode = engineMode != null ? engineMode : EngineMode.AUTO;
+
+        ToneType safeTone = tone != null ? tone : ToneType.NEUTRAL;
+        StyleType safeStyle = style != null ? style : StyleType.NARRATIVE;
+        LanguageType safeLanguage = language != null ? language : LanguageType.KOREAN;
+        ExperienceLevel safeExperience = experience != null ? experience : ExperienceLevel.INTERMEDIATE;
+
+        if (disableQualityPipeline) {
+            throw new IllegalArgumentException(
+                    "disable_quality_pipeline 옵션은 현재 준비 중입니다. Verify/Repair 파이프라인 비활성화는 추후 지원 예정입니다.");
+        }
+
+        List<String> safeTags;
+        if (tags == null) {
+            safeTags = List.of();
+        } else {
+            if (tags.stream().anyMatch(Objects::isNull)) {
+                throw new IllegalArgumentException("tags에는 null 값을 포함할 수 없습니다.");
+            }
+            safeTags = List.copyOf(tags);
+        }
+
+        category = safeCategory;
+        intent = safeIntent;
+        engineMode = safeEngineMode;
+        tone = safeTone;
+        style = safeStyle;
+        language = safeLanguage;
+        experience = safeExperience;
+        tags = safeTags;
+    }
+
     public static UnifiedGeneratePromptCommand of(
             Long userId,
             PromptCategory category,
@@ -53,55 +95,24 @@ public record UnifiedGeneratePromptCommand(
             DomainRoleType domainRole,
             List<String> tags
     ) {
-        if (userId == null) {
-            throw new IllegalArgumentException("userId는 null일 수 없습니다.");
-        }
-        if (input == null || input.isBlank()) {
-            throw new IllegalArgumentException("input은 비어있을 수 없습니다.");
-        }
-
-        PromptCategory safeCategory = category != null ? category : PromptCategory.ETC;
-        ActionIntent safeIntent = intent != null ? intent : ActionIntent.GENERATE;
-        EngineMode safeEngineMode = engineMode != null ? engineMode : EngineMode.AUTO;
-
-        ToneType safeTone = tone != null ? tone : ToneType.NEUTRAL;
-        StyleType safeStyle = style != null ? style : StyleType.NARRATIVE;
-        LanguageType safeLanguage = language != null ? language : LanguageType.KOREAN;
-        ExperienceLevel safeExperience = experience != null ? experience : ExperienceLevel.INTERMEDIATE;
-
-        if (disableQualityPipeline != null && disableQualityPipeline) {
-            throw new IllegalArgumentException(
-                    "disable_quality_pipeline 옵션은 현재 준비 중입니다. Verify/Repair 파이프라인 비활성화는 추후 지원 예정입니다.");
-        }
-
-        List<String> safeTags;
-        if (tags == null) {
-            safeTags = List.of();
-        } else {
-            if (tags.stream().anyMatch(Objects::isNull)) {
-                throw new IllegalArgumentException("tags에는 null 값을 포함할 수 없습니다.");
-            }
-            safeTags = List.copyOf(tags);
-        }
-
         return new UnifiedGeneratePromptCommand(
                 userId,
-                safeCategory,
-                safeIntent,
+                category,
+                intent,
                 variant,
                 input,
                 jsonSchema,
-                safeEngineMode,
-                safeTone,
-                safeStyle,
-                safeLanguage,
-                safeExperience,
-                false,
+                engineMode,
+                tone,
+                style,
+                language,
+                experience,
+                disableQualityPipeline != null && disableQualityPipeline,
                 actionType,
                 roleType,
                 coreRole,
                 domainRole,
-                safeTags
+                tags
         );
     }
 }

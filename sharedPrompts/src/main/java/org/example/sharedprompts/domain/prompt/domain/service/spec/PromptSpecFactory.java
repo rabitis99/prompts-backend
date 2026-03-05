@@ -20,6 +20,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInt
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.guideline.bundle.GuidelineBundle;
 import org.example.sharedprompts.domain.prompt.common.guideline.bundle.GuidelineBundleBuilder;
+import org.example.sharedprompts.domain.prompt.common.guideline.context.RuleContext;
 import org.example.sharedprompts.domain.prompt.common.guideline.rule.GuidelineRule;
 
 import java.util.ArrayList;
@@ -85,8 +86,19 @@ public class PromptSpecFactory {
 
         Constraints constraints = profile.constraints(level);
         OutputContract outputContract = profile.outputContract(jsonSchema, constraints.getMaxLength());
-        List<PromptSection> sections = buildSections(profile, null, effectiveTaskDomain, locale);
-        PromptStrategyBundle bundle = strategyBundlePolicy.resolveBundle(objective, false);
+
+        RuleContext ruleContext = RuleContext.of(
+                effectiveTaskDomain,
+                profile.objective().name(),
+                null,
+                profile.supportsConstrainedDecoding(),
+                outputContract.hasJsonSchema(),
+                rawInput
+        );
+
+        List<PromptSection> sections = buildSections(profile, null, effectiveTaskDomain, locale, ruleContext);
+        boolean experimentalEnabled = false; // V3 경로에서는 실험 번들을 사용하지 않는다.
+        PromptStrategyBundle bundle = strategyBundlePolicy.resolveBundle(objective, experimentalEnabled);
 
         return PromptSpec.builder()
                 .objective(objective)
@@ -198,7 +210,17 @@ public class PromptSpecFactory {
                 prohibitedKeywords
         );
         OutputContract outputContract = profile.outputContract(jsonSchema, constraints.getMaxLength());
-        List<PromptSection> sections = buildSections(profile, role, effectiveTaskDomain, locale);
+
+        RuleContext ruleContext = RuleContext.of(
+                effectiveTaskDomain,
+                profile.objective().name(),
+                actionType,
+                profile.supportsConstrainedDecoding(),
+                outputContract.hasJsonSchema(),
+                rawInput
+        );
+
+        List<PromptSection> sections = buildSections(profile, role, effectiveTaskDomain, locale, ruleContext);
         PromptStrategyBundle bundle = strategyBundlePolicy.resolveBundle(objective, experimentalEnabled);
 
         return PromptSpec.builder()
@@ -248,7 +270,8 @@ public class PromptSpecFactory {
             ObjectiveProfile profile,
             RoleTypeInterface role,
             TaskDomain taskDomain,
-            LanguageType locale
+            LanguageType locale,
+            RuleContext ruleContext
     ) {
         List<PromptSection> sections = new ArrayList<>();
 
@@ -264,7 +287,7 @@ public class PromptSpecFactory {
         }
 
         // 2) Checklist 섹션 — 단일 GuidelineBundle (규칙 중복 제거, 토큰 예산 적용)
-        GuidelineBundle bundle = guidelineBundleBuilder.build(taskDomain);
+        GuidelineBundle bundle = guidelineBundleBuilder.build(taskDomain, ruleContext);
         StringBuilder checklistBuilder = new StringBuilder();
         appendGuidelineRules(checklistBuilder, bundle.hardRules(), locale);
         appendGuidelineRules(checklistBuilder, bundle.softRules(), locale);

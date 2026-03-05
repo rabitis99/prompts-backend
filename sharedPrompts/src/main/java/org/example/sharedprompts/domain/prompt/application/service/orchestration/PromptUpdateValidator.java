@@ -22,6 +22,7 @@ public class PromptUpdateValidator {
     private static final int DESCRIPTION_MAX_LENGTH = 5000;
     private static final int TAG_MIN_LENGTH = 1;
     private static final int TAG_MAX_LENGTH = 50;
+    private static final int MAX_TAG_COUNT = 20;
 
     /**
      * DTO를 검증하고 정규화한 새 DTO를 반환합니다.
@@ -79,6 +80,10 @@ public class PromptUpdateValidator {
 
     private void validateTags(List<String> tags) {
         if (tags == null) return;
+        if (tags.size() > MAX_TAG_COUNT) {
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE,
+                    "태그는 최대 " + MAX_TAG_COUNT + "개까지 입력해주세요.");
+        }
         for (String tag : tags) {
             if (tag == null || tag.length() < TAG_MIN_LENGTH || tag.length() > TAG_MAX_LENGTH) {
                 throw new ApiException(ErrorCode.INVALID_INPUT_VALUE,

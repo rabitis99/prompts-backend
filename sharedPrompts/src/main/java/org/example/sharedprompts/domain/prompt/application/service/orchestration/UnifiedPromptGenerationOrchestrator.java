@@ -93,8 +93,8 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
         return new GeneratePromptCommand(
                 command.userId(),
                 syntheticTitle,
-                null,
-                isPublic,
+                null,           // description
+                isPublic,       // isPublic
                 command.category(),
                 command.tags(),
                 command.input(),
@@ -104,7 +104,7 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
                 command.style(),
                 command.language(),
                 command.experience(),
-                false,
+                false,          // useStructuredOutput
                 command.jsonSchema()
         );
     }

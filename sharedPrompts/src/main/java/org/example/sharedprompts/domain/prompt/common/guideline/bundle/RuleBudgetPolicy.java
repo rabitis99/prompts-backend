@@ -8,6 +8,7 @@ import org.example.sharedprompts.domain.prompt.common.guideline.rule.RuleType;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 @Getter
 public final class RuleBudgetPolicy {
 
@@ -36,7 +37,10 @@ public final class RuleBudgetPolicy {
         Comparator<GuidelineRule> byPriority =
                 Comparator.comparingInt(RuleBudgetPolicy::priorityRank);
 
-        List<GuidelineRule> sorted = rules.stream().sorted(byPriority).toList();
+        List<GuidelineRule> sorted = rules.stream()
+                .filter(Objects::nonNull)
+                .sorted(byPriority)
+                .toList();
         List<GuidelineRule> selected = new ArrayList<>();
         int totalChars = 0;
 
@@ -52,11 +56,18 @@ public final class RuleBudgetPolicy {
 
     private static int estimateLength(GuidelineRule rule) {
         if (rule == null) return 0;
-        String d = rule.description() != null ? rule.description().en() : "";
-        return (rule.id() != null ? rule.id().length() : 0) + (d != null ? d.length() : 0);
+        int idLen = rule.id() != null ? rule.id().length() : 0;
+        if (rule.description() == null) return idLen;
+
+        int koLen = rule.description().ko() != null ? rule.description().ko().length() : 0;
+        int enLen = rule.description().en() != null ? rule.description().en().length() : 0;
+        int jaLen = rule.description().ja() != null ? rule.description().ja().length() : 0;
+        int descLen = Math.max(koLen, Math.max(enLen, jaLen));
+        return idLen + descLen;
     }
 
     private static int priorityRank(GuidelineRule rule) {
+        if (rule == null) return 4;
         if (rule.level() == RuleLevel.HARD && rule.type() == RuleType.FORBID) return 0;
         if (rule.level() == RuleLevel.HARD && rule.type() == RuleType.REQUIRE) return 1;
         if (rule.level() == RuleLevel.SOFT && rule.type() == RuleType.REQUIRE) return 2;

@@ -71,19 +71,20 @@ class OrchestratorThinTest {
                 1L,
                 PromptCategory.ETC,
                 ActionIntent.GENERATE,
-                null,
+                null,           // variant
                 "input",
-                null,
+                null,           // jsonSchema
                 EngineMode.AUTO,
                 ToneType.NEUTRAL,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
+                null,           // style
+                null,           // language
+                null,           // experience
+                null,           // disableQualityPipeline
+                null,           // actionType
+                null,           // roleType
+                null,           // coreRole
+                null,           // domainRole
+                null            // tags
         );
 
         // when

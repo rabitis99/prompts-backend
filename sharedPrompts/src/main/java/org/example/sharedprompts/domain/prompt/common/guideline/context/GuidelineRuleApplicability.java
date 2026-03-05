@@ -11,7 +11,7 @@ public interface GuidelineRuleApplicability {
 
     static GuidelineRuleApplicability defaultApplicability() {
         return (rule, ctx) -> {
-            if (rule == null || rule.id() == null) return true;
+            if (rule == null || rule.id() == null || ctx == null) return true;
             String id = rule.id().toUpperCase(Locale.ROOT);
             boolean isCreativeAnti = id.contains("CREATIVE.ANTI") || id.contains("NO_FORCED_");
             if (!isCreativeAnti) return true;

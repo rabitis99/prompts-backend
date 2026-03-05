@@ -13,14 +13,14 @@ public record GuidelineVerificationResult(
     }
 
     public static GuidelineVerificationResult pass(List<GuidelineViolation> warnings) {
-        return new GuidelineVerificationResult(true, List.of(), warnings != null ? List.copyOf(warnings) : List.of());
+        return new GuidelineVerificationResult(true, List.of(), warnings);
     }
 
     public static GuidelineVerificationResult fail(List<GuidelineViolation> failures, List<GuidelineViolation> warnings) {
         return new GuidelineVerificationResult(
                 false,
-                failures != null ? List.copyOf(failures) : List.of(),
-                warnings != null ? List.copyOf(warnings) : List.of()
+                failures,
+                warnings
         );
     }
 

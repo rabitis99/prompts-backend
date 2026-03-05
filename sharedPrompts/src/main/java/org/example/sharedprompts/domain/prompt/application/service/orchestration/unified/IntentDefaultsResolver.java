@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.prompt.application.service.orchestration.unified;
 
-import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.EngineProfile;
@@ -19,7 +18,6 @@ import java.util.Optional;
  * <p>if-else 분기를 최소화하고 {@link ActionIntent} 에 정의된 메타데이터만을 사용한다.</p>
  */
 @Component
-@RequiredArgsConstructor
 public class IntentDefaultsResolver {
 
     public IntentDefaults resolve(UnifiedGeneratePromptCommand command) {

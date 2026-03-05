@@ -15,6 +15,9 @@ import java.util.List;
 public class SchemaContractEvaluator {
 
     public SchemaContractEvaluation evaluate(GeneratePromptResult result) {
+        if (result == null) {
+            return new SchemaContractEvaluation(true, List.of("GeneratePromptResult is null"));
+        }
         boolean failed = !result.formatValid();
         List<String> reasons = failed
                 ? List.of("FORMAT_COMPLIANCE (JSON Schema/OutputContract) rubric failed.")

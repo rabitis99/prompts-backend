@@ -5,7 +5,10 @@ import lombok.Getter;
 import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 @Getter
 @AllArgsConstructor
@@ -24,6 +27,15 @@ public enum StudyActionType implements ActionTypeInterface, StableKeyedEnum {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    static {
+        Set<String> keys = new HashSet<>();
+        Arrays.stream(values()).forEach(v -> {
+            if (!keys.add(v.key())) {
+                throw new IllegalStateException("Duplicate stableKey in StudyActionType: " + v.key());
+            }
+        });
+    }
 
     @Override
     public String key() {

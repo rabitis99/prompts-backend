@@ -8,7 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.prompt.common.enums.EngineMode;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,12 +31,17 @@ public class PromptEngineMetrics {
     );
 
     private final MeterRegistry meterRegistry;
+    private final Map<EngineMode, Counter> successCounters = new ConcurrentHashMap<>();
+    private final Map<EngineMode, Timer> latencyTimers = new ConcurrentHashMap<>();
+    private final Map<EngineMode, Counter> verifyFailureCounters = new ConcurrentHashMap<>();
+    private final Map<EngineMode, Counter> schemaFailureCounters = new ConcurrentHashMap<>();
 
     private Counter successCounter(EngineMode effectiveMode) {
-        return Counter.builder("prompt.generate.success")
-                .tag("engine_mode", effectiveMode.name())
-                .description("프롬프트 생성 성공 횟수")
-                .register(meterRegistry);
+        return successCounters.computeIfAbsent(effectiveMode, mode ->
+                Counter.builder("prompt.generate.success")
+                        .tag("engine_mode", mode.name())
+                        .description("프롬프트 생성 성공 횟수")
+                        .register(meterRegistry));
     }
 
     private Counter failureCounter(String reason, EngineMode effectiveMode) {
@@ -45,16 +52,20 @@ public class PromptEngineMetrics {
                 .register(meterRegistry);
     }
 
-    private Counter schemaContractFailureCounter() {
-        return Counter.builder("prompt.generate.schema_contract_fail")
-                .description("JSON 스키마 계약 실패 횟수")
-                .register(meterRegistry);
+    private Counter schemaContractFailureCounter(EngineMode effectiveMode) {
+        return schemaFailureCounters.computeIfAbsent(effectiveMode, mode ->
+                Counter.builder("prompt.generate.schema_contract_fail")
+                        .tag("engine_mode", mode.name())
+                        .description("JSON 스키마 계약 실패 횟수")
+                        .register(meterRegistry));
     }
 
-    private Counter verifyFailureCounter() {
-        return Counter.builder("prompt.generate.verify_fail")
-                .description("검증 실패 횟수")
-                .register(meterRegistry);
+    private Counter verifyFailureCounter(EngineMode effectiveMode) {
+        return verifyFailureCounters.computeIfAbsent(effectiveMode, mode ->
+                Counter.builder("prompt.generate.verify_fail")
+                        .tag("engine_mode", mode.name())
+                        .description("검증 실패 횟수")
+                        .register(meterRegistry));
     }
 
     private DistributionSummary repairCountSummary() {
@@ -64,10 +75,11 @@ public class PromptEngineMetrics {
     }
 
     private Timer latencyTimer(EngineMode effectiveMode) {
-        return Timer.builder("prompt.generate.latency")
-                .tag("engine_mode", effectiveMode.name())
-                .description("프롬프트 생성 지연 시간")
-                .register(meterRegistry);
+        return latencyTimers.computeIfAbsent(effectiveMode, mode ->
+                Timer.builder("prompt.generate.latency")
+                        .tag("engine_mode", mode.name())
+                        .description("프롬프트 생성 지연 시간")
+                        .register(meterRegistry));
     }
 
     public void recordSuccess(EngineMode effectiveMode, long latencyMs, int repairCount, boolean verifyPassed, boolean schemaContractFailed) {
@@ -75,10 +87,10 @@ public class PromptEngineMetrics {
         latencyTimer(effectiveMode).record(latencyMs, TimeUnit.MILLISECONDS);
         repairCountSummary().record(repairCount);
         if (!verifyPassed) {
-            verifyFailureCounter().increment();
+            verifyFailureCounter(effectiveMode).increment();
         }
         if (schemaContractFailed) {
-            schemaContractFailureCounter().increment();
+            schemaContractFailureCounter(effectiveMode).increment();
         }
     }
 

@@ -94,8 +94,8 @@ public final class ActionTypeBehaviorRegistry {
             return OutputBehaviorType.GENERAL_CONSULTATION;
         }
 
-        // 매핑 누락 시 보수적 기본값
-        return OutputBehaviorType.GENERAL_CONSULTATION;
+        throw new IllegalArgumentException(
+                "Unmapped ActionTypeInterface: " + actionType.getClass().getName());
     }
 }
 

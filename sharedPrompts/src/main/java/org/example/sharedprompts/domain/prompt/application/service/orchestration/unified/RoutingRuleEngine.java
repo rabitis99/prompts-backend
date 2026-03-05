@@ -20,6 +20,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * RuleTable 기반 라우팅 예외/override 엔진.
@@ -30,7 +31,7 @@ import java.util.Optional;
 @Component
 public class RoutingRuleEngine {
 
-    private final List<RoutingRule> rules = new ArrayList<>();
+    private final List<RoutingRule> rules = new CopyOnWriteArrayList<>();
 
     /**
      * 기본 생성자 – 운영 환경에서는 별도 룰이 없다.
