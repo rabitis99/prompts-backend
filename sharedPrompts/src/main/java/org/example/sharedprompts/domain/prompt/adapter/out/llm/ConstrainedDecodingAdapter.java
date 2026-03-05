@@ -10,6 +10,8 @@ import org.example.sharedprompts.domain.prompt.adapter.out.llm.monitoring.Compli
 import org.example.sharedprompts.global.google.gemini.SyncGoogleGeminiClient;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 /**
  * Constrained Decoding 어댑터 — 현재는 JSON 형식 강제를 프롬프트 레벨에서 구현한 스텁.
  *
@@ -30,6 +32,7 @@ public class ConstrainedDecodingAdapter implements ConstrainedDecodingPort {
 
     @Override
     public String generateConstrained(String prompt, OutputContract outputContract) {
+        Objects.requireNonNull(outputContract, "outputContract must not be null");
         String constrainedPrompt = constrainedPromptBuilder.build(prompt, outputContract);
         log.debug("[ConstrainedDecoding] JSON 강제 프롬프트 생성: format={}", outputContract.getFormat());
 
@@ -50,6 +53,7 @@ public class ConstrainedDecodingAdapter implements ConstrainedDecodingPort {
 
     @Override
     public boolean validate(String output, OutputContract outputContract) {
+        Objects.requireNonNull(outputContract, "outputContract must not be null");
         if (output == null || output.isBlank()) return false;
         if (!outputContract.hasJsonSchema()) return true;
 

@@ -15,9 +15,11 @@ public class JsonSchemaConstrainedPromptBuilder implements ConstrainedPromptBuil
             return prompt;
         }
 
+        String safeSchema = contract.getJsonSchema().replace("```", "\\`\\`\\`");
+
         return prompt + "\n\n"
                 + "IMPORTANT: You MUST respond with valid JSON only. No explanation, no markdown.\n"
-                + "JSON Schema:\n```json\n" + contract.getJsonSchema() + "\n```\n"
+                + "JSON Schema:\n```json\n" + safeSchema + "\n```\n"
                 + "Respond with JSON that matches the schema exactly.";
     }
 }

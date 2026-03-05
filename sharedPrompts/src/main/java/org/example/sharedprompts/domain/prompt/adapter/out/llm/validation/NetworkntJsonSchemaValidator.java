@@ -3,6 +3,8 @@ package org.example.sharedprompts.domain.prompt.adapter.out.llm.validation;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
@@ -10,10 +12,8 @@ import com.networknt.schema.ValidationMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -27,7 +27,9 @@ public class NetworkntJsonSchemaValidator implements JsonSchemaValidator {
     private static final JsonSchemaFactory SCHEMA_FACTORY =
             JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
     private static final int MAX_SCHEMA_CACHE_SIZE = 1_000;
-    private static final Map<String, Optional<JsonSchema>> SCHEMA_CACHE = new ConcurrentHashMap<>();
+    private static final Cache<String, Optional<JsonSchema>> SCHEMA_CACHE = Caffeine.newBuilder()
+            .maximumSize(MAX_SCHEMA_CACHE_SIZE)
+            .build();
 
     @Override
     public boolean isValid(String json, String schemaJson) {
@@ -40,11 +42,8 @@ public class NetworkntJsonSchemaValidator implements JsonSchemaValidator {
 
         try {
             JsonNode outputNode = OBJECT_MAPPER.readTree(json);
-            if (SCHEMA_CACHE.size() >= MAX_SCHEMA_CACHE_SIZE) {
-                SCHEMA_CACHE.clear();
-            }
 
-            Optional<JsonSchema> schemaOpt = SCHEMA_CACHE.computeIfAbsent(schemaJson, key -> {
+            Optional<JsonSchema> schemaOpt = SCHEMA_CACHE.get(schemaJson, key -> {
                 try {
                     JsonNode schemaNode = OBJECT_MAPPER.readTree(key);
                     return Optional.of(SCHEMA_FACTORY.getSchema(schemaNode));

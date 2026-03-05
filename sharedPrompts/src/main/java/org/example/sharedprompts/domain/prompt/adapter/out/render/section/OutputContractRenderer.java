@@ -31,8 +31,9 @@ public final class OutputContractRenderer {
 
         if (contract.hasJsonSchema()) {
             sb.append("- Strict JSON Schema (follow exactly):\n");
+            String safeSchema = contract.getJsonSchema().replace("```", "\\`\\`\\`");
             sb.append("```json\n")
-                    .append(contract.getJsonSchema())
+                    .append(safeSchema)
                     .append("\n```\n");
         }
 

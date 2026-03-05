@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.prompt.domain.value.strategy.PromptingSt
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -28,6 +29,7 @@ public final class PromptSpecRenderHelper {
         }
 
         return strategies.stream()
+                .filter(Objects::nonNull)
                 .sorted(Comparator.comparing(Enum::name))
                 .map(s -> "- **" + s.name() + "** [" + s.getTier() + "]: " + describeStrategy(s))
                 .collect(Collectors.joining("\n", "", "\n"));
@@ -43,7 +45,7 @@ public final class PromptSpecRenderHelper {
 
         StringBuilder sb = new StringBuilder();
         for (PromptSection section : sections) {
-            if (section == null) {
+            if (section == null || section.getType() == null) {
                 continue;
             }
             String content = section.getContent();

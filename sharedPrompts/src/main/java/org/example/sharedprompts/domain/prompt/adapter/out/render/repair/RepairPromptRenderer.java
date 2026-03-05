@@ -45,7 +45,7 @@ public class RepairPromptRenderer {
         // Repair 단계 전용 엄격 검증 알림
         sb.append("[VALIDATION]\n");
         sb.append("- Ensure the final answer strictly satisfies all constraints and the output format.\n");
-        sb.append("- Preserve all correct and constraint‑satisfying parts of the original draft verbatim whenever possible.\n");
+        sb.append("- Preserve all correct and constraint-satisfying parts of the original draft verbatim whenever possible.\n");
         sb.append("- Modify only the parts that are necessary to satisfy the constraints, failure hints, and output format; avoid rewriting the entire draft.\n");
         sb.append("- If failure hints are empty, apply only the minimal modifications required by the constraints or output format.\n");
         sb.append("- If failure hints are provided, fix those failures with the smallest possible edits while preserving already-correct parts.\n");

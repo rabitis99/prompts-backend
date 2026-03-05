@@ -13,6 +13,9 @@ import java.util.concurrent.atomic.AtomicReference;
 @Component
 public class EmaComplianceTracker implements ComplianceTracker {
 
+    private static final double BREACH_THRESHOLD = 0.90;
+    private static final double RECOVERY_THRESHOLD = 0.92;
+
     private final AtomicReference<Double> complianceRate = new AtomicReference<>(1.0);
     private final AtomicBoolean thresholdBreached = new AtomicBoolean(false);
 
@@ -20,10 +23,10 @@ public class EmaComplianceTracker implements ComplianceTracker {
     public void record(boolean compliant) {
         double current = complianceRate.updateAndGet(
                 rate -> 0.95 * rate + 0.05 * (compliant ? 1.0 : 0.0));
-        if (current < 0.9 && thresholdBreached.compareAndSet(false, true)) {
+        if (current < BREACH_THRESHOLD && thresholdBreached.compareAndSet(false, true)) {
             log.error("[ConstrainedDecoding] compliance rate 임계값 위반: rate={}. 대체 adapter 검토 필요",
                     current);
-        } else if (current >= 0.9) {
+        } else if (current >= RECOVERY_THRESHOLD) {
             thresholdBreached.set(false);
         }
     }
