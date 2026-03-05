@@ -48,7 +48,7 @@ public class RateLimitRuleConfig {
                 HttpMethod.POST,
                 createConfirmRule()
         ));
-        matchers.add(new ExactPathMatcher(
+        matchers.add(new PrefixPathMatcher(
                 ApiPaths.PROMPTS,
                 HttpMethod.POST,
                 createPromptCreateRule()

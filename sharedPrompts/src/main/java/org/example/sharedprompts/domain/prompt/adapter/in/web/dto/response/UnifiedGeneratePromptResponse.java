@@ -19,66 +19,37 @@ import java.util.List;
  */
 public record UnifiedGeneratePromptResponse(
 
-        /**
-         * 최종 생성된 출력.
-         */
         String output,
 
-        /**
-         * 사용자가 요청한 엔진 모드.
-         */
         @JsonProperty("requested_engine_mode")
         EngineMode requestedEngineMode,
 
-        /**
-         * 규칙 기반 라우팅 후 실제 사용된 엔진 모드.
-         */
         @JsonProperty("effective_engine_mode")
         EngineMode effectiveEngineMode,
 
-        /**
-         * 내부 의미 기반 엔진 프로파일.
-         */
         @JsonProperty("engine_profile")
         EngineProfile engineProfile,
 
-        /**
-         * 해석된 상위 도메인.
-         */
         @JsonProperty("resolved_domain")
         TaskDomain resolvedDomain,
 
-        /**
-         * 상위 목적/Objective.
-         */
         PromptObjective objective,
 
-        /**
-         * 출력 형식 요구사항.
-         */
+        @JsonProperty("output_needs")
         OutputNeeds outputNeeds,
 
-        /**
-         * 상위 Intent 및 variant.
-         */
         ActionIntent intent,
         String variant,
 
-        /**
-         * V3 역할 메타.
-         */
+        @JsonProperty("core_role")
         CoreRoleType coreRole,
+
+        @JsonProperty("domain_role")
         DomainRoleType domainRole,
 
-        /**
-         * 품질 배지.
-         */
         @JsonProperty("quality_badges")
         List<BadgeDto> qualityBadges,
 
-        /**
-         * 검증/수정 요약.
-         */
         @JsonProperty("verify_passed")
         boolean verifyPassed,
 
@@ -88,24 +59,15 @@ public record UnifiedGeneratePromptResponse(
         @JsonProperty("finally_passed")
         boolean finallyPassed,
 
-        /**
-         * 스키마/계약 위반 여부 및 이유.
-         */
         @JsonProperty("schema_contract_failed")
         boolean schemaContractFailed,
 
         @JsonProperty("schema_failure_reasons")
         List<String> schemaFailureReasons,
 
-        /**
-         * 실제 적용된 Rule 식별자 목록.
-         */
         @JsonProperty("applied_rule_ids")
         List<String> appliedRuleIds,
 
-        /**
-         * Routing/AUTO/강제/override 사유.
-         */
         @JsonProperty("routing_reasons")
         List<String> routingReasons
 ) {

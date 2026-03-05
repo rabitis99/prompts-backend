@@ -112,6 +112,9 @@ dependencies {
 	// JSON Schema Validator (includes security fixes; requires JDK 17+)
 	implementation "com.networknt:json-schema-validator:1.5.9"
 
+	// Bounded in-memory cache for JSON Schemas
+	implementation 'com.github.ben-manes.caffeine:caffeine'
+
 	// Testing
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
