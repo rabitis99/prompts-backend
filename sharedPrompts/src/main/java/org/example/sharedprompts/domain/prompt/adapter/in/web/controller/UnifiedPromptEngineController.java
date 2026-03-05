@@ -5,12 +5,11 @@ import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.auth.AuthUser;
 import org.example.sharedprompts.domain.auth.CurrentUser;
 import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.request.UnifiedGeneratePromptRequest;
-import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.response.BadgeDto;
 import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.response.UnifiedGeneratePromptResponse;
+import org.example.sharedprompts.domain.prompt.adapter.in.web.mapper.UnifiedPromptResponseMapper;
 import org.example.sharedprompts.domain.prompt.application.port.in.GenerateUnifiedPromptUseCase;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.UnifiedGeneratePromptResult;
-import org.example.sharedprompts.domain.prompt.domain.value.quality.QualityBadge;
 import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import org.example.sharedprompts.global.exception.ApiException;
@@ -25,16 +24,13 @@ import org.springframework.web.context.request.async.WebAsyncTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.concurrent.Callable;
 
 /**
  * 통합 프롬프트 생성 엔진 컨트롤러.
- *
- * <p>외부에는 단일 엔드포인트(/api/prompts/generate)와 단일 DTO만 노출한다.</p>
  */
 @RestController
-@RequestMapping("/api/prompts")
+@RequestMapping("/prompts")
 @RequiredArgsConstructor
 public class UnifiedPromptEngineController {
 
@@ -43,6 +39,7 @@ public class UnifiedPromptEngineController {
     private static final Logger log = LoggerFactory.getLogger(UnifiedPromptEngineController.class);
 
     private final GenerateUnifiedPromptUseCase unifiedPromptUseCase;
+    private final UnifiedPromptResponseMapper responseMapper;
 
     @PostMapping("/generate")
     public WebAsyncTask<ResponseEntity<CustomResponse<UnifiedGeneratePromptResponse>>> generate(
@@ -84,7 +81,7 @@ public class UnifiedPromptEngineController {
         Callable<ResponseEntity<CustomResponse<UnifiedGeneratePromptResponse>>> callable = () -> {
             try {
                 UnifiedGeneratePromptResult result = unifiedPromptUseCase.generate(command);
-                UnifiedGeneratePromptResponse response = toResponse(result);
+                UnifiedGeneratePromptResponse response = responseMapper.toResponse(result);
                 return CustomResponseHelper.created(response);
             } catch (ApiException ex) {
                 return ResponseEntity.status(ex.getErrorCode().getHttpStatus())
@@ -98,36 +95,4 @@ public class UnifiedPromptEngineController {
         return new WebAsyncTask<>(ASYNC_TIMEOUT_MS, callable);
     }
 
-    private UnifiedGeneratePromptResponse toResponse(UnifiedGeneratePromptResult result) {
-        List<BadgeDto> badgeDtos = result.qualityBadges().stream()
-                .map(this::toBadgeDto)
-                .toList();
-
-        return new UnifiedGeneratePromptResponse(
-                result.output(),
-                result.requestedEngineMode(),
-                result.effectiveEngineMode(),
-                result.engineProfile(),
-                result.resolvedDomain(),
-                result.objective(),
-                result.outputNeeds(),
-                result.intent(),
-                result.variant(),
-                result.coreRole(),
-                result.domainRole(),
-                badgeDtos,
-                result.verifyPassed(),
-                result.repairCount(),
-                result.finallyPassed(),
-                result.schemaContractFailed(),
-                result.schemaFailureReasons(),
-                result.appliedRuleIds(),
-                result.routingReasons()
-        );
-    }
-
-    private BadgeDto toBadgeDto(QualityBadge badge) {
-        return new BadgeDto(badge.name(), badge.getDisplayName());
-    }
 }
-
