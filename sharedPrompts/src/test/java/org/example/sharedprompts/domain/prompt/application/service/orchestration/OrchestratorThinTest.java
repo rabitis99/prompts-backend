@@ -11,6 +11,7 @@ import org.example.sharedprompts.domain.prompt.metrics.PromptEngineMetrics;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,7 +25,7 @@ class OrchestratorThinTest {
                 command.title(),
                 "output",
                 List.of(),
-                org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective.CREATIVE,
+                org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective.CREATIVE_WITH_CONSTRAINTS,
                 true,  // formatValid
                 true,
                 0,
@@ -45,6 +46,8 @@ class OrchestratorThinTest {
                 List.of("intentDefaults:GENERATE")
         );
 
+        AtomicBoolean decideCalled = new AtomicBoolean(false);
+
         UnifiedRoutingFacade routingFacade = new UnifiedRoutingFacade(
                 null,
                 null,
@@ -53,6 +56,7 @@ class OrchestratorThinTest {
         ) {
             @Override
             public RoutingDecision decide(UnifiedGeneratePromptCommand command) {
+                decideCalled.set(true);
                 return routingDecision;
             }
         };
@@ -91,6 +95,7 @@ class OrchestratorThinTest {
         UnifiedGeneratePromptResult result = orchestrator.generate(command);
 
         // then
+        assertThat(decideCalled.get()).isTrue();
         assertThat(result.effectiveEngineMode()).isEqualTo(EngineMode.V2);
         assertThat(result.engineProfile()).isEqualTo(EngineProfile.QUALITY_PIPELINE);
         assertThat(result.appliedRuleIds()).containsExactly("r1");

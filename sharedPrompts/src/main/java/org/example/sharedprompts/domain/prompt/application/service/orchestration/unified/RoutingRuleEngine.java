@@ -42,19 +42,29 @@ public class RoutingRuleEngine {
 
     /**
      * 테스트/설정 주입용 생성자.
+     * <p>초기 룰도 {@link #registerRule(RoutingRule)} 검증 경로를 거쳐 무효 룰으로 인한 NPE를 방지한다.</p>
      */
     public RoutingRuleEngine(List<RoutingRule> initialRules) {
         if (initialRules != null) {
-            this.rules.addAll(initialRules);
+            initialRules.forEach(this::registerRule);
         }
     }
 
     /**
      * 추후 설정/관리자를 통해 룰을 등록하기 위한 진입점.
      * <p>현재 코드는 운영 경로에서는 사용하지 않고 테스트에서만 사용한다.</p>
+     *
+     * @param rule 등록할 룰 (null 불가, id·condition 필수)
+     * @throws NullPointerException     rule 또는 rule.condition이 null인 경우
+     * @throws IllegalArgumentException rule.id가 null이거나 blank인 경우
      */
     public void registerRule(RoutingRule rule) {
-        this.rules.add(Objects.requireNonNull(rule));
+        Objects.requireNonNull(rule, "rule must not be null");
+        if (rule.getId() == null || rule.getId().isBlank()) {
+            throw new IllegalArgumentException("rule.id must not be blank");
+        }
+        Objects.requireNonNull(rule.getCondition(), "rule.condition must not be null");
+        this.rules.add(rule);
     }
 
     public RoutingOverrides apply(UnifiedGeneratePromptCommand command, IntentDefaults defaults) {

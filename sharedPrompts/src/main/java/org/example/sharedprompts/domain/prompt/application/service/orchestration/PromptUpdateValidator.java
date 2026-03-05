@@ -85,7 +85,7 @@ public class PromptUpdateValidator {
                     "태그는 최대 " + MAX_TAG_COUNT + "개까지 입력해주세요.");
         }
         for (String tag : tags) {
-            if (tag == null || tag.length() < TAG_MIN_LENGTH || tag.length() > TAG_MAX_LENGTH) {
+            if (tag.length() < TAG_MIN_LENGTH || tag.length() > TAG_MAX_LENGTH) {
                 throw new ApiException(ErrorCode.INVALID_INPUT_VALUE,
                         "태그는 " + TAG_MIN_LENGTH + "~" + TAG_MAX_LENGTH + "자로 입력해주세요.");
             }

@@ -5,6 +5,8 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInt
 import org.example.sharedprompts.domain.prompt.common.enums.role.CoreRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.DomainRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
+import org.example.sharedprompts.global.exception.ApiException;
+import org.example.sharedprompts.global.exception.ErrorCode;
 
 import java.util.List;
 import java.util.Objects;
@@ -32,7 +34,7 @@ public record UnifiedGeneratePromptCommand(
         CoreRoleType coreRole,
         DomainRoleType domainRole,
         List<String> tags
-) {
+    ) {
 
     public UnifiedGeneratePromptCommand {
         if (userId == null) {
@@ -52,8 +54,7 @@ public record UnifiedGeneratePromptCommand(
         ExperienceLevel safeExperience = experience != null ? experience : ExperienceLevel.INTERMEDIATE;
 
         if (disableQualityPipeline) {
-            throw new IllegalArgumentException(
-                    "disable_quality_pipeline 옵션은 현재 준비 중입니다. Verify/Repair 파이프라인 비활성화는 추후 지원 예정입니다.");
+            throw new ApiException(ErrorCode.UNSUPPORTED_QUALITY_PIPELINE_OPTION);
         }
 
         List<String> safeTags;

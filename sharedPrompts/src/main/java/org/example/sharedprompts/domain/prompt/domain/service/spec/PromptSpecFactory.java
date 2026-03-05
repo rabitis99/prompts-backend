@@ -43,6 +43,11 @@ public class PromptSpecFactory {
     private final ObjectiveResolverPort objectiveResolver;
     private final GuidelineBundleBuilder guidelineBundleBuilder;
 
+    /**
+     * 레거시/테스트 호환용 생성자.
+     * 런타임 DI에서는 GuidelineBundleBuilder를 명시 주입하는 4-arg 생성자를 사용하세요.
+     */
+    @Deprecated(forRemoval = true)
     public PromptSpecFactory(ObjectiveRegistry objectiveRegistry,
                              StrategyBundlePolicy strategyBundlePolicy,
                              ObjectiveResolverPort objectiveResolver) {

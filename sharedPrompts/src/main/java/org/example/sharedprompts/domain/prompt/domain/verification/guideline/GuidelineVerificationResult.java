@@ -10,6 +10,7 @@ public record GuidelineVerificationResult(
     public GuidelineVerificationResult {
         failures = failures == null ? List.of() : List.copyOf(failures);
         warnings = warnings == null ? List.of() : List.copyOf(warnings);
+        passed = failures.isEmpty();
     }
 
     public static GuidelineVerificationResult pass(List<GuidelineViolation> warnings) {

@@ -47,7 +47,6 @@ public final class EnumCompatParser {
      * @param mode      strictness mode for unknown values
      * @return resolved enum constant, or null in lenient mode when not found
      */
-    @SuppressWarnings("unchecked")
     public static <E extends Enum<E>> E parse(String value, Class<E> enumClass, Mode mode) {
         if (enumClass == null) {
             throw new IllegalArgumentException("enumClass must not be null");

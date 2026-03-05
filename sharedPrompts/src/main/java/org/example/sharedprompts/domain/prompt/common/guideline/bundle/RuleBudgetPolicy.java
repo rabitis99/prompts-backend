@@ -29,7 +29,10 @@ public final class RuleBudgetPolicy {
 
     /**
      * Select rules up to maxRules and maxCharacters, ordered by importance.
-     * Priority: HARD+FORBID > HARD+REQUIRE > SOFT+REQUIRE > SOFT+ALLOW.
+     * Priority: HARD+FORBID > HARD+REQUIRE > SOFT+FORBID > SOFT+REQUIRE > SOFT+ALLOW (others are lowest).
+     * <p>
+     * 예산 초과 시 해당 규칙은 건너뛰고(continue) 다음 규칙을 시도하는
+     * greedy 전략을 사용하므로, 더 짧은 저우선순위 규칙이 일부 포함될 수 있습니다.
      */
     public List<GuidelineRule> selectRules(List<GuidelineRule> rules) {
         if (rules == null || rules.isEmpty()) return List.of();
@@ -67,11 +70,12 @@ public final class RuleBudgetPolicy {
     }
 
     private static int priorityRank(GuidelineRule rule) {
-        if (rule == null) return 4;
+        if (rule == null) return 5;
         if (rule.level() == RuleLevel.HARD && rule.type() == RuleType.FORBID) return 0;
         if (rule.level() == RuleLevel.HARD && rule.type() == RuleType.REQUIRE) return 1;
-        if (rule.level() == RuleLevel.SOFT && rule.type() == RuleType.REQUIRE) return 2;
-        if (rule.level() == RuleLevel.SOFT && rule.type() == RuleType.ALLOW) return 3;
-        return 4;
+        if (rule.level() == RuleLevel.SOFT && rule.type() == RuleType.FORBID) return 2;
+        if (rule.level() == RuleLevel.SOFT && rule.type() == RuleType.REQUIRE) return 3;
+        if (rule.level() == RuleLevel.SOFT && rule.type() == RuleType.ALLOW) return 4;
+        return 5;
     }
 }

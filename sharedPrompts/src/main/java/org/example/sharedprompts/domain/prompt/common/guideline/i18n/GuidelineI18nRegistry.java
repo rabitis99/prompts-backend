@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  * 가이드라인 전용 i18n 레지스트리 (문자열 키 기반).
@@ -33,12 +35,16 @@ public final class GuidelineI18nRegistry {
 
     /**
      * Get text for key and language. Returns key if not found (no framework dependency).
+     * <p>
+     * lang 가 null 인 경우 기본 언어(KOREAN)로 해석합니다.
+     * </p>
      */
     public String get(String key, LanguageType lang) {
         if (key == null || key.isBlank()) return "";
         I18nText text = resources.get(key);
         if (text == null) return key;
-        String resolved = text.byLang(lang);
+        LanguageType effectiveLang = (lang != null) ? lang : LanguageType.KOREAN;
+        String resolved = text.byLang(effectiveLang);
         return isBlank(resolved) ? key : resolved;
     }
 
@@ -48,10 +54,10 @@ public final class GuidelineI18nRegistry {
      */
     public java.util.List<String> validate() {
         java.util.List<String> errors = new java.util.ArrayList<>();
-        for (String key : duplicateKeys) {
+        for (String key : new TreeSet<>(duplicateKeys)) {
             errors.add("Duplicate i18n key: " + key);
         }
-        for (Map.Entry<String, I18nText> e : resources.entrySet()) {
+        for (Map.Entry<String, I18nText> e : new TreeMap<>(resources).entrySet()) {
             I18nText t = e.getValue();
             if (t == null) {
                 errors.add("Null I18nText for key: " + e.getKey());

@@ -55,6 +55,20 @@ class RuleBudgetPolicyTest {
     }
 
     @Test
+    @DisplayName("SOFT+FORBID는 경고가 아닌 실패 규칙이므로 SOFT+REQUIRE보다 우선순위가 높다")
+    void softForbidHasHigherPriorityThanSoftRequire() {
+        RuleBudgetPolicy policy = new RuleBudgetPolicy(10, 10_000);
+        List<GuidelineRule> rules = List.of(
+                rule("S.A", RuleLevel.SOFT, RuleType.ALLOW),
+                rule("S.F", RuleLevel.SOFT, RuleType.FORBID),
+                rule("S.R", RuleLevel.SOFT, RuleType.REQUIRE)
+        );
+        List<GuidelineRule> selected = policy.selectRules(rules);
+        assertThat(selected.stream().map(GuidelineRule::id).toList())
+                .containsExactly("S.F", "S.R", "S.A");
+    }
+
+    @Test
     @DisplayName("빈 목록이면 빈 결과")
     void emptyInputReturnsEmpty() {
         RuleBudgetPolicy policy = new RuleBudgetPolicy(5, 1000);

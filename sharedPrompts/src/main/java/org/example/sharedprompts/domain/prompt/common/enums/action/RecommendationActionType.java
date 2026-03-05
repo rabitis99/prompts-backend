@@ -22,18 +22,19 @@ import java.util.Optional;
 @Getter
 @AllArgsConstructor
 public enum RecommendationActionType implements ActionTypeInterface, StableKeyedEnum {
-    BOOK_RECOMMENDATION("도서 추천", "Book Recommendation", "本の推薦"),
-    MOVIE_RECOMMENDATION("영화 추천", "Movie Recommendation", "映画の推薦"),
-    RESTAURANT_RECOMMENDATION("맛집 추천", "Restaurant Recommendation", "レストラン推薦"),
-    PRODUCT_REVIEW("제품 리뷰", "Product Review", "製品レビュー");
+    BOOK_RECOMMENDATION("ACTION.RECOMMENDATION.BOOK_RECOMMENDATION", "도서 추천", "Book Recommendation", "本の推薦"),
+    MOVIE_RECOMMENDATION("ACTION.RECOMMENDATION.MOVIE_RECOMMENDATION", "영화 추천", "Movie Recommendation", "映画の推薦"),
+    RESTAURANT_RECOMMENDATION("ACTION.RECOMMENDATION.RESTAURANT_RECOMMENDATION", "맛집 추천", "Restaurant Recommendation", "レストラン推薦"),
+    PRODUCT_REVIEW("ACTION.RECOMMENDATION.PRODUCT_REVIEW", "제품 리뷰", "Product Review", "製品レビュー");
 
+    private final String stableKey;
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
 
     @Override
     public String key() {
-        return "ACTION.RECOMMENDATION." + name();
+        return stableKey;
     }
 
     @Override

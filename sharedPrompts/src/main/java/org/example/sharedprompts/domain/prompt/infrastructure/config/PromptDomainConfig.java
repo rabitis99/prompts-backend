@@ -53,15 +53,16 @@ public class PromptDomainConfig {
     }
 
     @Bean
-    public PromptSpecFactory promptSpecFactory(ObjectiveRegistry objectiveRegistry,
-                                               StrategyBundlePolicy strategyBundlePolicy,
-                                               ObjectiveResolverPort objectiveResolver) {
-        return new PromptSpecFactory(objectiveRegistry, strategyBundlePolicy, objectiveResolver);
+    public GuidelineBundleBuilder guidelineBundleBuilder() {
+        return new GuidelineBundleBuilder();
     }
 
     @Bean
-    public GuidelineBundleBuilder guidelineBundleBuilder() {
-        return new GuidelineBundleBuilder();
+    public PromptSpecFactory promptSpecFactory(ObjectiveRegistry objectiveRegistry,
+                                               StrategyBundlePolicy strategyBundlePolicy,
+                                               ObjectiveResolverPort objectiveResolver,
+                                               GuidelineBundleBuilder guidelineBundleBuilder) {
+        return new PromptSpecFactory(objectiveRegistry, strategyBundlePolicy, objectiveResolver, guidelineBundleBuilder);
     }
 
     @Bean
