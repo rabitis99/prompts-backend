@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.prompt.domain.verification.guideline;
 
-import java.util.Collections;
 import java.util.List;
 
 public record GuidelineVerificationResult(
@@ -8,6 +7,11 @@ public record GuidelineVerificationResult(
         List<GuidelineViolation> failures,
         List<GuidelineViolation> warnings
 ) {
+    public GuidelineVerificationResult {
+        failures = failures == null ? List.of() : List.copyOf(failures);
+        warnings = warnings == null ? List.of() : List.copyOf(warnings);
+    }
+
     public static GuidelineVerificationResult pass(List<GuidelineViolation> warnings) {
         return new GuidelineVerificationResult(true, List.of(), warnings != null ? List.copyOf(warnings) : List.of());
     }
@@ -21,10 +25,10 @@ public record GuidelineVerificationResult(
     }
 
     public List<GuidelineViolation> failures() {
-        return failures == null ? List.of() : Collections.unmodifiableList(failures);
+        return failures;
     }
 
     public List<GuidelineViolation> warnings() {
-        return warnings == null ? List.of() : Collections.unmodifiableList(warnings);
+        return warnings;
     }
 }

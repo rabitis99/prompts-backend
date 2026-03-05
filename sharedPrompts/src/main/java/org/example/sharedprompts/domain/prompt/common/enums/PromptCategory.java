@@ -17,8 +17,7 @@ public enum PromptCategory implements StableKeyedEnum {
 
     /**
      * 개발 전반 (코딩/프로그래밍을 포함하는 상위 카테고리).
-     * <p>하위 호환을 위해 CODING/PROGRAMMING을 유지하되,
-     * 새로운 분류/통계 로직에서는 이 값을 대표 개발 카테고리로 사용한다.</p>
+     * <p>세분화된 레거시 카테고리 대신 대표 개발 카테고리로 사용한다.</p>
      */
     DEVELOPMENT(
             "PROMPT_CATEGORY.DEVELOPMENT",

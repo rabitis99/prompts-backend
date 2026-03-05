@@ -12,7 +12,7 @@ public final class EnumResolver {
             List<Class<? extends Enum<?>>> categoryEnums
     ) {
         if (baseEnum != null && Enum.class.isAssignableFrom(baseEnum)) {
-            Object parsed = EnumCompatParser.parse(value, (Class<? extends Enum>) baseEnum, EnumCompatParser.Mode.STRICT);
+            Object parsed = EnumCompatParser.parse(value, (Class<? extends Enum>) baseEnum, EnumCompatParser.Mode.LENIENT);
             if (parsed != null) {
                 return (T) parsed;
             }

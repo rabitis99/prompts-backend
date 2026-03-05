@@ -78,7 +78,9 @@ public class RoutingRuleEngine {
         // 3) 최종 tie 는 등록 순서 (index) 기준
         matched.sort(Comparator
                 .comparingInt((MatchedRule m) -> m.rule.getPriority()).reversed()
-                .thenComparingInt(m -> m.rule.getCondition().specificity()).reversed()
+                .thenComparing(
+                        Comparator.comparingInt((MatchedRule m) -> m.rule.getCondition().specificity()).reversed()
+                )
                 .thenComparingInt(m -> m.index));
 
         RoutingRule winner = matched.get(0).rule;

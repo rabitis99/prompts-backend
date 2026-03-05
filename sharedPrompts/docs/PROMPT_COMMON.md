@@ -6,10 +6,26 @@ LLM에 어떤 작업을 시키든, 이 레이어를 거치면 **일관된 도메
 이 문서는 다음을 설명합니다.
 
 - `domain/prompt/common` 패키지 구조
+- **PromptObjective 이중 정의** (API용 vs 도메인용) — [2.0 절](#20-promptobjective-이중-정의-api-vs-도메인) 참고
 - `TaskDomain` / `PromptCategory` / `ActionType` / `RoleType` 간 관계
 - `GuidelinePolicy` / `GuidelineRule` 및 실제 가이드라인 예시
 - i18n 모델(`LanguageType`, `I18nText`, `I18nUtils`)
 - `DomainResolution` 을 통해 도메인을 결정하는 흐름
+- **공통 용어** (V2, Unified, Intent, EngineProfile 등) — [9. 절](#9-공통-용어-정의) 참고
+
+---
+
+## 2.0 PromptObjective 이중 정의 (API vs 도메인)
+
+동일한 이름의 `PromptObjective`가 **두 패키지**에 존재합니다. 역할이 다르므로 import 시 패키지를 구분해야 합니다.
+
+| 구분 | 클래스 (전체 경로) | 용도 |
+|------|---------------------|------|
+| **API·라우팅용** | `common.enums.PromptObjective` | Unified API 요청/응답, 라우팅 규칙, Intent 기본값. CREATIVE, CODE, EXTRACTION 등 상위 6개 값. |
+| **도메인·스펙용** | `domain.value.objective.PromptObjective` | PromptSpec, DB, 검증 파이프라인. CREATIVE_WITH_CONSTRAINTS, ANALYTICAL 등 도메인 전용 값. |
+
+- **변환**: API → 도메인은 `common.enums.PromptObjective#toDomainObjective()` 사용.
+- **문서**: 두 enum의 Javadoc에 상대편을 링크해 두었으므로, 새로 합류하는 개발자는 해당 클래스 주석을 참고하면 됩니다.
 
 ---
 
@@ -559,4 +575,19 @@ public record DomainResolution(TaskDomain domain, boolean isFallback) {
 - `GuidelinePolicy` / `GuidelineRule` + `*Guidelines` 구현체를 통해 **도메인별 프롬프트 가이드라인**을 구조적으로 관리합니다.
 - `LanguageType`, `I18nText`, `I18nUtils` 는 ko/en/ja 3개 언어에 대해 **동일한 규칙을 여러 언어로 표현**할 수 있게 합니다.
 - `DomainResolution` 은 이 모든 해석 결과를 하나의 오브젝트로 표현하여 상위 계층(PromptSpec, Renderer, Orchestrator)에서 활용할 수 있게 합니다.
+
+---
+
+## 9. 공통 용어 정의
+
+도메인·API·문서에서 반복 사용되는 용어를 정리합니다.
+
+| 용어 | 설명 |
+|------|------|
+| **V2** | 품질 우선 파이프라인. Clarify → Solve → Verify → Repair 4단계. 현재 유일하게 구현된 생성 경로. |
+| **Unified** | 단일 API(`/api/prompts/generate`)로 요청을 받아 Intent·EngineMode·Rule 기반으로 라우팅한 뒤, 내부적으로 V2 파이프라인을 호출하는 구조. |
+| **Intent** | 상위 작업 의도. `ActionIntent` enum (GENERATE, SUMMARIZE, EXTRACT 등). 라우팅·기본값 결정의 입력. |
+| **EngineMode** | 클라이언트가 요청하는 실행 모드: AUTO(규칙 기반 자동), V2(품질 파이프라인), V3(경량·추후). |
+| **EngineProfile** | 내부 라우팅 결과. QUALITY_PIPELINE(V2), FAST_PIPELINE(V3 예정), JSON_STRICT, AUTO. |
+| **Objective** | 프롬프트 목적. API용은 `common.enums.PromptObjective`, 도메인/스펙용은 `domain.value.objective.PromptObjective`. [2.0 절](#20-promptobjective-이중-정의-api-vs-도메인) 참고. |
 

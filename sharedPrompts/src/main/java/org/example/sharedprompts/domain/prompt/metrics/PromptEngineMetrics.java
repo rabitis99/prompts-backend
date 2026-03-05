@@ -1,20 +1,32 @@
 package org.example.sharedprompts.domain.prompt.metrics;
 
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.prompt.common.enums.EngineMode;
 import org.springframework.stereotype.Component;
 
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
  * 프롬프트 엔진 메트릭 수집기.
+ * <p>실패 사유(reason) 태그는 카디널리티 및 민감정보 유출 방지를 위해 화이트리스트로만 허용한다.</p>
  */
 @Component
 @RequiredArgsConstructor
 public class PromptEngineMetrics {
+
+    private static final Set<String> KNOWN_FAILURE_REASONS = Set.of(
+            "IllegalArgumentException",
+            "IllegalStateException",
+            "SchemaContractViolationException",
+            "ValidationException",
+            "TimeoutException",
+            "UnsupportedOperationException"
+    );
 
     private final MeterRegistry meterRegistry;
 
@@ -45,9 +57,8 @@ public class PromptEngineMetrics {
                 .register(meterRegistry);
     }
 
-    private Counter repairCountCounter(int repairCount) {
-        return Counter.builder("prompt.generate.repair_count")
-                .tag("count", String.valueOf(repairCount))
+    private DistributionSummary repairCountSummary() {
+        return DistributionSummary.builder("prompt.generate.repair_count")
                 .description("Repair 시도 횟수 분포")
                 .register(meterRegistry);
     }
@@ -62,7 +73,7 @@ public class PromptEngineMetrics {
     public void recordSuccess(EngineMode effectiveMode, long latencyMs, int repairCount, boolean verifyPassed, boolean schemaContractFailed) {
         successCounter(effectiveMode).increment();
         latencyTimer(effectiveMode).record(latencyMs, TimeUnit.MILLISECONDS);
-        repairCountCounter(repairCount).increment();
+        repairCountSummary().record(repairCount);
         if (!verifyPassed) {
             verifyFailureCounter().increment();
         }
@@ -72,7 +83,8 @@ public class PromptEngineMetrics {
     }
 
     public void recordFailure(EngineMode effectiveMode, long latencyMs, String reason) {
-        failureCounter(reason != null ? reason : "unknown", effectiveMode).increment();
+        String normalizedReason = (reason != null && KNOWN_FAILURE_REASONS.contains(reason)) ? reason : "unknown";
+        failureCounter(normalizedReason, effectiveMode).increment();
         latencyTimer(effectiveMode).record(latencyMs, TimeUnit.MILLISECONDS);
     }
 }

@@ -28,8 +28,9 @@ public final class GuidelineBundleBuilder {
     }
 
     public GuidelineBundle build(TaskDomain domain, RuleContext ruleContext) {
-        List<GuidelineRule> allHard = domain.getRulesByLevel(RuleLevel.HARD);
-        List<GuidelineRule> allSoft = domain.getRulesByLevel(RuleLevel.SOFT);
+        TaskDomain resolvedDomain = (domain != null) ? domain : TaskDomain.GENERAL;
+        List<GuidelineRule> allHard = resolvedDomain.getRulesByLevel(RuleLevel.HARD);
+        List<GuidelineRule> allSoft = resolvedDomain.getRulesByLevel(RuleLevel.SOFT);
         List<GuidelineRule> all = new ArrayList<>();
         all.addAll(filterApplicable(allHard, ruleContext));
         all.addAll(filterApplicable(allSoft, ruleContext));
@@ -39,7 +40,7 @@ public final class GuidelineBundleBuilder {
         List<GuidelineRule> softRules = selected.stream().filter(r -> r.level() == RuleLevel.SOFT).toList();
         List<GuidelineRule> constraints = new ArrayList<>(hardRules);
 
-        String strategyHints = buildStrategyHints(domain);
+        String strategyHints = buildStrategyHints(resolvedDomain);
         return new GuidelineBundle(hardRules, softRules, constraints, strategyHints);
     }
 

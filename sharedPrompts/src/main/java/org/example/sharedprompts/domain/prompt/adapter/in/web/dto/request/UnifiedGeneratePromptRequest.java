@@ -73,8 +73,8 @@ public record UnifiedGeneratePromptRequest(
         ExperienceLevel experience,
 
         /**
-         * 품질 파이프라인 비활성화 플래그 (희귀).
-         * 기본값 false, true 인 경우 Verify/Repair 를 생략할 수 있도록 여유 필드로 둔다.
+         * 품질 파이프라인 비활성화 플래그 (준비 중).
+         * true 요청 시 현재는 400 에러 반환. Verify/Repair 생략 기능은 추후 지원 예정.
          */
         @JsonProperty("disable_quality_pipeline")
         Boolean disableQualityPipeline,
@@ -108,6 +108,7 @@ public record UnifiedGeneratePromptRequest(
 ) {
 
     public UnifiedGeneratePromptCommand toCommand(Long userId) {
+        boolean normalizedDisableQualityPipeline = Boolean.TRUE.equals(disableQualityPipeline);
         return UnifiedGeneratePromptCommand.of(
                 userId,
                 category,
@@ -120,7 +121,7 @@ public record UnifiedGeneratePromptRequest(
                 style,
                 language,
                 experience,
-                disableQualityPipeline,
+                normalizedDisableQualityPipeline,
                 actionType,
                 roleType,
                 coreRole,

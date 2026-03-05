@@ -119,12 +119,16 @@ public class GeneratePromptService implements GeneratePromptUseCase {
         // ─── 배지 결정 ────────────────────────────────────────────────────────
         List<QualityBadge> badges = badgeResolver.resolve(lastVerifyResult, firstPassSuccess, repairCount, finallyPassed);
 
+        boolean formatValid = Boolean.TRUE.equals(
+                lastVerifyResult.getItemResults().get(QualityRubric.RubricItem.FORMAT_COMPLIANCE));
+
         return new GeneratePromptResult(
                 promptId,
                 command.title(),
                 draft,
                 badges,
                 spec.getObjective(),
+                formatValid,
                 firstPassSuccess,
                 repairCount,
                 finallyPassed

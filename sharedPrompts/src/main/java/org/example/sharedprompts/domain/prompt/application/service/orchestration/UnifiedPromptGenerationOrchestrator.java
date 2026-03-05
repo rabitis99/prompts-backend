@@ -34,7 +34,7 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
         long startNs = System.nanoTime();
         UnifiedRoutingFacade.RoutingDecision decision = routingFacade.decide(command);
 
-        GeneratePromptCommand v2Command = toV2Command(command);
+        GeneratePromptCommand v2Command = toV2Command(command, decision);
         GeneratePromptResult v2Result;
         try {
             v2Result = generatePromptUseCase.generate(v2Command);
@@ -82,8 +82,12 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
         );
     }
 
-    private GeneratePromptCommand toV2Command(UnifiedGeneratePromptCommand command) {
-        String syntheticTitle = "[Unified] " + command.intent().name();
+    private GeneratePromptCommand toV2Command(
+            UnifiedGeneratePromptCommand command,
+            UnifiedRoutingFacade.RoutingDecision decision
+    ) {
+        // V2 파이프라인 내부 식별용 제목. 클라이언트 노출용이면 API 응답에서 별도 title 필드로 교체 가능.
+        String syntheticTitle = "[Unified] " + decision.intent().name();
         boolean isPublic = false;
 
         return new GeneratePromptCommand(

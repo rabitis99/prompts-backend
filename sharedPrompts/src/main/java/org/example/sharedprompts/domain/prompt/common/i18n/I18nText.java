@@ -20,8 +20,8 @@ public record I18nText(String ko, String en, String ja) {
         }
         return switch (lang) {
             case KOREAN -> ko;
-            case ENGLISH -> en;
-            case JAPANESE -> ja;
+            case ENGLISH -> (en == null || en.isBlank()) ? ko : en;
+            case JAPANESE -> (ja == null || ja.isBlank()) ? ko : ja;
         };
     }
 }

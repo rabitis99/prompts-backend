@@ -41,6 +41,7 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
     private final PromptTagService promptTagService;
     private final LikeCountService likeCountService;
     private final PromptEventPublisher promptEventPublisher;
+    private final PromptUpdateValidator promptUpdateValidator;
 
     @Override
     @Transactional(readOnly = true)
@@ -83,10 +84,11 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
             throw new ApiException(ErrorCode.PROMPT_FORBIDDEN);
         }
 
-        promptUpdateDto.applyTo(prompt);
+        PromptUpdateDto validatedDto = promptUpdateValidator.validateAndNormalize(promptUpdateDto);
+        validatedDto.applyTo(prompt);
 
-        if (promptUpdateDto.getTags() != null) {
-            promptTagService.updateTags(prompt, promptUpdateDto.getTags());
+        if (validatedDto.getTags() != null) {
+            promptTagService.updateTags(prompt, validatedDto.getTags());
         }
 
         promptCommandPort.save(prompt);

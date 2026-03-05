@@ -54,7 +54,7 @@ public class UnifiedRoutingFacade {
 
         CoreRoleType coreRole = overrides.coreRoleOverride() != null
                 ? overrides.coreRoleOverride()
-                : defaultCoreRoleForIntent(defaults);
+                : defaults.intent().getDefaultCoreRole();
         DomainRoleType domainRole = overrides.domainRoleOverride();
 
         FinalDomainDecision domainDecision = domainFinalizer.finalizeDomain(command, defaults, overrides);
@@ -124,32 +124,16 @@ public class UnifiedRoutingFacade {
             EngineMode requestedMode,
             List<String> reasons
     ) {
-        // 현재 구현에서는 모든 프로파일이 V2 품질 파이프라인을 사용하므로,
-        // EngineMode 관점에서는 V2 로 수렴시킨다.
-        // 향후 Fast path 가 구현되면 FAST_PIPELINE -> V3 등으로 분기할 수 있다.
-        if (profile == EngineProfile.FAST_PIPELINE && requestedMode != EngineMode.V3) {
-            reasons.add("engineMode:fallbackFastToV2");
+        if (requestedMode == EngineMode.V3) {
+            return EngineMode.V3;
         }
-        return EngineMode.V2;
-    }
-
-    private CoreRoleType defaultCoreRoleForIntent(IntentDefaults defaults) {
-        switch (defaults.intent()) {
-            case SUMMARIZE, ANALYZE, EVALUATE, EXTRACT, CLASSIFY:
-                return CoreRoleType.ANALYST;
-            case CODE, DEBUG:
-                return CoreRoleType.TECHNICAL_EXPERT;
-            case DESIGN, GENERATE:
-                return CoreRoleType.CREATIVE_DIRECTOR;
-            case REWRITE:
-                return CoreRoleType.EDITOR;
-            case EXPLAIN:
-                return CoreRoleType.EDUCATOR;
-            case PLAN, DECIDE:
-                return CoreRoleType.PROMPT_ENGINEER;
-            default:
-                return CoreRoleType.GENERALIST;
+        if (requestedMode == EngineMode.V2) {
+            return EngineMode.V2;
         }
+        return switch (profile) {
+            case FAST_PIPELINE -> EngineMode.V3;
+            default -> EngineMode.V2;
+        };
     }
 
     public record RoutingDecision(

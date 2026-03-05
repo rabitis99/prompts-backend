@@ -3,22 +3,23 @@ package org.example.sharedprompts.domain.prompt.common.enums;
 /**
  * 내부 라우팅/오케스트레이션에서 사용하는 의미 기반 엔진 프로파일.
  *
- * <p>외부 계약은 여전히 {@link EngineMode} (AUTO/V2/V3)를 사용하고,
- * 내부에서는 보다 의미 있는 프로파일을 사용해 라우팅 결정을 표현한다.</p>
+ * <p>외부 계약은 {@link EngineMode} (AUTO/V2/V3)를 사용하고,
+ * 내부에서는 이 프로파일로 구체적인 파이프라인 선택을 표현한다.</p>
+ *
+ * <p><b>현재 상태:</b> QUALITY_PIPELINE(V2)만 실제 구현됨. FAST_PIPELINE(V3)는 추후 도입 예정이며
+ * 요청 시에도 V2로 폴백된다. 자세한 로드맵은 {@link EngineMode} Javadoc 참고.</p>
  */
 public enum EngineProfile {
 
     /**
-     * 품질 우선 표준 파이프라인.
-     * <p>현재는 V2 품질 파이프라인에 매핑된다.</p>
+     * 품질 우선 표준 파이프라인 (V2).
+     * Clarify→Solve→Verify→Repair 4단계. 현재 유일하게 구현된 파이프라인.
      */
     QUALITY_PIPELINE,
 
     /**
-     * 경량/저지연 파이프라인.
-     *
-     * <p>기존 V3 또는 향후 Fast 경로를 의미하며,
-     * 아직 별도 파이프라인이 구현되지 않아 품질 파이프라인으로 폴백된다.</p>
+     * 경량/저지연 파이프라인 (V3 예정).
+     * 아직 미구현으로, 라우팅 결과가 FAST_PIPELINE이어도 실제 실행은 QUALITY_PIPELINE(V2)로 폴백.
      */
     FAST_PIPELINE,
 

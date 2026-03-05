@@ -42,7 +42,7 @@
 ## Unified Prompt Engine 변경 요약
 
 - **작성일**: 2026-03-04
-- **브랜치**: dev (로컬 변경 기준)
+- **브랜치**: feature/unified-prompt-engine (로컬 변경 기준)
 
 ---
 

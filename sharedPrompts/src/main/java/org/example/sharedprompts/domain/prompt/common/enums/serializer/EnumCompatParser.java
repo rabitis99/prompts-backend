@@ -49,8 +49,14 @@ public final class EnumCompatParser {
      */
     @SuppressWarnings("unchecked")
     public static <E extends Enum<E>> E parse(String value, Class<E> enumClass, Mode mode) {
-        if (value == null || value.isBlank() || enumClass == null) {
-            return null;
+        if (enumClass == null) {
+            throw new IllegalArgumentException("enumClass must not be null");
+        }
+        if (value == null || value.isBlank()) {
+            if (mode == Mode.LENIENT) {
+                return null;
+            }
+            throw new IllegalArgumentException("value must not be null/blank");
         }
 
         // 1) Try legacy Enum.name() first for backward compatibility

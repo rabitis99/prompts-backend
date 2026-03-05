@@ -13,14 +13,21 @@ import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
  */
 @Getter
 @AllArgsConstructor
-public enum CoreRoleType {
+public enum CoreRoleType implements StableKeyedEnum {
 
-    PROMPT_ENGINEER,
-    ANALYST,
-    TECHNICAL_EXPERT,
-    CREATIVE_DIRECTOR,
-    EDUCATOR,
-    EDITOR,
-    QA_REVIEWER
+    PROMPT_ENGINEER("CORE_ROLE.PROMPT_ENGINEER"),
+    ANALYST("CORE_ROLE.ANALYST"),
+    TECHNICAL_EXPERT("CORE_ROLE.TECHNICAL_EXPERT"),
+    CREATIVE_DIRECTOR("CORE_ROLE.CREATIVE_DIRECTOR"),
+    EDUCATOR("CORE_ROLE.EDUCATOR"),
+    EDITOR("CORE_ROLE.EDITOR"),
+    QA_REVIEWER("CORE_ROLE.QA_REVIEWER");
+
+    private final String stableKey;
+
+    @Override
+    public String key() {
+        return stableKey;
+    }
 }
 

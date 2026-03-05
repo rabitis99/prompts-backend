@@ -20,16 +20,17 @@ import java.util.Optional;
 @Getter
 @AllArgsConstructor
 public enum ShoppingActionType implements ActionTypeInterface, StableKeyedEnum {
-    COMPARISON_SHOPPING("상품 비교", "Comparison Shopping", "商品比較"),
-    PRICE_NEGOTIATION("가격 협상", "Price Negotiation", "価格交渉");
+    COMPARISON_SHOPPING("ACTION.SHOPPING.COMPARISON_SHOPPING", "상품 비교", "Comparison Shopping", "商品比較"),
+    PRICE_NEGOTIATION("ACTION.SHOPPING.PRICE_NEGOTIATION", "가격 협상", "Price Negotiation", "価格交渉");
 
+    private final String stableKey;
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
 
     @Override
     public String key() {
-        return "ACTION.SHOPPING." + name();
+        return stableKey;
     }
 
     @Override

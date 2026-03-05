@@ -86,6 +86,9 @@ public class UnifiedPromptEngineController {
                 UnifiedGeneratePromptResult result = unifiedPromptUseCase.generate(command);
                 UnifiedGeneratePromptResponse response = toResponse(result);
                 return CustomResponseHelper.created(response);
+            } catch (ApiException ex) {
+                return ResponseEntity.status(ex.getErrorCode().getHttpStatus())
+                        .body(CustomResponse.fail(ex));
             } catch (Exception e) {
                 log.warn("Unified prompt generation failed: {}", e.getMessage(), e);
                 throw e;

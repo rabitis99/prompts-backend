@@ -2,7 +2,6 @@ package org.example.sharedprompts.domain.prompt.common.guideline.bundle;
 
 import org.example.sharedprompts.domain.prompt.common.guideline.rule.GuidelineRule;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -16,19 +15,10 @@ public record GuidelineBundle(
         List<GuidelineRule> constraints,
         String strategyHints
 ) {
-    public List<GuidelineRule> hardRules() {
-        return hardRules == null ? List.of() : Collections.unmodifiableList(hardRules);
-    }
-
-    public List<GuidelineRule> softRules() {
-        return softRules == null ? List.of() : Collections.unmodifiableList(softRules);
-    }
-
-    public List<GuidelineRule> constraints() {
-        return constraints == null ? List.of() : Collections.unmodifiableList(constraints);
-    }
-
-    public String strategyHints() {
-        return strategyHints != null ? strategyHints : "";
+    public GuidelineBundle {
+        hardRules = hardRules == null ? List.of() : List.copyOf(hardRules);
+        softRules = softRules == null ? List.of() : List.copyOf(softRules);
+        constraints = constraints == null ? List.of() : List.copyOf(constraints);
+        strategyHints = strategyHints == null ? "" : strategyHints;
     }
 }

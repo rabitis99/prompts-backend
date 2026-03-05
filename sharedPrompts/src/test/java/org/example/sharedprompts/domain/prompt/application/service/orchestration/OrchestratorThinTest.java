@@ -25,6 +25,7 @@ class OrchestratorThinTest {
                 "output",
                 List.of(),
                 org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective.CREATIVE,
+                true,  // formatValid
                 true,
                 0,
                 true

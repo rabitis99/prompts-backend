@@ -47,11 +47,18 @@ public final class ActionTypeBehaviorRegistry {
                     : OutputBehaviorType.DATA_ANALYSIS;
         }
 
+        // 소셜 — 도메인에 따라 STRATEGIC_PLAN vs LONG_FORM_WRITING
+        if (actionType instanceof SocialActionType) {
+            TaskDomain domain = actionType.getTaskDomain().orElse(TaskDomain.GENERAL);
+            return domain == TaskDomain.PRACTICAL
+                    ? OutputBehaviorType.STRATEGIC_PLAN
+                    : OutputBehaviorType.LONG_FORM_WRITING;
+        }
+
         // 콘텐츠/글쓰기 계열 — 장문/카피/스크립트 작성
         if (actionType instanceof WritingActionType
                 || actionType instanceof ContentActionType
                 || actionType instanceof EmailActionType
-                || actionType instanceof SocialActionType
                 || actionType instanceof RecommendationActionType) {
             // 콘텐츠 액션 내부에는 장문/단문이 혼재하지만,
             // 엔진 레벨에서는 일단 장문 작성 중심 시그널을 사용하고,
@@ -71,10 +78,9 @@ public final class ActionTypeBehaviorRegistry {
             return OutputBehaviorType.EDUCATIONAL_EXPLANATION;
         }
 
-        // 헬스/라이프스타일/소셜 — 실용 조언 + 계획
+        // 헬스/라이프스타일 — 실용 조언 + 계획
         if (actionType instanceof HealthFitnessActionType
-                || actionType instanceof LifestyleActionType
-                || actionType instanceof SocialActionType) {
+                || actionType instanceof LifestyleActionType) {
             return OutputBehaviorType.STRATEGIC_PLAN;
         }
 

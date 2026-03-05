@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.role.DomainRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 통합 프롬프트 생성 커맨드.
@@ -69,10 +70,19 @@ public record UnifiedGeneratePromptCommand(
         ExperienceLevel safeExperience = experience != null ? experience : ExperienceLevel.INTERMEDIATE;
 
         if (disableQualityPipeline != null && disableQualityPipeline) {
-            throw new IllegalArgumentException("disable_quality_pipeline 옵션은 현재 지원되지 않습니다.");
+            throw new IllegalArgumentException(
+                    "disable_quality_pipeline 옵션은 현재 준비 중입니다. Verify/Repair 파이프라인 비활성화는 추후 지원 예정입니다.");
         }
 
-        List<String> safeTags = tags != null ? List.copyOf(tags) : List.of();
+        List<String> safeTags;
+        if (tags == null) {
+            safeTags = List.of();
+        } else {
+            if (tags.stream().anyMatch(Objects::isNull)) {
+                throw new IllegalArgumentException("tags에는 null 값을 포함할 수 없습니다.");
+            }
+            safeTags = List.copyOf(tags);
+        }
 
         return new UnifiedGeneratePromptCommand(
                 userId,

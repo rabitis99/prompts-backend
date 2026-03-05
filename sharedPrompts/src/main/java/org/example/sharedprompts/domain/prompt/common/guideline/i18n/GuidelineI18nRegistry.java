@@ -7,7 +7,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-public final class I18nRegistry {
+
+/**
+ * 가이드라인 전용 i18n 레지스트리 (문자열 키 기반).
+ *
+ * <p>enum 메타데이터·공용 텍스트용 레지스트리는 {@link org.example.sharedprompts.domain.prompt.common.i18n.I18nRegistry}를 사용한다.
+ * 이 클래스는 가이드라인 규칙/도메인 해석 등 guideline 패키지 내부에서만 사용하는 번역 맵이다.</p>
+ */
+public final class GuidelineI18nRegistry {
 
     private final Map<String, I18nText> resources = new HashMap<>();
     private final Set<String> duplicateKeys = new HashSet<>();
@@ -27,9 +34,11 @@ public final class I18nRegistry {
      * Get text for key and language. Returns key if not found (no framework dependency).
      */
     public String get(String key, LanguageType lang) {
+        if (key == null || key.isBlank()) return "";
         I18nText text = resources.get(key);
         if (text == null) return key;
-        return text.byLang(lang);
+        String resolved = text.byLang(lang);
+        return isBlank(resolved) ? key : resolved;
     }
 
     /**

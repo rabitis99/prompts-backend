@@ -33,11 +33,8 @@ public final class RuleBudgetPolicy {
     public List<GuidelineRule> selectRules(List<GuidelineRule> rules) {
         if (rules == null || rules.isEmpty()) return List.of();
 
-        Comparator<GuidelineRule> byPriority = Comparator
-                .comparingInt((GuidelineRule r) -> r.type() == RuleType.FORBID ? 0 : 1)
-                .thenComparingInt((GuidelineRule r) -> r.level() == RuleLevel.HARD ? 0 : 1)
-                .thenComparingInt((GuidelineRule r) -> r.type() == RuleType.REQUIRE ? 0 : 1)
-                .thenComparingInt((GuidelineRule r) -> r.type() == RuleType.ALLOW ? 0 : 1);
+        Comparator<GuidelineRule> byPriority =
+                Comparator.comparingInt(RuleBudgetPolicy::priorityRank);
 
         List<GuidelineRule> sorted = rules.stream().sorted(byPriority).toList();
         List<GuidelineRule> selected = new ArrayList<>();
@@ -59,4 +56,11 @@ public final class RuleBudgetPolicy {
         return (rule.id() != null ? rule.id().length() : 0) + (d != null ? d.length() : 0);
     }
 
+    private static int priorityRank(GuidelineRule rule) {
+        if (rule.level() == RuleLevel.HARD && rule.type() == RuleType.FORBID) return 0;
+        if (rule.level() == RuleLevel.HARD && rule.type() == RuleType.REQUIRE) return 1;
+        if (rule.level() == RuleLevel.SOFT && rule.type() == RuleType.REQUIRE) return 2;
+        if (rule.level() == RuleLevel.SOFT && rule.type() == RuleType.ALLOW) return 3;
+        return 4;
+    }
 }

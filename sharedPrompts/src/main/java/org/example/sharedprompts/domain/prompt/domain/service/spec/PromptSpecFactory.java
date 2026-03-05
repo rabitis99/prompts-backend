@@ -74,6 +74,9 @@ public class PromptSpecFactory {
         if (rawInput == null || rawInput.isBlank()) {
             throw new IllegalArgumentException("rawInput은 null/blank일 수 없습니다.");
         }
+        if (objective == null) {
+            throw new IllegalArgumentException("objective는 null일 수 없습니다.");
+        }
 
         ExperienceLevel level = experienceLevel != null ? experienceLevel : ExperienceLevel.INTERMEDIATE;
         TaskDomain effectiveTaskDomain = taskDomain != null ? taskDomain : TaskDomain.GENERAL;

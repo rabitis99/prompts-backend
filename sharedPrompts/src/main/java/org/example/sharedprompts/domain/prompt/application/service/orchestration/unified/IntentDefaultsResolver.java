@@ -10,6 +10,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.ResponseShape;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -22,6 +23,7 @@ import java.util.Optional;
 public class IntentDefaultsResolver {
 
     public IntentDefaults resolve(UnifiedGeneratePromptCommand command) {
+        Objects.requireNonNull(command, "command must not be null");
         ActionIntent intent = command.intent();
         if (intent == null) {
             // 외부 계약에서 null 이 올 수 있으므로 안전하게 기본값 GENERATE 로 보정한다.
