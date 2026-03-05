@@ -8,6 +8,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
+import com.networknt.schema.SpecVersionDetector;
 import com.networknt.schema.ValidationMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -24,8 +25,6 @@ import java.util.stream.Collectors;
 public class NetworkntJsonSchemaValidator implements JsonSchemaValidator {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final JsonSchemaFactory SCHEMA_FACTORY =
-            JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
     private static final int MAX_SCHEMA_CACHE_SIZE = 1_000;
     private static final Cache<String, Optional<JsonSchema>> SCHEMA_CACHE = Caffeine.newBuilder()
             .maximumSize(MAX_SCHEMA_CACHE_SIZE)
@@ -46,7 +45,9 @@ public class NetworkntJsonSchemaValidator implements JsonSchemaValidator {
             Optional<JsonSchema> schemaOpt = SCHEMA_CACHE.get(schemaJson, key -> {
                 try {
                     JsonNode schemaNode = OBJECT_MAPPER.readTree(key);
-                    return Optional.of(SCHEMA_FACTORY.getSchema(schemaNode));
+                    SpecVersion.VersionFlag version = SpecVersionDetector.detect(schemaNode);
+                    JsonSchemaFactory schemaFactory = JsonSchemaFactory.getInstance(version);
+                    return Optional.of(schemaFactory.getSchema(schemaNode));
                 } catch (JsonProcessingException e) {
                     log.debug("[ConstrainedDecoding] JSON 스키마 파싱 실패", e);
                     return Optional.empty();
