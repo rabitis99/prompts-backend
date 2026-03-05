@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum CybersecurityActionType implements ActionTypeInterface {
+public enum CybersecurityActionType implements ActionTypeInterface, StableKeyedEnum {
     VULNERABILITY_SCANNING("취약점 스캐닝", "Vulnerability Scanning", "脆弱性スキャン"),
     PENETRATION_TESTING("침투 테스트", "Penetration Testing", "ペネトレーションテスト"),
     THREAT_ANALYSIS("위협 분석", "Threat Analysis", "脅威分析"),
@@ -30,6 +31,11 @@ public enum CybersecurityActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.CYBERSECURITY." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

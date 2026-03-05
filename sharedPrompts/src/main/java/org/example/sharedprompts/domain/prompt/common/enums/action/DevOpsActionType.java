@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum DevOpsActionType implements ActionTypeInterface {
+public enum DevOpsActionType implements ActionTypeInterface, StableKeyedEnum {
     CI_CD_PIPELINE("CI/CD 파이프라인", "CI/CD Pipeline", "CI/CDパイプライン"),
     AUTOMATED_TESTING("자동화 테스트", "Automated Testing", "自動化テスト"),
     INTEGRATION_TESTING("통합 테스트", "Integration Testing", "統合テスト"),
@@ -30,6 +31,11 @@ public enum DevOpsActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.DEVOPS." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

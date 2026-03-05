@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum HealthFitnessActionType implements ActionTypeInterface {
+public enum HealthFitnessActionType implements ActionTypeInterface, StableKeyedEnum {
     WORKOUT_PLANS("운동 계획", "Workout Plans", "ワークアウトプラン"),
     NUTRITION_TRACKING("영양 추적", "Nutrition Tracking", "栄養追跡"),
     MEDICAL_RECORD_MANAGEMENT("의료 기록 관리", "Medical Record Management", "医療記録管理"),
@@ -34,6 +35,11 @@ public enum HealthFitnessActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.HEALTH_FITNESS." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

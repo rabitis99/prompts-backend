@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum MarketingActionType implements ActionTypeInterface {
+public enum MarketingActionType implements ActionTypeInterface, StableKeyedEnum {
     MARKETING_STRATEGY("마케팅 전략", "Marketing Strategy", "マーケティング戦略"),
     BRANDING("브랜딩", "Branding", "ブランディング"),
     AD_CAMPAIGN("광고 캠페인", "Ad Campaign", "広告キャンペーン"),
@@ -23,6 +24,11 @@ public enum MarketingActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.MARKETING." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

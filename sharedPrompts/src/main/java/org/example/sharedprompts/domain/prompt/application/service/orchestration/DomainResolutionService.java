@@ -3,18 +3,17 @@ package org.example.sharedprompts.domain.prompt.application.service.orchestratio
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolverPort;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ResolutionSource;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ResolvedDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.common.guideline.i18n.DomainResolution;
-import org.example.sharedprompts.dto.prompt.request.InputRequestDto;
 import org.springframework.stereotype.Component;
 
 /**
  * 도메인 결정 서비스 (파사드).
  * <p>순수 해석 로직은 {@link DomainResolverPort} 구현체에 위임하고,
- * DTO 변환·로깅·{@link DomainResolution} 래핑만 담당한다.</p>
+ * DTO 변환·로깅만 담당한다. 단일 모델 {@link ResolvedDomain} 사용.</p>
  */
 @Slf4j
 @Component
@@ -24,24 +23,40 @@ public class DomainResolutionService {
     private final DomainResolverPort domainResolver;
 
     /**
-     * 도메인 결정 우선순위는 {@link DomainResolverPort#resolveDomainWithFallback}과 동일.
-     */
-    public DomainResolution resolveDomain(InputRequestDto request) {
-        return resolveDomainInternal(request.getActionType(), request.getPromptCategory());
-    }
-
-    /**
-     * 도메인만 반환하는 간단한 버전 (PromptGenerator용)
-     */
-    public TaskDomain resolveDomainSimple(InputRequestDto request) {
-        return resolveDomain(request).domain();
-    }
-
-    /**
      * ActionType + PromptCategory로 도메인 결정 (헥사고날 어댑터용).
      */
     public TaskDomain resolveDomain(ActionTypeInterface actionType, PromptCategory promptCategory) {
         return resolveDomainInternal(actionType, promptCategory).domain();
+    }
+
+    /**
+     * Full resolution for action + category (e.g. for guideline builder with context).
+     */
+    public ResolvedDomain resolveDomainResolved(ActionTypeInterface actionType, PromptCategory promptCategory) {
+        return resolveDomainInternal(actionType, promptCategory);
+    }
+
+    /**
+     * Unified 엔진용 도메인 결정.
+     *
+     * <p>ActionType이 없으므로 Category 기반으로 DomainResolverPort에 위임한다.
+     * 폴백인 경우 intentDomainAffinity가 있으면 해당 도메인을 사용한다.</p>
+     */
+    public ResolvedDomain resolveForUnified(
+            PromptCategory categoryHint,
+            TaskDomain intentDomainAffinity
+    ) {
+        ResolvedDomain resolved = domainResolver.resolveDomainWithFallback(null, categoryHint);
+        if (resolved.fallback() && intentDomainAffinity != null) {
+            return new ResolvedDomain(intentDomainAffinity, false, ResolutionSource.INTENT_AFFINITY);
+        }
+        if (resolved.fallback()) {
+            log.warn("Unified domain fallback used — category: {}, intentAffinity: {}, source: {}. Consider adding mapping.",
+                    categoryHint,
+                    intentDomainAffinity,
+                    resolved.source());
+        }
+        return resolved;
     }
 
     private String actionTypeName(ActionTypeInterface actionType) {
@@ -49,14 +64,15 @@ public class DomainResolutionService {
         return actionType instanceof Enum<?> e ? e.name() : actionType.getClass().getSimpleName();
     }
 
-    private DomainResolution resolveDomainInternal(ActionTypeInterface actionType, PromptCategory promptCategory) {
+    private ResolvedDomain resolveDomainInternal(ActionTypeInterface actionType, PromptCategory promptCategory) {
         ResolvedDomain resolved = domainResolver.resolveDomainWithFallback(actionType, promptCategory);
-        if (resolved.isFallback()) {
-            log.warn("Domain fallback used — ActionType: {}, category: {}. Consider adding mapping.",
+        if (resolved.fallback()) {
+            log.warn("Domain fallback used — ActionType: {}, category: {}, source: {}. Consider adding mapping.",
                     actionTypeName(actionType),
-                    promptCategory);
+                    promptCategory,
+                    resolved.source());
         }
-        return new DomainResolution(resolved.domain(), resolved.isFallback());
+        return resolved;
     }
 }
 

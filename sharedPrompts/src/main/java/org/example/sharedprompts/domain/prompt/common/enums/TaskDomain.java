@@ -17,27 +17,36 @@ import java.util.stream.Stream;
  * 작업 도메인 — PromptCategory/ActionType에 따라 적합한 가이드라인 정책을 결정
  * <p>GuidelinePolicy를 delegate 패턴으로 구현하여 enum 비대화를 방지한다.</p>
  */
-public enum TaskDomain implements GuidelinePolicy {
+public enum TaskDomain implements GuidelinePolicy, StableKeyedEnum {
     /** 정확성/실용성 중심 기술 작업 */
-    TECHNICAL("기술형", TechnicalGuidelines.INSTANCE),
+    TECHNICAL("TASK_DOMAIN.TECHNICAL", "기술형", TechnicalGuidelines.INSTANCE),
     /** 독창성/감성 중심 창작 작업 */
-    CREATIVE("창의형", CreativeGuidelines.INSTANCE),
+    CREATIVE("TASK_DOMAIN.CREATIVE", "창의형", CreativeGuidelines.INSTANCE),
     /** 증거 기반 체계적 분석 */
-    ANALYTICAL("분석형", AnalyticalGuidelines.INSTANCE),
+    ANALYTICAL("TASK_DOMAIN.ANALYTICAL", "분석형", AnalyticalGuidelines.INSTANCE),
     /** 즉시 활용 가능한 실무 */
-    PRACTICAL("실무형", PracticalGuidelines.INSTANCE),
+    PRACTICAL("TASK_DOMAIN.PRACTICAL", "실무형", PracticalGuidelines.INSTANCE),
     /** 이해 촉진/단계적 학습 */
-    EDUCATIONAL("교육형", EducationalGuidelines.INSTANCE),
+    EDUCATIONAL("TASK_DOMAIN.EDUCATIONAL", "교육형", EducationalGuidelines.INSTANCE),
     /** 보수적 안전 모드 */
-    GENERAL("일반형", GeneralGuidelines.INSTANCE);
+    GENERAL("TASK_DOMAIN.GENERAL", "일반형", GeneralGuidelines.INSTANCE);
+
+    /** Stable serialization-safe identifier */
+    private final String key;
 
     /** UI 표시용 */
     private final String displayName;
     private final GuidelinePolicy delegate;
 
-    TaskDomain(String displayName, GuidelinePolicy delegate) {
+    TaskDomain(String key, String displayName, GuidelinePolicy delegate) {
+        this.key = key;
         this.displayName = displayName;
         this.delegate = delegate;
+    }
+
+    @Override
+    public String key() {
+        return key;
     }
 
     /**

@@ -26,22 +26,22 @@ public class DomainResolver implements DomainResolverPort {
     @Override
     public ResolvedDomain resolveDomainWithFallback(ActionTypeInterface actionType, PromptCategory promptCategory) {
         if (actionType == null) {
-            return new ResolvedDomain(TaskDomain.GENERAL, true);
+            return new ResolvedDomain(TaskDomain.GENERAL, true, ResolutionSource.FALLBACK);
         }
         Optional<TaskDomain> fromAction = actionType.getTaskDomain();
         if (fromAction.isPresent() && fromAction.get() != TaskDomain.GENERAL) {
-            return new ResolvedDomain(fromAction.get(), false);
+            return new ResolvedDomain(fromAction.get(), false, ResolutionSource.ACTION_TYPE);
         }
         if (promptCategory == null) {
-            return new ResolvedDomain(TaskDomain.GENERAL, true);
+            return new ResolvedDomain(TaskDomain.GENERAL, true, ResolutionSource.FALLBACK);
         }
         TaskDomain fromCategory = promptCategory.getDefaultDomain();
         if (fromCategory != TaskDomain.GENERAL) {
-            return new ResolvedDomain(fromCategory, false);
+            return new ResolvedDomain(fromCategory, false, ResolutionSource.PROMPT_CATEGORY);
         }
         if (fromAction.isPresent()) {
-            return new ResolvedDomain(TaskDomain.GENERAL, false); // 의도적 GENERAL
+            return new ResolvedDomain(TaskDomain.GENERAL, false, ResolutionSource.DEFAULT); // 의도적 GENERAL
         }
-        return new ResolvedDomain(TaskDomain.GENERAL, true); // 미매핑 폴백
+        return new ResolvedDomain(TaskDomain.GENERAL, true, ResolutionSource.FALLBACK); // 미매핑 폴백
     }
 }

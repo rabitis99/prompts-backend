@@ -80,6 +80,11 @@ public enum ErrorCode {
     AI_RESPONSE_CANDIDATE_NULL("PR01002", HttpStatus.INTERNAL_SERVER_ERROR, "AI 응답의 후보가 null입니다."),
     AI_RESPONSE_NO_CONTENT_PARTS("PR01003", HttpStatus.INTERNAL_SERVER_ERROR, "AI 응답에 콘텐츠 파트가 없습니다."),
     AI_RESPONSE_PART_TEXT_NULL("PR01004", HttpStatus.INTERNAL_SERVER_ERROR, "AI 응답의 파트 텍스트가 null입니다."),
+    UNSUPPORTED_QUALITY_PIPELINE_OPTION(
+            "PR00404",
+            HttpStatus.BAD_REQUEST,
+            "disable_quality_pipeline 옵션은 현재 준비 중입니다. Verify/Repair 파이프라인 비활성화는 추후 지원 예정입니다."
+    ),
 
     // ==========================
     // 🔹 COMMENT

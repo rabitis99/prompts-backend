@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum EtcActionType implements ActionTypeInterface {
+public enum EtcActionType implements ActionTypeInterface, StableKeyedEnum {
     GENERAL_CONSULTATION("일반 상담", "General Consultation", "一般相談"),
     PROBLEM_SOLVING("문제 해결", "Problem Solving", "問題解決"),
     INFORMATION_RESEARCH("정보 조사", "Information Research", "情報調査"),
@@ -23,6 +24,11 @@ public enum EtcActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.ETC." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

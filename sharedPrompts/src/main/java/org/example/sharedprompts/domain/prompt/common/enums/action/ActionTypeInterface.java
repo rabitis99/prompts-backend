@@ -1,8 +1,8 @@
 package org.example.sharedprompts.domain.prompt.common.enums.action;
 
-import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 
 import java.util.Optional;
 
@@ -32,6 +32,19 @@ public interface ActionTypeInterface {
      */
     default PromptObjective getDefaultObjective() {
         return null;
+    }
+
+    /**
+     * 이 ActionType이 궁극적으로 요구하는 출력 행동(OutputBehaviorType)을 반환한다.
+     * <p>
+     * 기본 구현은 {@link ActionTypeBehaviorRegistry}를 통해
+     * enum 타입 기준의 거친 매핑을 수행한다.
+     * </p>
+     *
+     * @return 코어 출력 행동 타입
+     */
+    default OutputBehaviorType getOutputBehavior() {
+        return ActionTypeBehaviorRegistry.resolveBehavior(this);
     }
 
     /**

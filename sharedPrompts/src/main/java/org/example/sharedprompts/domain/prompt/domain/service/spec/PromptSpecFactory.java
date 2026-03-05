@@ -18,6 +18,9 @@ import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.guideline.bundle.GuidelineBundle;
+import org.example.sharedprompts.domain.prompt.common.guideline.bundle.GuidelineBundleBuilder;
+import org.example.sharedprompts.domain.prompt.common.guideline.context.RuleContext;
 import org.example.sharedprompts.domain.prompt.common.guideline.rule.GuidelineRule;
 
 import java.util.ArrayList;
@@ -38,13 +41,88 @@ public class PromptSpecFactory {
     private final ObjectiveRegistry objectiveRegistry;
     private final StrategyBundlePolicy strategyBundlePolicy;
     private final ObjectiveResolverPort objectiveResolver;
+    private final GuidelineBundleBuilder guidelineBundleBuilder;
 
+    /**
+     * 레거시/테스트 호환용 생성자.
+     * 런타임 DI에서는 GuidelineBundleBuilder를 명시 주입하는 4-arg 생성자를 사용하세요.
+     */
+    @Deprecated(forRemoval = true)
     public PromptSpecFactory(ObjectiveRegistry objectiveRegistry,
                              StrategyBundlePolicy strategyBundlePolicy,
                              ObjectiveResolverPort objectiveResolver) {
+        this(objectiveRegistry, strategyBundlePolicy, objectiveResolver, new GuidelineBundleBuilder());
+    }
+
+    public PromptSpecFactory(ObjectiveRegistry objectiveRegistry,
+                             StrategyBundlePolicy strategyBundlePolicy,
+                             ObjectiveResolverPort objectiveResolver,
+                             GuidelineBundleBuilder guidelineBundleBuilder) {
         this.objectiveRegistry = Objects.requireNonNull(objectiveRegistry, "objectiveRegistry must not be null");
         this.strategyBundlePolicy = Objects.requireNonNull(strategyBundlePolicy, "strategyBundlePolicy must not be null");
         this.objectiveResolver = Objects.requireNonNull(objectiveResolver, "objectiveResolver must not be null");
+        this.guidelineBundleBuilder = guidelineBundleBuilder != null ? guidelineBundleBuilder : new GuidelineBundleBuilder();
+    }
+
+    /**
+     * V3 전용 생성 경로 — Intent에서 이미 Objective를 해석한 경우 사용한다.
+     */
+    public PromptSpec createForV3(
+            String rawInput,
+            TaskDomain taskDomain,
+            PromptObjective objective,
+            ToneType tone,
+            StyleType style,
+            LanguageType locale,
+            ExperienceLevel experienceLevel,
+            String jsonSchema
+    ) {
+        if (rawInput == null || rawInput.isBlank()) {
+            throw new IllegalArgumentException("rawInput은 null/blank일 수 없습니다.");
+        }
+        if (objective == null) {
+            throw new IllegalArgumentException("objective는 null일 수 없습니다.");
+        }
+
+        ExperienceLevel level = experienceLevel != null ? experienceLevel : ExperienceLevel.INTERMEDIATE;
+        TaskDomain effectiveTaskDomain = taskDomain != null ? taskDomain : TaskDomain.GENERAL;
+
+        ObjectiveProfile profile = objectiveRegistry.get(objective);
+
+        Constraints constraints = profile.constraints(level);
+        OutputContract outputContract = profile.outputContract(jsonSchema, constraints.getMaxLength());
+
+        RuleContext ruleContext = RuleContext.of(
+                effectiveTaskDomain,
+                profile.objective().name(),
+                null,
+                profile.supportsConstrainedDecoding(),
+                outputContract.hasJsonSchema(),
+                rawInput
+        );
+
+        List<PromptSection> sections = buildSections(profile, null, effectiveTaskDomain, locale, ruleContext);
+        boolean experimentalEnabled = false; // V3 경로에서는 실험 번들을 사용하지 않는다.
+        PromptStrategyBundle bundle = strategyBundlePolicy.resolveBundle(objective, experimentalEnabled);
+
+        return PromptSpec.builder()
+                .objective(objective)
+                .priority(profile.priority())
+                .rubric(profile.rubric())
+                .taskDomain(effectiveTaskDomain)
+                .experienceLevel(level)
+                .sections(sections)
+                .constraints(constraints)
+                .outputContract(outputContract)
+                .contentSandbox(ContentSandbox.defaults())
+                .role(null)
+                .tone(tone != null ? tone : ToneType.NEUTRAL)
+                .style(style != null ? style : StyleType.NARRATIVE)
+                .strategyBundle(bundle)
+                .locale(locale != null ? locale : LanguageType.KOREAN)
+                .rawInput(rawInput)
+                .actionType(null)
+                .build();
     }
 
     public PromptSpec create(
@@ -137,7 +215,17 @@ public class PromptSpecFactory {
                 prohibitedKeywords
         );
         OutputContract outputContract = profile.outputContract(jsonSchema, constraints.getMaxLength());
-        List<PromptSection> sections = buildSections(profile, role, effectiveTaskDomain, locale);
+
+        RuleContext ruleContext = RuleContext.of(
+                effectiveTaskDomain,
+                profile.objective().name(),
+                actionType,
+                profile.supportsConstrainedDecoding(),
+                outputContract.hasJsonSchema(),
+                rawInput
+        );
+
+        List<PromptSection> sections = buildSections(profile, role, effectiveTaskDomain, locale, ruleContext);
         PromptStrategyBundle bundle = strategyBundlePolicy.resolveBundle(objective, experimentalEnabled);
 
         return PromptSpec.builder()
@@ -187,7 +275,8 @@ public class PromptSpecFactory {
             ObjectiveProfile profile,
             RoleTypeInterface role,
             TaskDomain taskDomain,
-            LanguageType locale
+            LanguageType locale,
+            RuleContext ruleContext
     ) {
         List<PromptSection> sections = new ArrayList<>();
 
@@ -202,11 +291,11 @@ public class PromptSpecFactory {
             ));
         }
 
-        // 2) Checklist 섹션 — TaskDomain GuidelinePolicy (공통)
+        // 2) Checklist 섹션 — 단일 GuidelineBundle (규칙 중복 제거, 토큰 예산 적용)
+        GuidelineBundle bundle = guidelineBundleBuilder.build(taskDomain, ruleContext);
         StringBuilder checklistBuilder = new StringBuilder();
-        appendGuidelineRules(checklistBuilder, taskDomain.principles(), locale);
-        appendGuidelineRules(checklistBuilder, taskDomain.structuringRules(), locale);
-        appendGuidelineRules(checklistBuilder, taskDomain.outputConstraints(), locale);
+        appendGuidelineRules(checklistBuilder, bundle.hardRules(), locale);
+        appendGuidelineRules(checklistBuilder, bundle.softRules(), locale);
         if (!checklistBuilder.isEmpty()) {
             sections.add(PromptSection.required(
                     PromptSection.SectionType.VERIFICATION_CHECKLIST,

@@ -27,7 +27,8 @@ import java.util.List;
 /**
  * 프롬프트 조회 / 수정 / 삭제를 담당하는 도메인 서비스 구현체입니다.
  * <p>
- * 및 하위 서비스(PromptSanitizationService, PromptAIService, PromptPersistenceService)가 담당합니다.
+ * 프롬프트 생성은 {@link org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptUseCase} 및
+ * {@link org.example.sharedprompts.domain.prompt.application.port.in.GenerateUnifiedPromptUseCase}가 담당하며,
  * 이 구현체는 생성 이외의 CRUD 책임만 가집니다.
  */
 @Service
@@ -39,8 +40,8 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
     private final FollowBlockPolicy followBlockPolicy;
     private final PromptTagService promptTagService;
     private final LikeCountService likeCountService;
-    private final PromptSanitizationService promptSanitizationService;
     private final PromptEventPublisher promptEventPublisher;
+    private final PromptUpdateValidator promptUpdateValidator;
 
     @Override
     @Transactional(readOnly = true)
@@ -83,11 +84,11 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
             throw new ApiException(ErrorCode.PROMPT_FORBIDDEN);
         }
 
-        PromptUpdateDto sanitizedDto = promptSanitizationService.sanitize(promptUpdateDto);
-        sanitizedDto.applyTo(prompt);
+        PromptUpdateDto validatedDto = promptUpdateValidator.validateAndNormalize(promptUpdateDto);
+        validatedDto.applyTo(prompt);
 
-        if (sanitizedDto.getTags() != null) {
-            promptTagService.updateTags(prompt, sanitizedDto.getTags());
+        if (validatedDto.getTags() != null) {
+            promptTagService.updateTags(prompt, validatedDto.getTags());
         }
 
         promptCommandPort.save(prompt);

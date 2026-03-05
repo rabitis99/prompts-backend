@@ -2,15 +2,17 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 /**
  * 소셜/커뮤니티 관련 액션 타입 enum
- * 
+ *
  * <p>생성자 파라미터 순서 (모든 파라미터는 String 타입):
  * <ol>
+ *   <li>stableKey - 안정 키 (직렬화/호환성용)</li>
  *   <li>displayNameKo - 표시 이름 (한국어)</li>
  *   <li>displayNameEn - 표시 이름 (영어)</li>
  *   <li>displayNameJa - 표시 이름 (일본어)</li>
@@ -18,7 +20,7 @@ import java.util.Optional;
  */
 @Getter
 @AllArgsConstructor
-public enum SocialActionType implements ActionTypeInterface {
+public enum SocialActionType implements ActionTypeInterface, StableKeyedEnum {
     COMMUNITY_ENGAGEMENT("커뮤니티 참여", "Community Engagement", "コミュニティ参加"),
     EVENT_ORGANIZATION("이벤트 조직", "Event Organization", "イベントオーガナイズ"),
     SOCIAL_CAUSE_SUPPORT("사회적 원인 지원", "Social Cause Support", "社会的な原因支援"),
@@ -50,6 +52,11 @@ public enum SocialActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.SOCIAL." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

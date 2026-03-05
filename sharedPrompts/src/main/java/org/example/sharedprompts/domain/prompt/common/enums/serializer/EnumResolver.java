@@ -11,30 +11,33 @@ public final class EnumResolver {
             Class<? extends T> baseEnum,
             List<Class<? extends Enum<?>>> categoryEnums
     ) {
-        if (baseEnum != null) {
-            try {
-                return (T) Enum.valueOf((Class) baseEnum, value);
-            } catch (IllegalArgumentException ignored) {}
+        if (baseEnum != null && Enum.class.isAssignableFrom(baseEnum)) {
+            Object parsed = EnumCompatParser.parse(value, (Class<? extends Enum>) baseEnum, EnumCompatParser.Mode.LENIENT);
+            if (parsed != null) {
+                return (T) parsed;
+            }
         }
-        
+
         for (Class<? extends Enum<?>> enumClass : categoryEnums) {
-            try {
-                return (T) Enum.valueOf((Class) enumClass, value);
-            } catch (IllegalArgumentException ignored) {}
+            Object parsed = EnumCompatParser.parse(value, (Class<? extends Enum>) enumClass, EnumCompatParser.Mode.LENIENT);
+            if (parsed != null) {
+                return (T) parsed;
+            }
         }
-        
+
         throw new IllegalArgumentException("Unknown enum value: " + value);
     }
-    
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static <T> T resolve(
             String value,
             List<Class<? extends Enum<?>>> categoryEnums
     ) {
         for (Class<? extends Enum<?>> enumClass : categoryEnums) {
-            try {
-                return (T) Enum.valueOf((Class) enumClass, value);
-            } catch (IllegalArgumentException ignored) {}
+            Object parsed = EnumCompatParser.parse(value, (Class<? extends Enum>) enumClass, EnumCompatParser.Mode.LENIENT);
+            if (parsed != null) {
+                return (T) parsed;
+            }
         }
         
         throw new IllegalArgumentException("Unknown enum value: " + value);

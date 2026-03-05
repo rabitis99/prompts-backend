@@ -2,13 +2,14 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
 @AllArgsConstructor
-public enum CustomerSupportActionType implements ActionTypeInterface {
+public enum CustomerSupportActionType implements ActionTypeInterface, StableKeyedEnum {
     TICKET_CREATION("티켓 생성", "Ticket Creation", "チケット作成"),
     TICKET_RESOLUTION("티켓 해결", "Ticket Resolution", "チケット解決"),
     KNOWLEDGE_BASE_MANAGEMENT("지식 기반 관리", "Knowledge Base Management", "ナレッジベース管理"),
@@ -27,6 +28,11 @@ public enum CustomerSupportActionType implements ActionTypeInterface {
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+
+    @Override
+    public String key() {
+        return "ACTION.CUSTOMER_SUPPORT." + name();
+    }
 
     @Override
     public Optional<TaskDomain> getTaskDomain() {

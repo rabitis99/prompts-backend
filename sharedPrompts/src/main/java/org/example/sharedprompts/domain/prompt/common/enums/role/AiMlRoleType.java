@@ -2,10 +2,11 @@ package org.example.sharedprompts.domain.prompt.common.enums.role;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 
 @Getter
 @AllArgsConstructor
-public enum AiMlRoleType implements RoleTypeInterface {
+public enum AiMlRoleType implements RoleTypeInterface, StableKeyedEnum {
     ML_ENGINEER(
             "머신러닝 엔지니어",
             "머신러닝 모델 개발 및 배포 전문가",
@@ -53,5 +54,10 @@ public enum AiMlRoleType implements RoleTypeInterface {
     private final String descriptionEn;
     private final String roleNameJa;
     private final String descriptionJa;
+
+    @Override
+    public String key() {
+        return "ROLE.AIML." + name();
+    }
 }
 
