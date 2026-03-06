@@ -15,5 +15,8 @@ public record PromptPageResult<T>(
         int totalPages,
         boolean last
 ) {
+    public PromptPageResult {
+        content = content == null ? List.of() : List.copyOf(content);
+    }
 }
 

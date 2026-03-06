@@ -1,6 +1,7 @@
 package org.example.sharedprompts.domain.prompt.infrastructure.persistence;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.follow.repository.FollowPredicates;
@@ -28,10 +29,26 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
     public Page<Prompt> search(PromptSearchQuery query) {
         BooleanExpression where = applyCategory(query.category());
 
+        // keyword가 있으면 제목·설명·태그명 검색 조건 적용
+        String keyword = query.keyword();
+        if (keyword != null && !keyword.isBlank()) {
+            BooleanExpression keywordExpr = buildKeywordConditionForSearch(keyword.trim());
+            if (keywordExpr != null) {
+                where = (where != null) ? where.and(keywordExpr) : keywordExpr;
+            }
+        }
+
         // ownerId가 지정되면 해당 작성자의 프롬프트만 조회
         if (query.ownerId() != null) {
             BooleanExpression ownerExpr = prompt.author.id.eq(query.ownerId());
             where = (where != null) ? where.and(ownerExpr) : ownerExpr;
+            // 본인이 아닌 경우 공개 프롬프트만 조회
+            if (query.viewerId() == null || !query.ownerId().equals(query.viewerId())) {
+                where = where.and(prompt.isPublic.eq(true));
+            }
+        } else {
+            // 공개 피드: 공개 프롬프트만 조회
+            where = (where != null) ? where.and(prompt.isPublic.eq(true)) : prompt.isPublic.eq(true);
         }
 
         return searchInternal(where, query);
@@ -148,5 +165,25 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
 
     private BooleanExpression applyCategory(PromptCategory category) {
         return category != null ? prompt.promptCategory.eq(category) : null;
+    }
+
+    /**
+     * 제목·설명·태그명에 대한 키워드 검색 조건 (대소문자 무시, 부분 일치).
+     */
+    private BooleanExpression buildKeywordConditionForSearch(String keyword) {
+        if (keyword == null || keyword.isEmpty()) {
+            return null;
+        }
+        String lowerKeyword = keyword.toLowerCase();
+        BooleanExpression titleOrDesc = prompt.title.lower().contains(lowerKeyword)
+                .or(prompt.description.lower().contains(lowerKeyword));
+        BooleanExpression tagMatch = prompt.id.in(
+                JPAExpressions
+                        .select(promptTag.prompt.id)
+                        .from(promptTag)
+                        .join(promptTag.tag, tag)
+                        .where(tag.name.lower().contains(lowerKeyword))
+        );
+        return titleOrDesc.or(tagMatch);
     }
 }

@@ -29,7 +29,8 @@ public class PromptWebMapper {
                 condition.getSort(),
                 condition.getPromptCategory(),
                 ownerId,
-                viewerId
+                viewerId,
+                condition.getKeyword()
         );
     }
 
@@ -90,7 +91,7 @@ public class PromptWebMapper {
                 dto.getDescription(),
                 dto.getIsPublic(),
                 dto.getTags(),
-                null // content는 PromptUpdateDto 에 없으므로 현재는 지원하지 않음
+                null // content, promptCategory는 현재 UpdatePromptCommand에서 지원하지 않음
         );
     }
 }

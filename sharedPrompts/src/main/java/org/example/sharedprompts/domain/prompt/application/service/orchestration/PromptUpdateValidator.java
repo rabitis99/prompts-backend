@@ -1,7 +1,6 @@
 package org.example.sharedprompts.domain.prompt.application.service.orchestration;
 
 import org.example.sharedprompts.domain.prompt.application.exception.InvalidPromptUpdateException;
-import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
 import org.example.sharedprompts.global.util.TagNormalizer;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +17,7 @@ public class PromptUpdateValidator {
 
     private static final int TITLE_MAX_LENGTH = 200;
     private static final int DESCRIPTION_MAX_LENGTH = 5000;
+    private static final int CONTENT_MAX_LENGTH = 100_000;
     private static final int TAG_MIN_LENGTH = 1;
     private static final int TAG_MAX_LENGTH = 50;
     private static final int MAX_TAG_COUNT = 20;
@@ -37,20 +37,21 @@ public class PromptUpdateValidator {
 
         String title = normalizeString(payload.title());
         String description = normalizeString(payload.description());
+        String content = normalizeString(payload.content());
         List<String> tags = payload.tags() != null ? TagNormalizer.normalizeTags(payload.tags()) : null;
         Boolean isPublic = payload.isPublic();
-        PromptCategory promptCategory = payload.promptCategory();
 
         validateTitle(title);
         validateDescription(description);
+        validateContent(content);
         validateTags(tags);
 
         return new UpdatePromptPayload(
                 title,
                 description,
                 isPublic,
-                promptCategory,
-                tags
+                tags,
+                content
         );
     }
 
@@ -73,6 +74,14 @@ public class PromptUpdateValidator {
         if (description.length() > DESCRIPTION_MAX_LENGTH) {
             throw new InvalidPromptUpdateException(
                     "설명은 최대 " + DESCRIPTION_MAX_LENGTH + "자까지 입력해주세요.");
+        }
+    }
+
+    private void validateContent(String content) {
+        if (content == null) return;
+        if (content.length() > CONTENT_MAX_LENGTH) {
+            throw new InvalidPromptUpdateException(
+                    "본문은 최대 " + CONTENT_MAX_LENGTH + "자까지 입력해주세요.");
         }
     }
 

@@ -25,6 +25,9 @@ public class PromptSearchCondition {
     @JsonProperty("prompt_category")
     private PromptCategory promptCategory;
 
+    /** 제목·설명·태그명 검색어 (null/공백이면 검색 조건 미적용) */
+    private String keyword;
+
     /**
      * @ModelAttribute 바인딩을 위한 snake_case 파라미터 지원
      * Spring은 쿼리 파라미터 "prompt_category"를 이 메서드로 바인딩합니다.

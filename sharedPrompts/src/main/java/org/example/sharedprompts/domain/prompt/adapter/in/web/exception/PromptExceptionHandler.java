@@ -31,8 +31,8 @@ public class PromptExceptionHandler {
 
     @ExceptionHandler(PromptAccessDeniedException.class)
     public ResponseEntity<CustomResponse<Void>> handleAccessDenied(PromptAccessDeniedException ex) {
-        log.warn("PromptAccessDeniedException: {}", ex.getMessage());
-        ApiException apiEx = new ApiException(ErrorCode.PROMPT_FORBIDDEN, ex.getMessage());
+        log.warn("PromptAccessDeniedException: promptId={}, userId={}", ex.getPromptId(), ex.getUserId());
+        ApiException apiEx = new ApiException(ErrorCode.PROMPT_FORBIDDEN);
         return ResponseEntity.status(apiEx.getErrorCode().getHttpStatus())
                 .body(CustomResponse.fail(apiEx));
     }

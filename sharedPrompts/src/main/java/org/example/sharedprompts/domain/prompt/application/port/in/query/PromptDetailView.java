@@ -23,5 +23,8 @@ public record PromptDetailView(
         Instant createdAt,
         Instant updatedAt
 ) {
+    public PromptDetailView {
+        tags = tags != null ? List.copyOf(tags) : List.of();
+    }
 }
 

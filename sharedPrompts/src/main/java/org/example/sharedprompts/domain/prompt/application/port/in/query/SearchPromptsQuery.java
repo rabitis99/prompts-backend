@@ -8,6 +8,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.SortType;
  *
  * <p>웹 DTO(PromptSearchCondition)와 분리되어 있으며,
  * 필요한 경우 어댑터에서 이 타입으로 변환한다.</p>
+ * <p>keyword가 있으면 제목·설명·태그명 검색 조건으로 persistence 계층에 전달된다.</p>
  */
 public record SearchPromptsQuery(
         int page,
@@ -15,7 +16,8 @@ public record SearchPromptsQuery(
         SortType sort,
         PromptCategory category,
         Long ownerId,
-        Long viewerId
+        Long viewerId,
+        String keyword
 ) {
 }
 

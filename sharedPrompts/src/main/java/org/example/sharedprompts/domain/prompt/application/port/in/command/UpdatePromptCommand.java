@@ -19,7 +19,7 @@ public record UpdatePromptCommand(
     public UpdatePromptCommand {
         if (promptId == null) throw new IllegalArgumentException("promptId는 null일 수 없습니다.");
         if (userId == null) throw new IllegalArgumentException("userId는 null일 수 없습니다.");
-        tags = tags != null ? List.copyOf(tags) : List.of();
+        tags = tags != null ? List.copyOf(tags) : null;
     }
 }
 

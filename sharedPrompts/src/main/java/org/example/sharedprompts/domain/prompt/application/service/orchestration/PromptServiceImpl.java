@@ -56,7 +56,8 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
                         query.sort(),
                         query.category(),
                         query.ownerId(),
-                        query.viewerId()
+                        query.viewerId(),
+                        query.keyword()
                 )
         );
         return mapToPromptSummaryPage(page);
@@ -68,9 +69,14 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
         Prompt prompt = promptQueryPort.findById(promptId)
                 .orElseThrow(() -> new PromptNotFoundException(promptId));
 
+        Long authorId = prompt.getAuthor().getId();
+        if (!prompt.isPublic() && (viewerId == null || !authorId.equals(viewerId))) {
+            throw new PromptAccessDeniedException(promptId, viewerId);
+        }
+
         // viewer와 author 간 BLOCKED 관계가 존재하면 접근 차단
         if (viewerId != null &&
-                followBlockPolicy.isBlocked(viewerId, prompt.getAuthor().getId())) {
+                followBlockPolicy.isBlocked(viewerId, authorId)) {
             throw new PromptAccessDeniedException(promptId, viewerId);
         }
 
@@ -86,7 +92,7 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
                 prompt.getId(),
                 prompt.getTitle(),
                 prompt.getDescription(),
-                null,
+                prompt.getContent(),
                 prompt.getPromptCategory(),
                 tags.stream().map(Tag::getName).toList(),
                 prompt.getAuthor().getId(),
@@ -117,8 +123,8 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
                 command.title(),
                 command.description(),
                 command.isPublic(),
-                null,
-                command.tags()
+                command.tags(),
+                command.content()
         );
 
         UpdatePromptPayload validated = promptUpdateValidator.validateAndNormalize(request);
@@ -132,8 +138,8 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
         if (validated.isPublic() != null) {
             prompt.updateIsPublic(validated.isPublic());
         }
-        if (validated.promptCategory() != null) {
-            prompt.updateCategory(validated.promptCategory());
+        if (validated.content() != null) {
+            prompt.updateContent(validated.content());
         }
 
         if (validated.tags() != null) {
@@ -147,7 +153,7 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
                 prompt.getId(),
                 prompt.getTitle(),
                 prompt.getDescription(),
-                null,
+                prompt.getContent(),
                 prompt.getPromptCategory(),
                 tags.stream().map(Tag::getName).toList(),
                 prompt.getAuthor().getId(),
@@ -194,7 +200,8 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
                         query.sort(),
                         query.category(),
                         query.ownerId(),
-                        query.viewerId()
+                        query.viewerId(),
+                        query.keyword()
                 )
         );
         return mapToPromptSummaryPage(page);
@@ -211,7 +218,8 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
                         query.sort(),
                         query.category(),
                         query.ownerId(),
-                        query.viewerId()
+                        query.viewerId(),
+                        query.keyword()
                 )
         );
         return mapToPromptSummaryPage(page);
