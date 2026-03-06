@@ -2,23 +2,26 @@ package org.example.sharedprompts.domain.prompt.application.service.orchestratio
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.follow.policy.FollowBlockPolicy;
-import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.example.sharedprompts.domain.like.service.LikeCountService;
+import org.example.sharedprompts.domain.prompt.application.exception.PromptAccessDeniedException;
+import org.example.sharedprompts.domain.prompt.application.exception.PromptNotFoundException;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.DeletePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.PromptCommandUseCase;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.UpdatePromptCommand;
+import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptDetailView;
+import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptPageResult;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptQueryUseCase;
+import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptSummaryView;
+import org.example.sharedprompts.domain.prompt.application.port.in.query.SearchPromptsQuery;
 import org.example.sharedprompts.domain.prompt.application.port.out.persistence.PromptCommandPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.persistence.PromptQueryPort;
+import org.example.sharedprompts.domain.prompt.application.port.out.persistence.PromptSearchQuery;
+import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.example.sharedprompts.domain.prompt.event.PromptEventPublisher;
-import org.example.sharedprompts.domain.tag.PromptTag;
 import org.example.sharedprompts.domain.tag.Tag;
 import org.example.sharedprompts.domain.tag.service.PromptTagService;
-import org.example.sharedprompts.dto.prompt.request.PromptSearchCondition;
-import org.example.sharedprompts.dto.prompt.request.PromptUpdateDto;
-import org.example.sharedprompts.dto.prompt.response.PromptResponseDto;
-import org.example.sharedprompts.global.exception.ApiException;
-import org.example.sharedprompts.global.exception.ErrorCode;
-import org.example.sharedprompts.dto.common.PageResponse;
 import org.springframework.data.domain.Page;
+import java.time.ZoneOffset;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,21 +48,30 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<PromptResponseDto> getPrompts(PromptSearchCondition condition, Long viewerId) {
-        Page<Prompt> page = promptQueryPort.searchPrompts(condition, viewerId);
-        return mapToPromptResponsePage(page);
+    public PromptPageResult<PromptSummaryView> getPrompts(SearchPromptsQuery query) {
+        Page<Prompt> page = promptQueryPort.search(
+                new PromptSearchQuery(
+                        query.page(),
+                        query.size(),
+                        query.sort(),
+                        query.category(),
+                        query.ownerId(),
+                        query.viewerId()
+                )
+        );
+        return mapToPromptSummaryPage(page);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PromptResponseDto getPromptDetail(Long promptId, Long viewerId) {
+    public PromptDetailView getPromptDetail(Long promptId, Long viewerId) {
         Prompt prompt = promptQueryPort.findById(promptId)
-                .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
+                .orElseThrow(() -> new PromptNotFoundException(promptId));
 
         // viewer와 author 간 BLOCKED 관계가 존재하면 접근 차단
         if (viewerId != null &&
                 followBlockPolicy.isBlocked(viewerId, prompt.getAuthor().getId())) {
-            throw new ApiException(ErrorCode.PROMPT_BLOCKED_VIEW);
+            throw new PromptAccessDeniedException(promptId, viewerId);
         }
 
         // 조회 이벤트 발행 (AFTER_COMMIT 단계에서 Redis에 조회수 증가)
@@ -70,42 +82,96 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
         Long likeCount = likeCountService
                 .getPromptLikeCounts(List.of(promptId))
                 .getOrDefault(promptId, prompt.getLikeCount());
-        return PromptResponseDto.from(prompt, tags, likeCount);
+        return new PromptDetailView(
+                prompt.getId(),
+                prompt.getTitle(),
+                prompt.getDescription(),
+                null,
+                prompt.getPromptCategory(),
+                tags.stream().map(Tag::getName).toList(),
+                prompt.getAuthor().getId(),
+                prompt.getAuthor().getNickname(),
+                likeCount,
+                prompt.getViewCount(),
+                prompt.isPublic(),
+                prompt.getCreatedAt().toInstant(ZoneOffset.UTC),
+                prompt.getUpdatedAt().toInstant(ZoneOffset.UTC)
+        );
     }
 
     // ============ 수정 ===============
     @Override
     @Transactional
-    public PromptResponseDto updatePrompt(Long promptId, PromptUpdateDto promptUpdateDto, Long userId) {
+    public PromptDetailView updatePrompt(UpdatePromptCommand command) {
+        Long promptId = command.promptId();
+        Long userId = command.userId();
+
         Prompt prompt = promptQueryPort.findById(promptId)
-                .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
+                .orElseThrow(() -> new PromptNotFoundException(promptId));
 
         if (!prompt.getAuthor().getId().equals(userId)) {
-            throw new ApiException(ErrorCode.PROMPT_FORBIDDEN);
+            throw new PromptAccessDeniedException(promptId, userId);
         }
 
-        PromptUpdateDto validatedDto = promptUpdateValidator.validateAndNormalize(promptUpdateDto);
-        validatedDto.applyTo(prompt);
+        UpdatePromptPayload request = new UpdatePromptPayload(
+                command.title(),
+                command.description(),
+                command.isPublic(),
+                null,
+                command.tags()
+        );
 
-        if (validatedDto.getTags() != null) {
-            promptTagService.updateTags(prompt, validatedDto.getTags());
+        UpdatePromptPayload validated = promptUpdateValidator.validateAndNormalize(request);
+
+        if (validated.title() != null) {
+            prompt.updateTitle(validated.title());
+        }
+        if (validated.description() != null) {
+            prompt.updateDescription(validated.description());
+        }
+        if (validated.isPublic() != null) {
+            prompt.updateIsPublic(validated.isPublic());
+        }
+        if (validated.promptCategory() != null) {
+            prompt.updateCategory(validated.promptCategory());
+        }
+
+        if (validated.tags() != null) {
+            promptTagService.updateTags(prompt, validated.tags());
         }
 
         promptCommandPort.save(prompt);
 
         List<Tag> tags = promptTagService.getTags(prompt);
-        return PromptResponseDto.from(prompt, tags);
+        return new PromptDetailView(
+                prompt.getId(),
+                prompt.getTitle(),
+                prompt.getDescription(),
+                null,
+                prompt.getPromptCategory(),
+                tags.stream().map(Tag::getName).toList(),
+                prompt.getAuthor().getId(),
+                prompt.getAuthor().getNickname(),
+                prompt.getLikeCount(),
+                prompt.getViewCount(),
+                prompt.isPublic(),
+                prompt.getCreatedAt().toInstant(ZoneOffset.UTC),
+                prompt.getUpdatedAt().toInstant(ZoneOffset.UTC)
+        );
     }
 
     // ============ 삭제 ===============
     @Override
     @Transactional
-    public void deletePrompt(Long promptId, Long userId) {
+    public void deletePrompt(DeletePromptCommand command) {
+        Long promptId = command.promptId();
+        Long userId = command.userId();
+
         Prompt prompt = promptQueryPort.findById(promptId)
-                .orElseThrow(() -> new ApiException(ErrorCode.PROMPT_NOT_FOUND));
+                .orElseThrow(() -> new PromptNotFoundException(promptId));
 
         if (!prompt.getAuthor().getId().equals(userId)) {
-            throw new ApiException(ErrorCode.PROMPT_FORBIDDEN);
+            throw new PromptAccessDeniedException(promptId, userId);
         }
 
         Long authorId = prompt.getAuthor().getId();
@@ -120,31 +186,62 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
     // ============ 내 프롬프트 조회 ===============
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<PromptResponseDto> getMyPrompts(Long userId, PromptSearchCondition condition) {
-        Page<Prompt> page = promptQueryPort.searchMyPrompts(userId, condition);
-        return mapToPromptResponsePage(page);
+    public PromptPageResult<PromptSummaryView> getMyPrompts(SearchPromptsQuery query) {
+        Page<Prompt> page = promptQueryPort.search(
+                new PromptSearchQuery(
+                        query.page(),
+                        query.size(),
+                        query.sort(),
+                        query.category(),
+                        query.ownerId(),
+                        query.viewerId()
+                )
+        );
+        return mapToPromptSummaryPage(page);
     }
 
     // ============ 다른 사용자의 프롬프트 조회 ===============
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<PromptResponseDto> getUserPrompts(Long userId, PromptSearchCondition condition, Long viewerId) {
-        Page<Prompt> page = promptQueryPort.searchUserPrompts(userId, condition, viewerId);
-        return mapToPromptResponsePage(page);
+    public PromptPageResult<PromptSummaryView> getUserPrompts(SearchPromptsQuery query) {
+        Page<Prompt> page = promptQueryPort.search(
+                new PromptSearchQuery(
+                        query.page(),
+                        query.size(),
+                        query.sort(),
+                        query.category(),
+                        query.ownerId(),
+                        query.viewerId()
+                )
+        );
+        return mapToPromptSummaryPage(page);
     }
 
-    /**
-     * Prompt 페이지를 PromptResponseDto 페이지로 변환하는 공통 메서드
-     */
-    private PageResponse<PromptResponseDto> mapToPromptResponsePage(Page<Prompt> page) {
-        return PageResponse.of(page.map(
-                p -> PromptResponseDto.from(
-                        p,
+    private PromptPageResult<PromptSummaryView> mapToPromptSummaryPage(Page<Prompt> page) {
+        var content = page.map(
+                p -> new PromptSummaryView(
+                        p.getId(),
+                        p.getTitle(),
+                        p.getPromptCategory(),
                         p.getPromptTags().stream()
-                                .map(PromptTag::getTag)
-                                .toList()
+                                .map(tagRel -> tagRel.getTag().getName())
+                                .toList(),
+                        p.getAuthor().getId(),
+                        p.getAuthor().getNickname(),
+                        p.getLikeCount(),
+                        p.getViewCount(),
+                        p.getCreatedAt().toInstant(ZoneOffset.UTC)
                 )
-        ));
+        );
+
+        return new PromptPageResult<>(
+                content.getContent(),
+                content.getNumber(),
+                content.getSize(),
+                content.getTotalElements(),
+                content.getTotalPages(),
+                content.isLast()
+        );
     }
 
 }

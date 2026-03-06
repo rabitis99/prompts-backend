@@ -1,12 +1,11 @@
 package org.example.sharedprompts.domain.prompt.adapter.out.persistence;
 
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.example.sharedprompts.domain.prompt.application.port.out.persistence.PromptCommandPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.persistence.PromptQueryPort;
+import org.example.sharedprompts.domain.prompt.application.port.out.persistence.PromptSearchQuery;
+import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.example.sharedprompts.domain.prompt.infrastructure.persistence.PromptRepository;
-import org.example.sharedprompts.domain.prompt.infrastructure.persistence.PromptSearchContext;
-import org.example.sharedprompts.dto.prompt.request.PromptSearchCondition;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
@@ -27,19 +26,8 @@ public class PromptPersistenceAdapter implements PromptQueryPort, PromptCommandP
     }
 
     @Override
-    public Page<Prompt> searchPrompts(PromptSearchCondition condition, Long viewerId) {
-        PromptSearchContext context = PromptSearchContext.of(condition, viewerId);
-        return promptRepository.searchPrompts(context);
-    }
-
-    @Override
-    public Page<Prompt> searchMyPrompts(Long userId, PromptSearchCondition condition) {
-        return promptRepository.searchMyPrompts(userId, condition);
-    }
-
-    @Override
-    public Page<Prompt> searchUserPrompts(Long userId, PromptSearchCondition condition, Long viewerId) {
-        return promptRepository.searchUserPrompts(userId, condition, viewerId);
+    public Page<Prompt> search(PromptSearchQuery query) {
+        return promptRepository.search(query);
     }
 
     @Override

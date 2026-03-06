@@ -34,10 +34,8 @@ public record UnifiedGeneratePromptResult(
         CoreRoleType coreRole,
         DomainRoleType domainRole,
         List<QualityBadge> qualityBadges,
-        /** 첫 검증(수리 전) 통과 여부 */
         boolean verifyPassed,
         int repairCount,
-        /** 수리 후 최종 검증 통과 여부 */
         boolean finallyPassed,
         boolean schemaContractFailed,
         List<String> schemaFailureReasons,

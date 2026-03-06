@@ -1,12 +1,11 @@
 package org.example.sharedprompts.domain.prompt.application.port.in.command;
 
+import org.example.sharedprompts.domain.prompt.application.exception.UnsupportedQualityPipelineOptionException;
 import org.example.sharedprompts.domain.prompt.common.enums.*;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.role.CoreRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.DomainRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
-import org.example.sharedprompts.global.exception.ApiException;
-import org.example.sharedprompts.global.exception.ErrorCode;
 
 import java.util.List;
 import java.util.Objects;
@@ -54,7 +53,7 @@ public record UnifiedGeneratePromptCommand(
         ExperienceLevel safeExperience = experience != null ? experience : ExperienceLevel.INTERMEDIATE;
 
         if (disableQualityPipeline) {
-            throw new ApiException(ErrorCode.UNSUPPORTED_QUALITY_PIPELINE_OPTION);
+            throw new UnsupportedQualityPipelineOptionException();
         }
 
         List<String> safeTags;

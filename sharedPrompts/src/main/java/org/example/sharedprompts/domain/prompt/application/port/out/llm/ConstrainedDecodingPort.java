@@ -4,9 +4,6 @@ import org.example.sharedprompts.domain.prompt.domain.model.contract.OutputContr
 
 /**
  * Constrained Decoding 포트 — JSON Schema 기반 토큰 마스킹으로 무효 출력을 원천 차단한다.
- *
- * <p>EXTRACTION Objective에서 우선 사용된다.
- * 벤더별 compliance rate 편차(최대 2배)가 있으므로 adapter 인터페이스 뒤에 격리한다.
  */
 public interface ConstrainedDecodingPort {
 

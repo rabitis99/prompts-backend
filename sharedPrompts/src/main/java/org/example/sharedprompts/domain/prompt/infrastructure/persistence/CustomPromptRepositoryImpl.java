@@ -4,9 +4,9 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.follow.repository.FollowPredicates;
-import org.example.sharedprompts.domain.prompt.entity.Prompt;
+import org.example.sharedprompts.domain.prompt.application.port.out.persistence.PromptSearchQuery;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
-import org.example.sharedprompts.dto.prompt.request.PromptSearchCondition;
+import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -25,47 +25,26 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Page<Prompt> searchPrompts(PromptSearchContext context) {
-        PromptSearchCondition condition = context.getCondition();
-        return searchInternal(applyCategory(condition.getPromptCategory()), context);
-    }
+    public Page<Prompt> search(PromptSearchQuery query) {
+        BooleanExpression where = applyCategory(query.category());
 
-    @Override
-    public Page<Prompt> searchMyPrompts(Long userId, PromptSearchCondition condition) {
-        // 내 프롬프트 조회는 viewer 컨텍스트가 필요 없으므로 기존 condition만 사용
-        // PromptSearchContext.of()에서 condition null 검증 수행
-        PromptSearchContext context = PromptSearchContext.of(condition, null);
+        // ownerId가 지정되면 해당 작성자의 프롬프트만 조회
+        if (query.ownerId() != null) {
+            BooleanExpression ownerExpr = prompt.author.id.eq(query.ownerId());
+            where = (where != null) ? where.and(ownerExpr) : ownerExpr;
+        }
 
-        BooleanExpression categoryExpr = applyCategory(condition.getPromptCategory());
-        BooleanExpression where = (categoryExpr != null)
-                ? prompt.author.id.eq(userId).and(categoryExpr)
-                : prompt.author.id.eq(userId);
-
-        return searchInternal(where, context);
-    }
-
-    @Override
-    public Page<Prompt> searchUserPrompts(Long userId, PromptSearchCondition condition, Long viewerId) {
-        BooleanExpression categoryExpr = applyCategory(condition.getPromptCategory());
-        BooleanExpression where = (categoryExpr != null)
-                ? prompt.author.id.eq(userId).and(categoryExpr)
-                : prompt.author.id.eq(userId);
-
-        // 다른 사용자의 프롬프트 조회는 viewer 컨텍스트를 고려해야 함
-        PromptSearchContext context = PromptSearchContext.of(condition, viewerId);
-
-        return searchInternal(where, context);
+        return searchInternal(where, query);
     }
 
     /**
      * 공통 2-step 페이징 + fetchJoin
      */
-    private Page<Prompt> searchInternal(BooleanExpression where, PromptSearchContext context) {
-        PromptSearchCondition condition = context.getCondition();
-        PageRequest pageable = PageRequest.of(condition.getPage(), condition.getSize());
+    private Page<Prompt> searchInternal(BooleanExpression where, PromptSearchQuery query) {
+        PageRequest pageable = PageRequest.of(query.page(), query.size());
 
         // viewer(요청자)와 author 간 BLOCKED 관계가 존재하는 프롬프트는 제외
-        Long viewerId = context.getViewerId();
+        Long viewerId = query.viewerId();
         if (viewerId != null) {
             BooleanExpression notBlocked =
                     FollowPredicates.notBlockedBetween(viewerId, prompt.author.id);
@@ -80,7 +59,7 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
                 .select(prompt.id)
                 .from(prompt)
                 .where(where)
-                .orderBy(condition.getSort().toOrderSpecifiers(prompt))
+                .orderBy(query.sort().toOrderSpecifiers(prompt))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
@@ -102,7 +81,7 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
                 .leftJoin(prompt.promptTags, promptTag).fetchJoin()
                 .leftJoin(promptTag.tag, tag).fetchJoin()
                 .where(prompt.id.in(ids))
-                .orderBy(condition.getSort().toOrderSpecifiers(prompt))
+                .orderBy(query.sort().toOrderSpecifiers(prompt))
                 .fetch();
 
         return new PageImpl<>(content, pageable, total);

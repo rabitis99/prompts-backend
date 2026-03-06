@@ -5,9 +5,6 @@ import org.example.sharedprompts.domain.prompt.application.port.in.query.Generat
 
 /**
  * 프롬프트 생성 유즈케이스 포트 — 4단계 파이프라인(Clarify → Solve → Verify → Repair)의 진입점.
- *
- * <p>Adapter(Controller)는 이 인터페이스만 의존한다.
- * domain/application 클래스를 직접 조립·침범하지 않는다.
  */
 public interface GeneratePromptUseCase {
 

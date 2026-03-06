@@ -5,7 +5,8 @@ import org.example.sharedprompts.domain.prompt.domain.model.spec.PromptSpec;
 
 /**
  * 생성된 프롬프트를 저장하는 포트.
- * JPA 엔티티(Prompt) 저장을 담당하며, 도메인 모델과 JPA 엔티티 간 변환도 수행한다.
+ *
+ * <p>4단계 파이프라인(Clarify→Solve→Verify→Repair) 결과를 버전으로 저장한다.</p>
  */
 public interface SavePromptVersionPort {
 
