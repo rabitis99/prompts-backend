@@ -32,7 +32,9 @@ public record UnifiedGeneratePromptCommand(
         RoleTypeInterface roleType,
         CoreRoleType coreRole,
         DomainRoleType domainRole,
-        List<String> tags
+        List<String> tags,
+        String title,
+        String description
     ) {
 
     public UnifiedGeneratePromptCommand {
@@ -93,7 +95,9 @@ public record UnifiedGeneratePromptCommand(
             RoleTypeInterface roleType,
             CoreRoleType coreRole,
             DomainRoleType domainRole,
-            List<String> tags
+            List<String> tags,
+            String title,
+            String description
     ) {
         return new UnifiedGeneratePromptCommand(
                 userId,
@@ -112,7 +116,9 @@ public record UnifiedGeneratePromptCommand(
                 roleType,
                 coreRole,
                 domainRole,
-                tags
+                tags,
+                title,
+                description
         );
     }
 
@@ -129,7 +135,9 @@ public record UnifiedGeneratePromptCommand(
             StyleType style,
             LanguageType language,
             ExperienceLevel experience,
-            List<String> tags
+            List<String> tags,
+            String title,
+            String description
     ) {
         return new UnifiedGeneratePromptCommand(
                 userId,
@@ -148,7 +156,9 @@ public record UnifiedGeneratePromptCommand(
                 null,
                 null,
                 null,
-                tags
+                tags,
+                title,
+                description
         );
     }
 }

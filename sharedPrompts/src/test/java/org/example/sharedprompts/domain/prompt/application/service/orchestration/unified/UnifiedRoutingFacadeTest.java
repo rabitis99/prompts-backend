@@ -44,6 +44,9 @@ class UnifiedRoutingFacadeTest {
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
                 null
         );
     }
@@ -61,7 +64,7 @@ class UnifiedRoutingFacadeTest {
 
         assertThat(decision.engineProfile()).isEqualTo(EngineProfile.QUALITY_PIPELINE);
         assertThat(decision.effectiveEngineMode()).isEqualTo(EngineMode.V2);
-        assertThat(decision.routingReasons())
+        assertThat(decision.decisionReasons())
                 .anySatisfy(r -> assertThat(r).contains("engineProfile:autoByIntent"));
     }
 
@@ -79,7 +82,7 @@ class UnifiedRoutingFacadeTest {
         assertThat(decision.engineProfile()).isEqualTo(EngineProfile.JSON_STRICT);
         assertThat(decision.objective()).isEqualTo(PromptObjective.EXTRACTION);
         assertThat(decision.outputNeeds()).isEqualTo(OutputNeeds.JSON_SCHEMA_REQUIRED);
-        assertThat(decision.routingReasons())
+        assertThat(decision.decisionReasons())
                 .anySatisfy(r -> assertThat(r).contains("jsonSchema"));
     }
 
@@ -110,7 +113,7 @@ class UnifiedRoutingFacadeTest {
         UnifiedRoutingFacade.RoutingDecision decision = facade.decide(baseCommand(EngineMode.AUTO, null));
 
         assertThat(decision.appliedRuleIds()).containsExactly("r1");
-        assertThat(decision.routingReasons())
+        assertThat(decision.decisionReasons())
                 .anySatisfy(r -> assertThat(r).contains("rulesApplied"))
                 .anySatisfy(r -> assertThat(r).contains("engineProfile"));
     }

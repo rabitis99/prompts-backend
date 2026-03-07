@@ -34,9 +34,17 @@ public class SavePromptVersionAdapter implements SavePromptVersionPort {
         User user = userRepository.findById(command.userId())
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
+        // DB NOT NULL: description이 없으면 생성된 본문으로 채움 (Unified Simple 요청 대응)
+        String description = (command.description() != null && !command.description().isBlank())
+                ? command.description()
+                : (finalContent != null && !finalContent.isBlank() ? finalContent : "");
+        String title = (command.title() != null && !command.title().isBlank())
+                ? command.title()
+                : "Untitled";
+
         Prompt prompt = Prompt.builder()
-                .title(command.title())
-                .description(command.description())
+                .title(title)
+                .description(description)
                 .content(finalContent)
                 .isPublic(Boolean.TRUE.equals(command.isPublic()))
                 .promptCategory(command.promptCategory())

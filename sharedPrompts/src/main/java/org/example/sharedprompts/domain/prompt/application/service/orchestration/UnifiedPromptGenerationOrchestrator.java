@@ -86,14 +86,18 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
             UnifiedGeneratePromptCommand command,
             UnifiedRoutingFacade.RoutingDecision decision
     ) {
-        // V2 파이프라인 내부 식별용 제목. 클라이언트 노출용이면 API 응답에서 별도 title 필드로 교체 가능.
-        String syntheticTitle = "[Unified] " + decision.intent().name();
+        String title = (command.title() != null && !command.title().isBlank())
+                ? command.title()
+                : "[Unified] " + decision.intent().name();
+        String description = (command.description() != null && !command.description().isBlank())
+                ? command.description()
+                : null;
         boolean isPublic = false;
 
         return new GeneratePromptCommand(
                 command.userId(),
-                syntheticTitle,
-                null,           // description
+                title,
+                description,
                 isPublic,       // isPublic
                 command.category(),
                 command.tags(),

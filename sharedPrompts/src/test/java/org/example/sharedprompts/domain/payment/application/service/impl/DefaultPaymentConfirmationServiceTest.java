@@ -3,6 +3,8 @@ package org.example.sharedprompts.domain.payment.application.service.impl;
 import org.example.sharedprompts.domain.payment.application.port.in.command.ConfirmPaymentCommand;
 import org.example.sharedprompts.domain.payment.application.port.in.result.PaymentConfirmationResult;
 import org.example.sharedprompts.domain.payment.application.port.out.event.PaymentEventPublisherPort;
+import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentConfirmParams;
+import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentConfirmParams;
 import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentGatewayPort;
 import org.example.sharedprompts.domain.payment.application.port.out.repository.PaymentCommandRepositoryPort;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
@@ -24,11 +26,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,6 +44,9 @@ class DefaultPaymentConfirmationServiceTest {
 
     @Mock
     private PaymentGatewayPort paymentGateway;
+
+    @Mock
+    private org.example.sharedprompts.domain.payment.application.service.PaymentConfirmParamsResolver confirmParamsResolver;
 
     @Mock
     private PaymentEventPublisherPort eventPublisher;
@@ -55,6 +62,7 @@ class DefaultPaymentConfirmationServiceTest {
         service = new DefaultPaymentConfirmationService(
                 paymentRepository,
                 paymentGateway,
+                confirmParamsResolver,
                 eventPublisher,
                 transactionManager
         );
@@ -94,7 +102,9 @@ class DefaultPaymentConfirmationServiceTest {
 
         // When
         when(paymentRepository.findByIdForUpdate(paymentId)).thenReturn(Optional.of(mockPayment));
-        when(paymentGateway.confirmPayment(mockPayment, providerToken)).thenReturn(successResult);
+        when(confirmParamsResolver.resolve(eq(mockPayment), eq(command)))
+                .thenReturn(PaymentConfirmParams.of("RESOLVED_KEY", Collections.emptyMap()));
+        when(paymentGateway.confirmPayment(eq(mockPayment), any(PaymentConfirmParams.class))).thenReturn(successResult);
         when(paymentRepository.save(any(Payment.class))).thenReturn(mockPayment);
 
         PaymentConfirmationResult result = service.confirm(command);
@@ -104,7 +114,8 @@ class DefaultPaymentConfirmationServiceTest {
         assertEquals(paymentId, result.getPaymentId());
         assertEquals("EXT_PAY_ID_123", result.getExternalPaymentId());
         verify(paymentRepository, times(2)).findByIdForUpdate(paymentId);
-        verify(paymentGateway).confirmPayment(mockPayment, providerToken);
+        verify(confirmParamsResolver).resolve(mockPayment, command);
+        verify(paymentGateway).confirmPayment(mockPayment, any(PaymentConfirmParams.class));
         verify(paymentRepository).save(mockPayment);
         verify(eventPublisher).publishPaymentConfirmed(any());
     }
@@ -224,7 +235,9 @@ class DefaultPaymentConfirmationServiceTest {
                 PaymentGatewayPort.PaymentGatewayResult.failure("Gateway error", null);
 
         when(paymentRepository.findByIdForUpdate(paymentId)).thenReturn(Optional.of(mockPayment));
-        when(paymentGateway.confirmPayment(mockPayment, providerToken)).thenReturn(failResult);
+        when(confirmParamsResolver.resolve(eq(mockPayment), eq(command)))
+                .thenReturn(PaymentConfirmParams.of("KEY", Collections.emptyMap()));
+        when(paymentGateway.confirmPayment(eq(mockPayment), any(PaymentConfirmParams.class))).thenReturn(failResult);
         when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // When

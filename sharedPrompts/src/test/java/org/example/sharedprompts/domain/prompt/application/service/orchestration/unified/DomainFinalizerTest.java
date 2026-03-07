@@ -44,6 +44,9 @@ class DomainFinalizerTest {
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
                 null
         );
     }

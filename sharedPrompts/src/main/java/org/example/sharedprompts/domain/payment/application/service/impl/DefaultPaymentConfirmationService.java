@@ -6,8 +6,10 @@ import org.example.sharedprompts.domain.payment.application.port.in.command.Conf
 import org.example.sharedprompts.domain.payment.application.port.in.result.PaymentConfirmationResult;
 import org.example.sharedprompts.domain.payment.application.port.in.usecase.PaymentConfirmationUseCase;
 import org.example.sharedprompts.domain.payment.application.port.out.event.PaymentEventPublisherPort;
+import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentConfirmParams;
 import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentGatewayPort;
 import org.example.sharedprompts.domain.payment.application.port.out.repository.PaymentCommandRepositoryPort;
+import org.example.sharedprompts.domain.payment.application.service.PaymentConfirmParamsResolver;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentErrorCode;
 import org.example.sharedprompts.domain.payment.domain.event.PaymentConfirmedEvent;
@@ -39,6 +41,7 @@ public class DefaultPaymentConfirmationService implements PaymentConfirmationUse
 
     private final PaymentCommandRepositoryPort paymentRepository;
     private final PaymentGatewayPort paymentGateway;
+    private final PaymentConfirmParamsResolver confirmParamsResolver;
     private final PaymentEventPublisherPort eventPublisher;
     private final PaymentTransactionManager transactionManager;
 
@@ -51,10 +54,8 @@ public class DefaultPaymentConfirmationService implements PaymentConfirmationUse
                 prepareConfirmation(command));
 
         // 2단계: 락 밖에서 외부 PG 승인 호출
-        PaymentGatewayPort.PaymentGatewayResult confirmResult = paymentGateway.confirmPayment(
-                payment,
-                command.getProviderToken()
-        );
+        PaymentConfirmParams params = confirmParamsResolver.resolve(payment, command);
+        PaymentGatewayPort.PaymentGatewayResult confirmResult = paymentGateway.confirmPayment(payment, params);
 
         // 3단계: 별도 트랜잭션에서 결과 반영 및 이벤트 발행(커밋 후)
         return transactionManager.executeInTransaction(() ->

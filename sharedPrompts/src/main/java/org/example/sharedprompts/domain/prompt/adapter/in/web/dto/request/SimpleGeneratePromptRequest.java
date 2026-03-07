@@ -30,7 +30,13 @@ public record SimpleGeneratePromptRequest(
         ExperienceLevel experience,
 
         @Size(max = 20, message = "태그는 최대 20개까지 가능합니다.")
-        List<@Size(min = 1, max = 50, message = "태그는 1~50자로 입력해주세요.") String> tags
+        List<@Size(min = 1, max = 50, message = "태그는 1~50자로 입력해주세요.") String> tags,
+
+        @Size(max = 200, message = "제목은 최대 200자까지 입력해주세요.")
+        String title,
+
+        @Size(max = 65_535, message = "설명은 최대 65535자까지 입력해주세요.")
+        String description
 ) implements UnifiedGeneratePromptRequest {
 
     public SimpleGeneratePromptRequest {
@@ -51,7 +57,9 @@ public record SimpleGeneratePromptRequest(
                 style,
                 language,
                 experience,
-                tags
+                tags,
+                title,
+                description
         );
     }
 }

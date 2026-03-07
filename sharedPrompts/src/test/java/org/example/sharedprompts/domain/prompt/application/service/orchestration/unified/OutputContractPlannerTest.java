@@ -25,6 +25,9 @@ class OutputContractPlannerTest {
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
                 null
         );
     }

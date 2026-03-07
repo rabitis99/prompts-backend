@@ -27,6 +27,9 @@ class RoutingRuleEngineTest {
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
                 null
         );
     }

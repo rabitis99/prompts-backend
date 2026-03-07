@@ -79,7 +79,9 @@ class OrchestratorThinTest {
                 null,           // roleType
                 null,           // coreRole
                 null,           // domainRole
-                null            // tags
+                null,           // tags
+                null,           // title
+                null            // description
         );
 
         // when

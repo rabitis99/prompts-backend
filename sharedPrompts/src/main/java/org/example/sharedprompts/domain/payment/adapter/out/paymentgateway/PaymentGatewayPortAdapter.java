@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.payment.application.dto.response.CancelResult;
 import org.example.sharedprompts.domain.payment.application.dto.response.PaymentResult;
 import org.example.sharedprompts.domain.payment.application.dto.response.RefundResult;
+import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentConfirmParams;
 import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentGatewayPort;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
 import org.example.sharedprompts.domain.payment.infrastructure.external.provider.PaymentProvider;
@@ -54,19 +55,19 @@ public class PaymentGatewayPortAdapter implements PaymentGatewayPort {
     }
 
     @Override
-    public PaymentGatewayResult confirmPayment(Payment payment, String approvalToken) {
+    public PaymentGatewayResult confirmPayment(Payment payment, PaymentConfirmParams params) {
         log.info("결제 승인 시작: paymentId={}, method={}", payment.getId(), payment.getPaymentMethod());
 
         try {
             PaymentProvider provider = providerFactory.getProvider(payment.getPaymentMethod());
             PaymentResult result = provider.confirmPayment(
-                    approvalToken,
+                    params.paymentKey(),
                     payment.getId().toString(),
                     payment.getAmount(),
                     payment.getCurrency(),
                     payment.getIdempotencyKey(),
                     payment.getUser().getId().toString(),
-                    new java.util.HashMap<>()
+                    params.additionalParams()
             );
 
             String externalPaymentId = result.getExternalPaymentId();

@@ -72,7 +72,15 @@ public class PaymentResponseDto {
     private BigDecimal usedPointAmount;
     
     @JsonProperty("metadata")
-    private String metadata;
+    private Object metadata;
+
+    /** 카카오페이 등 결제 준비 시 리다이렉트 URL (metadata.next_redirect_pc_url 또는 metadata.redirect_url) */
+    @JsonProperty("redirect_url")
+    private String redirectUrl;
+
+    /** 결제사별 데이터. 카카오페이 시 redirect_url 등 (프론트 paymentData.redirect_url) */
+    @JsonProperty("paymentData")
+    private java.util.Map<String, Object> paymentData;
     
     @JsonProperty("created_at")
     private LocalDateTime createdAt;

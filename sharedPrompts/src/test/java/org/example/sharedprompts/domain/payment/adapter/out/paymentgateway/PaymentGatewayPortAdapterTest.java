@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.payment.adapter.out.paymentgateway;
 import org.example.sharedprompts.domain.payment.application.dto.response.CancelResult;
 import org.example.sharedprompts.domain.payment.application.dto.response.PaymentResult;
 import org.example.sharedprompts.domain.payment.application.dto.response.RefundResult;
+import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentConfirmParams;
 import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentGatewayPort;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
@@ -23,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -137,7 +139,10 @@ class PaymentGatewayPortAdapterTest {
         )).thenReturn(paymentResult);
 
         // When
-        PaymentGatewayPort.PaymentGatewayResult result = adapter.confirmPayment(testPayment, approvalToken);
+        PaymentGatewayPort.PaymentGatewayResult result = adapter.confirmPayment(
+                testPayment,
+                PaymentConfirmParams.of(approvalToken, Collections.emptyMap())
+        );
 
         // Then
         assertTrue(result.isSuccess());
@@ -156,7 +161,10 @@ class PaymentGatewayPortAdapterTest {
                 .thenThrow(new RuntimeException("Invalid token"));
 
         // When
-        PaymentGatewayPort.PaymentGatewayResult result = adapter.confirmPayment(testPayment, approvalToken);
+        PaymentGatewayPort.PaymentGatewayResult result = adapter.confirmPayment(
+                testPayment,
+                PaymentConfirmParams.of(approvalToken, Collections.emptyMap())
+        );
 
         // Then
         assertFalse(result.isSuccess());

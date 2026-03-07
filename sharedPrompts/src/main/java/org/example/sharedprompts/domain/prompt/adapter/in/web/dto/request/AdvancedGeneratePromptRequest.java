@@ -34,6 +34,12 @@ public record AdvancedGeneratePromptRequest(
         @Size(max = 10_000, message = "입력은 최대 10000자까지 입력해주세요.")
         String input,
 
+        @Size(max = 200, message = "제목은 최대 200자까지 입력해주세요.")
+        String title,
+
+        @Size(max = 5_000, message = "설명은 최대 5000자까지 입력해주세요.")
+        String description,
+
         @Size(max = 20_000, message = "JSON Schema는 최대 20000자까지 허용됩니다.")
         @JsonProperty("json_schema")
         String jsonSchema,
@@ -95,7 +101,9 @@ public record AdvancedGeneratePromptRequest(
                 roleType,
                 coreRole,
                 domainRole,
-                tags
+                tags,
+                title,
+                description
         );
     }
 }
