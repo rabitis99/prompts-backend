@@ -93,6 +93,10 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
         Long likeCount = likeCountService
                 .getPromptLikeCounts(List.of(promptId))
                 .getOrDefault(promptId, prompt.getLikeCount());
+        return toPromptDetailView(prompt, tags, likeCount);
+    }
+
+    private PromptDetailView toPromptDetailView(Prompt prompt, List<Tag> tags, Long likeCount) {
         return new PromptDetailView(
                 prompt.getId(),
                 prompt.getTitle(),
@@ -157,21 +161,7 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
         Long likeCount = likeCountService
                 .getPromptLikeCounts(List.of(promptId))
                 .getOrDefault(promptId, prompt.getLikeCount());
-        return new PromptDetailView(
-                prompt.getId(),
-                prompt.getTitle(),
-                prompt.getDescription(),
-                prompt.getContent(),
-                prompt.getPromptCategory(),
-                tags.stream().map(Tag::getName).toList(),
-                prompt.getAuthor().getId(),
-                prompt.getAuthor().getNickname(),
-                likeCount,
-                prompt.getViewCount(),
-                prompt.isPublic(),
-                prompt.getCreatedAt().toInstant(ZoneOffset.UTC),
-                prompt.getUpdatedAt().toInstant(ZoneOffset.UTC)
-        );
+        return toPromptDetailView(prompt, tags, likeCount);
     }
 
     // ============ 삭제 ===============

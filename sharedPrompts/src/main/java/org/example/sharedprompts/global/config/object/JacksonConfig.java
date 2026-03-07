@@ -1,9 +1,12 @@
 package org.example.sharedprompts.global.config.object;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -14,8 +17,10 @@ import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 @Configuration
@@ -30,8 +35,8 @@ public class JacksonConfig {
         ObjectMapper mapper = new ObjectMapper();
 
         JavaTimeModule javaTimeModule = new JavaTimeModule();
-        javaTimeModule.addSerializer(LocalDateTime.class,
-                new LocalDateTimeSerializer(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        // LocalDateTime: 앱 전역에서 UTC로 다루므로(JpaAuditingConfig, Hibernate time_zone) 직렬화 시 ISO-8601+Z로 출력해 클라이언트가 UTC로 해석하도록 함
+        javaTimeModule.addSerializer(LocalDateTime.class, new LocalDateTimeUtcSerializer());
         javaTimeModule.addDeserializer(LocalDateTime.class,
                 new LocalDateTimeDeserializer(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         // Instant: ISO-8601 형식으로 직렬화 (PayPal 등 외부 API UTC 타임스탬프 처리용)
@@ -86,5 +91,21 @@ public class JacksonConfig {
         // INDENT_OUTPUT은 Redis 저장 공간을 위해 비활성화 유지
 
         return mapper;
+    }
+
+    /**
+     * LocalDateTime을 UTC라고 간주하고 ISO-8601 형식(접미사 Z)으로 직렬화합니다.
+     * JpaAuditingConfig·Hibernate time_zone으로 저장된 값과 일치시켜 API 응답의 시간대 일관성을 보장합니다.
+     */
+    private static final class LocalDateTimeUtcSerializer extends JsonSerializer<LocalDateTime> {
+        @Override
+        public void serialize(LocalDateTime value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            if (value == null) {
+                gen.writeNull();
+                return;
+            }
+            Instant instant = value.atOffset(ZoneOffset.UTC).toInstant();
+            gen.writeString(DateTimeFormatter.ISO_INSTANT.format(instant));
+        }
     }
 }

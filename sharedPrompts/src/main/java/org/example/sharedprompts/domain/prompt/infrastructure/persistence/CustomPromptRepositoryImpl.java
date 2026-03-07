@@ -100,6 +100,7 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
                 .leftJoin(promptTag.tag, tag).fetchJoin()
                 .where(prompt.id.in(ids))
                 .orderBy(query.sort().toOrderSpecifiers(prompt))
+                .distinct()
                 .fetch();
 
         return new PageImpl<>(content, pageable, total);

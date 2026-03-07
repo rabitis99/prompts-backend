@@ -32,7 +32,7 @@ public class PromptPersistenceAdapter implements PromptQueryPort, PromptCommandP
 
     @Override
     public Prompt save(Prompt prompt) {
-        return promptRepository.save(prompt);
+        return promptRepository.saveAndFlush(prompt);
     }
 
     @Override
