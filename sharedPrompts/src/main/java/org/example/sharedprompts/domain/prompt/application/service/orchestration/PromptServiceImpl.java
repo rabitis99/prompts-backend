@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 프롬프트 조회 / 수정 / 삭제를 담당하는 도메인 서비스 구현체입니다.
@@ -153,6 +154,9 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
         promptCommandPort.save(prompt);
 
         List<Tag> tags = promptTagService.getTags(prompt);
+        Long likeCount = likeCountService
+                .getPromptLikeCounts(List.of(promptId))
+                .getOrDefault(promptId, prompt.getLikeCount());
         return new PromptDetailView(
                 prompt.getId(),
                 prompt.getTitle(),
@@ -162,7 +166,7 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
                 tags.stream().map(Tag::getName).toList(),
                 prompt.getAuthor().getId(),
                 prompt.getAuthor().getNickname(),
-                prompt.getLikeCount(),
+                likeCount,
                 prompt.getViewCount(),
                 prompt.isPublic(),
                 prompt.getCreatedAt().toInstant(ZoneOffset.UTC),
@@ -208,8 +212,12 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
     }
 
     private PromptPageResult<PromptSummaryView> mapToPromptSummaryPage(Page<Prompt> page) {
-        var content = page.map(
-                p -> new PromptSummaryView(
+        List<Prompt> content = page.getContent();
+        List<Long> promptIds = content.stream().map(Prompt::getId).toList();
+        Map<Long, Long> likeCountByPromptId = likeCountService.getPromptLikeCounts(promptIds);
+
+        var mappedContent = content.stream()
+                .map(p -> new PromptSummaryView(
                         p.getId(),
                         p.getTitle(),
                         p.getPromptCategory(),
@@ -218,19 +226,19 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
                                 .toList(),
                         p.getAuthor().getId(),
                         p.getAuthor().getNickname(),
-                        p.getLikeCount(),
+                        likeCountByPromptId.getOrDefault(p.getId(), p.getLikeCount()),
                         p.getViewCount(),
                         p.getCreatedAt().toInstant(ZoneOffset.UTC)
-                )
-        );
+                ))
+                .toList();
 
         return new PromptPageResult<>(
-                content.getContent(),
-                content.getNumber(),
-                content.getSize(),
-                content.getTotalElements(),
-                content.getTotalPages(),
-                content.isLast()
+                mappedContent,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast()
         );
     }
 

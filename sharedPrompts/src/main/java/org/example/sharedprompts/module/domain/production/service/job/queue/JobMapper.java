@@ -4,7 +4,7 @@ import org.example.sharedprompts.module.domain.production.entity.job.JobEntity;
 import org.example.sharedprompts.module.domain.production.model.job.Job;
 import org.springframework.stereotype.Component;
 
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 @Component
 public class JobMapper {
@@ -18,8 +18,9 @@ public class JobMapper {
                 .userInput(jobEntity.getUserInput())
                 .status(jobEntity.getStatus())
                 .errorMessage(jobEntity.getErrorMessage())
-                .createdAt(jobEntity.getCreatedAt() != null ?
-                        jobEntity.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant() : null)
+                .createdAt(jobEntity.getCreatedAt() != null
+                        ? jobEntity.getCreatedAt().toInstant(ZoneOffset.UTC)
+                        : null)
                 .startedAt(jobEntity.getStartedAt())
                 .completedAt(jobEntity.getCompletedAt())
                 // JobEntity에는 aiGeneratedContent가 영속화되지 않습니다(artifact로 저장/관리).

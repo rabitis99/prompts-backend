@@ -95,6 +95,7 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
 
         List<Prompt> content = queryFactory
                 .selectFrom(prompt)
+                .leftJoin(prompt.author, user).fetchJoin()
                 .leftJoin(prompt.promptTags, promptTag).fetchJoin()
                 .leftJoin(promptTag.tag, tag).fetchJoin()
                 .where(prompt.id.in(ids))

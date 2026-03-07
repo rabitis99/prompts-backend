@@ -18,6 +18,10 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
+  # JSON 직렬화 시 날짜/시간을 UTC로 처리 (선택적, Instant 사용 시에는 불필요)
+  jackson:
+    time-zone: UTC
+
   web:
     resources:
       add-mappings: false
@@ -98,6 +102,11 @@ spring:
         dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.MySQLDialect}
         jdbc:
           batch_size: ${HIBERNATE_BATCH_SIZE:50}
+          # 감사 필드(createdAt/updatedAt)가 JVM 기본 타임존이 아닌 UTC로 저장·로드되도록 강제합니다.
+          # LocalDateTime#toInstant(ZoneOffset.UTC) 해석과 일치시켜 오프셋 오류를 방지합니다.
+          # 주의: DB와 비교하는 LocalDateTime.now()는 LocalDateTime.now(ZoneOffset.UTC) 사용 권장.
+          # BaseEntity를 쓰지 않는 엔티티(예: @PrePersist에서 now() 설정)도 UTC로 넣어야 일관됩니다.
+          time_zone: UTC
 
   # =========================
   # Redis

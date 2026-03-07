@@ -3,6 +3,7 @@ package org.example.sharedprompts.dto.prompt.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -26,6 +27,7 @@ public class PromptSearchCondition {
     private PromptCategory promptCategory;
 
     /** 제목·설명·태그명 검색어 (null/공백이면 검색 조건 미적용) */
+    @Size(max = 100, message = "검색어는 100자 이하로 입력해주세요.")
     private String keyword;
 
     /**
