@@ -9,6 +9,7 @@ import org.example.sharedprompts.dto.payment.request.PaymentConfirmRequest;
 import org.example.sharedprompts.dto.payment.request.PaymentRefundRequestDto;
 import org.example.sharedprompts.dto.payment.request.PaymentRequestDto;
 import org.example.sharedprompts.dto.payment.response.PaymentConfirmResponse;
+import org.example.sharedprompts.dto.payment.response.PaymentApprovalResponseDto;
 import org.example.sharedprompts.dto.payment.response.PaymentResponseDto;
 import org.example.sharedprompts.dto.payment.response.PaymentStatusResponseDto;
 import org.springframework.stereotype.Component;
@@ -116,11 +117,11 @@ public class PaymentControllerMapper {
     }
 
     /**
-     * PaymentApprovalResult → PaymentResponseDto
-     * 카카오페이 등 결제 준비 시 metadata(객체), redirect_url, payment_data.redirect_url 포함.
+     * PaymentApprovalResult → PaymentApprovalResponseDto
+     * 결제 준비 API 전용. metadata는 파싱된 객체, redirect_url·paymentData 포함.
      */
-    public PaymentResponseDto toApprovalResponse(PaymentApprovalResult result) {
-        PaymentResponseDto.PaymentResponseDtoBuilder builder = PaymentResponseDto.builder()
+    public PaymentApprovalResponseDto toApprovalResponse(PaymentApprovalResult result) {
+        PaymentApprovalResponseDto.PaymentApprovalResponseDtoBuilder builder = PaymentApprovalResponseDto.builder()
                 .id(result.getPaymentId())
                 .status(result.getStatus())
                 .externalPaymentId(result.getExternalPaymentId())
@@ -143,11 +144,11 @@ public class PaymentControllerMapper {
 
     private static String getRedirectUrlFromMeta(Map<String, Object> metaMap) {
         Object url = metaMap.get(PaymentMetadataKeys.NEXT_REDIRECT_PC_URL);
-        if (url != null && url.toString().length() > 0) {
+        if (url != null && !url.toString().isBlank()) {
             return url.toString();
         }
         url = metaMap.get(PaymentMetadataKeys.REDIRECT_URL);
-        return (url != null && url.toString().length() > 0) ? url.toString() : null;
+        return (url != null && !url.toString().isBlank()) ? url.toString() : null;
     }
 
     /**

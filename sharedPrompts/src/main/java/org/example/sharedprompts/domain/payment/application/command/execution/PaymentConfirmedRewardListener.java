@@ -2,10 +2,12 @@ package org.example.sharedprompts.domain.payment.application.command.execution;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.domain.payment.application.command.orchestrator.CompensationHandler;
 import org.example.sharedprompts.domain.payment.application.command.postprocess.PaymentPostProcessService;
 import org.example.sharedprompts.domain.payment.application.command.service.amount.PaymentAmountProcessingService;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentStatus;
 import org.example.sharedprompts.domain.payment.domain.event.PaymentConfirmedEvent;
+import org.example.sharedprompts.domain.payment.infrastructure.monitoring.compensation.CompensationTaskType;
 import org.example.sharedprompts.domain.payment.infrastructure.persistence.adapter.PaymentJpaAdapter;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -26,9 +28,12 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor
 public class PaymentConfirmedRewardListener {
 
+    private static final long NO_PROCESSING_TIME = 0L;
+
     private final PaymentJpaAdapter paymentJpaAdapter;
     private final PaymentAmountProcessingService amountProcessingService;
     private final PaymentPostProcessService postProcessService;
+    private final CompensationHandler compensationHandler;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPaymentConfirmed(PaymentConfirmedEvent event) {
@@ -60,13 +65,20 @@ public class PaymentConfirmedRewardListener {
                     userId,
                     actualAmount,
                     originalAmount,
-                    0L
+                    NO_PROCESSING_TIME
             );
             log.info("결제 확인 보상 후처리 완료: paymentId={}, userId={}", paymentId, userId);
         } catch (Exception e) {
             log.error("결제 확인 보상 후처리 실패: paymentId={}, userId={}, error={}",
                     paymentId, userId, e.getMessage(), e);
-            throw e;
+            compensationHandler.handlePostProcessFailure(
+                    CompensationTaskType.POINT_ACCRUAL,
+                    paymentId,
+                    userId,
+                    actualAmount,
+                    originalAmount,
+                    e.getMessage()
+            );
         }
     }
 }

@@ -109,7 +109,9 @@ class UnifiedGeneratePromptRequestDeserializationTest {
                       "category": "DEVELOPMENT",
                       "intent": "CODE",
                       "input": "API 예제 코드 생성",
-                      "tags": ["코드", "API"]
+                      "tags": ["코드", "API"],
+                      "title": "고급 제목",
+                      "description": "고급 설명"
                     }
                     """;
 
@@ -126,6 +128,8 @@ class UnifiedGeneratePromptRequestDeserializationTest {
             assertThat(command.category()).isEqualTo(PromptCategory.DEVELOPMENT);
             assertThat(command.intent()).isEqualTo(ActionIntent.CODE);
             assertThat(command.tags()).containsExactly("코드", "API");
+            assertThat(command.title()).isEqualTo("고급 제목");
+            assertThat(command.description()).isEqualTo("고급 설명");
         }
     }
 }

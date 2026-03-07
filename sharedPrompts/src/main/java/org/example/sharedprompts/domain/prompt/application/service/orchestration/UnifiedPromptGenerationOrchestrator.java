@@ -86,6 +86,7 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
             UnifiedGeneratePromptCommand command,
             UnifiedRoutingFacade.RoutingDecision decision
     ) {
+        // API에서 title/description은 선택값; 미전달·빈 문자열은 여기서 기본값 적용해 저장 경로로 null/빈 제목이 내려가지 않도록 함.
         String title = (command.title() != null && !command.title().isBlank())
                 ? command.title()
                 : "[Unified] " + decision.intent().name();

@@ -4,7 +4,6 @@ import org.example.sharedprompts.domain.payment.application.port.in.command.Conf
 import org.example.sharedprompts.domain.payment.application.port.in.result.PaymentConfirmationResult;
 import org.example.sharedprompts.domain.payment.application.port.out.event.PaymentEventPublisherPort;
 import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentConfirmParams;
-import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentConfirmParams;
 import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentGatewayPort;
 import org.example.sharedprompts.domain.payment.application.port.out.repository.PaymentCommandRepositoryPort;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
@@ -17,6 +16,7 @@ import org.example.sharedprompts.domain.payment.domain.exception.PaymentValidati
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.enums.Provider;
 import org.example.sharedprompts.domain.user.enums.Role;
+import org.example.sharedprompts.domain.payment.application.service.PaymentConfirmParamsResolver;
 import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,7 +46,7 @@ class DefaultPaymentConfirmationServiceTest {
     private PaymentGatewayPort paymentGateway;
 
     @Mock
-    private org.example.sharedprompts.domain.payment.application.service.PaymentConfirmParamsResolver confirmParamsResolver;
+    private PaymentConfirmParamsResolver confirmParamsResolver;
 
     @Mock
     private PaymentEventPublisherPort eventPublisher;
@@ -115,7 +115,7 @@ class DefaultPaymentConfirmationServiceTest {
         assertEquals("EXT_PAY_ID_123", result.getExternalPaymentId());
         verify(paymentRepository, times(2)).findByIdForUpdate(paymentId);
         verify(confirmParamsResolver).resolve(mockPayment, command);
-        verify(paymentGateway).confirmPayment(mockPayment, any(PaymentConfirmParams.class));
+        verify(paymentGateway).confirmPayment(eq(mockPayment), any(PaymentConfirmParams.class));
         verify(paymentRepository).save(mockPayment);
         verify(eventPublisher).publishPaymentConfirmed(any());
     }

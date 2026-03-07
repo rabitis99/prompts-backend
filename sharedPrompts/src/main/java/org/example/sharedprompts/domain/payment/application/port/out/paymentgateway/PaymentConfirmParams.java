@@ -11,10 +11,11 @@ public record PaymentConfirmParams(
         String paymentKey,
         Map<String, String> additionalParams
 ) {
+    public PaymentConfirmParams {
+        additionalParams = additionalParams != null ? additionalParams : java.util.Collections.emptyMap();
+    }
+
     public static PaymentConfirmParams of(String paymentKey, Map<String, String> additionalParams) {
-        return new PaymentConfirmParams(
-                paymentKey,
-                additionalParams != null ? additionalParams : java.util.Collections.emptyMap()
-        );
+        return new PaymentConfirmParams(paymentKey, additionalParams);
     }
 }

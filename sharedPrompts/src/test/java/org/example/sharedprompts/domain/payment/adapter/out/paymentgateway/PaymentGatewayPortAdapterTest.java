@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -169,6 +170,56 @@ class PaymentGatewayPortAdapterTest {
         // Then
         assertFalse(result.isSuccess());
         assertNotNull(result.getErrorMessage());
+    }
+
+    @Test
+    @DisplayName("결제 승인 성공 - KAKAO_PAY with pgToken")
+    void testConfirmPaymentSuccessKakaoPay() {
+        // Given
+        User user = User.builder()
+                .id(2L)
+                .email("kakao@test.com")
+                .provider(Provider.LOCAL)
+                .providerId("provider-2")
+                .nickname("kakaouser")
+                .role(Role.ROLE_USER)
+                .signupCompleted(true)
+                .blocked(false)
+                .build();
+
+        Payment kakaoPayment = Payment.builder()
+                .id(2L)
+                .user(user)
+                .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
+                .idempotencyKey("KEY_KAKAO")
+                .status(PaymentStatus.PENDING)
+                .build();
+
+        String tid = "TID_KAKAO_123";
+        Map<String, String> additionalParams = Map.of("pgToken", "PG_TOKEN_123");
+
+        PaymentResult paymentResult = PaymentResult.builder()
+                .externalPaymentId("EXT_KAKAO_123")
+                .status(PaymentStatus.SUCCESS)
+                .build();
+
+        when(providerFactory.getProvider(PaymentMethod.KAKAO_PAY)).thenReturn(paymentProvider);
+        when(paymentProvider.confirmPayment(
+                eq(tid), any(), any(), any(), any(), any(), eq(additionalParams)
+        )).thenReturn(paymentResult);
+
+        // When
+        PaymentGatewayPort.PaymentGatewayResult result = adapter.confirmPayment(
+                kakaoPayment,
+                PaymentConfirmParams.of(tid, additionalParams)
+        );
+
+        // Then
+        assertTrue(result.isSuccess());
+        assertEquals("EXT_KAKAO_123", result.getExternalPaymentId());
     }
 
     @Test

@@ -15,7 +15,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 결제 응답 DTO
+ * 결제 응답 DTO.
+ * 취소·환불·내역·엔티티 조회 등에서 사용합니다.
+ * 결제 준비(POST /payments) 응답은 {@link PaymentApprovalResponseDto}를 사용합니다.
  */
 @Getter
 @Builder
@@ -74,14 +76,6 @@ public class PaymentResponseDto {
     @JsonProperty("metadata")
     private Object metadata;
 
-    /** 카카오페이 등 결제 준비 시 리다이렉트 URL (metadata.next_redirect_pc_url 또는 metadata.redirect_url) */
-    @JsonProperty("redirect_url")
-    private String redirectUrl;
-
-    /** 결제사별 데이터. 카카오페이 시 redirect_url 등 (프론트 paymentData.redirect_url) */
-    @JsonProperty("paymentData")
-    private java.util.Map<String, Object> paymentData;
-    
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
     
