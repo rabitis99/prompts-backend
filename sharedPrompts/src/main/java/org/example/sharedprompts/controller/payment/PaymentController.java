@@ -14,6 +14,7 @@ import org.example.sharedprompts.dto.payment.request.PaymentRefundRequestDto;
 import org.example.sharedprompts.dto.payment.request.PaymentRequestDto;
 import org.example.sharedprompts.dto.payment.request.ConsumeModuleUsageRequestDto;
 import org.example.sharedprompts.dto.payment.response.PaymentConfirmResponse;
+import org.example.sharedprompts.dto.payment.response.PaymentApprovalResponseDto;
 import org.example.sharedprompts.dto.payment.response.PaymentResponseDto;
 import org.example.sharedprompts.dto.payment.response.PaymentStatusResponseDto;
 import org.example.sharedprompts.dto.payment.response.TierInfoResponseDto;
@@ -55,7 +56,7 @@ public class PaymentController {
      * POST /payments
      */
     @PostMapping
-    public ResponseEntity<CustomResponse<PaymentResponseDto>> requestPayment(
+    public ResponseEntity<CustomResponse<PaymentApprovalResponseDto>> requestPayment(
             @Valid @RequestBody PaymentRequestDto request,
             @CurrentUser AuthUser authUser
     ) {

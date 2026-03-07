@@ -10,6 +10,7 @@ import org.example.sharedprompts.domain.payment.application.port.out.paymentgate
 import org.example.sharedprompts.domain.payment.application.port.out.repository.PaymentCommandRepositoryPort;
 import org.example.sharedprompts.domain.payment.application.port.out.repository.PaymentQueryRepositoryPort;
 import org.example.sharedprompts.domain.payment.application.port.out.webhook.PaymentWebhookProcessingPort;
+import org.example.sharedprompts.domain.payment.application.service.PaymentConfirmParamsResolver;
 import org.example.sharedprompts.domain.payment.application.service.impl.*;
 import org.example.sharedprompts.domain.payment.infrastructure.monitoring.PaymentLoggingService;
 import org.example.sharedprompts.domain.payment.infrastructure.transaction.PaymentTransactionManager;
@@ -56,12 +57,14 @@ public class PaymentBeanConfiguration {
     public PaymentConfirmationUseCase paymentConfirmationUseCase(
             PaymentCommandRepositoryPort paymentRepository,
             PaymentGatewayPort paymentGateway,
+            PaymentConfirmParamsResolver confirmParamsResolver,
             PaymentEventPublisherPort eventPublisher,
             PaymentTransactionManager transactionManager
     ) {
         return new DefaultPaymentConfirmationService(
                 paymentRepository,
                 paymentGateway,
+                confirmParamsResolver,
                 eventPublisher,
                 transactionManager
         );

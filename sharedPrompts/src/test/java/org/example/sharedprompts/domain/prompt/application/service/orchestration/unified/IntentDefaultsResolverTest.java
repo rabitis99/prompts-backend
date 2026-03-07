@@ -31,6 +31,9 @@ class IntentDefaultsResolverTest {
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
                 null
         );
 
@@ -54,6 +57,9 @@ class IntentDefaultsResolverTest {
                 null,
                 EngineMode.AUTO,
                 ToneType.NEUTRAL,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,

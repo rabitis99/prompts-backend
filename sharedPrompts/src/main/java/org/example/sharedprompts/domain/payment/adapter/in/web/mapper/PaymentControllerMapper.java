@@ -1,5 +1,7 @@
 package org.example.sharedprompts.domain.payment.adapter.in.web.mapper;
 
+import org.example.sharedprompts.domain.payment.application.command.service.metadata.PaymentMetadataKeys;
+import org.example.sharedprompts.domain.payment.application.command.service.metadata.PaymentMetadataParser;
 import org.example.sharedprompts.domain.payment.application.port.in.command.*;
 import org.example.sharedprompts.domain.payment.application.port.in.result.*;
 import org.example.sharedprompts.dto.payment.request.PaymentCancelRequestDto;
@@ -7,19 +9,28 @@ import org.example.sharedprompts.dto.payment.request.PaymentConfirmRequest;
 import org.example.sharedprompts.dto.payment.request.PaymentRefundRequestDto;
 import org.example.sharedprompts.dto.payment.request.PaymentRequestDto;
 import org.example.sharedprompts.dto.payment.response.PaymentConfirmResponse;
+import org.example.sharedprompts.dto.payment.response.PaymentApprovalResponseDto;
 import org.example.sharedprompts.dto.payment.response.PaymentResponseDto;
 import org.example.sharedprompts.dto.payment.response.PaymentStatusResponseDto;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import org.springframework.data.domain.Pageable;
+
+import lombok.RequiredArgsConstructor;
 
 /**
  * 결제 컨트롤러 매퍼
  * Controller DTO ↔ UseCase Command/Result 변환을 담당합니다.
  */
 @Component
+@RequiredArgsConstructor
 public class PaymentControllerMapper {
+
+    private final PaymentMetadataParser metadataParser;
 
     /**
      * PaymentRequestDto → ApprovePaymentCommand
@@ -38,14 +49,28 @@ public class PaymentControllerMapper {
 
     /**
      * PaymentConfirmRequest → ConfirmPaymentCommand
+     * pg_token, toss_order_id 등 PG별 값을 additionalParams에 담아 전달.
      */
     public ConfirmPaymentCommand toConfirmCommand(PaymentConfirmRequest dto, Long userId) {
+        Map<String, String> additionalParams = buildConfirmAdditionalParams(dto);
         return ConfirmPaymentCommand.builder()
                 .paymentId(dto.getOrderIdAsLong())
                 .userId(userId)
                 .providerToken(dto.getProviderToken())
                 .rawPayload(dto.getRawPayload())
+                .additionalParams(additionalParams)
                 .build();
+    }
+
+    private static Map<String, String> buildConfirmAdditionalParams(PaymentConfirmRequest dto) {
+        Map<String, String> params = new HashMap<>();
+        if (dto.getPgToken() != null && !dto.getPgToken().isBlank()) {
+            params.put("pgToken", dto.getPgToken());
+        }
+        if (dto.getTossOrderId() != null && !dto.getTossOrderId().isBlank()) {
+            params.put("tossOrderId", dto.getTossOrderId());
+        }
+        return params.isEmpty() ? Collections.emptyMap() : params;
     }
 
     /**
@@ -92,16 +117,38 @@ public class PaymentControllerMapper {
     }
 
     /**
-     * PaymentApprovalResult → PaymentResponseDto
+     * PaymentApprovalResult → PaymentApprovalResponseDto
+     * 결제 준비 API 전용. metadata는 파싱된 객체, redirect_url·paymentData 포함.
      */
-    public PaymentResponseDto toApprovalResponse(PaymentApprovalResult result) {
-        return PaymentResponseDto.builder()
+    public PaymentApprovalResponseDto toApprovalResponse(PaymentApprovalResult result) {
+        PaymentApprovalResponseDto.PaymentApprovalResponseDtoBuilder builder = PaymentApprovalResponseDto.builder()
                 .id(result.getPaymentId())
                 .status(result.getStatus())
                 .externalPaymentId(result.getExternalPaymentId())
                 .amount(result.getAmount())
-                .currency(result.getCurrency())
-                .build();
+                .currency(result.getCurrency());
+
+        if (result.getMetadata() != null && !result.getMetadata().isBlank()) {
+            metadataParser.parseMetadata(result.getMetadata()).ifPresent(metaMap -> {
+                builder.metadata(metaMap);
+                String redirectUrl = getRedirectUrlFromMeta(metaMap);
+                if (redirectUrl != null) {
+                    builder.redirectUrl(redirectUrl);
+                    builder.paymentData(Collections.singletonMap("redirect_url", redirectUrl));
+                }
+            });
+        }
+
+        return builder.build();
+    }
+
+    private static String getRedirectUrlFromMeta(Map<String, Object> metaMap) {
+        Object url = metaMap.get(PaymentMetadataKeys.NEXT_REDIRECT_PC_URL);
+        if (url != null && !url.toString().isBlank()) {
+            return url.toString();
+        }
+        url = metaMap.get(PaymentMetadataKeys.REDIRECT_URL);
+        return (url != null && !url.toString().isBlank()) ? url.toString() : null;
     }
 
     /**

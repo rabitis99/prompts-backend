@@ -20,13 +20,14 @@ public interface PaymentGatewayPort {
     PaymentGatewayResult preparePayment(Payment payment);
 
     /**
-     * 결제를 승인한다 (승인 토큰 또는 키를 사용하여)
+     * 결제를 승인한다.
+     * 호출 전에 유스케이스에서 {@link PaymentConfirmParams}를 해석하여 전달한다.
      *
      * @param payment 결제 정보
-     * @param approvalToken 승인 토큰 (제공자별로 다름: paymentKey, tid 등)
+     * @param params 승인에 필요한 파라미터 (paymentKey, additionalParams) — 애플리케이션 계층에서 해석
      * @return 승인 결과
      */
-    PaymentGatewayResult confirmPayment(Payment payment, String approvalToken);
+    PaymentGatewayResult confirmPayment(Payment payment, PaymentConfirmParams params);
 
     /**
      * 결제 상태를 조회한다

@@ -94,6 +94,7 @@ public class DefaultPaymentApprovalService implements PaymentApprovalUseCase {
                     .externalPaymentId(payment.getExternalPaymentId())
                     .amount(payment.getAmount())
                     .currency(payment.getCurrency())
+                    .metadata(payment.getMetadata())
                     .build();
 
         } catch (Exception e) {

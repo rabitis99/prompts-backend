@@ -15,7 +15,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 결제 응답 DTO
+ * 결제 응답 DTO.
+ * 취소·환불·내역·엔티티 조회 등에서 사용합니다.
+ * 결제 준비(POST /payments) 응답은 {@link PaymentApprovalResponseDto}를 사용합니다.
  */
 @Getter
 @Builder
@@ -72,8 +74,8 @@ public class PaymentResponseDto {
     private BigDecimal usedPointAmount;
     
     @JsonProperty("metadata")
-    private String metadata;
-    
+    private Object metadata;
+
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
     

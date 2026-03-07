@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.payment.adapter.out.paymentgateway;
 import org.example.sharedprompts.domain.payment.application.dto.response.CancelResult;
 import org.example.sharedprompts.domain.payment.application.dto.response.PaymentResult;
 import org.example.sharedprompts.domain.payment.application.dto.response.RefundResult;
+import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentConfirmParams;
 import org.example.sharedprompts.domain.payment.application.port.out.paymentgateway.PaymentGatewayPort;
 import org.example.sharedprompts.domain.payment.domain.entity.Payment;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
@@ -23,6 +24,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -137,7 +140,10 @@ class PaymentGatewayPortAdapterTest {
         )).thenReturn(paymentResult);
 
         // When
-        PaymentGatewayPort.PaymentGatewayResult result = adapter.confirmPayment(testPayment, approvalToken);
+        PaymentGatewayPort.PaymentGatewayResult result = adapter.confirmPayment(
+                testPayment,
+                PaymentConfirmParams.of(approvalToken, Collections.emptyMap())
+        );
 
         // Then
         assertTrue(result.isSuccess());
@@ -156,11 +162,64 @@ class PaymentGatewayPortAdapterTest {
                 .thenThrow(new RuntimeException("Invalid token"));
 
         // When
-        PaymentGatewayPort.PaymentGatewayResult result = adapter.confirmPayment(testPayment, approvalToken);
+        PaymentGatewayPort.PaymentGatewayResult result = adapter.confirmPayment(
+                testPayment,
+                PaymentConfirmParams.of(approvalToken, Collections.emptyMap())
+        );
 
         // Then
         assertFalse(result.isSuccess());
         assertNotNull(result.getErrorMessage());
+    }
+
+    @Test
+    @DisplayName("결제 승인 성공 - KAKAO_PAY with pgToken")
+    void testConfirmPaymentSuccessKakaoPay() {
+        // Given
+        User user = User.builder()
+                .id(2L)
+                .email("kakao@test.com")
+                .provider(Provider.LOCAL)
+                .providerId("provider-2")
+                .nickname("kakaouser")
+                .role(Role.ROLE_USER)
+                .signupCompleted(true)
+                .blocked(false)
+                .build();
+
+        Payment kakaoPayment = Payment.builder()
+                .id(2L)
+                .user(user)
+                .amount(BigDecimal.valueOf(10000))
+                .currency("KRW")
+                .paymentMethod(PaymentMethod.KAKAO_PAY)
+                .userType(PaymentUserType.PERSONAL)
+                .idempotencyKey("KEY_KAKAO")
+                .status(PaymentStatus.PENDING)
+                .build();
+
+        String tid = "TID_KAKAO_123";
+        Map<String, String> additionalParams = Map.of("pgToken", "PG_TOKEN_123");
+
+        PaymentResult paymentResult = PaymentResult.builder()
+                .externalPaymentId("EXT_KAKAO_123")
+                .status(PaymentStatus.SUCCESS)
+                .build();
+
+        when(providerFactory.getProvider(PaymentMethod.KAKAO_PAY)).thenReturn(paymentProvider);
+        when(paymentProvider.confirmPayment(
+                eq(tid), any(), any(), any(), any(), any(), eq(additionalParams)
+        )).thenReturn(paymentResult);
+
+        // When
+        PaymentGatewayPort.PaymentGatewayResult result = adapter.confirmPayment(
+                kakaoPayment,
+                PaymentConfirmParams.of(tid, additionalParams)
+        );
+
+        // Then
+        assertTrue(result.isSuccess());
+        assertEquals("EXT_KAKAO_123", result.getExternalPaymentId());
     }
 
     @Test

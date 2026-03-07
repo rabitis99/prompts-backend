@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "SharedPrompts API",
-    "description": "SharedPrompts 백엔드 API 테스트 컬렉션",
+    "description": "SharedPrompts 백엔드 API 테스트 컬렉션. context-path: /api, 프롬프트 생성은 POST /prompts/generate, 결제/티어/검색 파라미터 반영.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -282,12 +282,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"새로운 프롬프트 제목\",\n  \"description\": \"프롬프트 설명입니다.\",\n  \"is_public\": true,\n  \"prompt_category\": \"DEVELOPMENT\",\n  \"tags\": [\"태그1\", \"태그2\", \"태그3\"],\n  \"input\": \"프롬프트 입력 내용\",\n  \"action_type\": \"ARCHITECTURE_DESIGN\",\n  \"role_type\": \"BACKEND_DEVELOPER\",\n  \"tone\": \"FRIENDLY\",\n  \"experience\": \"INTERMEDIATE\",\n  \"style\": \"NARRATIVE\",\n  \"language\": \"KOREAN\"\n}"
+              "raw": "{\n  \"request_type\": \"SIMPLE\",\n  \"category\": \"DEVELOPMENT\",\n  \"intent\": \"GENERATE\",\n  \"variant\": null,\n  \"input\": \"REST API 설계 가이드라인을 작성해 주세요.\",\n  \"tone\": \"FRIENDLY\",\n  \"style\": \"NARRATIVE\",\n  \"language\": \"KOREAN\",\n  \"experience\": \"INTERMEDIATE\",\n  \"tags\": [\"아키텍처\", \"API\", \"설계\"]\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/prompts",
+              "raw": "{{baseUrl}}/prompts/generate",
               "host": ["{{baseUrl}}"],
-              "path": ["prompts"]
+              "path": ["prompts", "generate"]
             }
           }
         },
@@ -322,7 +322,12 @@
                 {
                   "key": "prompt_category",
                   "value": "DEVELOPMENT",
-                  "description": "PRODUCTIVITY, DEVELOPMENT, CODING, PROGRAMMING, ANALYSIS, MARKETING, CONTENT, CREATIVE, STUDY, EDUCATION, RESEARCH, BUSINESS, DESIGN, WRITING, ETC"
+                  "description": "PRODUCTIVITY, DEVELOPMENT, ANALYSIS, MARKETING, CONTENT, CREATIVE, STUDY, EDUCATION, RESEARCH, BUSINESS, DESIGN, WRITING, ETC"
+                },
+                {
+                  "key": "keyword",
+                  "value": "",
+                  "description": "제목·설명·태그 검색어 (선택)"
                 }
               ]
             }
@@ -429,9 +434,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/prompts/user/1?page=0&size=20&sort=LATEST",
+              "raw": "{{baseUrl}}/prompts/users/1?page=0&size=20&sort=LATEST",
               "host": ["{{baseUrl}}"],
-              "path": ["prompts", "user", "1"],
+              "path": ["prompts", "users", "1"],
               "query": [
                 {
                   "key": "page",
@@ -468,13 +473,13 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"title\": \"텍스트 생성용 프롬프트\",\n  \"description\": \"문서·텍스트 생성에 사용할 프롬프트입니다.\",\n  \"is_public\": true,\n  \"prompt_category\": \"WRITING\",\n  \"tags\": [\"문서\", \"텍스트\", \"작성\"],\n  \"input\": \"요약 보고서 초안을 작성해 주세요.\",\n  \"action_type\": \"TECHNICAL_WRITING\",\n  \"role_type\": \"TECHNICAL_WRITER\",\n  \"tone\": \"PROFESSIONAL\",\n  \"experience\": \"INTERMEDIATE\",\n  \"style\": \"CONCISE\",\n  \"language\": \"KOREAN\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/prompts",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["prompts"]
-                }
+"raw": "{\n  \"request_type\": \"SIMPLE\",\n  \"category\": \"WRITING\",\n  \"intent\": \"GENERATE\",\n  \"variant\": null,\n  \"input\": \"요약 보고서 초안을 작성해 주세요.\",\n  \"tone\": \"PROFESSIONAL\",\n  \"style\": \"CONCISE\",\n  \"language\": \"KOREAN\",\n  \"experience\": \"INTERMEDIATE\",\n  \"tags\": [\"문서\", \"텍스트\", \"작성\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prompts/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "generate"]
+            }
               }
             }
           ]
@@ -498,13 +503,13 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"title\": \"이미지 생성용 프롬프트\",\n  \"description\": \"AI 이미지 생성에 사용할 프롬프트입니다.\",\n  \"is_public\": true,\n  \"prompt_category\": \"CREATIVE\",\n  \"tags\": [\"이미지\", \"생성\", \"아트\"],\n  \"input\": \"미니멀한 풍경 일러스트, 파스텔 톤, 해질녘 바다.\",\n  \"action_type\": \"VISUAL_CREATION\",\n  \"role_type\": \"CONCEPT_ARTIST\",\n  \"tone\": \"FRIENDLY\",\n  \"experience\": \"INTERMEDIATE\",\n  \"style\": \"DESCRIPTIVE\",\n  \"language\": \"KOREAN\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/prompts",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["prompts"]
-                }
+"raw": "{\n  \"request_type\": \"SIMPLE\",\n  \"category\": \"CREATIVE\",\n  \"intent\": \"GENERATE\",\n  \"variant\": null,\n  \"input\": \"미니멀한 풍경 일러스트, 파스텔 톤, 해질녘 바다.\",\n  \"tone\": \"FRIENDLY\",\n  \"style\": \"DESCRIPTIVE\",\n  \"language\": \"KOREAN\",\n  \"experience\": \"INTERMEDIATE\",\n  \"tags\": [\"이미지\", \"생성\", \"아트\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prompts/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "generate"]
+            }
               }
             }
           ]
@@ -528,13 +533,13 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"title\": \"이메일 작성용 프롬프트\",\n  \"description\": \"비즈니스·개인 이메일 작성에 사용할 프롬프트입니다.\",\n  \"is_public\": true,\n  \"prompt_category\": \"PRODUCTIVITY\",\n  \"tags\": [\"이메일\", \"작성\", \"비즈니스\"],\n  \"input\": \"고객 문의에 대한 답변 이메일 초안을 작성해 주세요.\",\n  \"action_type\": \"EMAIL_WRITING\",\n  \"role_type\": \"PRODUCTIVITY_EXPERT\",\n  \"tone\": \"FORMAL\",\n  \"experience\": \"INTERMEDIATE\",\n  \"style\": \"FORMATTED\",\n  \"language\": \"KOREAN\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/prompts",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["prompts"]
-                }
+"raw": "{\n  \"request_type\": \"SIMPLE\",\n  \"category\": \"PRODUCTIVITY\",\n  \"intent\": \"GENERATE\",\n  \"variant\": null,\n  \"input\": \"고객 문의에 대한 답변 이메일 초안을 작성해 주세요.\",\n  \"tone\": \"FORMAL\",\n  \"style\": \"FORMATTED\",\n  \"language\": \"KOREAN\",\n  \"experience\": \"INTERMEDIATE\",\n  \"tags\": [\"이메일\", \"작성\", \"비즈니스\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prompts/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["prompts", "generate"]
+            }
               }
             }
           ]
@@ -1592,7 +1597,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount\": 10000,\n  \"currency\": \"KRW\",\n  \"payment_method\": \"CARD\",\n  \"user_type\": \"INDIVIDUAL\",\n  \"use_point_amount\": 0,\n  \"metadata\": \"{}\"\n}"
+              "raw": "{\n  \"amount\": 10000,\n  \"currency\": \"KRW\",\n  \"payment_method\": \"TOSS\",\n  \"user_type\": \"PERSONAL\",\n  \"use_point_amount\": 0,\n  \"metadata\": \"{}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/payments",
@@ -1696,9 +1701,16 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/payments/me/tier-info",
+              "raw": "{{baseUrl}}/payments/me/tier-info?moduleType=LITERARY",
               "host": ["{{baseUrl}}"],
-              "path": ["payments", "me", "tier-info"]
+              "path": ["payments", "me", "tier-info"],
+              "query": [
+                {
+                  "key": "moduleType",
+                  "value": "LITERARY",
+                  "description": "선택: 모듈 타입 (LITERARY, TEXT, IMAGE 등). 없으면 전체 티어 정보"
+                }
+              ]
             }
           }
         },
@@ -1713,9 +1725,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/payments/history",
+              "raw": "{{baseUrl}}/payments/history?page=0&size=20",
               "host": ["{{baseUrl}}"],
-              "path": ["payments", "history"]
+              "path": ["payments", "history"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
             }
           }
         },
@@ -1730,9 +1752,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/payments/me/tier-history",
+              "raw": "{{baseUrl}}/payments/me/tier-history?page=0&size=20",
               "host": ["{{baseUrl}}"],
-              "path": ["payments", "me", "tier-history"]
+              "path": ["payments", "me", "tier-history"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
             }
           }
         },
@@ -2847,111 +2879,6 @@
               "raw": "{{baseUrl}}/storage/preview-url",
               "host": ["{{baseUrl}}"],
               "path": ["storage", "preview-url"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Delivery",
-      "item": [
-        {
-          "name": "배송 실행 (BLOG)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"deliveryType\": \"BLOG\",\n  \"context\": {\n    \"platform\": \"velog\",\n    \"title\": \"블로그 포스트 제목\",\n    \"additionalAttributes\": {}\n  }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/production/1/delivery",
-              "host": ["{{baseUrl}}"],
-              "path": ["production", "1", "delivery"]
-            }
-          }
-        },
-        {
-          "name": "배송 실행 (EMAIL)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"deliveryType\": \"EMAIL\",\n  \"context\": {\n    \"to\": \"recipient@example.com\",\n    \"subject\": \"이메일 제목\",\n    \"additionalAttributes\": {}\n  }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/production/1/delivery",
-              "host": ["{{baseUrl}}"],
-              "path": ["production", "1", "delivery"]
-            }
-          }
-        },
-        {
-          "name": "배송 실행 (GITHUB)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"deliveryType\": \"GITHUB\",\n  \"context\": {\n    \"repository\": \"username/repo-name\",\n    \"branch\": \"main\",\n    \"path\": \"path/to/file.md\",\n    \"additionalAttributes\": {}\n  }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/production/1/delivery",
-              "host": ["{{baseUrl}}"],
-              "path": ["production", "1", "delivery"]
-            }
-          }
-        },
-        {
-          "name": "배송 실행 (NOTION)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"deliveryType\": \"NOTION\",\n  \"context\": {\n    \"pageId\": \"notion-page-id\",\n    \"title\": \"노션 페이지 제목\",\n    \"additionalAttributes\": {}\n  }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/production/1/delivery",
-              "host": ["{{baseUrl}}"],
-              "path": ["production", "1", "delivery"]
             }
           }
         }
