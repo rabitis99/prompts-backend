@@ -46,9 +46,7 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
     private final PromptEventPublisher promptEventPublisher;
     private final PromptUpdateValidator promptUpdateValidator;
 
-    @Override
-    @Transactional(readOnly = true)
-    public PromptPageResult<PromptSummaryView> getPrompts(SearchPromptsQuery query) {
+    private PromptPageResult<PromptSummaryView> searchPrompts(SearchPromptsQuery query) {
         Page<Prompt> page = promptQueryPort.search(
                 new PromptSearchQuery(
                         query.page(),
@@ -61,6 +59,12 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
                 )
         );
         return mapToPromptSummaryPage(page);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PromptPageResult<PromptSummaryView> getPrompts(SearchPromptsQuery query) {
+        return searchPrompts(query);
     }
 
     @Override
@@ -193,36 +197,14 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
     @Override
     @Transactional(readOnly = true)
     public PromptPageResult<PromptSummaryView> getMyPrompts(SearchPromptsQuery query) {
-        Page<Prompt> page = promptQueryPort.search(
-                new PromptSearchQuery(
-                        query.page(),
-                        query.size(),
-                        query.sort(),
-                        query.category(),
-                        query.ownerId(),
-                        query.viewerId(),
-                        query.keyword()
-                )
-        );
-        return mapToPromptSummaryPage(page);
+        return searchPrompts(query);
     }
 
     // ============ 다른 사용자의 프롬프트 조회 ===============
     @Override
     @Transactional(readOnly = true)
     public PromptPageResult<PromptSummaryView> getUserPrompts(SearchPromptsQuery query) {
-        Page<Prompt> page = promptQueryPort.search(
-                new PromptSearchQuery(
-                        query.page(),
-                        query.size(),
-                        query.sort(),
-                        query.category(),
-                        query.ownerId(),
-                        query.viewerId(),
-                        query.keyword()
-                )
-        );
-        return mapToPromptSummaryPage(page);
+        return searchPrompts(query);
     }
 
     private PromptPageResult<PromptSummaryView> mapToPromptSummaryPage(Page<Prompt> page) {

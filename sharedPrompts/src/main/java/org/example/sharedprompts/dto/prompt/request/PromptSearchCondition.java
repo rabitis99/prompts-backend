@@ -40,12 +40,13 @@ public class PromptSearchCondition {
         this.promptCategory = promptCategory;
     }
 
-    public static PromptSearchCondition of(int page, int size, SortType sort, PromptCategory category) {
+    public static PromptSearchCondition of(int page, int size, SortType sort, PromptCategory category, String keyword) {
         PromptSearchCondition condition = new PromptSearchCondition();
         condition.setPage(page);
         condition.setSize(size);
         condition.setSort(sort);
         condition.setPromptCategory(category);
+        condition.setKeyword(keyword);
         return condition;
     }
 }

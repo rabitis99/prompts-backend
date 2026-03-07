@@ -21,36 +21,37 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice(basePackages = "org.example.sharedprompts.domain.prompt")
 public class PromptExceptionHandler {
 
+    private ResponseEntity<CustomResponse<Void>> toErrorResponse(ApiException apiEx) {
+        return ResponseEntity.status(apiEx.getErrorCode().getHttpStatus())
+                .body(CustomResponse.fail(apiEx));
+    }
+
     @ExceptionHandler(PromptNotFoundException.class)
     public ResponseEntity<CustomResponse<Void>> handleNotFound(PromptNotFoundException ex) {
         log.warn("PromptNotFoundException: {}", ex.getMessage());
         ApiException apiEx = new ApiException(ErrorCode.PROMPT_NOT_FOUND, ex.getMessage());
-        return ResponseEntity.status(apiEx.getErrorCode().getHttpStatus())
-                .body(CustomResponse.fail(apiEx));
+        return toErrorResponse(apiEx);
     }
 
     @ExceptionHandler(PromptAccessDeniedException.class)
     public ResponseEntity<CustomResponse<Void>> handleAccessDenied(PromptAccessDeniedException ex) {
         log.warn("PromptAccessDeniedException: promptId={}, userId={}", ex.getPromptId(), ex.getUserId());
         ApiException apiEx = new ApiException(ErrorCode.PROMPT_FORBIDDEN);
-        return ResponseEntity.status(apiEx.getErrorCode().getHttpStatus())
-                .body(CustomResponse.fail(apiEx));
+        return toErrorResponse(apiEx);
     }
 
     @ExceptionHandler(InvalidPromptUpdateException.class)
     public ResponseEntity<CustomResponse<Void>> handleInvalidUpdate(InvalidPromptUpdateException ex) {
         log.warn("InvalidPromptUpdateException: {}", ex.getMessage());
         ApiException apiEx = new ApiException(ErrorCode.INVALID_INPUT_VALUE, ex.getMessage());
-        return ResponseEntity.status(apiEx.getErrorCode().getHttpStatus())
-                .body(CustomResponse.fail(apiEx));
+        return toErrorResponse(apiEx);
     }
 
     @ExceptionHandler(UnsupportedQualityPipelineOptionException.class)
     public ResponseEntity<CustomResponse<Void>> handleUnsupportedQuality(UnsupportedQualityPipelineOptionException ex) {
         log.warn("UnsupportedQualityPipelineOptionException: {}", ex.getMessage());
         ApiException apiEx = new ApiException(ErrorCode.UNSUPPORTED_QUALITY_PIPELINE_OPTION, ex.getMessage());
-        return ResponseEntity.status(apiEx.getErrorCode().getHttpStatus())
-                .body(CustomResponse.fail(apiEx));
+        return toErrorResponse(apiEx);
     }
 }
 
