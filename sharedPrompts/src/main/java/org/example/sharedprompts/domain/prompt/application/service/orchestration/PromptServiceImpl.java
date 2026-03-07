@@ -203,6 +203,16 @@ public class PromptServiceImpl implements PromptQueryUseCase, PromptCommandUseCa
 
     private PromptPageResult<PromptSummaryView> mapToPromptSummaryPage(Page<Prompt> page) {
         List<Prompt> content = page.getContent();
+        if (content.isEmpty()) {
+            return new PromptPageResult<>(
+                    List.of(),
+                    page.getNumber(),
+                    page.getSize(),
+                    page.getTotalElements(),
+                    page.getTotalPages(),
+                    page.isLast()
+            );
+        }
         List<Long> promptIds = content.stream().map(Prompt::getId).toList();
         Map<Long, Long> likeCountByPromptId = likeCountService.getPromptLikeCounts(promptIds);
 

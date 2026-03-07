@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 /**
  * PayPal Payment Provider 구현체
@@ -119,7 +119,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
                     .amount(response.amount())
                     .currency(response.currency())
                     .orderId(orderId)
-                    .approvedAt(LocalDateTime.ofInstant(response.approvedAt(), ZoneId.systemDefault()))
+                    .approvedAt(LocalDateTime.ofInstant(response.approvedAt(), ZoneOffset.UTC))
                     .metadata(response.metadata())
                     .build();
         } catch (Exception e) {
@@ -153,7 +153,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
                     .amount(response.amount())
                     .currency(response.currency())
                     .orderId(externalPaymentId)
-                    .approvedAt(LocalDateTime.ofInstant(response.approvedAt(), ZoneId.systemDefault()))
+                    .approvedAt(LocalDateTime.ofInstant(response.approvedAt(), ZoneOffset.UTC))
                     .metadata(response.metadata())
                     .build();
         } catch (Exception e) {
@@ -189,7 +189,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
                 return CancelResult.builder()
                         .externalPaymentId(externalPaymentId)
                         .status(PaymentStatus.CANCELED)
-                        .canceledAt(LocalDateTime.now())
+                        .canceledAt(LocalDateTime.now(ZoneOffset.UTC))
                         .reason(reason)
                         .metadata(orderDetails.metadata())
                         .build();
@@ -204,7 +204,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
                 return CancelResult.builder()
                         .externalPaymentId(externalPaymentId)
                         .status(PaymentStatus.CANCELED)
-                        .canceledAt(LocalDateTime.ofInstant(voidResponse.canceledAt(), ZoneId.systemDefault()))
+                        .canceledAt(LocalDateTime.ofInstant(voidResponse.canceledAt(), ZoneOffset.UTC))
                         .reason(reason)
                         .metadata(voidResponse.metadata())
                         .build();
@@ -227,7 +227,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
             return CancelResult.builder()
                     .externalPaymentId(externalPaymentId)
                     .status(PaymentStatus.CANCELED)
-                    .canceledAt(LocalDateTime.now())
+                    .canceledAt(LocalDateTime.now(ZoneOffset.UTC))
                     .reason(reason)
                     .metadata(orderDetails.metadata())
                     .build();
@@ -267,7 +267,7 @@ public class PayPalPaymentProvider implements PaymentProvider {
                     .externalPaymentId(externalPaymentId)
                     .status(refundStatus)
                     .refundedAmount(response.refundedAmount())
-                    .refundedAt(LocalDateTime.ofInstant(response.refundedAt(), ZoneId.systemDefault()))
+                    .refundedAt(LocalDateTime.ofInstant(response.refundedAt(), ZoneOffset.UTC))
                     .reason(reason)
                     .metadata(response.metadata())
                     .build();

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -57,7 +58,7 @@ public class JobOutboxEntity {
 
     public void markSent() {
         setStatus(STATUS_SENT);
-        setSentAt(LocalDateTime.now());
+        setSentAt(LocalDateTime.now(ZoneOffset.UTC));
         setErrorMessage(null);
     }
 
@@ -79,7 +80,7 @@ public class JobOutboxEntity {
     @PrePersist
     void onPersist() {
         if (createdAt == null) {
-            createdAt = LocalDateTime.now();
+            createdAt = LocalDateTime.now(ZoneOffset.UTC);
         }
     }
 }

@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -309,7 +310,7 @@ public class NotificationEventProcessor {
      * - 최근 N분 내 같은 타입, 같은 관련 엔티티에 대한 알림이 있는지 확인
      */
     private boolean isDuplicateNotification(Long userId, NotificationType type, Long relatedEntityId) {
-        LocalDateTime since = LocalDateTime.now().minusMinutes(duplicateCheckWindowMinutes);
+        LocalDateTime since = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(duplicateCheckWindowMinutes);
         return notificationRepository.existsRecentNotification(userId, type, relatedEntityId, since);
     }
 

@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /**
  * 결제 만료 도메인 이벤트
@@ -23,7 +24,7 @@ public class PaymentExpiredEvent {
         return PaymentExpiredEvent.builder()
                 .paymentId(paymentId)
                 .userId(userId)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneOffset.UTC))
                 .build();
     }
 }

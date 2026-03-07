@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Locale;
 
 import static org.example.sharedprompts.domain.prompt.entity.QPrompt.prompt;
 import static org.example.sharedprompts.domain.tag.QPromptTag.promptTag;
@@ -160,7 +161,7 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
         if (keyword == null || keyword.isEmpty()) {
             return null;
         }
-        String lowerKeyword = keyword.toLowerCase();
+        String lowerKeyword = keyword.toLowerCase(Locale.ROOT);
         return prompt.title.lower().contains(lowerKeyword)
                 .or(prompt.author.nickname.lower().contains(lowerKeyword));
     }
@@ -176,7 +177,7 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
         if (keyword == null || keyword.isEmpty()) {
             return null;
         }
-        String lowerKeyword = keyword.toLowerCase();
+        String lowerKeyword = keyword.toLowerCase(Locale.ROOT);
         BooleanExpression titleOrDesc = prompt.title.lower().contains(lowerKeyword)
                 .or(prompt.description.lower().contains(lowerKeyword));
         BooleanExpression tagMatch = prompt.id.in(

@@ -13,6 +13,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 /**
@@ -44,7 +45,7 @@ public class PaymentMonitoringService {
 
             long durationMillis = paymentJpaAdapter.findById(event.paymentId())
                     .filter(p -> p.getCreatedAt() != null)
-                    .map(p -> Math.max(0L, Duration.between(p.getCreatedAt(), LocalDateTime.now()).toMillis()))
+                    .map(p -> Math.max(0L, Duration.between(p.getCreatedAt(), LocalDateTime.now(ZoneOffset.UTC)).toMillis()))
                     .orElse(0L);
 
             paymentMetrics.recordPaymentFailure(event.paymentMethod(), event.reason(), durationMillis);

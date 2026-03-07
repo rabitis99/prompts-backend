@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Set;
 
 /**
@@ -29,7 +30,7 @@ public class TagCountUpdateEvent {
      * 이벤트 발생 시각
      */
     @Builder.Default
-    LocalDateTime occurredAt = LocalDateTime.now();
+    LocalDateTime occurredAt = LocalDateTime.now(ZoneOffset.UTC);
     
     /**
      * 재시도 횟수 (실패 시 증가)

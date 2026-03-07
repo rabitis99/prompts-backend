@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.payment.infrastructure.monitoring.compe
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /**
  * 보상 트랜잭션 작업 정보
@@ -64,7 +65,7 @@ public record CompensationTask(
             throw new IllegalArgumentException("amount는 null일 수 없습니다");
         }
         if (createdAt == null) {
-            createdAt = LocalDateTime.now();
+            createdAt = LocalDateTime.now(ZoneOffset.UTC);
         }
     }
 

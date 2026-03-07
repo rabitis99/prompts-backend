@@ -8,6 +8,7 @@ import org.example.sharedprompts.domain.user.enums.Role;
 import org.example.sharedprompts.domain.payment.domain.enums.UserTier;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Entity
 @Getter
@@ -137,7 +138,7 @@ public class User extends BaseEntity {
     }
 
     public void softDelete() {
-        this.deletedAt = LocalDateTime.now();
+        this.deletedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public boolean isDeleted() {

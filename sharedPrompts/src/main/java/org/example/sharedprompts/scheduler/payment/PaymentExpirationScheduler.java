@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 /**
@@ -60,7 +61,7 @@ public class PaymentExpirationScheduler {
         log.info("PaymentExpirationScheduler started");
 
         // 만료 기준 시간 계산 (현재 시간 - 만료 시간)
-        LocalDateTime expirationTime = LocalDateTime.now()
+        LocalDateTime expirationTime = LocalDateTime.now(ZoneOffset.UTC)
                 .minus(Duration.ofMinutes(expirationProperties.getExpirationMinutes()));
 
         // 만료된 PENDING 결제 조회 (복구되지 않은 포인트가 있는 결제만)

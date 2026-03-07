@@ -6,6 +6,7 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /**
  * 결제 확인 도메인 이벤트
@@ -36,7 +37,7 @@ public class PaymentConfirmedEvent {
                 .amount(amount)
                 .currency(currency)
                 .externalPaymentId(externalPaymentId)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneOffset.UTC))
                 .build();
     }
 }

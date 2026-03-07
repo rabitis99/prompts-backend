@@ -3,6 +3,7 @@ package org.example.sharedprompts.module.dto.response.production;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactDetailEntity;
 import org.example.sharedprompts.module.domain.production.entity.production.ProductionArtifactEntity;
 
+import java.time.ZoneOffset;
 import java.util.Map;
 
 /**
@@ -51,7 +52,9 @@ public final class ArtifactDetailResponseDtoMapper {
                 cdnUrl,
                 thumbnailUrls,
                 content,
-                detail.getCreatedAt()
+                detail.getCreatedAt() != null
+                        ? detail.getCreatedAt().toInstant(ZoneOffset.UTC)
+                        : null
         );
     }
 }

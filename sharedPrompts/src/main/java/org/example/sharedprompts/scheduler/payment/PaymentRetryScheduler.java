@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 /**
@@ -57,7 +58,7 @@ public class PaymentRetryScheduler {
         List<Payment> pendingPayments = paymentQueryRepository.findRetryablePayments(
                 PaymentStatus.PENDING,
                 retryProperties.getMaxAttempts(),
-                LocalDateTime.now()
+                LocalDateTime.now(ZoneOffset.UTC)
         );
 
         if (pendingPayments.isEmpty()) {

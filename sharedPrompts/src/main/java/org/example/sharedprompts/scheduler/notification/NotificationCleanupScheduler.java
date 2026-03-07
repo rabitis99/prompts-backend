@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /**
  * 알림 정리 스케줄러
@@ -55,7 +56,7 @@ public class NotificationCleanupScheduler {
 
         log.info("NotificationCleanupScheduler started: retentionDays={}", retentionDays);
 
-        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(retentionDays);
+        LocalDateTime cutoffDate = LocalDateTime.now(ZoneOffset.UTC).minusDays(retentionDays);
         try {
             int deletedCount = notificationRepository.deleteAllOldReadNotifications(cutoffDate);
             log.info("NotificationCleanupScheduler finished: deleted {} old read notifications", deletedCount);

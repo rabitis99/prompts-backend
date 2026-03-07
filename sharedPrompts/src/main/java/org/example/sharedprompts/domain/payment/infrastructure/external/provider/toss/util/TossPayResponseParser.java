@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -86,9 +87,8 @@ public class TossPayResponseParser {
         }
 
         try {
-            return OffsetDateTime
-                    .parse(value.toString(), ISO_FORMATTER)
-                    .toLocalDateTime();
+            OffsetDateTime offsetDateTime = OffsetDateTime.parse(value.toString(), ISO_FORMATTER);
+            return LocalDateTime.ofInstant(offsetDateTime.toInstant(), ZoneOffset.UTC);
         } catch (Exception e) {
             throw new ApiException(
                     ErrorCode.PAYMENT_PROVIDER_RESPONSE_INVALID,

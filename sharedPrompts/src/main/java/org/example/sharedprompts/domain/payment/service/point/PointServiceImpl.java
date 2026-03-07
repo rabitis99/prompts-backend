@@ -27,6 +27,7 @@ import org.springframework.transaction.TransactionDefinition;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -331,7 +332,7 @@ public class PointServiceImpl implements PointService {
      * 곧 만료될 포인트 계산
      */
     private BigDecimal calculateExpiringSoon(Long userId) {
-        LocalDateTime expiryDate = LocalDateTime.now().plusDays(30);
+        LocalDateTime expiryDate = LocalDateTime.now(ZoneOffset.UTC).plusDays(30);
         return pointJpaAdapter.findExpiringPoints(userId, expiryDate)
                 .stream()
                 .filter(p -> !p.isExpired() && p.getAmount().compareTo(BigDecimal.ZERO) > 0)

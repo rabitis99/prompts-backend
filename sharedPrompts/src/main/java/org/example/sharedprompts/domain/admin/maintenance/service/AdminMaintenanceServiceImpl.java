@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.admin.maintenance.service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -82,7 +83,7 @@ public class AdminMaintenanceServiceImpl implements AdminMaintenanceService {
         }
 
         Timer.Sample sample = Timer.start(meterRegistry);
-        LocalDateTime startTime = LocalDateTime.now();
+        LocalDateTime startTime = LocalDateTime.now(ZoneOffset.UTC);
         
         // 알림: 작업 시작
         notificationService.notifyStart();
@@ -123,7 +124,7 @@ public class AdminMaintenanceServiceImpl implements AdminMaintenanceService {
             
             localStatusManager.updateStatusToCompleted();
             
-            Duration duration = Duration.between(startTime, LocalDateTime.now());
+            Duration duration = Duration.between(startTime, LocalDateTime.now(ZoneOffset.UTC));
             sample.stop(rebuildMetrics.getDurationTimer());
             rebuildMetrics.getSuccessCounter().increment();
             
@@ -134,7 +135,7 @@ public class AdminMaintenanceServiceImpl implements AdminMaintenanceService {
             notificationService.notifyCompleted(duration, result.processedPrompts, result.processedComments);
             
         } catch (Exception e) {
-            Duration duration = Duration.between(startTime, LocalDateTime.now());
+            Duration duration = Duration.between(startTime, LocalDateTime.now(ZoneOffset.UTC));
             sample.stop(rebuildMetrics.getDurationTimer());
             rebuildMetrics.getFailureCounter().increment();
 
@@ -147,7 +148,7 @@ public class AdminMaintenanceServiceImpl implements AdminMaintenanceService {
             // 예외를 다시 던져서 ShedLock이 실패를 인지할 수 있도록 함
             throw e;
         } finally {
-            localStatusManager.updateFinishedAt(LocalDateTime.now());
+            localStatusManager.updateFinishedAt(LocalDateTime.now(ZoneOffset.UTC));
             // 글로벌 상태 관리 사용 시 Redis에 상태 저장
             if (useGlobalStatus) {
                 try {
