@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.user.User;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /**
  * 캐시백 적립 내역 엔티티
@@ -64,7 +65,7 @@ public class Cashback extends BaseEntity {
             return;
         }
         this.paid = true;
-        this.paidAt = LocalDateTime.now();
+        this.paidAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 }
 

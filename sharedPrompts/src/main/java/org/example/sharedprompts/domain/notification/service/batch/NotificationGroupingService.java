@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 /**
@@ -35,7 +36,7 @@ public class NotificationGroupingService {
      */
     @Transactional(readOnly = true)
     public Optional<Notification> findExistingGroupNotification(String groupKey, int windowMinutes) {
-        LocalDateTime since = LocalDateTime.now().minusMinutes(windowMinutes);
+        LocalDateTime since = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(windowMinutes);
         
         return notificationRepository
                 .findFirstByGroupKeyAndIsReadFalseAndCreatedAtAfterOrderByCreatedAtDesc(groupKey, since);

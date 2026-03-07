@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.statistics.util;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 
 /**
  * 통계 관련 날짜 유틸리티
@@ -17,14 +18,14 @@ public class StatisticsDateUtils {
      * 현재 시각 반환
      */
     public static LocalDateTime now() {
-        return LocalDateTime.now();
+        return LocalDateTime.now(ZoneOffset.UTC);
     }
 
     /**
      * 오늘 시작 시각 (00:00:00)
      */
     public static LocalDateTime todayStart() {
-        return LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
+        return LocalDateTime.of(LocalDate.now(ZoneOffset.UTC), LocalTime.MIN);
     }
 
     /**

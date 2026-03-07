@@ -36,6 +36,7 @@ import org.springframework.web.bind.annotation.*;
 import org.example.sharedprompts.global.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 import static org.example.sharedprompts.domain.rate.ratelimitlog.constants.RateLimitLogConstants.Statistics.DEFAULT_STATISTICS_DAYS;
 
@@ -269,7 +270,7 @@ public class AdminController {
     ) {
         // 기본값: 최근 7일
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 
         LocalDateTime defaultStartDate = now.minusDays(DEFAULT_STATISTICS_DAYS);
         LocalDateTime finalStartDate = startDate != null ? startDate : defaultStartDate;

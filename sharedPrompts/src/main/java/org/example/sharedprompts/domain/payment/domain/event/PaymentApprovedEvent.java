@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /**
  * 결제 승인 도메인 이벤트
@@ -41,7 +42,7 @@ public class PaymentApprovedEvent {
                 .currency(currency)
                 .method(method)
                 .externalPaymentId(externalPaymentId)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneOffset.UTC))
                 .build();
     }
 }

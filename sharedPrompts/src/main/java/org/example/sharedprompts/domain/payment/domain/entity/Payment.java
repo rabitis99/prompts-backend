@@ -11,6 +11,7 @@ import org.example.sharedprompts.domain.user.User;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /**
  * 결제 엔티티
@@ -136,7 +137,7 @@ public class Payment extends BaseEntity {
         if (externalPaymentId != null) {
             this.externalPaymentId = externalPaymentId;
         }
-        this.approvedAt = LocalDateTime.now();
+        this.approvedAt = LocalDateTime.now(ZoneOffset.UTC);
         this.failureReason = null;
     }
 
@@ -168,7 +169,7 @@ public class Payment extends BaseEntity {
      */
     public void markCanceled() {
         this.status = PaymentStatus.CANCELED;
-        this.canceledAt = LocalDateTime.now();
+        this.canceledAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     /**
@@ -273,7 +274,7 @@ public class Payment extends BaseEntity {
         // 오버플로우 방지를 위해 지수 계산 결과를 먼저 제한
         double exponentialFactor = Math.min(Math.pow(2, this.retryCount), maxDelayMs / (double) baseDelayMs + 1);
         long delayMs = Math.min((long) (baseDelayMs * exponentialFactor), maxDelayMs);
-        this.nextRetryAt = LocalDateTime.now().plus(Duration.ofMillis(delayMs));
+        this.nextRetryAt = LocalDateTime.now(ZoneOffset.UTC).plus(Duration.ofMillis(delayMs));
     }
     
     /**
@@ -315,7 +316,7 @@ public class Payment extends BaseEntity {
             this.approvedAt = approvedAt;
         }
         if (status == PaymentStatus.SUCCESS && this.approvedAt == null) {
-            this.approvedAt = LocalDateTime.now();
+            this.approvedAt = LocalDateTime.now(ZoneOffset.UTC);
         }
         if (status == PaymentStatus.SUCCESS) {
             this.failureReason = null; // 성공 시 failureReason 초기화

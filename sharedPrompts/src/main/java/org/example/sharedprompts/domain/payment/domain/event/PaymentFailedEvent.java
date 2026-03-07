@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /**
  * 결제 실패 도메인 이벤트
@@ -32,7 +33,7 @@ public class PaymentFailedEvent {
                 .userId(userId)
                 .errorCode(errorCode)
                 .errorMessage(errorMessage)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneOffset.UTC))
                 .build();
     }
 }

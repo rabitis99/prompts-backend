@@ -1,18 +1,20 @@
 package org.example.sharedprompts.domain.prompt.infrastructure.persistence;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.follow.repository.FollowPredicates;
-import org.example.sharedprompts.domain.prompt.entity.Prompt;
+import org.example.sharedprompts.domain.prompt.application.port.out.persistence.PromptSearchQuery;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
-import org.example.sharedprompts.dto.prompt.request.PromptSearchCondition;
+import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Locale;
 
 import static org.example.sharedprompts.domain.prompt.entity.QPrompt.prompt;
 import static org.example.sharedprompts.domain.tag.QPromptTag.promptTag;
@@ -25,47 +27,42 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Page<Prompt> searchPrompts(PromptSearchContext context) {
-        PromptSearchCondition condition = context.getCondition();
-        return searchInternal(applyCategory(condition.getPromptCategory()), context);
-    }
+    public Page<Prompt> search(PromptSearchQuery query) {
+        BooleanExpression where = applyCategory(query.category());
 
-    @Override
-    public Page<Prompt> searchMyPrompts(Long userId, PromptSearchCondition condition) {
-        // 내 프롬프트 조회는 viewer 컨텍스트가 필요 없으므로 기존 condition만 사용
-        // PromptSearchContext.of()에서 condition null 검증 수행
-        PromptSearchContext context = PromptSearchContext.of(condition, null);
+        // keyword가 있으면 제목·설명·태그명 검색 조건 적용
+        String keyword = query.keyword();
+        if (keyword != null && !keyword.isBlank()) {
+            BooleanExpression keywordExpr = buildKeywordConditionForSearch(keyword.trim());
+            if (keywordExpr != null) {
+                where = (where != null) ? where.and(keywordExpr) : keywordExpr;
+            }
+        }
 
-        BooleanExpression categoryExpr = applyCategory(condition.getPromptCategory());
-        BooleanExpression where = (categoryExpr != null)
-                ? prompt.author.id.eq(userId).and(categoryExpr)
-                : prompt.author.id.eq(userId);
+        // ownerId가 지정되면 해당 작성자의 프롬프트만 조회
+        if (query.ownerId() != null) {
+            BooleanExpression ownerExpr = prompt.author.id.eq(query.ownerId());
+            where = (where != null) ? where.and(ownerExpr) : ownerExpr;
+            // 본인이 아닌 경우 공개 프롬프트만 조회
+            if (query.viewerId() == null || !query.ownerId().equals(query.viewerId())) {
+                where = where.and(prompt.isPublic.eq(true));
+            }
+        } else {
+            // 공개 피드: 공개 프롬프트만 조회
+            where = (where != null) ? where.and(prompt.isPublic.eq(true)) : prompt.isPublic.eq(true);
+        }
 
-        return searchInternal(where, context);
-    }
-
-    @Override
-    public Page<Prompt> searchUserPrompts(Long userId, PromptSearchCondition condition, Long viewerId) {
-        BooleanExpression categoryExpr = applyCategory(condition.getPromptCategory());
-        BooleanExpression where = (categoryExpr != null)
-                ? prompt.author.id.eq(userId).and(categoryExpr)
-                : prompt.author.id.eq(userId);
-
-        // 다른 사용자의 프롬프트 조회는 viewer 컨텍스트를 고려해야 함
-        PromptSearchContext context = PromptSearchContext.of(condition, viewerId);
-
-        return searchInternal(where, context);
+        return searchInternal(where, query);
     }
 
     /**
      * 공통 2-step 페이징 + fetchJoin
      */
-    private Page<Prompt> searchInternal(BooleanExpression where, PromptSearchContext context) {
-        PromptSearchCondition condition = context.getCondition();
-        PageRequest pageable = PageRequest.of(condition.getPage(), condition.getSize());
+    private Page<Prompt> searchInternal(BooleanExpression where, PromptSearchQuery query) {
+        PageRequest pageable = PageRequest.of(query.page(), query.size());
 
         // viewer(요청자)와 author 간 BLOCKED 관계가 존재하는 프롬프트는 제외
-        Long viewerId = context.getViewerId();
+        Long viewerId = query.viewerId();
         if (viewerId != null) {
             BooleanExpression notBlocked =
                     FollowPredicates.notBlockedBetween(viewerId, prompt.author.id);
@@ -80,7 +77,7 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
                 .select(prompt.id)
                 .from(prompt)
                 .where(where)
-                .orderBy(condition.getSort().toOrderSpecifiers(prompt))
+                .orderBy(query.sort().toOrderSpecifiers(prompt))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
@@ -99,10 +96,12 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
 
         List<Prompt> content = queryFactory
                 .selectFrom(prompt)
+                .leftJoin(prompt.author, user).fetchJoin()
                 .leftJoin(prompt.promptTags, promptTag).fetchJoin()
                 .leftJoin(promptTag.tag, tag).fetchJoin()
                 .where(prompt.id.in(ids))
-                .orderBy(condition.getSort().toOrderSpecifiers(prompt))
+                .orderBy(query.sort().toOrderSpecifiers(prompt))
+                .distinct()
                 .fetch();
 
         return new PageImpl<>(content, pageable, total);
@@ -162,12 +161,32 @@ public class CustomPromptRepositoryImpl implements CustomPromptRepository {
         if (keyword == null || keyword.isEmpty()) {
             return null;
         }
-        String lowerKeyword = keyword.toLowerCase();
+        String lowerKeyword = keyword.toLowerCase(Locale.ROOT);
         return prompt.title.lower().contains(lowerKeyword)
                 .or(prompt.author.nickname.lower().contains(lowerKeyword));
     }
 
     private BooleanExpression applyCategory(PromptCategory category) {
         return category != null ? prompt.promptCategory.eq(category) : null;
+    }
+
+    /**
+     * 제목·설명·태그명에 대한 키워드 검색 조건 (대소문자 무시, 부분 일치).
+     */
+    private BooleanExpression buildKeywordConditionForSearch(String keyword) {
+        if (keyword == null || keyword.isEmpty()) {
+            return null;
+        }
+        String lowerKeyword = keyword.toLowerCase(Locale.ROOT);
+        BooleanExpression titleOrDesc = prompt.title.lower().contains(lowerKeyword)
+                .or(prompt.description.lower().contains(lowerKeyword));
+        BooleanExpression tagMatch = prompt.id.in(
+                JPAExpressions
+                        .select(promptTag.prompt.id)
+                        .from(promptTag)
+                        .join(promptTag.tag, tag)
+                        .where(tag.name.lower().contains(lowerKeyword))
+        );
+        return titleOrDesc.or(tagMatch);
     }
 }

@@ -6,7 +6,7 @@ import org.example.sharedprompts.module.domain.production.model.contract.result.
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 /**
  * Production Artifact Detail Entity
@@ -76,7 +76,7 @@ public class ProductionArtifactDetailEntity {
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    private LocalDateTime createdAt;
 
     /* =========================
        Domain Behavior

@@ -106,6 +106,10 @@ public class Prompt extends BaseEntity {
         this.description = description;
     }
 
+    public void updateContent(String content) {
+        this.content = content;
+    }
+
     public void updateIsPublic(boolean isPublic) {
         this.isPublic = isPublic;
     }

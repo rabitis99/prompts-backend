@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.admin.maintenance.rebuild.enums.RebuildF
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /**
  * 로컬 메모리 기반 상태 관리 매니저
@@ -30,7 +31,7 @@ public class LocalRebuildStatusManager {
         }
         
         status = MaintenanceJobStatus.RUNNING;
-        startedAt = LocalDateTime.now();
+        startedAt = LocalDateTime.now(ZoneOffset.UTC);
         finishedAt = null;
         errorMessage = null;
         return true;

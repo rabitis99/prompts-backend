@@ -5,6 +5,7 @@ import lombok.*;
 import org.example.sharedprompts.global.entity.BaseEntity;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /**
  * 실패한 결제 이벤트 저장 엔티티
@@ -54,7 +55,7 @@ public class FailedPaymentEvent extends BaseEntity {
 
     public void markProcessed() {
         this.processed = true;
-        this.processedAt = LocalDateTime.now();
+        this.processedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public void incrementRetryCount() {

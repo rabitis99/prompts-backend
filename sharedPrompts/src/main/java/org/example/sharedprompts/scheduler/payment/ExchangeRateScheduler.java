@@ -22,6 +22,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -97,7 +98,7 @@ public class ExchangeRateScheduler {
         Map<String, Object> rates = fetchRatesFromApi();
         if (rates == null) return;
 
-        LocalDateTime fetchedAt = LocalDateTime.now();
+        LocalDateTime fetchedAt = LocalDateTime.now(ZoneOffset.UTC);
         int updatedCount = 0;
         int createdCount = 0;
 

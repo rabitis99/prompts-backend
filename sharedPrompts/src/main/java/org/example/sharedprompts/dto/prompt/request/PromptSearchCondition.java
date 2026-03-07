@@ -3,6 +3,7 @@ package org.example.sharedprompts.dto.prompt.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -25,6 +26,10 @@ public class PromptSearchCondition {
     @JsonProperty("prompt_category")
     private PromptCategory promptCategory;
 
+    /** 제목·설명·태그명 검색어 (null/공백이면 검색 조건 미적용) */
+    @Size(max = 100, message = "검색어는 100자 이하로 입력해주세요.")
+    private String keyword;
+
     /**
      * @ModelAttribute 바인딩을 위한 snake_case 파라미터 지원
      * Spring은 쿼리 파라미터 "prompt_category"를 이 메서드로 바인딩합니다.
@@ -37,12 +42,13 @@ public class PromptSearchCondition {
         this.promptCategory = promptCategory;
     }
 
-    public static PromptSearchCondition of(int page, int size, SortType sort, PromptCategory category) {
+    public static PromptSearchCondition of(int page, int size, SortType sort, PromptCategory category, String keyword) {
         PromptSearchCondition condition = new PromptSearchCondition();
         condition.setPage(page);
         condition.setSize(size);
         condition.setSort(sort);
         condition.setPromptCategory(category);
+        condition.setKeyword(keyword);
         return condition;
     }
 }

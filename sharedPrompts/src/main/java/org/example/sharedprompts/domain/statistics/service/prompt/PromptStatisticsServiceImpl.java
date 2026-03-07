@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.prompt.infrastructure.persistence.PromptRepository;
 import org.example.sharedprompts.domain.tag.repository.TagRepository;
+import org.example.sharedprompts.domain.statistics.util.StatisticsDateUtils;
 import org.example.sharedprompts.dto.statistics.response.PopularTagDto;
 import org.example.sharedprompts.dto.statistics.response.PromptStatisticsResponseDto;
 import org.springframework.cache.annotation.Cacheable;
@@ -12,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,9 +37,9 @@ public class PromptStatisticsServiceImpl implements PromptStatisticsService {
     public PromptStatisticsResponseDto getPromptStatistics() {
         log.debug("프롬프트 통계 조회");
 
-        // 단일 기준 시점 사용 (모든 통계에서 일관된 시점 보장)
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime todayStart = LocalDateTime.of(now.toLocalDate(), LocalTime.MIN);
+        // 단일 기준 시점 사용 (모든 통계에서 일관된 시점 보장, UTC)
+        LocalDateTime now = StatisticsDateUtils.now();
+        LocalDateTime todayStart = StatisticsDateUtils.todayStart();
         LocalDateTime weekStart = now.minusDays(7);
         LocalDateTime monthStart = now.minusDays(MONTHLY_RANGE_DAYS);
 
