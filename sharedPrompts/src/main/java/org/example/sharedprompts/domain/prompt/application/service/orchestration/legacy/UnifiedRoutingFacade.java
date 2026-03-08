@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.application.service.orchestration.unified;
+package org.example.sharedprompts.domain.prompt.application.service.orchestration.legacy;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +20,16 @@ import java.util.List;
  *
  * <p>IntentDefaultsResolver → RoutingRuleEngine → DomainFinalizer → OutputContractPlanner
  * 순서로 작은 서비스를 조합해 최종 RoutingDecision 을 만든다.</p>
+ *
+ * <p><b>Not used by the active pipeline.</b> The orchestrator uses
+ * {@link org.example.sharedprompts.domain.prompt.application.service.semantic.SemanticResolutionService}
+ * only. This facade and its dependencies (IntentDefaultsResolver, RoutingRuleEngine, DomainFinalizer,
+ * OutputContractPlanner) are isolated behind this deprecation and may be removed when no longer needed.</p>
+ *
+ * @deprecated Replaced by category-aware semantic resolution (SemanticResolutionService).
+ *             May be removed in a future release. Do not use in new code.
  */
+@Deprecated(since = "semantic-pipeline", forRemoval = true)
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -54,7 +63,7 @@ public class UnifiedRoutingFacade {
 
         CoreRoleType coreRole = overrides.coreRoleOverride() != null
                 ? overrides.coreRoleOverride()
-                : defaults.intent().getDefaultCoreRole();
+                : null; // Legacy: intent no longer exposes default core role; semantic path uses CategorySemanticProfile.
         DomainRoleType domainRole = overrides.domainRoleOverride();
 
         FinalDomainDecision domainDecision = domainFinalizer.finalizeDomain(command, defaults, overrides);

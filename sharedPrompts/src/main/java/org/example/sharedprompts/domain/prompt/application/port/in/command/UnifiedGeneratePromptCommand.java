@@ -1,10 +1,11 @@
 package org.example.sharedprompts.domain.prompt.application.port.in.command;
 
 import org.example.sharedprompts.domain.prompt.application.exception.UnsupportedQualityPipelineOptionException;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.ExpressionOptions;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.OutputOptions;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.SemanticSelection;
 import org.example.sharedprompts.domain.prompt.common.enums.*;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.common.enums.role.CoreRoleType;
-import org.example.sharedprompts.domain.prompt.common.enums.role.DomainRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
 import java.util.List;
@@ -13,10 +14,17 @@ import java.util.Objects;
 /**
  * 통합 프롬프트 생성 커맨드.
  *
- * <p>외부 DTO 와 1:1 매핑되며, 기본값/폴백은 이 레벨에서 처리한다.</p>
+ * <p>Semantic hierarchy (resolution order): category → intent → roleType/actionType → tone/style → output.
+ * Category and intent are required for SIMPLE/ADVANCED; role/action are optional and validated against
+ * category+intent in {@link org.example.sharedprompts.domain.prompt.application.service.semantic.SemanticValidationService}.
+ * Tone and style are expression modifiers only and do not drive semantic resolution.</p>
+ *
+ * <p>{@link #requestMode()} is set by the controller from request_type so that
+ * semantic resolution does not rely on category=null heuristics.</p>
  */
 public record UnifiedGeneratePromptCommand(
         Long userId,
+        RequestMode requestMode,
         PromptCategory category,
         ActionIntent intent,
         String variant,
@@ -30,12 +38,10 @@ public record UnifiedGeneratePromptCommand(
         boolean disableQualityPipeline,
         ActionTypeInterface actionType,
         RoleTypeInterface roleType,
-        CoreRoleType coreRole,
-        DomainRoleType domainRole,
         List<String> tags,
         String title,
         String description
-    ) {
+) {
 
     public UnifiedGeneratePromptCommand {
         if (userId == null) {
@@ -45,8 +51,7 @@ public record UnifiedGeneratePromptCommand(
             throw new IllegalArgumentException("input은 비어있을 수 없습니다.");
         }
 
-        PromptCategory safeCategory = category != null ? category : PromptCategory.ETC;
-        ActionIntent safeIntent = intent != null ? intent : ActionIntent.GENERATE;
+        // Do NOT default category or intent here; semantic resolution requires explicit or profile fallback.
         EngineMode safeEngineMode = engineMode != null ? engineMode : EngineMode.AUTO;
 
         ToneType safeTone = tone != null ? tone : ToneType.NEUTRAL;
@@ -68,8 +73,6 @@ public record UnifiedGeneratePromptCommand(
             safeTags = List.copyOf(tags);
         }
 
-        category = safeCategory;
-        intent = safeIntent;
         engineMode = safeEngineMode;
         tone = safeTone;
         style = safeStyle;
@@ -78,8 +81,56 @@ public record UnifiedGeneratePromptCommand(
         tags = safeTags;
     }
 
+    /**
+     * True when this command represents an EXTRACTION request.
+     * Prefer using {@link #requestMode()} instead of this heuristic.
+     */
+    public boolean isExtractionRequest() {
+        return requestMode == RequestMode.EXTRACTION;
+    }
+
+    /**
+     * Hierarchy-aware factory: builds command from semantic selection, expression options, and output options.
+     * Use this when normalizing requests so the internal model does not behave as a flat enum bag.
+     */
+    public static UnifiedGeneratePromptCommand fromNormalized(
+            Long userId,
+            RequestMode requestMode,
+            SemanticSelection semantic,
+            ExpressionOptions expression,
+            OutputOptions output,
+            String variant,
+            String input,
+            boolean disableQualityPipeline,
+            List<String> tags,
+            String title,
+            String description
+    ) {
+        return new UnifiedGeneratePromptCommand(
+                userId,
+                requestMode,
+                semantic != null ? semantic.category() : null,
+                semantic != null ? semantic.intent() : null,
+                variant,
+                input,
+                output != null ? output.jsonSchema() : null,
+                output != null ? output.engineMode() : null,
+                expression != null ? expression.tone() : null,
+                expression != null ? expression.style() : null,
+                expression != null ? expression.language() : null,
+                expression != null ? expression.experienceLevel() : null,
+                disableQualityPipeline,
+                semantic != null ? semantic.actionType() : null,
+                semantic != null ? semantic.roleType() : null,
+                tags != null ? tags : List.of(),
+                title,
+                description
+        );
+    }
+
     public static UnifiedGeneratePromptCommand of(
             Long userId,
+            RequestMode requestMode,
             PromptCategory category,
             ActionIntent intent,
             String variant,
@@ -90,17 +141,16 @@ public record UnifiedGeneratePromptCommand(
             StyleType style,
             LanguageType language,
             ExperienceLevel experience,
-            Boolean disableQualityPipeline,
-            ActionTypeInterface actionType,
-            RoleTypeInterface roleType,
-            CoreRoleType coreRole,
-            DomainRoleType domainRole,
-            List<String> tags,
-            String title,
-            String description
-    ) {
+        Boolean disableQualityPipeline,
+        ActionTypeInterface actionType,
+        RoleTypeInterface roleType,
+        List<String> tags,
+        String title,
+        String description
+) {
         return new UnifiedGeneratePromptCommand(
                 userId,
+                requestMode,
                 category,
                 intent,
                 variant,
@@ -114,8 +164,6 @@ public record UnifiedGeneratePromptCommand(
                 disableQualityPipeline != null && disableQualityPipeline,
                 actionType,
                 roleType,
-                coreRole,
-                domainRole,
                 tags,
                 title,
                 description
@@ -141,6 +189,7 @@ public record UnifiedGeneratePromptCommand(
     ) {
         return new UnifiedGeneratePromptCommand(
                 userId,
+                RequestMode.SIMPLE,
                 category,
                 intent,
                 variant,
@@ -154,9 +203,45 @@ public record UnifiedGeneratePromptCommand(
                 false,
                 null,
                 null,
-                null,
-                null,
                 tags,
+                title,
+                description
+        );
+    }
+
+    /**
+     * 추출(EXTRACTION) 모드 요청을 위한 전용 팩토리.
+     * category와 intent는 null; semantic resolution이 EXTRACT로 고정한다.
+     */
+    public static UnifiedGeneratePromptCommand forExtraction(
+            Long userId,
+            String input,
+            String jsonSchema,
+            ToneType tone,
+            StyleType style,
+            LanguageType language,
+            ExperienceLevel experience,
+            List<String> tags,
+            String title,
+            String description
+    ) {
+        return new UnifiedGeneratePromptCommand(
+                userId,
+                RequestMode.EXTRACTION,
+                null,
+                null,
+                null,
+                input,
+                jsonSchema,
+                null,
+                tone != null ? tone : ToneType.NEUTRAL,
+                style != null ? style : StyleType.NARRATIVE,
+                language,
+                experience,
+                false,
+                null,
+                null,
+                tags != null ? tags : List.of(),
                 title,
                 description
         );

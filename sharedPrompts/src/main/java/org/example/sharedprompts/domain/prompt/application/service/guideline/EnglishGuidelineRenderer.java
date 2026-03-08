@@ -5,6 +5,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.common.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
 import org.example.sharedprompts.domain.prompt.common.guideline.rule.GuidelineRule;
+import org.example.sharedprompts.domain.prompt.domain.descriptor.RoleDescriptorPort;
 import org.springframework.stereotype.Component;
 
 /**
@@ -12,6 +13,10 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class EnglishGuidelineRenderer extends AbstractGuidelineRenderer {
+
+    public EnglishGuidelineRenderer(RoleDescriptorPort roleDescriptorPort) {
+        super(roleDescriptorPort);
+    }
 
     @Override
     protected LanguageType getLanguageType() {

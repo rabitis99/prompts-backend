@@ -5,6 +5,13 @@ import org.example.sharedprompts.domain.prompt.common.i18n.I18nKey;
 import org.example.sharedprompts.domain.prompt.common.i18n.I18nRegistry;
 import org.example.sharedprompts.domain.prompt.common.i18n.I18nText;
 
+/**
+ * Prompt category — semantic identity for the prompt engine.
+ *
+ * <p>Identity: key, optional i18n keys for display/guideline (lookup via {@link I18nRegistry}).
+ * defaultDomain is stable classification hint for resolution; routing and compatibility live in
+ * {@link org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile} and profile registries.</p>
+ */
 @Getter
 public enum PromptCategory implements StableKeyedEnum {
 

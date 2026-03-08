@@ -7,32 +7,34 @@ import org.example.sharedprompts.domain.prompt.common.enums.OutputNeeds;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptObjective;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
-import org.example.sharedprompts.domain.prompt.common.enums.role.CoreRoleType;
-import org.example.sharedprompts.domain.prompt.common.enums.role.DomainRoleType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.domain.value.quality.QualityBadge;
 
 import java.util.List;
 
 /**
- * 통합 프롬프트 생성 결과.
+ * Unified prompt generation result with semantic resolution metadata.
  *
  * <ul>
- *   <li>{@code verifyPassed}: 첫 검증 통과 여부 (수리 전 1차 검증)</li>
- *   <li>{@code finallyPassed}: 수리 후 최종 검증 통과 여부</li>
+ *   <li>{@code verifyPassed}: first verification pass (before repair)</li>
+ *   <li>{@code finallyPassed}: final verification after repair</li>
  * </ul>
+ *
+ * <p>Semantic fields replace legacy routing (appliedRuleIds, routingReasons).</p>
  */
 public record UnifiedGeneratePromptResult(
         String output,
         EngineMode requestedEngineMode,
         EngineMode effectiveEngineMode,
-        PromptCategory category,
+        PromptCategory resolvedCategory,
         TaskDomain resolvedDomain,
         PromptObjective objective,
         OutputNeeds outputNeeds,
-        ActionIntent intent,
+        ActionIntent resolvedIntent,
         String variant,
-        CoreRoleType coreRole,
-        DomainRoleType domainRole,
+        RoleTypeInterface resolvedRole,
+        ActionTypeInterface resolvedAction,
         List<QualityBadge> qualityBadges,
         boolean verifyPassed,
         int repairCount,
@@ -40,14 +42,16 @@ public record UnifiedGeneratePromptResult(
         boolean schemaContractFailed,
         List<String> schemaFailureReasons,
         EngineProfile engineProfile,
-        List<String> appliedRuleIds,
-        List<String> routingReasons
+        List<String> semanticProfilesApplied,
+        List<String> validationWarnings,
+        List<String> recommendationHints,
+        String semanticResolutionSummary
 ) {
     public UnifiedGeneratePromptResult {
         qualityBadges = qualityBadges != null ? List.copyOf(qualityBadges) : List.of();
         schemaFailureReasons = schemaFailureReasons != null ? List.copyOf(schemaFailureReasons) : List.of();
-        appliedRuleIds = appliedRuleIds != null ? List.copyOf(appliedRuleIds) : List.of();
-        routingReasons = routingReasons != null ? List.copyOf(routingReasons) : List.of();
+        semanticProfilesApplied = semanticProfilesApplied != null ? List.copyOf(semanticProfilesApplied) : List.of();
+        validationWarnings = validationWarnings != null ? List.copyOf(validationWarnings) : List.of();
+        recommendationHints = recommendationHints != null ? List.copyOf(recommendationHints) : List.of();
     }
 }
-

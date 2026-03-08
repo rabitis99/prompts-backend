@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.prompt.adapter.out.render.repair;
 
+import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.prompt.adapter.out.render.section.ConstraintsSectionRenderer;
 import org.example.sharedprompts.domain.prompt.adapter.out.render.section.ObjectiveSectionRenderer;
 import org.example.sharedprompts.domain.prompt.adapter.out.render.section.OutputContractRenderer;
@@ -13,7 +14,10 @@ import org.springframework.stereotype.Component;
  * Repair 단계 전용 프롬프트 렌더러.
  */
 @Component
+@RequiredArgsConstructor
 public class RepairPromptRenderer {
+
+    private final RoleContextRenderer roleContextRenderer;
 
     /**
      * 수리용 메타프롬프트 문자열을 생성한다.
@@ -38,7 +42,7 @@ public class RepairPromptRenderer {
         sb.append(ObjectiveSectionRenderer.render(spec));
         sb.append(StrategySectionRenderer.render(spec));
         sb.append(ConstraintsSectionRenderer.render(spec));
-        sb.append(RoleContextRenderer.render(spec));
+        sb.append(roleContextRenderer.render(spec));
         sb.append(OutputContractRenderer.render(spec));
         sb.append(UserInputRenderer.render(spec));
 

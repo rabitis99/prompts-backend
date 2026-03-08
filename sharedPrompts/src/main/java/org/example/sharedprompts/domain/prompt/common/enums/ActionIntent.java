@@ -1,163 +1,60 @@
 package org.example.sharedprompts.domain.prompt.common.enums;
 
-import org.example.sharedprompts.domain.prompt.common.enums.role.CoreRoleType;
-
-import java.util.Optional;
-
 /**
- * 상위 레벨 작업 의도.
+ * User intent taxonomy — branch selector under {@link PromptCategory}.
  *
- * <p>각 Intent는 기본 Objective, 선호 OutputNeeds, 기본 ResponseShape,
- * 선택적인 TaskDomain affinity, 기본 CoreRoleType 메타데이터를 가진다.</p>
+ * <p>Represents <b>user intent</b> only (identity). Domain operations (e.g. code generation, UI design)
+ * belong to {@link org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface}
+ * and are resolved per category+intent via {@link org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile}.</p>
+ *
+ * <p>Resolution defaults (objective, output needs, response shape) live in
+ * {@link org.example.sharedprompts.domain.prompt.domain.semantic.IntentDictionary#getResolutionDefaults(ActionIntent)};
+ * the enum does not carry policy.</p>
  */
 public enum ActionIntent {
 
-    GENERATE(
-            PromptObjective.CREATIVE,
-            OutputNeeds.FREE_FORM,
-            ResponseShape.NARRATIVE,
-            null,
-            CoreRoleType.CREATIVE_DIRECTOR
-    ),
+    // ─── CREATION ─────────────────────────────────────────────────────────
+    CREATE,
+    GENERATE,
+    BRAINSTORM,
 
-    REWRITE(
-            PromptObjective.CREATIVE,
-            OutputNeeds.FREE_FORM,
-            ResponseShape.STRUCTURED,
-            null,
-            CoreRoleType.EDITOR
-    ),
+    // ─── MODIFICATION ───────────────────────────────────────────────────────
+    REWRITE,
+    EDIT,
+    REFINE,
+    IMPROVE,
 
-    SUMMARIZE(
-            PromptObjective.FACTUAL,
-            OutputNeeds.BULLET_LIST_REQUIRED,
-            ResponseShape.CONCISE,
-            TaskDomain.ANALYTICAL,
-            CoreRoleType.ANALYST
-    ),
+    // ─── ANALYSIS ──────────────────────────────────────────────────────────
+    ANALYZE,
+    EVALUATE,
+    COMPARE,
+    CRITIQUE,
+    DIAGNOSE,
 
-    EXPLAIN(
-            PromptObjective.REASONING,
-            OutputNeeds.FREE_FORM,
-            ResponseShape.STEP_BY_STEP,
-            TaskDomain.EDUCATIONAL,
-            CoreRoleType.EDUCATOR
-    ),
+    // ─── EXPLANATION ───────────────────────────────────────────────────────
+    EXPLAIN,
+    TEACH,
+    SIMPLIFY,
+    SUMMARIZE,
+    OUTLINE,
 
-    PLAN(
-            PromptObjective.PLANNING,
-            OutputNeeds.STRUCTURED_TEXT,
-            ResponseShape.STEP_BY_STEP,
-            TaskDomain.PRACTICAL,
-            CoreRoleType.PROMPT_ENGINEER
-    ),
+    // ─── PLANNING ──────────────────────────────────────────────────────────
+    PLAN,
+    STRATEGIZE,
+    PROPOSE,
+    ORGANIZE,
 
-    ANALYZE(
-            PromptObjective.REASONING,
-            OutputNeeds.STRUCTURED_TEXT,
-            ResponseShape.STRUCTURED,
-            TaskDomain.ANALYTICAL,
-            CoreRoleType.ANALYST
-    ),
+    // ─── DECISION ─────────────────────────────────────────────────────────
+    RECOMMEND,
+    OPTIMIZE,
+    DECIDE,
 
-    EVALUATE(
-            PromptObjective.REASONING,
-            OutputNeeds.STRUCTURED_TEXT,
-            ResponseShape.STRUCTURED,
-            TaskDomain.ANALYTICAL,
-            CoreRoleType.ANALYST
-    ),
+    // ─── RESEARCH ──────────────────────────────────────────────────────────
+    INVESTIGATE,
+    SYNTHESIZE,
+    EXPLORE,
 
-    EXTRACT(
-            PromptObjective.EXTRACTION,
-            OutputNeeds.JSON_REQUIRED,
-            ResponseShape.STRUCTURED,
-            TaskDomain.ANALYTICAL,
-            CoreRoleType.ANALYST
-    ),
-
-    CLASSIFY(
-            PromptObjective.EXTRACTION,
-            OutputNeeds.JSON_REQUIRED,
-            ResponseShape.STRUCTURED,
-            TaskDomain.ANALYTICAL,
-            CoreRoleType.ANALYST
-    ),
-
-    DECIDE(
-            PromptObjective.REASONING,
-            OutputNeeds.STRUCTURED_TEXT,
-            ResponseShape.STRUCTURED,
-            TaskDomain.PRACTICAL,
-            CoreRoleType.PROMPT_ENGINEER
-    ),
-
-    DEBUG(
-            PromptObjective.REASONING,
-            OutputNeeds.STRUCTURED_TEXT,
-            ResponseShape.STEP_BY_STEP,
-            TaskDomain.TECHNICAL,
-            CoreRoleType.TECHNICAL_EXPERT
-    ),
-
-    DESIGN(
-            PromptObjective.CREATIVE,
-            OutputNeeds.STRUCTURED_TEXT,
-            ResponseShape.STRUCTURED,
-            TaskDomain.CREATIVE,
-            CoreRoleType.CREATIVE_DIRECTOR
-    ),
-
-    CODE(
-            PromptObjective.CODE,
-            OutputNeeds.CODE_BLOCK_REQUIRED,
-            ResponseShape.STRUCTURED,
-            TaskDomain.TECHNICAL,
-            CoreRoleType.TECHNICAL_EXPERT
-    );
-
-    private final PromptObjective defaultObjective;
-    private final OutputNeeds preferredOutputNeeds;
-    private final ResponseShape defaultResponseShape;
-    private final TaskDomain domainAffinity; // nullable
-    private final CoreRoleType defaultCoreRole;
-
-    ActionIntent(PromptObjective defaultObjective,
-                 OutputNeeds preferredOutputNeeds,
-                 ResponseShape defaultResponseShape,
-                 TaskDomain domainAffinity,
-                 CoreRoleType defaultCoreRole) {
-        this.defaultObjective = defaultObjective;
-        this.preferredOutputNeeds = preferredOutputNeeds;
-        this.defaultResponseShape = defaultResponseShape;
-        this.domainAffinity = domainAffinity;
-        this.defaultCoreRole = defaultCoreRole;
-    }
-
-    public PromptObjective getDefaultObjective() {
-        return defaultObjective;
-    }
-
-    public OutputNeeds getPreferredOutputNeeds() {
-        return preferredOutputNeeds;
-    }
-
-    public ResponseShape getDefaultResponseShape() {
-        return defaultResponseShape;
-    }
-
-    /**
-     * 선택적인 도메인 선호도.
-     */
-    public Optional<TaskDomain> getDomainAffinity() {
-        return Optional.ofNullable(domainAffinity);
-    }
-
-    /**
-     * 이 Intent에 대한 기본 코어 역할. 라우팅 시 오버라이드 없으면 이 값이 사용된다.
-     */
-    public CoreRoleType getDefaultCoreRole() {
-        return defaultCoreRole;
-    }
+    // ─── EXTRACTION / CLASSIFICATION ────────────────────────────────────────
+    EXTRACT,
+    CLASSIFY
 }
-

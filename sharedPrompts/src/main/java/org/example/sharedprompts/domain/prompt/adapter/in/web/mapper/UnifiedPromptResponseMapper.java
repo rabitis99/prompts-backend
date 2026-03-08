@@ -21,21 +21,24 @@ public class UnifiedPromptResponseMapper {
                 result.requestedEngineMode(),
                 result.effectiveEngineMode(),
                 result.engineProfile(),
+                result.resolvedCategory(),
                 result.resolvedDomain(),
                 result.objective(),
                 result.outputNeeds(),
-                result.intent(),
+                result.resolvedIntent(),
                 result.variant(),
-                result.coreRole(),
-                result.domainRole(),
+                result.resolvedRole(),
+                result.resolvedAction(),
                 badgeDtos,
                 result.verifyPassed(),
                 result.repairCount(),
                 result.finallyPassed(),
                 result.schemaContractFailed(),
                 result.schemaFailureReasons(),
-                result.appliedRuleIds(),
-                result.routingReasons()
+                result.semanticProfilesApplied(),
+                result.validationWarnings(),
+                result.recommendationHints(),
+                result.semanticResolutionSummary()
         );
     }
 

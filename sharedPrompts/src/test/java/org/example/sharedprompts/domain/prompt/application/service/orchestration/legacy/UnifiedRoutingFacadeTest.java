@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.application.service.orchestration.unified;
+package org.example.sharedprompts.domain.prompt.application.service.orchestration.legacy;
 
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.service.orchestration.DomainResolutionService;
@@ -30,6 +30,7 @@ class UnifiedRoutingFacadeTest {
     private UnifiedGeneratePromptCommand baseCommand(EngineMode mode, String jsonSchema) {
         return UnifiedGeneratePromptCommand.of(
                 1L,
+                RequestMode.SIMPLE,
                 PromptCategory.ANALYSIS,
                 ActionIntent.SUMMARIZE,
                 null,
@@ -37,7 +38,6 @@ class UnifiedRoutingFacadeTest {
                 jsonSchema,
                 mode,
                 ToneType.NEUTRAL,
-                null,
                 null,
                 null,
                 null,

@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.application.service.orchestration.unified;
+package org.example.sharedprompts.domain.prompt.application.service.orchestration.legacy;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

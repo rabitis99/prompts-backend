@@ -250,22 +250,10 @@ public enum ToneType implements StableKeyedEnum {
     }
 
     /**
-     * 엔진 레벨에서 사용하는 정규화된 톤 시그널을 반환한다.
-     *
-     * <p>여러 값이 사실상 비슷한 언어 스타일을 의미하는 경우,
-     * 다음과 같이 대표 톤으로 매핑된다.</p>
-     *
-     * <ul>
-     *   <li>POSITIVE, ENTHUSIASTIC, INSPIRATIONAL → FRIENDLY</li>
-     *   <li>PROFESSIONAL → FORMAL</li>
-     *   <li>그 외 → 자기 자신</li>
-     * </ul>
+     * @deprecated Use {@link ToneStyleNormalizer#toCanonicalTone(ToneType)}. Normalization is policy, not identity.
      */
+    @Deprecated(since = "enum-cleanup", forRemoval = true)
     public ToneType getCanonicalTone() {
-        return switch (this) {
-            case POSITIVE, ENTHUSIASTIC, INSPIRATIONAL -> FRIENDLY;
-            case PROFESSIONAL -> FORMAL;
-            default -> this;
-        };
+        return ToneStyleNormalizer.toCanonicalTone(this);
     }
 }

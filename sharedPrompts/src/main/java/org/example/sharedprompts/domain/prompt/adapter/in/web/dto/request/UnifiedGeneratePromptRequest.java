@@ -14,6 +14,11 @@ import java.util.List;
  * <p>외부에는 단일 엔드포인트만 노출하지만, request_type 에 따라
  * SIMPLE / EXTRACTION / ADVANCED 서브 타입으로 디스패치된다.</p>
  *
+ * <p><b>Semantic hierarchy</b> (resolution order, reflected in sub-type fields):
+ * category → intent → roleType/actionType (ADVANCED only) → tone/style → input, output (json_schema).
+ * Category and intent are required for SIMPLE/ADVANCED; tone and style are expression modifiers only
+ * and do not drive semantic resolution.</p>
+ *
  * <p>공통·필수 필드는 이 인터페이스에서 계약으로 관리한다.</p>
  * <ul>
  *   <li>{@link #requestType()} — 요청 유형 디스크리미네이터 (필수)</li>

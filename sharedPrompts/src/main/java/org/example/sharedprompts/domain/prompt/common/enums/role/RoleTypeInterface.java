@@ -4,10 +4,21 @@ import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
 
 /**
  * RoleType 공통 인터페이스
- * 모든 RoleType enum이 구현해야 하는 공통 메서드 정의
- * <p>향후 리팩토링 시 Builder 패턴이나 record 기반 구조를 고려할 수 있습니다.
+ * 모든 RoleType enum이 구현해야 하는 공통 메서드 정의.
+ *
+ * <p><b>책임:</b> RoleType = identity of perspective. Display/description text is supplied by
+ * {@link org.example.sharedprompts.domain.prompt.domain.descriptor.RoleDescriptorPort}; prefer that port
+ * over calling getRoleName* / getDescription* directly so that enums remain identity-oriented.
+ * Interface display methods are retained for backward compatibility and for use by the default
+ * descriptor implementation.</p>
  */
 public interface RoleTypeInterface {
+    /**
+     * Stable identifier for serialization and equality.
+     * Implementations typically delegate to {@link org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum#key()}.
+     */
+    String key();
+
     /** 역할 이름 - 한국어 */
     String getRoleNameKo();
     

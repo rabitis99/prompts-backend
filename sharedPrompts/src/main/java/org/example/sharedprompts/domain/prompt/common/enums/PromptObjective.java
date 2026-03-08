@@ -44,5 +44,22 @@ public enum PromptObjective {
             case CODE -> org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective.REASONING;
         };
     }
+
+    /**
+     * 도메인 Objective → API Objective (응답/메타데이터용).
+     */
+    public static PromptObjective fromDomainObjective(
+            org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective domain
+    ) {
+        if (domain == null) return REASONING;
+        return switch (domain) {
+            case FACTUAL -> FACTUAL;
+            case REASONING -> REASONING;
+            case PLANNING -> PLANNING;
+            case CREATIVE_WITH_CONSTRAINTS -> CREATIVE;
+            case EXTRACTION -> EXTRACTION;
+            case ANALYTICAL -> REASONING;
+        };
+    }
 }
 

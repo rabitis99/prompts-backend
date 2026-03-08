@@ -5,8 +5,9 @@ import org.example.sharedprompts.domain.prompt.application.port.in.command.Gener
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.GeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.UnifiedGeneratePromptResult;
-import org.example.sharedprompts.domain.prompt.application.service.orchestration.unified.UnifiedRoutingFacade;
+import org.example.sharedprompts.domain.prompt.application.service.semantic.SemanticResolutionService;
 import org.example.sharedprompts.domain.prompt.common.enums.*;
+import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
 import org.example.sharedprompts.domain.prompt.metrics.PromptEngineMetrics;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -20,47 +21,45 @@ import static org.mockito.Mockito.*;
 class OrchestratorThinTest {
 
     @Test
-    void orchestrator_should_delegate_policy_to_routing_facade() {
-        // given
+    void orchestrator_uses_semantic_resolution_and_returns_semantic_metadata() {
         GeneratePromptUseCase generatePromptUseCase = mock(GeneratePromptUseCase.class);
-        when(generatePromptUseCase.generate(any(GeneratePromptCommand.class))).thenAnswer(inv -> {
-            GeneratePromptCommand cmd = inv.getArgument(0);
-            return new GeneratePromptResult(
-                    1L,
-                    cmd.title(),
-                    "output",
-                    List.of(),
-                    org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective.CREATIVE_WITH_CONSTRAINTS,
-                    true,
-                    true,
-                    0,
-                    true
-            );
-        });
+        when(generatePromptUseCase.generate(any(GeneratePromptCommand.class), any(ConfirmedSemanticAxes.class)))
+                .thenAnswer(inv -> {
+                    GeneratePromptCommand cmd = inv.getArgument(0);
+                    return new GeneratePromptResult(
+                            1L,
+                            cmd.title(),
+                            "output",
+                            List.of(),
+                            org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective.CREATIVE_WITH_CONSTRAINTS,
+                            true,
+                            true,
+                            0,
+                            true
+                    );
+                });
 
-        UnifiedRoutingFacade.RoutingDecision routingDecision = new UnifiedRoutingFacade.RoutingDecision(
-                ActionIntent.GENERATE,
-                PromptObjective.CREATIVE,
-                OutputNeeds.FREE_FORM,
-                TaskDomain.PRACTICAL,
-                null,
-                null,
-                EngineProfile.QUALITY_PIPELINE,
-                EngineMode.AUTO,
-                EngineMode.V2,
-                List.of("r1"),
-                List.of("intentDefaults:GENERATE")
-        );
+        ConfirmedSemanticAxes axes = ConfirmedSemanticAxes.builder()
+                .category(PromptCategory.ETC)
+                .taskDomain(TaskDomain.GENERAL)
+                .intent(ActionIntent.GENERATE)
+                .objective(org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective.CREATIVE_WITH_CONSTRAINTS)
+                .outputNeeds(OutputNeeds.FREE_FORM)
+                .appliedProfileIds(List.of("profile:ETC", "intent:GENERATE"))
+                .validationWarnings(List.of())
+                .recommendationHints(List.of())
+                .build();
 
-        UnifiedRoutingFacade routingFacade = mock(UnifiedRoutingFacade.class);
-        when(routingFacade.decide(any(UnifiedGeneratePromptCommand.class))).thenReturn(routingDecision);
+        SemanticResolutionService semanticResolutionService = mock(SemanticResolutionService.class);
+        when(semanticResolutionService.resolve(any(UnifiedGeneratePromptCommand.class)))
+                .thenReturn(SemanticResolutionService.Result.ok(axes));
 
         SchemaContractEvaluator schemaContractEvaluator = new SchemaContractEvaluator();
         PromptEngineMetrics metrics = new PromptEngineMetrics(new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
 
         UnifiedPromptGenerationOrchestrator orchestrator = new UnifiedPromptGenerationOrchestrator(
                 generatePromptUseCase,
-                routingFacade,
+                semanticResolutionService,
                 schemaContractEvaluator,
                 metrics
         );
@@ -69,6 +68,7 @@ class OrchestratorThinTest {
         String expectedDescription = "Test description";
         UnifiedGeneratePromptCommand command = UnifiedGeneratePromptCommand.of(
                 1L,
+                RequestMode.SIMPLE,
                 PromptCategory.ETC,
                 ActionIntent.GENERATE,
                 null,
@@ -84,26 +84,26 @@ class OrchestratorThinTest {
                 null,
                 null,
                 null,
-                null,
                 expectedTitle,
                 expectedDescription
         );
 
-        // when
         UnifiedGeneratePromptResult result = orchestrator.generate(command);
 
-        // then
-        verify(routingFacade).decide(any(UnifiedGeneratePromptCommand.class));
+        verify(semanticResolutionService).resolve(any(UnifiedGeneratePromptCommand.class));
         ArgumentCaptor<GeneratePromptCommand> commandCaptor = ArgumentCaptor.forClass(GeneratePromptCommand.class);
-        verify(generatePromptUseCase).generate(commandCaptor.capture());
+        ArgumentCaptor<ConfirmedSemanticAxes> axesCaptor = ArgumentCaptor.forClass(ConfirmedSemanticAxes.class);
+        verify(generatePromptUseCase).generate(commandCaptor.capture(), axesCaptor.capture());
         GeneratePromptCommand passedCommand = commandCaptor.getValue();
         assertThat(passedCommand.title()).isEqualTo(expectedTitle);
         assertThat(passedCommand.description()).isEqualTo(expectedDescription);
 
         assertThat(result.effectiveEngineMode()).isEqualTo(EngineMode.V2);
         assertThat(result.engineProfile()).isEqualTo(EngineProfile.QUALITY_PIPELINE);
-        assertThat(result.appliedRuleIds()).containsExactly("r1");
-        assertThat(result.routingReasons()).contains("intentDefaults:GENERATE");
+        assertThat(result.resolvedIntent()).isEqualTo(ActionIntent.GENERATE);
+        assertThat(result.resolvedCategory()).isEqualTo(PromptCategory.ETC);
+        assertThat(result.semanticProfilesApplied()).contains("profile:ETC", "intent:GENERATE");
+        assertThat(result.semanticResolutionSummary()).contains("category=ETC");
+        assertThat(result.semanticResolutionSummary()).contains("intent=GENERATE");
     }
 }
-

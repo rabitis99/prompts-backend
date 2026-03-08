@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.application.service.orchestration.unified;
+package org.example.sharedprompts.domain.prompt.application.service.orchestration.legacy;
 
 import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.EngineProfile;

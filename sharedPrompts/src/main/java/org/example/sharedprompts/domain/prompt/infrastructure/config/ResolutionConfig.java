@@ -28,7 +28,7 @@ import java.util.Map;
 @Configuration
 public class ResolutionConfig {
 
-    // 명시 매핑: ActionType.getDefaultObjective()가 null일 때 사용
+    // Resolution policy: action-type → objective. Prefer registry over enum getters.
     // 나머지 ActionType은 레지스트리의 키워드 기반 추론 규칙을 통해 적절한 PromptObjective로 매핑된다.
     private static final Map<ActionTypeInterface, PromptObjective> EXPLICIT_MAPPINGS = Map.ofEntries(
             Map.entry(CodingActionType.CODE_REVIEW, PromptObjective.REASONING),
