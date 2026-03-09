@@ -30,7 +30,7 @@ public record RecommendPromptResult(
         List<String> recommendationHints,
         List<String> validationWarnings,
         List<String> fallbackApplied,
-        Object defaultSelection
+        String defaultSelection
 ) {
     public RecommendPromptResult {
         intentCandidates = intentCandidates != null ? List.copyOf(intentCandidates) : List.of();
@@ -39,5 +39,6 @@ public record RecommendPromptResult(
         recommendationHints = recommendationHints != null ? List.copyOf(recommendationHints) : List.of();
         validationWarnings = validationWarnings != null ? List.copyOf(validationWarnings) : List.of();
         fallbackApplied = fallbackApplied != null ? List.copyOf(fallbackApplied) : List.of();
+        axisSources = axisSources != null ? Map.copyOf(axisSources) : null;
     }
 }

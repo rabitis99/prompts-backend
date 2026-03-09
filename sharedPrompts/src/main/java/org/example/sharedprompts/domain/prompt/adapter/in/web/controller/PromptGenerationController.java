@@ -54,7 +54,16 @@ public class PromptGenerationController {
         WebAsyncTask<ResponseEntity<CustomResponse<UnifiedGeneratePromptResponse>>> asyncTask =
                 getResponseEntityWebAsyncTask(request, authUser);
 
-        asyncTask.onTimeout(() -> {
+        configureAsyncTaskCallbacks(asyncTask, "Unified prompt generation");
+
+        return asyncTask;
+    }
+
+    private <T> void configureAsyncTaskCallbacks(
+            WebAsyncTask<ResponseEntity<CustomResponse<T>>> task,
+            String operationName
+    ) {
+        task.onTimeout(() -> {
             ApiException timeoutEx = new ApiException(
                     ErrorCode.AI_GENERATION_TIMEOUT,
                     "프롬프트 생성이 시간 초과되었습니다. 잠시 후 다시 시도해주세요.");
@@ -62,15 +71,13 @@ public class PromptGenerationController {
                     .body(CustomResponse.fail(timeoutEx));
         });
 
-        asyncTask.onError(() -> {
+        task.onError(() -> {
             ApiException ex = new ApiException(
                     ErrorCode.AI_GENERATION_FAILED,
                     "프롬프트 생성 중 오류가 발생했습니다.");
             return ResponseEntity.status(ex.getErrorCode().getHttpStatus())
                     .body(CustomResponse.fail(ex));
         });
-
-        return asyncTask;
     }
 
     private @NotNull WebAsyncTask<ResponseEntity<CustomResponse<UnifiedGeneratePromptResponse>>> getResponseEntityWebAsyncTask(
@@ -127,20 +134,7 @@ public class PromptGenerationController {
 
         WebAsyncTask<ResponseEntity<CustomResponse<UnifiedGeneratePromptResponse>>> task =
                 new WebAsyncTask<>(ASYNC_TIMEOUT_MS, callable);
-        task.onTimeout(() -> {
-            ApiException timeoutEx = new ApiException(
-                    ErrorCode.AI_GENERATION_TIMEOUT,
-                    "프롬프트 생성이 시간 초과되었습니다. 잠시 후 다시 시도해주세요.");
-            return ResponseEntity.status(timeoutEx.getErrorCode().getHttpStatus())
-                    .body(CustomResponse.fail(timeoutEx));
-        });
-        task.onError(() -> {
-            ApiException ex = new ApiException(
-                    ErrorCode.AI_GENERATION_FAILED,
-                    "프롬프트 생성 중 오류가 발생했습니다.");
-            return ResponseEntity.status(ex.getErrorCode().getHttpStatus())
-                    .body(CustomResponse.fail(ex));
-        });
+        configureAsyncTaskCallbacks(task, "Confirmed prompt generation");
         return task;
     }
 }

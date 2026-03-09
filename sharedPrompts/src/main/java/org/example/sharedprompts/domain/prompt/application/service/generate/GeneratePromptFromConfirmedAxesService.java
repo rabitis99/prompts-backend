@@ -35,6 +35,8 @@ public class GeneratePromptFromConfirmedAxesService implements GeneratePromptFro
     private final CategorySemanticProfileRegistry profileRegistry;
     private final GeneratePromptUseCase generatePromptUseCase;
 
+    private static final String DEFAULT_TITLE_PREFIX = "[Confirmed] ";
+
     public GeneratePromptFromConfirmedAxesService(
             ConfirmedAxesMapper confirmedAxesMapper,
             CategorySemanticProfileRegistry profileRegistry,
@@ -63,8 +65,8 @@ public class GeneratePromptFromConfirmedAxesService implements GeneratePromptFro
 
         Map<String, String> axisSources = Map.of(
                 "intent", AxisSourceConstants.USER_PROVIDED,
-                "role", AxisSourceConstants.USER_PROVIDED,
-                "action", AxisSourceConstants.USER_PROVIDED,
+                "role", axes.role().isPresent() ? AxisSourceConstants.USER_PROVIDED : AxisSourceConstants.RECOMMENDED,
+                "action", axes.actionType().isPresent() ? AxisSourceConstants.USER_PROVIDED : AxisSourceConstants.RECOMMENDED,
                 "objective", AxisSourceConstants.RECOMMENDED,
                 "output_needs", AxisSourceConstants.RECOMMENDED
         );
@@ -78,7 +80,7 @@ public class GeneratePromptFromConfirmedAxesService implements GeneratePromptFro
                 apiObjective,
                 axes.outputNeeds(),
                 axes.intent(),
-                null,
+                null, // variant: not used in confirmed flow
                 axes.role().orElse(null),
                 axes.actionType().orElse(null),
                 v2Result.badges(),
@@ -130,7 +132,7 @@ public class GeneratePromptFromConfirmedAxesService implements GeneratePromptFro
     private GeneratePromptCommand toV2Command(ConfirmedGeneratePromptCommand command, ConfirmedSemanticAxes axes) {
         String title = (command.title() != null && !command.title().isBlank())
                 ? command.title()
-                : "[Confirmed] " + axes.intent().name();
+                : DEFAULT_TITLE_PREFIX + axes.intent().name();
         String description = (command.description() != null && !command.description().isBlank())
                 ? command.description()
                 : null;
@@ -138,7 +140,7 @@ public class GeneratePromptFromConfirmedAxesService implements GeneratePromptFro
                 command.userId(),
                 title,
                 description,
-                false,
+                /* isPublic = */ false,
                 axes.category(),
                 command.tags(),
                 command.input(),
@@ -148,7 +150,7 @@ public class GeneratePromptFromConfirmedAxesService implements GeneratePromptFro
                 axes.style(),
                 axes.language(),
                 axes.experienceLevel(),
-                false,
+                /* experimentalEnabled = */ false,
                 command.jsonSchema()
         );
     }

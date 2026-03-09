@@ -43,11 +43,50 @@ public class SemanticValidationService {
             CategorySemanticProfile profile,
             ActionIntent resolvedIntent
     ) {
+        return doValidate(
+                command.category(),
+                command.tone(),
+                command.style(),
+                command.roleType(),
+                command.actionType(),
+                profile,
+                resolvedIntent
+        );
+    }
+
+    /**
+     * Validates for the recommendation flow (same rules as {@link #validate(UnifiedGeneratePromptCommand, CategorySemanticProfile, ActionIntent)}).
+     */
+    public SemanticValidationResult validate(
+            RecommendPromptCommand command,
+            CategorySemanticProfile profile,
+            ActionIntent resolvedIntent
+    ) {
+        return doValidate(
+                command.category(),
+                command.tone(),
+                command.style(),
+                command.roleType(),
+                command.actionType(),
+                profile,
+                resolvedIntent
+        );
+    }
+
+    private SemanticValidationResult doValidate(
+            org.example.sharedprompts.domain.prompt.common.enums.PromptCategory category,
+            ToneType tone,
+            StyleType style,
+            RoleTypeInterface roleType,
+            ActionTypeInterface actionType,
+            CategorySemanticProfile profile,
+            ActionIntent resolvedIntent
+    ) {
         if (profile == null) {
             return SemanticValidationResult.invalid(List.of(
                     new SemanticValidationResult.SemanticValidationItem(
                             "MISSING_PROFILE",
-                            "No semantic profile for category: " + command.category(),
+                            "No semantic profile for category: " + category,
                             "category",
                             null
                     )));
@@ -91,12 +130,12 @@ public class SemanticValidationService {
         }
 
         // 2) Discouraged tone for (category, intent)
-        if (resolvedIntent != null && command.tone() != null) {
+        if (resolvedIntent != null && tone != null) {
             List<ToneType> discouraged = profile.getDiscouragedTonesForIntent(resolvedIntent);
-            if (!discouraged.isEmpty() && discouraged.contains(command.tone())) {
+            if (!discouraged.isEmpty() && discouraged.contains(tone)) {
                 items.add(new SemanticValidationResult.SemanticValidationItem(
                         "TONE_DISCOURAGED",
-                        "Tone " + command.tone() + " is discouraged for " + profile.getCategory() + "+" + resolvedIntent + "; analytical tasks often work better with NEUTRAL or PROFESSIONAL.",
+                        "Tone " + tone + " is discouraged for " + profile.getCategory() + "+" + resolvedIntent + "; analytical tasks often work better with NEUTRAL or PROFESSIONAL.",
                         "tone",
                         ToneType.NEUTRAL.name()
                 ));
@@ -104,12 +143,12 @@ public class SemanticValidationService {
         }
 
         // 3) Discouraged style for (category, intent)
-        if (resolvedIntent != null && command.style() != null) {
+        if (resolvedIntent != null && style != null) {
             List<StyleType> discouraged = profile.getDiscouragedStylesForIntent(resolvedIntent);
-            if (!discouraged.isEmpty() && discouraged.contains(command.style())) {
+            if (!discouraged.isEmpty() && discouraged.contains(style)) {
                 items.add(new SemanticValidationResult.SemanticValidationItem(
                         "STYLE_DISCOURAGED",
-                        "Style " + command.style() + " is discouraged for " + profile.getCategory() + "+" + resolvedIntent + "; prefer TECHNICAL or CONCISE for this branch.",
+                        "Style " + style + " is discouraged for " + profile.getCategory() + "+" + resolvedIntent + "; prefer TECHNICAL or CONCISE for this branch.",
                         "style",
                         StyleType.TECHNICAL.name()
                 ));
@@ -117,11 +156,11 @@ public class SemanticValidationService {
         }
 
         // 4) Role valid for category+intent (if provided)
-        if (command.roleType() != null && resolvedIntent != null) {
+        if (roleType != null && resolvedIntent != null) {
             List<RoleTypeInterface> recommended =
                     profile.getRecommendedRolesForIntent(resolvedIntent);
             if (!recommended.isEmpty()) {
-                boolean compatible = recommended.stream().anyMatch(r -> sameRole(r, command.roleType()));
+                boolean compatible = recommended.stream().anyMatch(r -> sameRole(r, roleType));
                 if (!compatible) {
                     items.add(new SemanticValidationResult.SemanticValidationItem(
                             "ROLE_MAY_NOT_MATCH_INTENT",
@@ -134,11 +173,11 @@ public class SemanticValidationService {
         }
 
         // 5) Action valid for category+intent (if provided)
-        if (command.actionType() != null && resolvedIntent != null) {
+        if (actionType != null && resolvedIntent != null) {
             List<ActionTypeInterface> compatible =
                     profile.getCompatibleActionsForIntent(resolvedIntent);
             if (!compatible.isEmpty()) {
-                boolean match = compatible.stream().anyMatch(a -> sameAction(a, command.actionType()));
+                boolean match = compatible.stream().anyMatch(a -> sameAction(a, actionType));
                 if (!match) {
                     items.add(new SemanticValidationResult.SemanticValidationItem(
                             "ACTION_MAY_NOT_MATCH_INTENT",
@@ -153,129 +192,8 @@ public class SemanticValidationService {
         // 6) Forbidden combination
         if (resolvedIntent != null && profile.isForbidden(
                 resolvedIntent,
-                command.roleType(),
-                command.actionType())) {
-            items.add(new SemanticValidationResult.SemanticValidationItem(
-                    "FORBIDDEN_COMBINATION",
-                    "Category+intent+role+action combination is forbidden by the semantic profile.",
-                    null,
-                    null
-            ));
-        }
-
-        if (items.stream().anyMatch(i -> INVALID_CODES.contains(i.code()))) {
-            return SemanticValidationResult.invalid(items);
-        }
-        if (!items.isEmpty()) {
-            return SemanticValidationResult.warning(items);
-        }
-        return SemanticValidationResult.success();
-    }
-
-    /**
-     * Validates for the recommendation flow (same rules as {@link #validate(UnifiedGeneratePromptCommand, CategorySemanticProfile, ActionIntent)}).
-     */
-    public SemanticValidationResult validate(
-            RecommendPromptCommand command,
-            CategorySemanticProfile profile,
-            ActionIntent resolvedIntent
-    ) {
-        if (profile == null) {
-            return SemanticValidationResult.invalid(List.of(
-                    new SemanticValidationResult.SemanticValidationItem(
-                            "MISSING_PROFILE",
-                            "No semantic profile for category: " + command.category(),
-                            "category",
-                            null
-                    )));
-        }
-
-        List<SemanticValidationResult.SemanticValidationItem> items = new ArrayList<>();
-
-        if (resolvedIntent != null) {
-            if (!profile.getAllowedIntents().contains(resolvedIntent)) {
-                String fallbackHint = profile.getFallbackIntent() != null ? profile.getFallbackIntent().name() : null;
-                items.add(new SemanticValidationResult.SemanticValidationItem(
-                        "INVALID_INTENT_FOR_CATEGORY",
-                        "Intent " + resolvedIntent + " is not allowed for category " + profile.getCategory() + ".",
-                        "intent",
-                        fallbackHint
-                ));
-            } else {
-                SemanticFitLevel fitLevel = profile.getIntentFitLevel(resolvedIntent);
-                if (fitLevel == SemanticFitLevel.FORBIDDEN) {
-                    items.add(new SemanticValidationResult.SemanticValidationItem(
-                            "INTENT_FORBIDDEN_FOR_CATEGORY",
-                            "Intent " + resolvedIntent + " is forbidden for category " + profile.getCategory() + ".",
-                            "intent",
-                            null
-                    ));
-                } else if (fitLevel == SemanticFitLevel.DISCOURAGED) {
-                    items.add(new SemanticValidationResult.SemanticValidationItem(
-                            "INTENT_DISCOURAGED",
-                            "Intent " + resolvedIntent + " is discouraged for " + profile.getCategory() + ".",
-                            "intent",
-                            null
-                    ));
-                }
-            }
-        }
-
-        if (resolvedIntent != null && command.tone() != null) {
-            List<ToneType> discouraged = profile.getDiscouragedTonesForIntent(resolvedIntent);
-            if (!discouraged.isEmpty() && discouraged.contains(command.tone())) {
-                items.add(new SemanticValidationResult.SemanticValidationItem(
-                        "TONE_DISCOURAGED",
-                        "Tone " + command.tone() + " is discouraged for " + profile.getCategory() + "+" + resolvedIntent + ".",
-                        "tone",
-                        ToneType.NEUTRAL.name()
-                ));
-            }
-        }
-
-        if (resolvedIntent != null && command.style() != null) {
-            List<StyleType> discouraged = profile.getDiscouragedStylesForIntent(resolvedIntent);
-            if (!discouraged.isEmpty() && discouraged.contains(command.style())) {
-                items.add(new SemanticValidationResult.SemanticValidationItem(
-                        "STYLE_DISCOURAGED",
-                        "Style " + command.style() + " is discouraged for " + profile.getCategory() + "+" + resolvedIntent + ".",
-                        "style",
-                        StyleType.TECHNICAL.name()
-                ));
-            }
-        }
-
-        if (command.roleType() != null && resolvedIntent != null) {
-            List<RoleTypeInterface> recommended = profile.getRecommendedRolesForIntent(resolvedIntent);
-            if (!recommended.isEmpty()) {
-                boolean compatible = recommended.stream().anyMatch(r -> sameRole(r, command.roleType()));
-                if (!compatible) {
-                    items.add(new SemanticValidationResult.SemanticValidationItem(
-                            "ROLE_MAY_NOT_MATCH_INTENT",
-                            "Selected role may not match intent " + resolvedIntent + " for category " + profile.getCategory() + ".",
-                            "role_type",
-                            null
-                    ));
-                }
-            }
-        }
-
-        if (command.actionType() != null && resolvedIntent != null) {
-            List<ActionTypeInterface> compatible = profile.getCompatibleActionsForIntent(resolvedIntent);
-            if (!compatible.isEmpty()) {
-                boolean match = compatible.stream().anyMatch(a -> sameAction(a, command.actionType()));
-                if (!match) {
-                    items.add(new SemanticValidationResult.SemanticValidationItem(
-                            "ACTION_MAY_NOT_MATCH_INTENT",
-                            "Selected action may not match intent " + resolvedIntent + " for category " + profile.getCategory() + ".",
-                            "action_type",
-                            null
-                    ));
-                }
-            }
-        }
-
-        if (resolvedIntent != null && profile.isForbidden(resolvedIntent, command.roleType(), command.actionType())) {
+                roleType,
+                actionType)) {
             items.add(new SemanticValidationResult.SemanticValidationItem(
                     "FORBIDDEN_COMBINATION",
                     "Category+intent+role+action combination is forbidden by the semantic profile.",
