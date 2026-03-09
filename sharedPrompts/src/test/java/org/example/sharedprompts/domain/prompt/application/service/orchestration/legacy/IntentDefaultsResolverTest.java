@@ -7,7 +7,9 @@ import org.example.sharedprompts.domain.prompt.common.enums.EngineProfile;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.RequestMode;
 import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
-import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDictionary;
+import org.example.sharedprompts.domain.prompt.common.enums.OutputNeeds;
+import org.example.sharedprompts.domain.prompt.common.enums.PromptObjective;
+import org.example.sharedprompts.domain.prompt.common.enums.ResponseShape;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,12 +42,11 @@ class IntentDefaultsResolverTest {
         );
 
         IntentDefaults defaults = resolver.resolve(command);
-        var expected = IntentDictionary.getResolutionDefaults(ActionIntent.GENERATE);
-
+        // Use fixed expected values so mapping bugs in IntentDictionary are caught by this test
         assertThat(defaults.intent()).isEqualTo(ActionIntent.GENERATE);
-        assertThat(defaults.objective()).isEqualTo(expected.defaultObjective());
-        assertThat(defaults.outputNeeds()).isEqualTo(expected.preferredOutputNeeds());
-        assertThat(defaults.responseShape()).isEqualTo(expected.defaultResponseShape());
+        assertThat(defaults.objective()).isEqualTo(PromptObjective.CREATIVE);
+        assertThat(defaults.outputNeeds()).isEqualTo(OutputNeeds.FREE_FORM);
+        assertThat(defaults.responseShape()).isEqualTo(ResponseShape.NARRATIVE);
         assertThat(defaults.domainAffinity()).isNull();
         assertThat(defaults.recommendedEngineProfile()).isEqualTo(EngineProfile.QUALITY_PIPELINE);
     }
@@ -74,12 +75,10 @@ class IntentDefaultsResolverTest {
         );
 
         IntentDefaults defaults = resolver.resolve(command);
-        var expected = IntentDictionary.getResolutionDefaults(ActionIntent.GENERATE);
-
         assertThat(defaults.intent()).isEqualTo(ActionIntent.GENERATE);
-        assertThat(defaults.objective()).isEqualTo(expected.defaultObjective());
-        assertThat(defaults.outputNeeds()).isEqualTo(expected.preferredOutputNeeds());
-        assertThat(defaults.responseShape()).isEqualTo(expected.defaultResponseShape());
+        assertThat(defaults.objective()).isEqualTo(PromptObjective.CREATIVE);
+        assertThat(defaults.outputNeeds()).isEqualTo(OutputNeeds.FREE_FORM);
+        assertThat(defaults.responseShape()).isEqualTo(ResponseShape.NARRATIVE);
         assertThat(defaults.domainAffinity()).isNull();
         assertThat(defaults.recommendedEngineProfile()).isEqualTo(EngineProfile.QUALITY_PIPELINE);
     }
@@ -108,12 +107,10 @@ class IntentDefaultsResolverTest {
         );
 
         IntentDefaults defaults = resolver.resolve(command);
-        var expected = IntentDictionary.getResolutionDefaults(ActionIntent.EXTRACT);
-
         assertThat(defaults.intent()).isEqualTo(ActionIntent.EXTRACT);
-        assertThat(defaults.objective()).isEqualTo(expected.defaultObjective());
-        assertThat(defaults.outputNeeds()).isEqualTo(expected.preferredOutputNeeds());
-        assertThat(defaults.responseShape()).isEqualTo(expected.defaultResponseShape());
+        assertThat(defaults.objective()).isEqualTo(PromptObjective.EXTRACTION);
+        assertThat(defaults.outputNeeds()).isEqualTo(OutputNeeds.JSON_REQUIRED);
+        assertThat(defaults.responseShape()).isEqualTo(ResponseShape.STRUCTURED);
         assertThat(defaults.domainAffinity()).isNull();
         assertThat(defaults.recommendedEngineProfile()).isEqualTo(EngineProfile.QUALITY_PIPELINE);
     }

@@ -53,6 +53,9 @@ public record UnifiedGeneratePromptCommand(
         if (input == null || input.isBlank()) {
             throw new IllegalArgumentException("input은 비어있을 수 없습니다.");
         }
+        if (requestMode == RequestMode.EXTRACTION && (jsonSchema == null || jsonSchema.isBlank())) {
+            throw new IllegalArgumentException("EXTRACTION 모드에서는 jsonSchema가 필수입니다.");
+        }
 
         // Do NOT default category or intent here; semantic resolution requires explicit or profile fallback.
         EngineMode safeEngineMode = engineMode != null ? engineMode : EngineMode.AUTO;

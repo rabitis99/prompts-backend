@@ -39,6 +39,7 @@ class OrchestratorThinTest {
                     );
                 });
 
+        // Resolved axes differ from request so we assert result comes from resolution, not from request
         ConfirmedSemanticAxes axes = ConfirmedSemanticAxes.builder()
                 .category(PromptCategory.ETC)
                 .taskDomain(TaskDomain.GENERAL)
@@ -64,13 +65,14 @@ class OrchestratorThinTest {
                 metrics
         );
 
+        // Request uses different category/intent so result must reflect resolved axes (ETC, GENERATE), not request
         String expectedTitle = "Test Title";
         String expectedDescription = "Test description";
         UnifiedGeneratePromptCommand command = UnifiedGeneratePromptCommand.of(
-                1L,
+                Long.valueOf(1L),
                 RequestMode.SIMPLE,
-                PromptCategory.ETC,
-                ActionIntent.GENERATE,
+                PromptCategory.ANALYSIS,
+                ActionIntent.ANALYZE,
                 null,
                 "input",
                 null,
@@ -79,8 +81,7 @@ class OrchestratorThinTest {
                 null,
                 null,
                 null,
-                null,
-                null,
+                Boolean.FALSE,
                 null,
                 null,
                 null,
@@ -90,7 +91,12 @@ class OrchestratorThinTest {
 
         UnifiedGeneratePromptResult result = orchestrator.generate(command);
 
-        verify(semanticResolutionService).resolve(any(UnifiedGeneratePromptCommand.class));
+        ArgumentCaptor<UnifiedGeneratePromptCommand> resolveCommandCaptor = ArgumentCaptor.forClass(UnifiedGeneratePromptCommand.class);
+        verify(semanticResolutionService).resolve(resolveCommandCaptor.capture());
+        UnifiedGeneratePromptCommand passedToResolve = resolveCommandCaptor.getValue();
+        assertThat(passedToResolve).isSameAs(command);
+        assertThat(passedToResolve.requestMode()).isEqualTo(RequestMode.SIMPLE);
+
         ArgumentCaptor<GeneratePromptCommand> commandCaptor = ArgumentCaptor.forClass(GeneratePromptCommand.class);
         ArgumentCaptor<ConfirmedSemanticAxes> axesCaptor = ArgumentCaptor.forClass(ConfirmedSemanticAxes.class);
         verify(generatePromptUseCase).generate(commandCaptor.capture(), axesCaptor.capture());
@@ -101,6 +107,7 @@ class OrchestratorThinTest {
         assertThat(passedCommand.title()).isEqualTo(expectedTitle);
         assertThat(passedCommand.description()).isEqualTo(expectedDescription);
 
+        // Result must reflect resolved axes (ETC, GENERATE), not request (ANALYSIS, ANALYZE)
         assertThat(result.effectiveEngineMode()).isEqualTo(EngineMode.V2);
         assertThat(result.engineProfile()).isEqualTo(EngineProfile.QUALITY_PIPELINE);
         assertThat(result.resolvedIntent()).isEqualTo(ActionIntent.GENERATE);

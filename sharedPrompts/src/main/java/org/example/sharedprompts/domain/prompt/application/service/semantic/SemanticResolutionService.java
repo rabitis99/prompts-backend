@@ -20,7 +20,9 @@ import java.util.Optional;
 
 /**
  * Resolves command to confirmed semantic axes using profile → recommend → validate.
- * EXTRACTION request_type forces intent=EXTRACT, category=null handled; SIMPLE/ADVANCED require category+intent (or fail).
+ * {@link RequestMode#EXTRACTION} is handled separately and yields {@link PromptCategory#EXTRACTION};
+ * SIMPLE/ADVANCED require category and intent (or profile fallback) and return a {@link Result}
+ * (success with axes or failure with errors).
  *
  * <p><b>Semantic resolution order:</b> Category → ActionIntent → RoleType/ActionType (from profile + recommend).
  * ToneType, StyleType, and output format (OutputNeeds/jsonSchema) do <em>not</em> drive resolution—they are
@@ -45,10 +47,11 @@ public class SemanticResolutionService {
 
     /**
      * Resolves command to confirmed semantic axes.
-     * Uses {@link org.example.sharedprompts.domain.prompt.common.enums.RequestMode} from the command;
-     * EXTRACTION mode forces intent=EXTRACT; SIMPLE/ADVANCED require category and intent (or profile fallback).
+     * Uses {@link RequestMode} from the command: EXTRACTION forces intent=EXTRACT and category=EXTRACTION;
+     * SIMPLE/ADVANCED require category and intent (or profile fallback).
      *
-     * @return ConfirmedSemanticAxes, or null if validation failed (caller should return 400 with validation result).
+     * @param command the unified command (requestMode, category, intent, etc.)
+     * @return {@link Result} with success and axes, or failure with error messages (never null)
      */
     public Result resolve(UnifiedGeneratePromptCommand command) {
         if (command.requestMode() == RequestMode.EXTRACTION) {
@@ -60,6 +63,9 @@ public class SemanticResolutionService {
 
         if (category == null) {
             return Result.fail(List.of("category is required for SIMPLE/ADVANCED"));
+        }
+        if (category == PromptCategory.EXTRACTION) {
+            return Result.fail(List.of("EXTRACTION category is only valid with requestMode=EXTRACTION; use request_type=EXTRACTION for extraction requests"));
         }
 
         boolean fallbackIntentUsed = false;

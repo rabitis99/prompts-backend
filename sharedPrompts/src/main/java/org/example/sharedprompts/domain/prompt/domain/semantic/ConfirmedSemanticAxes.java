@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterfa
 import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -30,6 +31,17 @@ public record ConfirmedSemanticAxes(
         List<String> recommendationHints
 ) {
     public ConfirmedSemanticAxes {
+        category = Objects.requireNonNull(category, "category");
+        taskDomain = Objects.requireNonNull(taskDomain, "taskDomain");
+        intent = Objects.requireNonNull(intent, "intent");
+        objective = Objects.requireNonNull(objective, "objective");
+        outputNeeds = Objects.requireNonNull(outputNeeds, "outputNeeds");
+        role = role != null ? role : Optional.empty();
+        actionType = actionType != null ? actionType : Optional.empty();
+        tone = tone != null ? tone : ToneType.NEUTRAL;
+        style = style != null ? style : StyleType.NARRATIVE;
+        language = language != null ? language : LanguageType.KOREAN;
+        experienceLevel = experienceLevel != null ? experienceLevel : ExperienceLevel.INTERMEDIATE;
         appliedProfileIds = appliedProfileIds != null ? List.copyOf(appliedProfileIds) : List.of();
         validationWarnings = validationWarnings != null ? List.copyOf(validationWarnings) : List.of();
         recommendationHints = recommendationHints != null ? List.copyOf(recommendationHints) : List.of();
@@ -71,9 +83,6 @@ public record ConfirmedSemanticAxes(
         public Builder recommendationHints(List<String> v) { recommendationHints = v != null ? List.copyOf(v) : List.of(); return this; }
 
         public ConfirmedSemanticAxes build() {
-            if (category == null || intent == null || objective == null) {
-                throw new IllegalStateException("category, intent, and objective are required");
-            }
             return new ConfirmedSemanticAxes(
                     category,
                     taskDomain,

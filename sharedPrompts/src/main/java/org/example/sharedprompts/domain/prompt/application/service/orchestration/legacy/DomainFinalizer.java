@@ -43,7 +43,7 @@ public class DomainFinalizer {
         TaskDomain finalDomain = baseDomain;
         if (resolved.domain() != null) {
             finalDomain = resolved.domain();
-            reasons.add("resolver:" + resolved.source());
+            reasons.add("resolver:" + (resolved.source() != null ? resolved.source() : "unknown"));
         }
 
         return new FinalDomainDecision(finalDomain, List.copyOf(reasons));

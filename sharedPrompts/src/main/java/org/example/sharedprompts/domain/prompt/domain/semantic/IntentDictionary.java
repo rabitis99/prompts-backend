@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.ResponseShape;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptObjective;
 
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,17 @@ public final class IntentDictionary {
         defineResearch(defs);
         defineExtraction(defs);
         defineResolutionDefaults(res);
+        EnumSet<ActionIntent> allIntents = EnumSet.allOf(ActionIntent.class);
+        if (!defs.keySet().containsAll(allIntents) || !res.keySet().containsAll(allIntents)) {
+            EnumSet<ActionIntent> missingDefinitions = EnumSet.copyOf(allIntents);
+            missingDefinitions.removeAll(defs.keySet());
+            EnumSet<ActionIntent> missingDefaults = EnumSet.copyOf(allIntents);
+            missingDefaults.removeAll(res.keySet());
+            throw new IllegalStateException(
+                    "IntentDictionary is incomplete. missingDefinitions=" + missingDefinitions
+                            + ", missingDefaults=" + missingDefaults
+            );
+        }
         DEFINITIONS = Collections.unmodifiableMap(new HashMap<>(defs));
         RESOLUTION_DEFAULTS = Collections.unmodifiableMap(new HashMap<>(res));
     }

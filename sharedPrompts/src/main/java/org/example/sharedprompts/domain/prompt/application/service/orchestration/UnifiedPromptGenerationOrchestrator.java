@@ -34,66 +34,65 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
     public UnifiedGeneratePromptResult generate(UnifiedGeneratePromptCommand command) {
         long startNs = System.nanoTime();
 
-        SemanticResolutionService.Result resolution = semanticResolutionService.resolve(command);
-        if (!resolution.success()) {
-            throw new SemanticResolutionException(resolution.errors());
-        }
-        ConfirmedSemanticAxes axes = resolution.axes();
-
-        GeneratePromptCommand v2Command = toV2Command(command, axes);
-        GeneratePromptResult v2Result;
         try {
-            v2Result = generatePromptUseCase.generate(v2Command, axes);
+            SemanticResolutionService.Result resolution = semanticResolutionService.resolve(command);
+            if (!resolution.success()) {
+                throw new SemanticResolutionException(resolution.errors());
+            }
+            ConfirmedSemanticAxes axes = resolution.axes();
+
+            GeneratePromptCommand v2Command = toV2Command(command, axes);
+            GeneratePromptResult v2Result = generatePromptUseCase.generate(v2Command, axes);
+
+            SchemaContractEvaluator.SchemaContractEvaluation schemaEval =
+                    schemaContractEvaluator.evaluate(v2Result);
+
+            long latencyMs = (System.nanoTime() - startNs) / 1_000_000;
+            promptEngineMetrics.recordSuccess(
+                    EngineMode.V2,
+                    latencyMs,
+                    v2Result.repairCount(),
+                    v2Result.finallyPassed(),
+                    schemaEval.schemaContractFailed()
+            );
+
+            EngineMode requestedMode = command.engineMode() != null ? command.engineMode() : EngineMode.AUTO;
+            PromptObjective apiObjective = PromptObjective.fromDomainObjective(axes.objective());
+
+            String summary = "category=" + axes.category()
+                    + ", intent=" + axes.intent()
+                    + (axes.role().isPresent() ? ", role=" + axes.role().get().key() : "")
+                    + (axes.actionType().isPresent() ? ", action=" + axes.actionType().get().key() : "");
+
+            return new UnifiedGeneratePromptResult(
+                    v2Result.generatedContent(),
+                    requestedMode,
+                    EngineMode.V2,
+                    axes.category(),
+                    axes.taskDomain(),
+                    apiObjective,
+                    axes.outputNeeds(),
+                    axes.intent(),
+                    command.variant(),
+                    axes.role().orElse(null),
+                    axes.actionType().orElse(null),
+                    v2Result.badges(),
+                    v2Result.firstPassSuccess(),
+                    v2Result.repairCount(),
+                    v2Result.finallyPassed(),
+                    schemaEval.schemaContractFailed(),
+                    schemaEval.schemaFailureReasons(),
+                    EngineProfile.QUALITY_PIPELINE,
+                    axes.appliedProfileIds(),
+                    axes.validationWarnings(),
+                    axes.recommendationHints(),
+                    summary
+            );
         } catch (RuntimeException ex) {
             long latencyMs = (System.nanoTime() - startNs) / 1_000_000;
             promptEngineMetrics.recordFailure(EngineMode.V2, latencyMs, ex.getClass().getSimpleName());
             throw ex;
         }
-
-        SchemaContractEvaluator.SchemaContractEvaluation schemaEval =
-                schemaContractEvaluator.evaluate(v2Result);
-
-        long latencyMs = (System.nanoTime() - startNs) / 1_000_000;
-        promptEngineMetrics.recordSuccess(
-                EngineMode.V2,
-                latencyMs,
-                v2Result.repairCount(),
-                v2Result.finallyPassed(),
-                schemaEval.schemaContractFailed()
-        );
-
-        EngineMode requestedMode = command.engineMode() != null ? command.engineMode() : EngineMode.AUTO;
-        PromptObjective apiObjective = PromptObjective.fromDomainObjective(axes.objective());
-
-        String summary = "category=" + axes.category()
-                + ", intent=" + axes.intent()
-                + (axes.role().isPresent() ? ", role=" + axes.role().get().key() : "")
-                + (axes.actionType().isPresent() ? ", action=" + axes.actionType().get().key() : "");
-
-        return new UnifiedGeneratePromptResult(
-                v2Result.generatedContent(),
-                requestedMode,
-                EngineMode.V2,
-                axes.category(),
-                axes.taskDomain(),
-                apiObjective,
-                axes.outputNeeds(),
-                axes.intent(),
-                command.variant(),
-                axes.role().orElse(null),
-                axes.actionType().orElse(null),
-                v2Result.badges(),
-                v2Result.firstPassSuccess(),
-                v2Result.repairCount(),
-                v2Result.finallyPassed(),
-                schemaEval.schemaContractFailed(),
-                schemaEval.schemaFailureReasons(),
-                EngineProfile.QUALITY_PIPELINE,
-                axes.appliedProfileIds(),
-                axes.validationWarnings(),
-                axes.recommendationHints(),
-                summary
-        );
     }
 
     private GeneratePromptCommand toV2Command(UnifiedGeneratePromptCommand command, ConfirmedSemanticAxes axes) {

@@ -28,6 +28,9 @@ import java.util.*;
  * <p>Categories that use the full constructor can specify intent fit levels (PREFERRED/ALLOWED/DISCOURAGED)
  * and discouraged tones/styles. Those that pass empty fit levels and null for discouraged get
  * "all allowed intents treated as ALLOWED" with no tone/style restrictions—intentional for simpler categories.
+ * PRODUCTIVITY, ANALYSIS, MARKETING, CREATIVE, STUDY, EDUCATION, and ETC currently use this simpler contract.
+ * If requirements evolve, consider adding PREFERRED fit levels or discouraged tones/styles for MARKETING or CREATIVE
+ * (e.g. GENERATE as PREFERRED, or restricting certain tones) to better match category needs.</p>
  */
 @Component
 public class DefaultCategorySemanticProfileRegistry implements CategorySemanticProfileRegistry {
