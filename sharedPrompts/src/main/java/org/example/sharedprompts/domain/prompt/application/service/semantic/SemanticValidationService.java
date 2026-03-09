@@ -1,6 +1,7 @@
 package org.example.sharedprompts.domain.prompt.application.service.semantic;
 
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.RecommendPromptCommand;
 import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
@@ -168,7 +169,128 @@ public class SemanticValidationService {
         if (!items.isEmpty()) {
             return SemanticValidationResult.warning(items);
         }
-        return SemanticValidationResult.valid();
+        return SemanticValidationResult.success();
+    }
+
+    /**
+     * Validates for the recommendation flow (same rules as {@link #validate(UnifiedGeneratePromptCommand, CategorySemanticProfile, ActionIntent)}).
+     */
+    public SemanticValidationResult validate(
+            RecommendPromptCommand command,
+            CategorySemanticProfile profile,
+            ActionIntent resolvedIntent
+    ) {
+        if (profile == null) {
+            return SemanticValidationResult.invalid(List.of(
+                    new SemanticValidationResult.SemanticValidationItem(
+                            "MISSING_PROFILE",
+                            "No semantic profile for category: " + command.category(),
+                            "category",
+                            null
+                    )));
+        }
+
+        List<SemanticValidationResult.SemanticValidationItem> items = new ArrayList<>();
+
+        if (resolvedIntent != null) {
+            if (!profile.getAllowedIntents().contains(resolvedIntent)) {
+                String fallbackHint = profile.getFallbackIntent() != null ? profile.getFallbackIntent().name() : null;
+                items.add(new SemanticValidationResult.SemanticValidationItem(
+                        "INVALID_INTENT_FOR_CATEGORY",
+                        "Intent " + resolvedIntent + " is not allowed for category " + profile.getCategory() + ".",
+                        "intent",
+                        fallbackHint
+                ));
+            } else {
+                SemanticFitLevel fitLevel = profile.getIntentFitLevel(resolvedIntent);
+                if (fitLevel == SemanticFitLevel.FORBIDDEN) {
+                    items.add(new SemanticValidationResult.SemanticValidationItem(
+                            "INTENT_FORBIDDEN_FOR_CATEGORY",
+                            "Intent " + resolvedIntent + " is forbidden for category " + profile.getCategory() + ".",
+                            "intent",
+                            null
+                    ));
+                } else if (fitLevel == SemanticFitLevel.DISCOURAGED) {
+                    items.add(new SemanticValidationResult.SemanticValidationItem(
+                            "INTENT_DISCOURAGED",
+                            "Intent " + resolvedIntent + " is discouraged for " + profile.getCategory() + ".",
+                            "intent",
+                            null
+                    ));
+                }
+            }
+        }
+
+        if (resolvedIntent != null && command.tone() != null) {
+            List<ToneType> discouraged = profile.getDiscouragedTonesForIntent(resolvedIntent);
+            if (!discouraged.isEmpty() && discouraged.contains(command.tone())) {
+                items.add(new SemanticValidationResult.SemanticValidationItem(
+                        "TONE_DISCOURAGED",
+                        "Tone " + command.tone() + " is discouraged for " + profile.getCategory() + "+" + resolvedIntent + ".",
+                        "tone",
+                        ToneType.NEUTRAL.name()
+                ));
+            }
+        }
+
+        if (resolvedIntent != null && command.style() != null) {
+            List<StyleType> discouraged = profile.getDiscouragedStylesForIntent(resolvedIntent);
+            if (!discouraged.isEmpty() && discouraged.contains(command.style())) {
+                items.add(new SemanticValidationResult.SemanticValidationItem(
+                        "STYLE_DISCOURAGED",
+                        "Style " + command.style() + " is discouraged for " + profile.getCategory() + "+" + resolvedIntent + ".",
+                        "style",
+                        StyleType.TECHNICAL.name()
+                ));
+            }
+        }
+
+        if (command.roleType() != null && resolvedIntent != null) {
+            List<RoleTypeInterface> recommended = profile.getRecommendedRolesForIntent(resolvedIntent);
+            if (!recommended.isEmpty()) {
+                boolean compatible = recommended.stream().anyMatch(r -> sameRole(r, command.roleType()));
+                if (!compatible) {
+                    items.add(new SemanticValidationResult.SemanticValidationItem(
+                            "ROLE_MAY_NOT_MATCH_INTENT",
+                            "Selected role may not match intent " + resolvedIntent + " for category " + profile.getCategory() + ".",
+                            "role_type",
+                            null
+                    ));
+                }
+            }
+        }
+
+        if (command.actionType() != null && resolvedIntent != null) {
+            List<ActionTypeInterface> compatible = profile.getCompatibleActionsForIntent(resolvedIntent);
+            if (!compatible.isEmpty()) {
+                boolean match = compatible.stream().anyMatch(a -> sameAction(a, command.actionType()));
+                if (!match) {
+                    items.add(new SemanticValidationResult.SemanticValidationItem(
+                            "ACTION_MAY_NOT_MATCH_INTENT",
+                            "Selected action may not match intent " + resolvedIntent + " for category " + profile.getCategory() + ".",
+                            "action_type",
+                            null
+                    ));
+                }
+            }
+        }
+
+        if (resolvedIntent != null && profile.isForbidden(resolvedIntent, command.roleType(), command.actionType())) {
+            items.add(new SemanticValidationResult.SemanticValidationItem(
+                    "FORBIDDEN_COMBINATION",
+                    "Category+intent+role+action combination is forbidden by the semantic profile.",
+                    null,
+                    null
+            ));
+        }
+
+        if (items.stream().anyMatch(i -> INVALID_CODES.contains(i.code()))) {
+            return SemanticValidationResult.invalid(items);
+        }
+        if (!items.isEmpty()) {
+            return SemanticValidationResult.warning(items);
+        }
+        return SemanticValidationResult.success();
     }
 
     private static boolean sameRole(RoleTypeInterface a, RoleTypeInterface b) {

@@ -1,13 +1,15 @@
 package org.example.sharedprompts.domain.prompt.common.enums.role;
 
 import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
+import org.example.sharedprompts.domain.prompt.domain.descriptor.RoleDescriptorPort;
 
 /**
  * RoleType 공통 인터페이스
  * 모든 RoleType enum이 구현해야 하는 공통 메서드 정의.
  *
  * <p><b>책임:</b> RoleType = identity of perspective. Display/description text is supplied by
- * {@link org.example.sharedprompts.domain.prompt.domain.descriptor.RoleDescriptorPort}; prefer that port
+ * {@link RoleDescriptorPort}; prefer that port
  * over calling getRoleName* / getDescription* directly so that enums remain identity-oriented.
  * Interface display methods are retained for backward compatibility and for use by the default
  * descriptor implementation.</p>
@@ -15,7 +17,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
  * <p><b>key() 계약:</b> 공통 규칙은 {@link #keyPrefix()} + "." + {@link Enum#name()} 이다.
  * 각 enum은 {@link #keyPrefix()}만 구현하면 되며, key 문자열을 수동 조합할 필요가 없어 신규 RoleType 추가 시 드리프트를 막을 수 있다.</p>
  */
-public interface RoleTypeInterface {
+public interface RoleTypeInterface extends StableKeyedEnum {
 
     /**
      * 이 RoleType enum의 stable key 접두사 (예: "ROLE.CONTENT", "ROLE.ETC").
@@ -26,7 +28,7 @@ public interface RoleTypeInterface {
     /**
      * Stable identifier for serialization and equality.
      * Default implementation returns {@code keyPrefix() + "." + name()};
-     * compatible with {@link org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum#key()}.
+     * compatible with {@link StableKeyedEnum#key()}.
      */
     default String key() {
         return keyPrefix() + "." + ((Enum<?>) this).name();

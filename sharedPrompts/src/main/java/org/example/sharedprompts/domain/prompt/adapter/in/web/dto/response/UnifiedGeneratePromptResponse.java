@@ -12,6 +12,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInt
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Unified prompt generation response DTO with semantic resolution metadata.
@@ -81,6 +82,9 @@ public record UnifiedGeneratePromptResponse(
         List<String> recommendationHints,
 
         @JsonProperty("semantic_resolution_summary")
-        String semanticResolutionSummary
+        String semanticResolutionSummary,
+
+        @JsonProperty("axis_sources")
+        Map<String, String> axisSources
 ) {
 }

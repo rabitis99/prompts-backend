@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 프롬프트 조회/수정/삭제 CRUD 컨트롤러.
  *
- * <p>생성은 UnifiedPromptEngineController 가 담당한다.</p>
+ * <p>생성은 PromptGenerationController 가 담당한다.</p>
  */
 @RestController
 @RequestMapping("/prompts")

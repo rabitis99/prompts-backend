@@ -12,6 +12,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterfa
 import org.example.sharedprompts.domain.prompt.domain.value.quality.QualityBadge;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Unified prompt generation result with semantic resolution metadata.
@@ -19,6 +20,7 @@ import java.util.List;
  * <ul>
  *   <li>{@code verifyPassed}: first verification pass (before repair)</li>
  *   <li>{@code finallyPassed}: final verification after repair</li>
+ *   <li>{@code axisSources}: optional map (intent, role, action, objective, output_needs) → USER_PROVIDED | RECOMMENDED | FALLBACK</li>
  * </ul>
  *
  * <p>Semantic fields replace legacy routing (appliedRuleIds, routingReasons).</p>
@@ -45,7 +47,8 @@ public record UnifiedGeneratePromptResult(
         List<String> semanticProfilesApplied,
         List<String> validationWarnings,
         List<String> recommendationHints,
-        String semanticResolutionSummary
+        String semanticResolutionSummary,
+        Map<String, String> axisSources
 ) {
     public UnifiedGeneratePromptResult {
         qualityBadges = qualityBadges != null ? List.copyOf(qualityBadges) : List.of();
