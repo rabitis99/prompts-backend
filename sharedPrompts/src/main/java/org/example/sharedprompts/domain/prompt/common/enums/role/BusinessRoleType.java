@@ -48,8 +48,8 @@ public enum BusinessRoleType implements RoleTypeInterface, StableKeyedEnum {
     private final String descriptionJa;
 
     @Override
-    public String key() {
-        return "ROLE.BUSINESS." + name();
+    public String keyPrefix() {
+        return "ROLE.BUSINESS";
     }
 }
 

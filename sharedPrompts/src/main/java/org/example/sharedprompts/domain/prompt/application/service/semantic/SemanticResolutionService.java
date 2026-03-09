@@ -64,18 +64,18 @@ public class SemanticResolutionService {
 
         boolean fallbackIntentUsed = false;
         if (intent == null) {
-            CategorySemanticProfile profileForFallback = profileRegistry.getProfile(category);
-            if (profileForFallback != null && profileForFallback.getFallbackIntent() != null) {
-                intent = profileForFallback.getFallbackIntent();
+            Optional<CategorySemanticProfile> profileForFallbackOpt = profileRegistry.getProfile(category);
+            if (profileForFallbackOpt.map(p -> p.getFallbackIntent() != null).orElse(false)) {
+                intent = profileForFallbackOpt.get().getFallbackIntent();
                 fallbackIntentUsed = true;
             } else {
                 return Result.fail(List.of("intent is required for SIMPLE/ADVANCED"));
             }
         }
 
-        CategorySemanticProfile profile = profileRegistry.getProfile(category);
+        CategorySemanticProfile profile = profileRegistry.getProfile(category).orElse(null);
         SemanticValidationResult validation = validationService.validate(command, profile, intent);
-        if (validation.severity() == SemanticValidationResult.Severity.ERROR || !validation.valid()) {
+        if (validation.severity() == SemanticValidationResult.Severity.ERROR) {
             List<String> messages = validation.items().stream()
                     .map(i -> i.code() + ": " + i.message())
                     .toList();
@@ -95,8 +95,10 @@ public class SemanticResolutionService {
         org.example.sharedprompts.domain.prompt.common.enums.PromptObjective apiObjective = intentDefaults.defaultObjective();
         OutputNeeds outputNeeds = intentDefaults.preferredOutputNeeds();
         if (command.jsonSchema() != null && !command.jsonSchema().isBlank()) {
-            apiObjective = org.example.sharedprompts.domain.prompt.common.enums.PromptObjective.EXTRACTION;
             outputNeeds = OutputNeeds.JSON_SCHEMA_REQUIRED;
+            if (command.requestMode() == RequestMode.EXTRACTION || intent == ActionIntent.EXTRACT) {
+                apiObjective = org.example.sharedprompts.domain.prompt.common.enums.PromptObjective.EXTRACTION;
+            }
         }
 
         PromptObjective domainObjective = apiObjective.toDomainObjective();
@@ -143,7 +145,7 @@ public class SemanticResolutionService {
         OutputNeeds outputNeeds = OutputNeeds.JSON_SCHEMA_REQUIRED;
 
         ConfirmedSemanticAxes axes = ConfirmedSemanticAxes.builder()
-                .category(PromptCategory.ETC)
+                .category(PromptCategory.EXTRACTION)
                 .taskDomain(taskDomain)
                 .intent(intent)
                 .objective(domainObjective)

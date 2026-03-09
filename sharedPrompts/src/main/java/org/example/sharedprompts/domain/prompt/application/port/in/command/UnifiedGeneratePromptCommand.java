@@ -47,6 +47,9 @@ public record UnifiedGeneratePromptCommand(
         if (userId == null) {
             throw new IllegalArgumentException("userId는 null일 수 없습니다.");
         }
+        if (requestMode == null) {
+            throw new IllegalArgumentException("requestMode는 null일 수 없습니다.");
+        }
         if (input == null || input.isBlank()) {
             throw new IllegalArgumentException("input은 비어있을 수 없습니다.");
         }

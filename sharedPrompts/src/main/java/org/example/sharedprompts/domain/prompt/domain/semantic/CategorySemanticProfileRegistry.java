@@ -2,6 +2,8 @@ package org.example.sharedprompts.domain.prompt.domain.semantic;
 
 import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
 
+import java.util.Optional;
+
 /**
  * Registry of category-aware semantic profiles.
  * Resolves profile by {@link PromptCategory}; no fallback to a generic profile that invents meaning.
@@ -9,7 +11,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
 public interface CategorySemanticProfileRegistry {
 
     /**
-     * Returns the semantic profile for the category, or null if not found (caller should fail validation).
+     * Returns the semantic profile for the category, or empty if not found (caller should fail validation).
      */
-    CategorySemanticProfile getProfile(PromptCategory category);
+    Optional<CategorySemanticProfile> getProfile(PromptCategory category);
 }

@@ -9,7 +9,6 @@ import org.example.sharedprompts.domain.prompt.common.enums.PromptObjective;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.role.CoreRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.DomainRoleType;
-import org.springframework.stereotype.Component;
 
 /**
  * Unified 엔진의 라우팅/해석 정책 (legacy).
@@ -22,7 +21,7 @@ import org.springframework.stereotype.Component;
  */
 @Deprecated(since = "semantic-pipeline", forRemoval = true)
 @Slf4j
-@Component
+// @Component — excluded from component scanning; retained for potential test wiring
 @RequiredArgsConstructor
 public class UnifiedRoutingPolicy {
 

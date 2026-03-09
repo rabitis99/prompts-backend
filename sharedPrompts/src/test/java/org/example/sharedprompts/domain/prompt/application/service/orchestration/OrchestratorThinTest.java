@@ -95,6 +95,9 @@ class OrchestratorThinTest {
         ArgumentCaptor<ConfirmedSemanticAxes> axesCaptor = ArgumentCaptor.forClass(ConfirmedSemanticAxes.class);
         verify(generatePromptUseCase).generate(commandCaptor.capture(), axesCaptor.capture());
         GeneratePromptCommand passedCommand = commandCaptor.getValue();
+        assertThat(axesCaptor.getValue())
+                .usingRecursiveComparison()
+                .isEqualTo(axes);
         assertThat(passedCommand.title()).isEqualTo(expectedTitle);
         assertThat(passedCommand.description()).isEqualTo(expectedDescription);
 

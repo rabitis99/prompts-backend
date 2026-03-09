@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * 통합 프롬프트 요청 DTO의 JSON 역직렬화 및 toCommand() 변환이 실제로 동작하는지 검증.
@@ -130,6 +131,26 @@ class UnifiedGeneratePromptRequestDeserializationTest {
             assertThat(command.tags()).containsExactly("코드", "API");
             assertThat(command.title()).isEqualTo("고급 제목");
             assertThat(command.description()).isEqualTo("고급 설명");
+        }
+
+        @Test
+        @DisplayName("ADVANCED + intent=CODE는 지원하지 않음 — 역직렬화 실패로 호환성 회귀 방지")
+        void advanced_with_intent_CODE_fails_deserialization() {
+            String json = """
+                    {
+                      "request_type": "ADVANCED",
+                      "category": "DEVELOPMENT",
+                      "intent": "CODE",
+                      "input": "코드 생성",
+                      "tags": [],
+                      "title": null,
+                      "description": null
+                    }
+                    """;
+
+            assertThatThrownBy(() -> objectMapper.readValue(json, UnifiedGeneratePromptRequest.class))
+                    .isInstanceOf(com.fasterxml.jackson.databind.exc.InvalidFormatException.class)
+                    .hasMessageContaining("CODE");
         }
     }
 }

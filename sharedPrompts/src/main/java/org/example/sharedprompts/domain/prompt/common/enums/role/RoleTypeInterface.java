@@ -11,13 +11,26 @@ import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
  * over calling getRoleName* / getDescription* directly so that enums remain identity-oriented.
  * Interface display methods are retained for backward compatibility and for use by the default
  * descriptor implementation.</p>
+ *
+ * <p><b>key() 계약:</b> 공통 규칙은 {@link #keyPrefix()} + "." + {@link Enum#name()} 이다.
+ * 각 enum은 {@link #keyPrefix()}만 구현하면 되며, key 문자열을 수동 조합할 필요가 없어 신규 RoleType 추가 시 드리프트를 막을 수 있다.</p>
  */
 public interface RoleTypeInterface {
+
+    /**
+     * 이 RoleType enum의 stable key 접두사 (예: "ROLE.CONTENT", "ROLE.ETC").
+     * {@link #key()}는 이 접두사와 {@link Enum#name()}을 점(.)으로 이어 반환한다.
+     */
+    String keyPrefix();
+
     /**
      * Stable identifier for serialization and equality.
-     * Implementations typically delegate to {@link org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum#key()}.
+     * Default implementation returns {@code keyPrefix() + "." + name()};
+     * compatible with {@link org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum#key()}.
      */
-    String key();
+    default String key() {
+        return keyPrefix() + "." + ((Enum<?>) this).name();
+    }
 
     /** 역할 이름 - 한국어 */
     String getRoleNameKo();

@@ -40,8 +40,8 @@ public enum CreativeRoleType implements RoleTypeInterface, StableKeyedEnum {
     private final String descriptionJa;
 
     @Override
-    public String key() {
-        return "ROLE.CREATIVE." + name();
+    public String keyPrefix() {
+        return "ROLE.CREATIVE";
     }
 }
 

@@ -6,10 +6,11 @@ import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.ResponseShape;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptObjective;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Formal Intent Dictionary: canonical meaning, usage guidance, and resolution defaults for every {@link ActionIntent}.
@@ -21,61 +22,64 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class IntentDictionary {
 
-    private static final Map<ActionIntent, IntentDefinition> DEFINITIONS = new ConcurrentHashMap<>();
-
+    private static final Map<ActionIntent, IntentDefinition> DEFINITIONS;
     /** Resolution defaults per intent (objective, output needs, response shape). Canonical source for semantic resolution. */
-    private static final Map<ActionIntent, IntentResolutionDefaults> RESOLUTION_DEFAULTS = new ConcurrentHashMap<>();
+    private static final Map<ActionIntent, IntentResolutionDefaults> RESOLUTION_DEFAULTS;
 
     static {
-        defineCreation();
-        defineModification();
-        defineAnalysis();
-        defineExplanation();
-        definePlanning();
-        defineDecision();
-        defineResearch();
-        defineExtraction();
-        defineResolutionDefaults();
+        Map<ActionIntent, IntentDefinition> defs = new HashMap<>();
+        Map<ActionIntent, IntentResolutionDefaults> res = new HashMap<>();
+        defineCreation(defs);
+        defineModification(defs);
+        defineAnalysis(defs);
+        defineExplanation(defs);
+        definePlanning(defs);
+        defineDecision(defs);
+        defineResearch(defs);
+        defineExtraction(defs);
+        defineResolutionDefaults(res);
+        DEFINITIONS = Collections.unmodifiableMap(new HashMap<>(defs));
+        RESOLUTION_DEFAULTS = Collections.unmodifiableMap(new HashMap<>(res));
     }
 
     /**
      * Resolution defaults owned by the dictionary; no dependency on {@link ActionIntent} enum fields.
      * Single source of truth for intent → (objective, output needs, response shape).
      */
-    private static void defineResolutionDefaults() {
-        putResolutionDefault(ActionIntent.CREATE, PromptObjective.CREATIVE, OutputNeeds.FREE_FORM, ResponseShape.NARRATIVE);
-        putResolutionDefault(ActionIntent.GENERATE, PromptObjective.CREATIVE, OutputNeeds.FREE_FORM, ResponseShape.NARRATIVE);
-        putResolutionDefault(ActionIntent.BRAINSTORM, PromptObjective.CREATIVE, OutputNeeds.FREE_FORM, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.REWRITE, PromptObjective.CREATIVE, OutputNeeds.FREE_FORM, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.EDIT, PromptObjective.CREATIVE, OutputNeeds.FREE_FORM, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.REFINE, PromptObjective.REASONING, OutputNeeds.FREE_FORM, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.IMPROVE, PromptObjective.REASONING, OutputNeeds.FREE_FORM, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.ANALYZE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.EVALUATE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.COMPARE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.CRITIQUE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.DIAGNOSE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STEP_BY_STEP);
-        putResolutionDefault(ActionIntent.EXPLAIN, PromptObjective.REASONING, OutputNeeds.FREE_FORM, ResponseShape.STEP_BY_STEP);
-        putResolutionDefault(ActionIntent.TEACH, PromptObjective.REASONING, OutputNeeds.FREE_FORM, ResponseShape.STEP_BY_STEP);
-        putResolutionDefault(ActionIntent.SIMPLIFY, PromptObjective.REASONING, OutputNeeds.FREE_FORM, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.SUMMARIZE, PromptObjective.FACTUAL, OutputNeeds.BULLET_LIST_REQUIRED, ResponseShape.CONCISE);
-        putResolutionDefault(ActionIntent.OUTLINE, PromptObjective.PLANNING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.PLAN, PromptObjective.PLANNING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STEP_BY_STEP);
-        putResolutionDefault(ActionIntent.STRATEGIZE, PromptObjective.PLANNING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.PROPOSE, PromptObjective.PLANNING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.ORGANIZE, PromptObjective.PLANNING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.RECOMMEND, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.OPTIMIZE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.DECIDE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.INVESTIGATE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.SYNTHESIZE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.EXPLORE, PromptObjective.REASONING, OutputNeeds.FREE_FORM, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.EXTRACT, PromptObjective.EXTRACTION, OutputNeeds.JSON_REQUIRED, ResponseShape.STRUCTURED);
-        putResolutionDefault(ActionIntent.CLASSIFY, PromptObjective.EXTRACTION, OutputNeeds.JSON_REQUIRED, ResponseShape.STRUCTURED);
+    private static void defineResolutionDefaults(Map<ActionIntent, IntentResolutionDefaults> res) {
+        putResolutionDefault(res, ActionIntent.CREATE, PromptObjective.CREATIVE, OutputNeeds.FREE_FORM, ResponseShape.NARRATIVE);
+        putResolutionDefault(res, ActionIntent.GENERATE, PromptObjective.CREATIVE, OutputNeeds.FREE_FORM, ResponseShape.NARRATIVE);
+        putResolutionDefault(res, ActionIntent.BRAINSTORM, PromptObjective.CREATIVE, OutputNeeds.FREE_FORM, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.REWRITE, PromptObjective.CREATIVE, OutputNeeds.FREE_FORM, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.EDIT, PromptObjective.CREATIVE, OutputNeeds.FREE_FORM, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.REFINE, PromptObjective.REASONING, OutputNeeds.FREE_FORM, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.IMPROVE, PromptObjective.REASONING, OutputNeeds.FREE_FORM, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.ANALYZE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.EVALUATE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.COMPARE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.CRITIQUE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.DIAGNOSE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STEP_BY_STEP);
+        putResolutionDefault(res, ActionIntent.EXPLAIN, PromptObjective.REASONING, OutputNeeds.FREE_FORM, ResponseShape.STEP_BY_STEP);
+        putResolutionDefault(res, ActionIntent.TEACH, PromptObjective.REASONING, OutputNeeds.FREE_FORM, ResponseShape.STEP_BY_STEP);
+        putResolutionDefault(res, ActionIntent.SIMPLIFY, PromptObjective.REASONING, OutputNeeds.FREE_FORM, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.SUMMARIZE, PromptObjective.FACTUAL, OutputNeeds.BULLET_LIST_REQUIRED, ResponseShape.CONCISE);
+        putResolutionDefault(res, ActionIntent.OUTLINE, PromptObjective.PLANNING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.PLAN, PromptObjective.PLANNING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STEP_BY_STEP);
+        putResolutionDefault(res, ActionIntent.STRATEGIZE, PromptObjective.PLANNING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.PROPOSE, PromptObjective.PLANNING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.ORGANIZE, PromptObjective.PLANNING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.RECOMMEND, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.OPTIMIZE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.DECIDE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.INVESTIGATE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.SYNTHESIZE, PromptObjective.REASONING, OutputNeeds.STRUCTURED_TEXT, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.EXPLORE, PromptObjective.REASONING, OutputNeeds.FREE_FORM, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.EXTRACT, PromptObjective.EXTRACTION, OutputNeeds.JSON_REQUIRED, ResponseShape.STRUCTURED);
+        putResolutionDefault(res, ActionIntent.CLASSIFY, PromptObjective.EXTRACTION, OutputNeeds.JSON_REQUIRED, ResponseShape.STRUCTURED);
     }
 
-    private static void putResolutionDefault(ActionIntent intent, PromptObjective objective, OutputNeeds outputNeeds, ResponseShape responseShape) {
-        RESOLUTION_DEFAULTS.put(intent, new IntentResolutionDefaults(objective, outputNeeds, responseShape));
+    private static void putResolutionDefault(Map<ActionIntent, IntentResolutionDefaults> res, ActionIntent intent, PromptObjective objective, OutputNeeds outputNeeds, ResponseShape responseShape) {
+        res.put(intent, new IntentResolutionDefaults(objective, outputNeeds, responseShape));
     }
 
     private IntentDictionary() {}
@@ -116,8 +120,8 @@ public final class IntentDictionary {
 
     // ─── CREATION ─────────────────────────────────────────────────────────
 
-    private static void defineCreation() {
-        put(new IntentDefinition(
+    private static void defineCreation(Map<ActionIntent, IntentDefinition> defs) {
+        put(defs, new IntentDefinition(
                 ActionIntent.CREATE,
                 "Author new artifact from scratch; emphasis on original composition and ownership.",
                 "User wants to author something new (document, design, piece of content) where originality and structure matter.",
@@ -129,7 +133,7 @@ public final class IntentDictionary {
                 List.of("UI_UX_DESIGNER", "CONTENT_WRITER", "CREATIVE_DIRECTOR"),
                 "In CONTENT: prefer CREATE for long-form authored pieces; GENERATE for quick posts or templated output."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.GENERATE,
                 "Produce requested output from a description or spec; emphasis on fulfilling the request efficiently.",
                 "User wants the system to produce something (code, copy, design, list) that matches a given description or template.",
@@ -141,7 +145,7 @@ public final class IntentDictionary {
                 List.of("FULL_STACK_DEVELOPER", "CONTENT_CREATOR", "DIGITAL_MARKETER"),
                 "Default fallback for many categories when intent is unspecified."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.BRAINSTORM,
                 "Generate multiple ideas, options, or directions without committing to a single artifact.",
                 "User wants ideation, alternatives, or exploratory options rather than one final deliverable.",
@@ -157,8 +161,8 @@ public final class IntentDictionary {
 
     // ─── MODIFICATION ─────────────────────────────────────────────────────
 
-    private static void defineModification() {
-        put(new IntentDefinition(
+    private static void defineModification(Map<ActionIntent, IntentDefinition> defs) {
+        put(defs, new IntentDefinition(
                 ActionIntent.REWRITE,
                 "Substantially restructure or re-express existing content; different form or voice.",
                 "User wants the same message or content in a new structure, tone, or format (e.g. formal→casual, long→short).",
@@ -170,7 +174,7 @@ public final class IntentDictionary {
                 List.of("EDITOR", "COPYWRITER", "CONTENT_STRATEGIST"),
                 "WRITING category: REWRITE and EDIT must be clearly distinguished in profiles."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.EDIT,
                 "Fix correctness, grammar, or local issues; preserve structure and voice.",
                 "User wants corrections, fixes, or small changes without changing the overall structure or tone.",
@@ -182,7 +186,7 @@ public final class IntentDictionary {
                 List.of("EDITOR", "CONTENT_WRITER"),
                 "Preferred for copy-editing and proofreading flows."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.REFINE,
                 "Polish and elevate quality of existing content; improve clarity and style without major restructuring.",
                 "User wants to improve flow, word choice, and quality while keeping the same message and structure.",
@@ -194,7 +198,7 @@ public final class IntentDictionary {
                 List.of("EDITOR", "COPYWRITER"),
                 "DEVELOPMENT: REFINE for code quality and readability improvements."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.IMPROVE,
                 "Broader enhancement of clarity, effectiveness, or impact; may include structure and content.",
                 "User wants overall improvement (readability, impact, clarity) without specifying exact type of change.",
@@ -210,8 +214,8 @@ public final class IntentDictionary {
 
     // ─── ANALYSIS ──────────────────────────────────────────────────────────
 
-    private static void defineAnalysis() {
-        put(new IntentDefinition(
+    private static void defineAnalysis(Map<ActionIntent, IntentDefinition> defs) {
+        put(defs, new IntentDefinition(
                 ActionIntent.ANALYZE,
                 "Break down a subject into components, patterns, or factors; systematic examination.",
                 "User wants understanding of parts, causes, or patterns in data, text, or a system.",
@@ -223,7 +227,7 @@ public final class IntentDictionary {
                 List.of("GENERAL_CONSULTANT", "RESEARCHER", "BUSINESS_ANALYST_BUSINESS"),
                 "Core intent for ANALYSIS and RESEARCH categories."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.EVALUATE,
                 "Judge merit, quality, or suitability against criteria or goals.",
                 "User wants an assessment of how good, suitable, or effective something is.",
@@ -235,7 +239,7 @@ public final class IntentDictionary {
                 List.of("UI_UX_DESIGNER", "PRODUCT_DESIGNER", "RESEARCHER"),
                 "DESIGN: preferred for design review and critique flows."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.COMPARE,
                 "Place two or more items side by side; highlight similarities and differences.",
                 "User wants a direct comparison of options, versions, or alternatives.",
@@ -247,7 +251,7 @@ public final class IntentDictionary {
                 List.of("BUSINESS_ANALYST_BUSINESS", "RESEARCHER"),
                 "Fits ANALYSIS and RESEARCH; often used with DECIDE or RECOMMEND."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.CRITIQUE,
                 "Judge against explicit standards or criteria; constructive criticism.",
                 "User wants feedback that evaluates against defined standards (e.g. design principles, style guide).",
@@ -259,7 +263,7 @@ public final class IntentDictionary {
                 List.of("UI_UX_DESIGNER", "PRODUCT_DESIGNER", "EDITOR"),
                 "DESIGN: preferred for design review; DIAGNOSE only in narrow debug/critique contexts."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.DIAGNOSE,
                 "Identify cause of a problem or failure; root-cause or fault-finding.",
                 "User has a problem (bug, failure, issue) and wants to understand why it occurs.",
@@ -275,8 +279,8 @@ public final class IntentDictionary {
 
     // ─── EXPLANATION ───────────────────────────────────────────────────────
 
-    private static void defineExplanation() {
-        put(new IntentDefinition(
+    private static void defineExplanation(Map<ActionIntent, IntentDefinition> defs) {
+        put(defs, new IntentDefinition(
                 ActionIntent.EXPLAIN,
                 "Make a topic or process understandable; clarify how or why.",
                 "User wants to understand something (concept, process, system) in a clear way.",
@@ -288,7 +292,7 @@ public final class IntentDictionary {
                 List.of("EDUCATOR", "RESEARCH_METHODOLOGIST", "FULL_STACK_DEVELOPER"),
                 "Core intent for EDUCATION and STUDY."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.TEACH,
                 "Instruct in a learning sequence; curriculum or lesson oriented.",
                 "User wants to learn a topic in a structured, pedagogical way.",
@@ -300,7 +304,7 @@ public final class IntentDictionary {
                 List.of("EDUCATOR", "CURRICULUM_DESIGNER", "TUTOR"),
                 "Prefer EXPLAIN for one-off clarification; TEACH for learning paths."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.SIMPLIFY,
                 "Reduce complexity of given content or concept; make more accessible.",
                 "User has complex material and wants it made easier to understand.",
@@ -312,7 +316,7 @@ public final class IntentDictionary {
                 List.of("EDUCATOR", "TECHNICAL_WRITER"),
                 "Often used for technical or academic content simplification."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.SUMMARIZE,
                 "Condense content to key points; preserve meaning, reduce length.",
                 "User wants a shorter version that captures the main points.",
@@ -324,7 +328,7 @@ public final class IntentDictionary {
                 List.of("RESEARCHER", "EDITOR", "STUDY_COACH"),
                 "Output often bullet-list; OutputNeeds.BULLET_LIST_REQUIRED in intent."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.OUTLINE,
                 "Produce structure or skeleton of content; headings and order without full body.",
                 "User wants a plan or skeleton (headings, sections) before or instead of full content.",
@@ -340,8 +344,8 @@ public final class IntentDictionary {
 
     // ─── PLANNING ─────────────────────────────────────────────────────────
 
-    private static void definePlanning() {
-        put(new IntentDefinition(
+    private static void definePlanning(Map<ActionIntent, IntentDefinition> defs) {
+        put(defs, new IntentDefinition(
                 ActionIntent.PLAN,
                 "Produce a sequence of steps or phases to achieve a goal.",
                 "User wants a plan: what to do, in what order, to reach an outcome.",
@@ -353,7 +357,7 @@ public final class IntentDictionary {
                 List.of("PRODUCTIVITY_EXPERT", "PROJECT_MANAGER", "CURRICULUM_DESIGNER"),
                 "Fallback for PRODUCTIVITY when intent missing."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.STRATEGIZE,
                 "Define high-level approach, direction, or strategy; not a detailed step list.",
                 "User wants strategic guidance: direction, principles, or approach rather than a task list.",
@@ -365,7 +369,7 @@ public final class IntentDictionary {
                 List.of("BUSINESS_CONSULTANT", "MARKETING_STRATEGIST"),
                 "Often used with BUSINESS and MARKETING."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.PROPOSE,
                 "Suggest a concrete option, solution, or recommendation for a decision.",
                 "User wants a specific proposal: what to do or choose, with rationale.",
@@ -377,7 +381,7 @@ public final class IntentDictionary {
                 List.of("BUSINESS_CONSULTANT", "CLOUD_ARCHITECT"),
                 "BUSINESS: preferred for proposals and option presentation."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.ORGANIZE,
                 "Arrange existing items into structure, order, or categories.",
                 "User has existing items (ideas, tasks, content) and wants them ordered or grouped.",
@@ -393,8 +397,8 @@ public final class IntentDictionary {
 
     // ─── DECISION ────────────────────────────────────────────────────────
 
-    private static void defineDecision() {
-        put(new IntentDefinition(
+    private static void defineDecision(Map<ActionIntent, IntentDefinition> defs) {
+        put(defs, new IntentDefinition(
                 ActionIntent.RECOMMEND,
                 "Recommend one or more options with reasoning; support decision-making.",
                 "User wants a recommendation: what to choose or do, with justification.",
@@ -406,7 +410,7 @@ public final class IntentDictionary {
                 List.of("BUSINESS_CONSULTANT", "PRODUCT_DESIGNER"),
                 "DESIGN: allowed but weaker than CREATE/EVALUATE/CRITIQUE."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.OPTIMIZE,
                 "Improve an existing solution against stated criteria (speed, cost, clarity).",
                 "User has something that works and wants it improved for specific dimensions.",
@@ -418,7 +422,7 @@ public final class IntentDictionary {
                 List.of("FULL_STACK_DEVELOPER", "BUSINESS_ANALYST_BUSINESS"),
                 "Fits technical and business optimization."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.DECIDE,
                 "Make or support a binary or multi-option decision; choose among alternatives.",
                 "User wants to decide between options or get support for a decision.",
@@ -434,8 +438,8 @@ public final class IntentDictionary {
 
     // ─── RESEARCH ─────────────────────────────────────────────────────────
 
-    private static void defineResearch() {
-        put(new IntentDefinition(
+    private static void defineResearch(Map<ActionIntent, IntentDefinition> defs) {
+        put(defs, new IntentDefinition(
                 ActionIntent.INVESTIGATE,
                 "Systematically look into a question or topic; gather and examine evidence.",
                 "User wants to investigate a question: what is known, what are sources, what are findings.",
@@ -447,7 +451,7 @@ public final class IntentDictionary {
                 List.of("RESEARCHER", "RESEARCH_METHODOLOGIST"),
                 "RESEARCH: preferred for literature and evidence-based inquiry."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.SYNTHESIZE,
                 "Combine multiple sources or views into a single coherent position or summary.",
                 "User has multiple inputs (papers, opinions, data) and wants them synthesized.",
@@ -459,7 +463,7 @@ public final class IntentDictionary {
                 List.of("RESEARCHER", "ACADEMIC_WRITER"),
                 "RESEARCH: preferred for literature review and evidence synthesis; PERSUASIVE tone discouraged unless explicit."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.EXPLORE,
                 "Open-ended exploration of ideas, options, or possibilities; less structured than investigate.",
                 "User wants to explore a space of ideas or options without a fixed question.",
@@ -475,8 +479,8 @@ public final class IntentDictionary {
 
     // ─── EXTRACTION ────────────────────────────────────────────────────────
 
-    private static void defineExtraction() {
-        put(new IntentDefinition(
+    private static void defineExtraction(Map<ActionIntent, IntentDefinition> defs) {
+        put(defs, new IntentDefinition(
                 ActionIntent.EXTRACT,
                 "Pull structured data or entities from unstructured input; output in specified schema (e.g. JSON).",
                 "User wants to extract specific fields, entities, or facts from text or content.",
@@ -488,7 +492,7 @@ public final class IntentDictionary {
                 List.of("GENERAL_CONSULTANT"),
                 "EXTRACTION request_mode forces intent=EXTRACT; category=ETC."
         ));
-        put(new IntentDefinition(
+        put(defs, new IntentDefinition(
                 ActionIntent.CLASSIFY,
                 "Assign category, label, or tag to input; classification or categorization.",
                 "User wants to classify content into predefined categories or labels.",
@@ -502,7 +506,7 @@ public final class IntentDictionary {
         ));
     }
 
-    private static void put(IntentDefinition def) {
-        DEFINITIONS.put(def.intent(), def);
+    private static void put(Map<ActionIntent, IntentDefinition> map, IntentDefinition def) {
+        map.put(def.intent(), def);
     }
 }

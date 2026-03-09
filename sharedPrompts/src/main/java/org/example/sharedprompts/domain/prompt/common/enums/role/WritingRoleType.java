@@ -56,8 +56,8 @@ public enum WritingRoleType implements RoleTypeInterface, StableKeyedEnum {
     private final String descriptionJa;
 
     @Override
-    public String key() {
-        return "ROLE.WRITING." + name();
+    public String keyPrefix() {
+        return "ROLE.WRITING";
     }
 }
 

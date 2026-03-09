@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.prompt.application.port.in.query.Generat
 import org.example.sharedprompts.domain.prompt.application.port.out.llm.LLMClientPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.persistence.SavePromptVersionPort;
 import org.example.sharedprompts.domain.prompt.domain.model.result.VerifyResult;
+import org.example.sharedprompts.domain.prompt.domain.model.result.QualityRubric.RubricItem;
 import org.example.sharedprompts.domain.prompt.domain.model.spec.PromptSpec;
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
 import org.example.sharedprompts.domain.prompt.domain.service.badge.BadgeResolver;
@@ -72,8 +73,8 @@ public class GeneratePromptService implements org.example.sharedprompts.domain.p
                 finallyPassed
         );
 
-        boolean formatValid = Boolean.TRUE.equals(lastResult.getItemResults().get(
-                org.example.sharedprompts.domain.prompt.domain.model.result.QualityRubric.RubricItem.FORMAT_COMPLIANCE));
+        boolean formatValid = Boolean.TRUE.equals(
+                lastResult.getItemResults().get(RubricItem.FORMAT_COMPLIANCE));
 
         var badges = badgeResolver.resolve(lastResult, firstPassSuccess, repairCount, finallyPassed);
 

@@ -16,7 +16,7 @@ public interface RoleDescriptorPort {
     /**
      * Display name for the role in the given language.
      *
-     * @param role role identity (non-null)
+     * @param role role identity (nullable; returns empty string if null)
      * @param lang locale (null treated as default, e.g. KOREAN)
      * @return display name, never null
      */
@@ -25,7 +25,7 @@ public interface RoleDescriptorPort {
     /**
      * Description for the role in the given language.
      *
-     * @param role role identity (non-null)
+     * @param role role identity (nullable; returns empty string if null)
      * @param lang locale (null treated as default)
      * @return description, may be empty
      */

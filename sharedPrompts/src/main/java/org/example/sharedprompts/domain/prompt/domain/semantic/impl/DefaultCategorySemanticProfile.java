@@ -12,6 +12,7 @@ import org.example.sharedprompts.domain.prompt.domain.semantic.FallbackCandidate
 import org.example.sharedprompts.domain.prompt.domain.semantic.SemanticFitLevel;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -66,12 +67,21 @@ public final class DefaultCategorySemanticProfile implements CategorySemanticPro
         this.baseTaskDomain = baseTaskDomain;
         this.allowedIntents = allowedIntents != null ? Set.copyOf(allowedIntents) : Set.of();
         this.intentFitLevels = intentFitLevels != null ? Map.copyOf(intentFitLevels) : Map.of();
-        this.recommendedRolesByIntent = recommendedRolesByIntent != null ? new java.util.HashMap<>(recommendedRolesByIntent) : new java.util.HashMap<>();
-        this.compatibleActionsByIntent = compatibleActionsByIntent != null ? new java.util.HashMap<>(compatibleActionsByIntent) : new java.util.HashMap<>();
-        this.discouragedTonesByIntent = discouragedTonesByIntent != null ? new java.util.HashMap<>(discouragedTonesByIntent) : new java.util.HashMap<>();
-        this.discouragedStylesByIntent = discouragedStylesByIntent != null ? new java.util.HashMap<>(discouragedStylesByIntent) : new java.util.HashMap<>();
+        this.recommendedRolesByIntent = copyNestedLists(recommendedRolesByIntent);
+        this.compatibleActionsByIntent = copyNestedLists(compatibleActionsByIntent);
+        this.discouragedTonesByIntent = copyNestedLists(discouragedTonesByIntent);
+        this.discouragedStylesByIntent = copyNestedLists(discouragedStylesByIntent);
         this.fallbackIntent = fallbackIntent;
         this.fallbackCandidates = fallbackCandidates != null ? List.copyOf(fallbackCandidates) : null;
+    }
+
+    private static <K, V> Map<K, List<V>> copyNestedLists(Map<K, List<V>> source) {
+        if (source == null || source.isEmpty()) {
+            return Map.of();
+        }
+        Map<K, List<V>> copy = new HashMap<>();
+        source.forEach((key, value) -> copy.put(key, value == null ? List.of() : List.copyOf(value)));
+        return Map.copyOf(copy);
     }
 
     @Override
@@ -133,7 +143,7 @@ public final class DefaultCategorySemanticProfile implements CategorySemanticPro
 
     @Override
     public List<FallbackCandidate> getFallbackCandidates() {
-        if (fallbackCandidates != null && !fallbackCandidates.isEmpty()) {
+        if (fallbackCandidates != null) {
             return fallbackCandidates;
         }
         return CategorySemanticProfile.super.getFallbackCandidates();

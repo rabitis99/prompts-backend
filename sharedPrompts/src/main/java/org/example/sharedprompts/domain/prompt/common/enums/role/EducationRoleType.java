@@ -39,8 +39,8 @@ public enum EducationRoleType implements RoleTypeInterface {
     private final String descriptionJa;
 
     @Override
-    public String key() {
-        return "ROLE.EDUCATION." + name();
+    public String keyPrefix() {
+        return "ROLE.EDUCATION";
     }
 }
 

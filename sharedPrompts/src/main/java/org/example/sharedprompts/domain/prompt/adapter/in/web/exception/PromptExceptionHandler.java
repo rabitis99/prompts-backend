@@ -58,8 +58,7 @@ public class PromptExceptionHandler {
     @ExceptionHandler(SemanticResolutionException.class)
     public ResponseEntity<CustomResponse<Void>> handleSemanticResolution(SemanticResolutionException ex) {
         log.warn("SemanticResolutionException: {}", ex.getMessages());
-        String message = ex.getMessages().isEmpty() ? "Semantic resolution failed" : String.join("; ", ex.getMessages());
-        ApiException apiEx = new ApiException(ErrorCode.INVALID_INPUT_VALUE, message);
+        ApiException apiEx = new ApiException(ErrorCode.INVALID_INPUT_VALUE, ex.getMessage());
         return toErrorResponse(apiEx);
     }
 }

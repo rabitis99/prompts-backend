@@ -7,13 +7,13 @@ import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile;
-import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileRegistry;
 import org.example.sharedprompts.domain.prompt.domain.semantic.SemanticFitLevel;
 import org.example.sharedprompts.domain.prompt.domain.semantic.SemanticValidationResult;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Category-aware semantic validation.
@@ -23,10 +23,12 @@ import java.util.List;
 @Service
 public class SemanticValidationService {
 
-    private final CategorySemanticProfileRegistry profileRegistry;
+    private static final Set<String> INVALID_CODES = Set.of(
+            "MISSING_PROFILE", "INVALID_INTENT_FOR_CATEGORY",
+            "INTENT_FORBIDDEN_FOR_CATEGORY", "FORBIDDEN_COMBINATION"
+    );
 
-    public SemanticValidationService(CategorySemanticProfileRegistry profileRegistry) {
-        this.profileRegistry = profileRegistry;
+    public SemanticValidationService() {
     }
 
     /**
@@ -160,7 +162,7 @@ public class SemanticValidationService {
             ));
         }
 
-        if (items.stream().anyMatch(i -> "MISSING_PROFILE".equals(i.code()) || "INVALID_INTENT_FOR_CATEGORY".equals(i.code()) || "INTENT_FORBIDDEN_FOR_CATEGORY".equals(i.code()) || "FORBIDDEN_COMBINATION".equals(i.code()))) {
+        if (items.stream().anyMatch(i -> INVALID_CODES.contains(i.code()))) {
             return SemanticValidationResult.invalid(items);
         }
         if (!items.isEmpty()) {

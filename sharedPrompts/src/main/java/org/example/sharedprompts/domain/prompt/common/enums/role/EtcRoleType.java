@@ -39,8 +39,8 @@ public enum EtcRoleType implements RoleTypeInterface {
     private final String descriptionJa;
 
     @Override
-    public String key() {
-        return "ROLE.ETC." + name();
+    public String keyPrefix() {
+        return "ROLE.ETC";
     }
 }
 

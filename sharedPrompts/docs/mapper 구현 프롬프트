@@ -1,0 +1,423 @@
+You are a senior Java Spring Boot backend engineer.
+
+Implement only the DTO and mapper layer for the recommendation-first prompt engine refactor in:
+
+src/main/java/org/example/sharedprompts/domain/prompt
+
+Do NOT refactor the whole engine.
+Do NOT change domain composition rules.
+Do NOT rewrite service orchestration yet.
+
+Your scope is strictly:
+
+1. recommendation response DTO structure
+2. confirmed generate request DTO
+3. DTO mappers
+4. minimal response extension for one-shot generate metadata
+
+The goal is to make the frontend able to render recommendation UX with a consistent axis-based state model.
+
+---
+
+# Core Design Rule
+
+Recommendation response must NOT be a flat bundle like:
+
+- recommendedIntent
+- intentCandidates
+- recommendedRole
+- roleCandidates
+- axisSources
+
+Instead, recommendation response must use axis-based objects so the frontend can render each axis consistently.
+
+Each axis should support:
+
+- recommended value
+- selected value
+- candidate list
+- source
+- reason
+- userOverridden
+
+Confirmed generation request should stay simple and only send final selected values.
+
+---
+
+# 1. Create Axis DTOs
+
+Create the following DTOs under:
+
+adapter.in.web.dto.response
+
+## 1.1 AxisValueSource
+
+Create enum:
+
+AxisValueSource
+
+Values:
+
+USER_PROVIDED
+RECOMMENDED
+FALLBACK
+DEFAULTED
+
+Use this enum in recommendation DTOs.
+
+---
+
+## 1.2 AxisCandidateDto<T>
+
+Create generic record/class:
+
+AxisCandidateDto<T>
+
+Fields:
+
+T value
+String label
+String reason
+boolean recommended
+boolean selectable
+
+This represents one selectable candidate for an axis.
+
+---
+
+## 1.3 AxisRecommendationDto<T>
+
+Create generic record/class:
+
+AxisRecommendationDto<T>
+
+Fields:
+
+T recommended
+T selected
+List<AxisCandidateDto<T>> candidates
+AxisValueSource source
+String reason
+boolean userOverridden
+
+This is the core axis object for recommendation UI.
+
+---
+
+## 1.4 RecommendationSelectionSnapshot
+
+Create DTO:
+
+RecommendationSelectionSnapshot
+
+Fields:
+
+PromptCategory category
+ActionIntent intent
+RoleTypeInterface roleType
+ActionTypeInterface actionType
+ToneType tone
+StyleType style
+LanguageType language
+ExperienceLevel experience
+
+Purpose:
+This snapshot represents the final values that would be used if the user confirms the recommendation without changing anything.
+
+---
+
+# 2. Create RecommendPromptResponse
+
+Create:
+
+RecommendPromptResponse
+
+Package:
+
+adapter.in.web.dto.response
+
+Fields:
+
+RequestMode requestMode
+PromptCategory category
+
+AxisRecommendationDto<ActionIntent> intentRecommendation
+AxisRecommendationDto<RoleTypeInterface> roleRecommendation
+AxisRecommendationDto<ActionTypeInterface> actionRecommendation
+AxisRecommendationDto<ToneType> toneRecommendation
+AxisRecommendationDto<StyleType> styleRecommendation
+
+RecommendationSelectionSnapshot defaultSelection
+List<String> validationWarnings
+
+Important:
+Do NOT include output/content/quality badges in this DTO.
+This DTO is for recommendation only.
+
+---
+
+# 3. Create ConfirmedGeneratePromptRequest
+
+Create:
+
+ConfirmedGeneratePromptRequest
+
+Package:
+
+adapter.in.web.dto.request
+
+Fields:
+
+@RequestMode / @NotNull
+RequestMode requestMode
+
+@NotNull
+PromptCategory category
+
+@NotNull
+ActionIntent intent
+
+RoleTypeInterface roleType (optional)
+ActionTypeInterface actionType (optional)
+
+ToneType tone
+StyleType style
+LanguageType language
+ExperienceLevel experience
+
+@NotBlank
+String input
+
+String jsonSchema
+
+String title
+String description
+List<String> tags
+
+Requirements:
+
+- Use the same serializer/deserializer strategy already used in existing request DTOs for RoleTypeInterface and ActionTypeInterface.
+- Keep this request simple.
+- Do NOT include:
+  - objective
+  - outputNeeds
+  - recommendationId
+  - candidate lists
+  - source metadata
+
+Those belong to recommendation response, not confirmed request.
+
+---
+
+# 4. Create Recommendation Result Mapper Layer
+
+You need a mapper that converts an internal recommendation result/view into the new response DTO shape.
+
+Create:
+
+RecommendPromptResponseMapper
+
+Package:
+
+adapter.in.web.mapper
+
+The mapper should be responsible for building:
+
+- intentRecommendation
+- roleRecommendation
+- actionRecommendation
+- toneRecommendation
+- styleRecommendation
+- defaultSelection
+
+Do NOT put business logic in the controller.
+
+---
+
+# 5. Create a Recommendation View Model for Mapping
+
+If the current codebase does not already have a suitable recommendation query/result object,
+create one minimal internal model for mapper input.
+
+Preferred package:
+
+application.port.in.query
+or
+application.service.semantic.view
+
+Choose the package that best matches existing project conventions.
+
+Recommended shape:
+
+RecommendationView
+
+Fields should include enough information to map into the DTO:
+
+- requestMode
+- category
+
+- recommendedIntent
+- selectedIntent
+- intentCandidates
+- intentSource
+- intentReason
+- intentUserOverridden
+
+- recommendedRole
+- selectedRole
+- roleCandidates
+- roleSource
+- roleReason
+- roleUserOverridden
+
+- recommendedAction
+- selectedAction
+- actionCandidates
+- actionSource
+- actionReason
+- actionUserOverridden
+
+- recommendedTone
+- selectedTone
+- toneSource
+- toneReason
+- toneUserOverridden
+
+- recommendedStyle
+- selectedStyle
+- styleSource
+- styleReason
+- styleUserOverridden
+
+- defaultCategory
+- defaultIntent
+- defaultRoleType
+- defaultActionType
+- defaultTone
+- defaultStyle
+- defaultLanguage
+- defaultExperience
+
+- validationWarnings
+
+Use a structure that makes mapping clean.
+Do NOT overengineer with inheritance.
+
+---
+
+# 6. Candidate Label Mapping
+
+When building AxisCandidateDto<T>, provide a label field.
+
+Rules:
+
+- For enums that already have display labels / descriptions in the codebase, use those.
+- For RoleTypeInterface and ActionTypeInterface, reuse existing serializer/descriptor/label utilities if available.
+- If no existing label provider exists, fall back to enum name or interface-provided display text according to current project conventions.
+- Keep this implementation simple and consistent with existing DTO serialization rules.
+
+Do NOT invent a whole new i18n framework in this change.
+
+---
+
+# 7. Tone and Style Recommendation Axes
+
+Tone and style should also use AxisRecommendationDto.
+
+However:
+- candidates may be empty in the first implementation
+- source may often be DEFAULTED
+- reason can be something like:
+  - "Default tone applied"
+  - "Default style applied"
+  - or existing project wording if available
+
+Do not overcomplicate tone/style candidate generation in this DTO refactor.
+
+---
+
+# 8. Extend Existing UnifiedGeneratePromptResponse Minimally
+
+Modify existing:
+
+UnifiedGeneratePromptResponse
+
+Add optional field:
+
+Map<String, String> axisSources
+
+Do NOT redesign this response yet.
+Do NOT replace resolved_* fields.
+This is only a minimal additive change for one-shot flow metadata.
+
+Also update:
+
+UnifiedPromptResponseMapper
+
+to map axisSources when present.
+
+Do not remove any existing response fields.
+
+---
+
+# 9. Serialization / Validation Consistency
+
+Follow existing project patterns:
+
+- use record if current DTO style prefers record
+- use jakarta validation annotations consistently
+- reuse existing serializer/deserializer classes for role/action interfaces
+- keep package naming aligned with current request/response DTO structure
+
+Do not introduce Lombok unless already standard in the exact DTO package.
+Match the surrounding style.
+
+---
+
+# 10. Files To Create / Modify
+
+Create:
+- AxisValueSource
+- AxisCandidateDto
+- AxisRecommendationDto
+- RecommendationSelectionSnapshot
+- RecommendPromptResponse
+- ConfirmedGeneratePromptRequest
+- RecommendPromptResponseMapper
+- RecommendationView (or equivalent mapper input model)
+
+Modify:
+- UnifiedGeneratePromptResponse
+- UnifiedPromptResponseMapper
+
+Only create helper classes if strictly necessary for clean mapping.
+
+---
+
+# 11. Output Requirements
+
+After implementing, provide a concise summary of:
+
+1. created files
+2. modified files
+3. any assumptions made for label mapping
+4. any TODO left for service-layer integration
+
+Do NOT implement service orchestration unless absolutely necessary to make types compile.
+If a service-layer placeholder is needed, keep it minimal and clearly marked.
+
+---
+
+# 12. Important Constraints
+
+- Do not refactor controllers in this step
+- Do not refactor use cases in this step
+- Do not change PromptSpecFactory
+- Do not change GeneratePromptService
+- Do not redesign the whole API
+- Focus only on DTO/mapper groundwork for recommendation UX
+
+The final code should prepare the backend for:
+- axis-based recommendation responses
+- simple confirmed generation requests
+- additive one-shot metadata

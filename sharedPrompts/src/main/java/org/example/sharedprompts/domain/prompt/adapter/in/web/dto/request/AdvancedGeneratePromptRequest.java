@@ -99,7 +99,7 @@ public record AdvancedGeneratePromptRequest(
                 semantic,
                 expression,
                 output,
-                null,
+                variant,
                 input,
                 normalizedDisableQualityPipeline,
                 tags,

@@ -64,8 +64,8 @@ public enum DevelopmentRoleType implements RoleTypeInterface, StableKeyedEnum {
     private final String descriptionJa;
 
     @Override
-    public String key() {
-        return "ROLE.DEVELOPMENT." + name();
+    public String keyPrefix() {
+        return "ROLE.DEVELOPMENT";
     }
 }
 

@@ -104,6 +104,17 @@ public enum PromptCategory implements StableKeyedEnum {
             TaskDomain.CREATIVE
     ),
 
+    /**
+     * 추출 모드 전용 — 카테고리 미지정/별도 모드로, 구조화된 데이터 추출 요청에 사용.
+     * ETC와 구분하여 resolvedCategory·렌더링·집계에서 추출 모드임을 보존한다.
+     */
+    EXTRACTION(
+            "PROMPT_CATEGORY.EXTRACTION",
+            I18nKey.of("prompt_category.extraction.display_name"),
+            I18nKey.of("prompt_category.extraction.guideline"),
+            TaskDomain.ANALYTICAL
+    ),
+
     ETC(
             "PROMPT_CATEGORY.ETC",
             I18nKey.of("prompt_category.etc.display_name"),
@@ -151,6 +162,8 @@ public enum PromptCategory implements StableKeyedEnum {
                 I18nText.of("디자인", "Design", "デザイン"));
         registry.register(I18nKey.of("prompt_category.writing.display_name"),
                 I18nText.of("글쓰기", "Writing", "ライティング"));
+        registry.register(I18nKey.of("prompt_category.extraction.display_name"),
+                I18nText.of("추출", "Extraction", "抽出"));
         registry.register(I18nKey.of("prompt_category.etc.display_name"),
                 I18nText.of("기타", "Etc", "その他"));
 
@@ -226,6 +239,12 @@ public enum PromptCategory implements StableKeyedEnum {
                         "다양한 형식 글쓰기, 효과적 메시지 전달",
                         "Writing across formats, clear and persuasive messaging",
                         "多様な文章形式、明確で効果的な表現"
+                ));
+        registry.register(I18nKey.of("prompt_category.extraction.guideline"),
+                I18nText.of(
+                        "구조화된 데이터 추출, JSON 스키마 기반 출력",
+                        "Structured data extraction, JSON schema-based output",
+                        "構造化データ抽出、JSONスキーマに基づく出力"
                 ));
         registry.register(I18nKey.of("prompt_category.etc.guideline"),
                 I18nText.of(

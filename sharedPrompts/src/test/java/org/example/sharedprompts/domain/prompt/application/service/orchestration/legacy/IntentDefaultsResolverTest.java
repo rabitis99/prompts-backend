@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.prompt.application.service.orchestratio
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.EngineMode;
+import org.example.sharedprompts.domain.prompt.common.enums.EngineProfile;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.RequestMode;
 import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
@@ -35,6 +36,39 @@ class IntentDefaultsResolverTest {
                 null,
                 null,
                 null,
+                null
+        );
+
+        IntentDefaults defaults = resolver.resolve(command);
+        var expected = IntentDictionary.getResolutionDefaults(ActionIntent.GENERATE);
+
+        assertThat(defaults.intent()).isEqualTo(ActionIntent.GENERATE);
+        assertThat(defaults.objective()).isEqualTo(expected.defaultObjective());
+        assertThat(defaults.outputNeeds()).isEqualTo(expected.preferredOutputNeeds());
+        assertThat(defaults.responseShape()).isEqualTo(expected.defaultResponseShape());
+        assertThat(defaults.domainAffinity()).isNull();
+        assertThat(defaults.recommendedEngineProfile()).isEqualTo(EngineProfile.QUALITY_PIPELINE);
+    }
+
+    @Test
+    void null_intent_should_default_to_generate_and_fill_recommended_engine_profile() {
+        UnifiedGeneratePromptCommand command = UnifiedGeneratePromptCommand.of(
+                1L,
+                RequestMode.SIMPLE,
+                PromptCategory.ETC,
+                null,
+                null,
+                "hello",
+                null,
+                EngineMode.AUTO,
+                ToneType.NEUTRAL,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
                 null,
                 null
         );
@@ -47,6 +81,7 @@ class IntentDefaultsResolverTest {
         assertThat(defaults.outputNeeds()).isEqualTo(expected.preferredOutputNeeds());
         assertThat(defaults.responseShape()).isEqualTo(expected.defaultResponseShape());
         assertThat(defaults.domainAffinity()).isNull();
+        assertThat(defaults.recommendedEngineProfile()).isEqualTo(EngineProfile.QUALITY_PIPELINE);
     }
 
     @Test
@@ -69,8 +104,6 @@ class IntentDefaultsResolverTest {
                 null,
                 null,
                 null,
-                null,
-                null,
                 null
         );
 
@@ -82,6 +115,7 @@ class IntentDefaultsResolverTest {
         assertThat(defaults.outputNeeds()).isEqualTo(expected.preferredOutputNeeds());
         assertThat(defaults.responseShape()).isEqualTo(expected.defaultResponseShape());
         assertThat(defaults.domainAffinity()).isNull();
+        assertThat(defaults.recommendedEngineProfile()).isEqualTo(EngineProfile.QUALITY_PIPELINE);
     }
 }
 

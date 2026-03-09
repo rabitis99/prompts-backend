@@ -108,7 +108,7 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
                 command.userId(),
                 title,
                 description,
-                false,
+                false, // generated prompts are private by default
                 axes.category(),
                 command.tags(),
                 command.input(),
@@ -118,7 +118,7 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
                 axes.style(),
                 axes.language(),
                 axes.experienceLevel(),
-                false,
+                false, // experimental features disabled by default
                 command.jsonSchema()
         );
     }

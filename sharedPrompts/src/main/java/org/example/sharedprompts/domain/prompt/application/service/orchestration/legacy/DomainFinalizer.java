@@ -30,11 +30,6 @@ public class DomainFinalizer {
         TaskDomain baseDomain = chooseBaseDomain(command.category(), defaults);
         reasons.add("baseDomain:" + baseDomain.name());
 
-        if (defaults.domainAffinity() != null) {
-            baseDomain = defaults.domainAffinity();
-            reasons.add("intentAffinity:" + defaults.domainAffinity().name());
-        }
-
         if (overrides.domainOverride() != null) {
             baseDomain = overrides.domainOverride();
             reasons.add("ruleOverrideDomain:" + overrides.domainOverride().name());

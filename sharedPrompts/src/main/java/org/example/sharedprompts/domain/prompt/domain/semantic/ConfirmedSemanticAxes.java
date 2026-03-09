@@ -71,6 +71,9 @@ public record ConfirmedSemanticAxes(
         public Builder recommendationHints(List<String> v) { recommendationHints = v != null ? List.copyOf(v) : List.of(); return this; }
 
         public ConfirmedSemanticAxes build() {
+            if (category == null || intent == null || objective == null) {
+                throw new IllegalStateException("category, intent, and objective are required");
+            }
             return new ConfirmedSemanticAxes(
                     category,
                     taskDomain,

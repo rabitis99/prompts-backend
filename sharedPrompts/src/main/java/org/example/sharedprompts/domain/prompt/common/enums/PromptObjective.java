@@ -51,7 +51,7 @@ public enum PromptObjective {
     public static PromptObjective fromDomainObjective(
             org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective domain
     ) {
-        if (domain == null) return REASONING;
+        if (domain == null) return null;
         return switch (domain) {
             case FACTUAL -> FACTUAL;
             case REASONING -> REASONING;
