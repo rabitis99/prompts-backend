@@ -52,8 +52,11 @@ class OrchestratorThinTest {
                 .build();
 
         SemanticResolutionService semanticResolutionService = mock(SemanticResolutionService.class);
+        SemanticResolutionService.ResolutionMetadata metadata = new SemanticResolutionService.ResolutionMetadata(
+                false, true, true, true
+        );
         when(semanticResolutionService.resolve(any(UnifiedGeneratePromptCommand.class)))
-                .thenReturn(SemanticResolutionService.Result.ok(axes));
+                .thenReturn(SemanticResolutionService.Result.ok(axes, metadata));
 
         SchemaContractEvaluator schemaContractEvaluator = new SchemaContractEvaluator();
         PromptEngineMetrics metrics = new PromptEngineMetrics(new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
@@ -116,5 +119,7 @@ class OrchestratorThinTest {
         assertThat(result.semanticProfilesApplied()).contains("profile:ETC", "intent:GENERATE");
         assertThat(result.semanticResolutionSummary()).contains("category=ETC");
         assertThat(result.semanticResolutionSummary()).contains("intent=GENERATE");
+        assertThat(result.axisSources()).isNotNull();
+        assertThat(result.axisSources()).containsEntry("intent", "USER_PROVIDED");
     }
 }

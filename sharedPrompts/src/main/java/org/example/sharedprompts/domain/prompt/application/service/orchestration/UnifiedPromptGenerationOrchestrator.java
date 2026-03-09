@@ -15,10 +15,18 @@ import org.example.sharedprompts.domain.prompt.common.enums.EngineProfile;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptObjective;
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
 import org.example.sharedprompts.domain.prompt.metrics.PromptEngineMetrics;
+import org.example.sharedprompts.domain.prompt.common.AxisSourceConstants;
 import org.springframework.stereotype.Service;
+
+import java.util.Map;
 
 /**
  * Category-aware semantic prompt generation orchestration.
+ * <p>
+ * <b>axis_sources:</b> Populated here after semantic resolution (per design).
+ * Resolution returns {@link SemanticResolutionService.ResolutionMetadata}; this orchestrator
+ * builds the final axis_sources map so that response metadata is assembled in one place.
+ * </p>
  */
 @Slf4j
 @Service
@@ -86,7 +94,8 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
                     axes.appliedProfileIds(),
                     axes.validationWarnings(),
                     axes.recommendationHints(),
-                    summary
+                    summary,
+                    resolution.metadata() != null ? buildAxisSources(resolution.metadata()) : null
             );
         } catch (RuntimeException ex) {
             long latencyMs = (System.nanoTime() - startNs) / 1_000_000;
@@ -119,6 +128,25 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
                 axes.experienceLevel(),
                 false, // experimental features disabled by default
                 command.jsonSchema()
+        );
+    }
+
+    /** Builds axis_sources map from resolution metadata (document: populate inside orchestrator after semantic resolution). */
+    private static Map<String, String> buildAxisSources(SemanticResolutionService.ResolutionMetadata metadata) {
+        if (metadata.isExtraction()) {
+            return Map.of(
+                    "intent", AxisSourceConstants.IMPLIED_BY_MODE,
+                    "objective", AxisSourceConstants.IMPLIED_BY_MODE,
+                    "output_needs", AxisSourceConstants.IMPLIED_BY_MODE
+            );
+        }
+
+        return Map.of(
+                "intent", metadata.userProvidedIntent() ? AxisSourceConstants.USER_PROVIDED : AxisSourceConstants.FALLBACK,
+                "role", metadata.userProvidedRole() ? AxisSourceConstants.USER_PROVIDED : AxisSourceConstants.RECOMMENDED,
+                "action", metadata.userProvidedAction() ? AxisSourceConstants.USER_PROVIDED : AxisSourceConstants.RECOMMENDED,
+                "objective", AxisSourceConstants.RECOMMENDED,
+                "output_needs", AxisSourceConstants.RECOMMENDED
         );
     }
 }

@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.prompt.domain.value.quality.QualityBadge
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class UnifiedPromptResponseMapper {
@@ -38,7 +39,8 @@ public class UnifiedPromptResponseMapper {
                 result.semanticProfilesApplied(),
                 result.validationWarnings(),
                 result.recommendationHints(),
-                result.semanticResolutionSummary()
+                result.semanticResolutionSummary(),
+                result.axisSources()
         );
     }
 

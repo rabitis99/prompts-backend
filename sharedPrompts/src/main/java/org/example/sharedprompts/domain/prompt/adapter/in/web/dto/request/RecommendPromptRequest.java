@@ -1,0 +1,46 @@
+package org.example.sharedprompts.domain.prompt.adapter.in.web.dto.request;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.example.sharedprompts.domain.prompt.common.enums.*;
+import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTypeDeserializer;
+import org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTypeSerializer;
+import org.example.sharedprompts.domain.prompt.common.enums.serializer.RoleTypeDeserializer;
+import org.example.sharedprompts.domain.prompt.common.enums.serializer.RoleTypeSerializer;
+
+import jakarta.validation.constraints.NotNull;
+
+/**
+ * Request for POST /prompts/recommend.
+ * category required for SIMPLE/ADVANCED; optional for EXTRACTION.
+ */
+public record RecommendPromptRequest(
+        @JsonProperty("request_mode")
+        @NotNull(message = "request_mode is required")
+        RequestMode requestMode,
+
+        PromptCategory category,
+        ActionIntent intent,
+
+        @JsonProperty("role_type")
+        @JsonSerialize(using = RoleTypeSerializer.class)
+        @JsonDeserialize(using = RoleTypeDeserializer.class)
+        RoleTypeInterface roleType,
+
+        @JsonProperty("action_type")
+        @JsonSerialize(using = ActionTypeSerializer.class)
+        @JsonDeserialize(using = ActionTypeDeserializer.class)
+        ActionTypeInterface actionType,
+
+        ToneType tone,
+        StyleType style,
+        LanguageType language,
+        ExperienceLevel experience,
+
+        @JsonProperty("raw_input")
+        String rawInput
+) {
+}

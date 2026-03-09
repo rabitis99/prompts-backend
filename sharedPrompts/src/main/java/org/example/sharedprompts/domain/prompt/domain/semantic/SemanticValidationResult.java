@@ -15,7 +15,7 @@ public record SemanticValidationResult(
         items = items != null ? List.copyOf(items) : List.of();
     }
 
-    public static SemanticValidationResult valid() {
+    public static SemanticValidationResult success() {
         return new SemanticValidationResult(true, Severity.NONE, List.of());
     }
 
