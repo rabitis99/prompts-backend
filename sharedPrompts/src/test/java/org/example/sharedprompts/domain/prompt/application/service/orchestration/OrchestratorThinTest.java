@@ -104,6 +104,7 @@ class OrchestratorThinTest {
         assertThat(axesCaptor.getValue())
                 .usingRecursiveComparison()
                 .isEqualTo(axes);
+        assertThat(passedCommand.promptCategory()).isEqualTo(axes.category());
         assertThat(passedCommand.title()).isEqualTo(expectedTitle);
         assertThat(passedCommand.description()).isEqualTo(expectedDescription);
 

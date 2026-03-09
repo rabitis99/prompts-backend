@@ -499,10 +499,10 @@ public final class IntentDictionary {
                 "When the goal is to classify into categories only (use CLASSIFY) or to summarize (use SUMMARIZE).",
                 "EXTRACT = structured extraction to schema; CLASSIFY = assign categories/labels.",
                 "Structured output (e.g. JSON); schema-driven.",
-                List.of(PromptCategory.ANALYSIS, PromptCategory.RESEARCH),
+                List.of(PromptCategory.EXTRACTION, PromptCategory.ANALYSIS, PromptCategory.RESEARCH),
                 List.of("DATA_ANALYSIS"),
                 List.of("GENERAL_CONSULTANT"),
-                "EXTRACTION request_mode forces intent=EXTRACT; category=ETC."
+                "EXTRACTION request_mode forces intent=EXTRACT; category=EXTRACTION."
         ));
         put(defs, new IntentDefinition(
                 ActionIntent.CLASSIFY,

@@ -35,9 +35,10 @@ public class DomainFinalizer {
             reasons.add("ruleOverrideDomain:" + overrides.domainOverride().name());
         }
 
+        // Contract: second arg is intent affinity only; category default/override stay in DomainFinalizer.
         ResolvedDomain resolved = domainResolutionService.resolveForUnified(
                 command.category(),
-                baseDomain
+                defaults.domainAffinity()
         );
 
         TaskDomain finalDomain = baseDomain;

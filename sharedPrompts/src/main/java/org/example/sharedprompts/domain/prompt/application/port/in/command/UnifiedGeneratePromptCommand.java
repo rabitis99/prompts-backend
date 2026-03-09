@@ -15,7 +15,8 @@ import java.util.Objects;
  * 통합 프롬프트 생성 커맨드.
  *
  * <p>Semantic hierarchy (resolution order): category → intent → roleType/actionType → tone/style → output.
- * Category and intent are required for SIMPLE/ADVANCED; role/action are optional and validated against
+ * Category is required for SIMPLE/ADVANCED; intent may be provided explicitly or resolved from a
+ * category-profile fallback. Role/action are optional and validated against the resolved
  * category+intent in {@link org.example.sharedprompts.domain.prompt.application.service.semantic.SemanticValidationService}.
  * Tone and style are expression modifiers only and do not drive semantic resolution.</p>
  *
