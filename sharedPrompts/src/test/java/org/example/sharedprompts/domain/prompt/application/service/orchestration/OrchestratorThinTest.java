@@ -69,7 +69,7 @@ class OrchestratorThinTest {
         String expectedTitle = "Test Title";
         String expectedDescription = "Test description";
         UnifiedGeneratePromptCommand command = UnifiedGeneratePromptCommand.of(
-                Long.valueOf(1L),
+                1L,
                 RequestMode.SIMPLE,
                 PromptCategory.ANALYSIS,
                 ActionIntent.ANALYZE,
@@ -81,7 +81,7 @@ class OrchestratorThinTest {
                 null,
                 null,
                 null,
-                Boolean.FALSE,
+                false,
                 null,
                 null,
                 null,

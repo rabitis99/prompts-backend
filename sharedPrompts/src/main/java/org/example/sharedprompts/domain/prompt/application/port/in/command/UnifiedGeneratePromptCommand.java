@@ -241,14 +241,14 @@ public record UnifiedGeneratePromptCommand(
                 input,
                 jsonSchema,
                 null,
-                tone != null ? tone : ToneType.NEUTRAL,
-                style != null ? style : StyleType.NARRATIVE,
+                tone,
+                style,
                 language,
                 experience,
                 false,
                 null,
                 null,
-                tags != null ? tags : List.of(),
+                tags,
                 title,
                 description
         );
