@@ -22,13 +22,6 @@ public class ObjectiveResolver implements ObjectiveResolverPort {
         TaskDomain effectiveDomain = taskDomain != null ? taskDomain : TaskDomain.GENERAL;
 
         if (actionType != null) {
-            PromptObjective defaultObjective = actionType.getDefaultObjective();
-            if (defaultObjective != null) {
-                return defaultObjective;
-            }
-        }
-
-        if (actionType != null) {
             var fromRegistry = mappingRegistry.findByActionType(actionType);
             if (fromRegistry.isPresent()) {
                 return fromRegistry.get();

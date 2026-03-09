@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.prompt.application.exception.InvalidPromptUpdateException;
 import org.example.sharedprompts.domain.prompt.application.exception.PromptAccessDeniedException;
 import org.example.sharedprompts.domain.prompt.application.exception.PromptNotFoundException;
+import org.example.sharedprompts.domain.prompt.application.exception.SemanticResolutionException;
 import org.example.sharedprompts.domain.prompt.application.exception.UnsupportedQualityPipelineOptionException;
 import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.global.exception.ApiException;
@@ -51,6 +52,13 @@ public class PromptExceptionHandler {
     public ResponseEntity<CustomResponse<Void>> handleUnsupportedQuality(UnsupportedQualityPipelineOptionException ex) {
         log.warn("UnsupportedQualityPipelineOptionException: {}", ex.getMessage());
         ApiException apiEx = new ApiException(ErrorCode.UNSUPPORTED_QUALITY_PIPELINE_OPTION, ex.getMessage());
+        return toErrorResponse(apiEx);
+    }
+
+    @ExceptionHandler(SemanticResolutionException.class)
+    public ResponseEntity<CustomResponse<Void>> handleSemanticResolution(SemanticResolutionException ex) {
+        log.warn("SemanticResolutionException: {}", ex.getMessages());
+        ApiException apiEx = new ApiException(ErrorCode.INVALID_INPUT_VALUE, ex.getMessage());
         return toErrorResponse(apiEx);
     }
 }

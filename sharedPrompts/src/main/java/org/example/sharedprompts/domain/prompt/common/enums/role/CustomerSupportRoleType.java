@@ -64,8 +64,8 @@ public enum CustomerSupportRoleType implements RoleTypeInterface, StableKeyedEnu
     private final String descriptionJa;
 
     @Override
-    public String key() {
-        return "ROLE.CUSTOMER_SUPPORT." + name();
+    public String keyPrefix() {
+        return "ROLE.CUSTOMER_SUPPORT";
     }
 }
 

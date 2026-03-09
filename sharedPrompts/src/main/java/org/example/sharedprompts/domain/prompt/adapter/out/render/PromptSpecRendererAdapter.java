@@ -20,13 +20,14 @@ import org.springframework.stereotype.Component;
 public class PromptSpecRendererAdapter implements PromptSpecRendererPort {
 
     private final RepairPromptRenderer repairPromptRenderer;
+    private final RoleContextRenderer roleContextRenderer;
 
     @Override
     public String render(PromptSpec spec) {
         return ObjectiveSectionRenderer.render(spec) +
                 StrategySectionRenderer.render(spec) +
                 ConstraintsSectionRenderer.render(spec) +
-                RoleContextRenderer.render(spec) +
+                roleContextRenderer.render(spec) +
                 OutputContractRenderer.render(spec) +
                 UserInputRenderer.render(spec);
     }

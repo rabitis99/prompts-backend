@@ -64,8 +64,8 @@ public enum SocialRoleType implements RoleTypeInterface, StableKeyedEnum {
     private final String descriptionJa;
 
     @Override
-    public String key() {
-        return "ROLE.SOCIAL." + name();
+    public String keyPrefix() {
+        return "ROLE.SOCIAL";
     }
 }
 

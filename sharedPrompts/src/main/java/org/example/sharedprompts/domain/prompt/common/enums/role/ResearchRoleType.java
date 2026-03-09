@@ -37,5 +37,10 @@ public enum ResearchRoleType implements RoleTypeInterface {
     private final String descriptionEn;
     private final String roleNameJa;
     private final String descriptionJa;
+
+    @Override
+    public String keyPrefix() {
+        return "ROLE.RESEARCH";
+    }
 }
 

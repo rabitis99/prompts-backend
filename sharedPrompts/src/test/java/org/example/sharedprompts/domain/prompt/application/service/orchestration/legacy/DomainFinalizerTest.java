@@ -1,10 +1,11 @@
-package org.example.sharedprompts.domain.prompt.application.service.orchestration.unified;
+package org.example.sharedprompts.domain.prompt.application.service.orchestration.legacy;
 
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.service.orchestration.DomainResolutionService;
 import org.example.sharedprompts.domain.prompt.common.enums.*;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolverPort;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ResolvedDomain;
+import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDictionary;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -30,15 +31,14 @@ class DomainFinalizerTest {
     private UnifiedGeneratePromptCommand command(PromptCategory category) {
         return UnifiedGeneratePromptCommand.of(
                 1L,
+                org.example.sharedprompts.domain.prompt.common.enums.RequestMode.SIMPLE,
                 category,
-                ActionIntent.CODE,
+                ActionIntent.GENERATE,
                 null,
                 "input",
                 null,
                 EngineMode.AUTO,
                 ToneType.NEUTRAL,
-                null,
-                null,
                 null,
                 null,
                 null,
@@ -55,11 +55,12 @@ class DomainFinalizerTest {
     void should_use_intent_affinity_and_resolver_result() {
         DomainFinalizer finalizer = new DomainFinalizer(domainResolutionService());
 
+        var resolutionDefaults = IntentDictionary.getResolutionDefaults(ActionIntent.GENERATE);
         IntentDefaults defaults = new IntentDefaults(
-                ActionIntent.CODE,
-                ActionIntent.CODE.getDefaultObjective(),
-                ActionIntent.CODE.getPreferredOutputNeeds(),
-                ActionIntent.CODE.getDefaultResponseShape(),
+                ActionIntent.GENERATE,
+                resolutionDefaults.defaultObjective(),
+                resolutionDefaults.preferredOutputNeeds(),
+                resolutionDefaults.defaultResponseShape(),
                 TaskDomain.TECHNICAL,
                 EngineProfile.QUALITY_PIPELINE
         );

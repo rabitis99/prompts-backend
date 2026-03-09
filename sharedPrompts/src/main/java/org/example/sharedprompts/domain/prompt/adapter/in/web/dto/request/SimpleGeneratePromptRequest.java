@@ -2,21 +2,32 @@ package org.example.sharedprompts.domain.prompt.adapter.in.web.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.ExpressionOptions;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.OutputOptions;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.SemanticSelection;
+import org.example.sharedprompts.domain.prompt.common.enums.RequestMode;
 import org.example.sharedprompts.domain.prompt.common.enums.*;
 
 import java.util.List;
 
 /**
  * 기본 단순 프롬프트 생성 요청.
+ *
+ * <p>Field order follows semantic hierarchy: category → intent → tone/style → input → metadata.
+ * Role and action are not specified; they are recommended from category+intent in semantic resolution.</p>
  */
 public record SimpleGeneratePromptRequest(
 
         @JsonProperty("request_type")
         RequestType requestType,
 
+        @NotNull(message = "카테고리를 선택해주세요.")
         PromptCategory category,
+
+        @NotNull(message = "의도(intent)를 선택해주세요.")
         ActionIntent intent,
         String variant,
 
@@ -49,16 +60,18 @@ public record SimpleGeneratePromptRequest(
 
     @Override
     public UnifiedGeneratePromptCommand toCommand(Long userId) {
-        return UnifiedGeneratePromptCommand.forSimple(
+        SemanticSelection semantic = new SemanticSelection(category, intent, null, null);
+        ExpressionOptions expression = new ExpressionOptions(tone, style, language, experience);
+        OutputOptions output = new OutputOptions(null, null);
+        return UnifiedGeneratePromptCommand.fromNormalized(
                 userId,
-                category,
-                intent,
+                RequestMode.SIMPLE,
+                semantic,
+                expression,
+                output,
                 variant,
                 input,
-                tone,
-                style,
-                language,
-                experience,
+                false,
                 tags,
                 normalizeOptional(title),
                 normalizeOptional(description)

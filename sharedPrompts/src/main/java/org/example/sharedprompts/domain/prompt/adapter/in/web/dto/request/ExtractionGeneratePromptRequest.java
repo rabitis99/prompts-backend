@@ -4,13 +4,20 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.ExpressionOptions;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.OutputOptions;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.SemanticSelection;
 import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.RequestMode;
 import org.example.sharedprompts.domain.prompt.common.enums.RequestType;
 
 import java.util.List;
 
 /**
  * JSON Schema 기반 추출/구조화 모드 요청.
+ *
+ * <p>No category or intent—semantic resolution forces intent=EXTRACT and category=ETC.
+ * Output (json_schema) is required; it does not drive semantic meaning.</p>
  */
 public record ExtractionGeneratePromptRequest(
 
@@ -48,23 +55,18 @@ public record ExtractionGeneratePromptRequest(
 
     @Override
     public UnifiedGeneratePromptCommand toCommand(Long userId) {
-        return UnifiedGeneratePromptCommand.of(
+        SemanticSelection semantic = null;
+        ExpressionOptions expression = new ExpressionOptions(null, null, language, null);
+        OutputOptions output = new OutputOptions(jsonSchema, null);
+        return UnifiedGeneratePromptCommand.fromNormalized(
                 userId,
-                null,          // category
-                null,          // intent
-                null,          // variant
+                RequestMode.EXTRACTION,
+                semantic,
+                expression,
+                output,
+                null,
                 input,
-                jsonSchema,
-                null,          // engineMode
-                null,          // tone
-                null,          // style
-                language,
-                null,          // experience
-                false,         // disableQualityPipeline
-                null,          // actionType
-                null,          // roleType
-                null,          // coreRole
-                null,          // domainRole
+                false,
                 tags,
                 normalizeOptional(title),
                 normalizeOptional(description)

@@ -1,0 +1,182 @@
+package org.example.sharedprompts.domain.prompt.application.service.semantic;
+
+import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
+import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
+import org.example.sharedprompts.domain.prompt.common.enums.RequestMode;
+import org.example.sharedprompts.domain.prompt.common.enums.OutputNeeds;
+import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile;
+import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileRegistry;
+import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
+import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDictionary;
+import org.example.sharedprompts.domain.prompt.domain.semantic.SemanticValidationResult;
+import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Resolves command to confirmed semantic axes using profile → recommend → validate.
+ * {@link RequestMode#EXTRACTION} is handled separately and yields {@link PromptCategory#EXTRACTION};
+ * SIMPLE/ADVANCED require category and intent (or profile fallback) and return a {@link Result}
+ * (success with axes or failure with errors).
+ *
+ * <p><b>Semantic resolution order:</b> Category → ActionIntent → RoleType/ActionType (from profile + recommend).
+ * ToneType, StyleType, and output format (OutputNeeds/jsonSchema) do <em>not</em> drive resolution—they are
+ * passed through to ConfirmedSemanticAxes and applied only after semantic axes are fixed.</p>
+ */
+@Service
+public class SemanticResolutionService {
+
+    private final CategorySemanticProfileRegistry profileRegistry;
+    private final SemanticRecommendationService recommendationService;
+    private final SemanticValidationService validationService;
+
+    public SemanticResolutionService(
+            CategorySemanticProfileRegistry profileRegistry,
+            SemanticRecommendationService recommendationService,
+            SemanticValidationService validationService
+    ) {
+        this.profileRegistry = profileRegistry;
+        this.recommendationService = recommendationService;
+        this.validationService = validationService;
+    }
+
+    /**
+     * Resolves command to confirmed semantic axes.
+     * Uses {@link RequestMode} from the command: EXTRACTION forces intent=EXTRACT and category=EXTRACTION;
+     * SIMPLE/ADVANCED require category and intent (or profile fallback).
+     *
+     * @param command the unified command (requestMode, category, intent, etc.)
+     * @return {@link Result} with success and axes, or failure with error messages (never null)
+     */
+    public Result resolve(UnifiedGeneratePromptCommand command) {
+        if (command.requestMode() == RequestMode.EXTRACTION) {
+            return resolveExtraction(command);
+        }
+
+        PromptCategory category = command.category();
+        ActionIntent intent = command.intent();
+
+        if (category == null) {
+            return Result.fail(List.of("category is required for SIMPLE/ADVANCED"));
+        }
+        if (category == PromptCategory.EXTRACTION) {
+            return Result.fail(List.of("EXTRACTION category is only valid with requestMode=EXTRACTION; use request_type=EXTRACTION for extraction requests"));
+        }
+
+        boolean fallbackIntentUsed = false;
+        if (intent == null) {
+            Optional<CategorySemanticProfile> profileForFallbackOpt = profileRegistry.getProfile(category);
+            if (profileForFallbackOpt.map(p -> p.getFallbackIntent() != null).orElse(false)) {
+                intent = profileForFallbackOpt.get().getFallbackIntent();
+                fallbackIntentUsed = true;
+            } else {
+                return Result.fail(List.of("intent is required for SIMPLE/ADVANCED"));
+            }
+        }
+
+        CategorySemanticProfile profile = profileRegistry.getProfile(category).orElse(null);
+        SemanticValidationResult validation = validationService.validate(command, profile, intent);
+        if (validation.severity() == SemanticValidationResult.Severity.ERROR) {
+            List<String> messages = validation.items().stream()
+                    .map(i -> i.code() + ": " + i.message())
+                    .toList();
+            return Result.fail(messages);
+        }
+
+        var recommendation = recommendationService.recommend(
+                category,
+                intent,
+                profile,
+                command.roleType(),
+                command.actionType(),
+                fallbackIntentUsed
+        );
+
+        IntentDictionary.IntentResolutionDefaults intentDefaults = IntentDictionary.getResolutionDefaults(intent);
+        org.example.sharedprompts.domain.prompt.common.enums.PromptObjective apiObjective = intentDefaults.defaultObjective();
+        OutputNeeds outputNeeds = intentDefaults.preferredOutputNeeds();
+        if (command.jsonSchema() != null && !command.jsonSchema().isBlank()) {
+            outputNeeds = OutputNeeds.JSON_SCHEMA_REQUIRED;
+            if (command.requestMode() == RequestMode.EXTRACTION || intent == ActionIntent.EXTRACT) {
+                apiObjective = org.example.sharedprompts.domain.prompt.common.enums.PromptObjective.EXTRACTION;
+            }
+        }
+
+        PromptObjective domainObjective = apiObjective.toDomainObjective();
+        TaskDomain taskDomain = profile != null
+                ? profile.getBaseTaskDomain()
+                : category.getDefaultDomain();
+
+        List<String> appliedIds = new ArrayList<>();
+        appliedIds.add("profile:" + category.name());
+        appliedIds.add("intent:" + intent.name());
+        if (validation.severity() == SemanticValidationResult.Severity.WARNING) {
+            appliedIds.add("validation:warnings");
+        }
+
+        List<String> warnings = new ArrayList<>();
+        if (validation.severity() == SemanticValidationResult.Severity.WARNING) {
+            validation.items().forEach(i -> warnings.add(i.message()));
+        }
+
+        ConfirmedSemanticAxes axes = ConfirmedSemanticAxes.builder()
+                .category(category)
+                .taskDomain(taskDomain)
+                .intent(intent)
+                .objective(domainObjective)
+                .outputNeeds(outputNeeds)
+                .role(recommendation.recommendedRole().orElse(null))
+                .actionType(recommendation.recommendedAction().orElse(null))
+                .tone(command.tone())
+                .style(command.style())
+                .language(command.language())
+                .experienceLevel(command.experience())
+                .appliedProfileIds(appliedIds)
+                .validationWarnings(warnings)
+                .recommendationHints(recommendation.recommendationHints())
+                .build();
+
+        return Result.ok(axes);
+    }
+
+    private Result resolveExtraction(UnifiedGeneratePromptCommand command) {
+        ActionIntent intent = ActionIntent.EXTRACT;
+        TaskDomain taskDomain = TaskDomain.ANALYTICAL;
+        PromptObjective domainObjective = PromptObjective.EXTRACTION;
+        OutputNeeds outputNeeds = OutputNeeds.JSON_SCHEMA_REQUIRED;
+
+        ConfirmedSemanticAxes axes = ConfirmedSemanticAxes.builder()
+                .category(PromptCategory.EXTRACTION)
+                .taskDomain(taskDomain)
+                .intent(intent)
+                .objective(domainObjective)
+                .outputNeeds(outputNeeds)
+                .role(null)
+                .actionType(null)
+                .tone(command.tone())
+                .style(command.style())
+                .language(command.language())
+                .experienceLevel(command.experience())
+                .appliedProfileIds(List.of("request_mode:EXTRACTION"))
+                .validationWarnings(List.of())
+                .recommendationHints(List.of())
+                .build();
+
+        return Result.ok(axes);
+    }
+
+    public record Result(boolean success, ConfirmedSemanticAxes axes, List<String> errors) {
+        public static Result ok(ConfirmedSemanticAxes axes) {
+            return new Result(true, axes, List.of());
+        }
+
+        public static Result fail(List<String> errors) {
+            return new Result(false, null, errors != null ? List.copyOf(errors) : List.of());
+        }
+    }
+}

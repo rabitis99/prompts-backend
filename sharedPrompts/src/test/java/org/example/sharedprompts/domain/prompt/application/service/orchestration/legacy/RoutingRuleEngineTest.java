@@ -1,7 +1,8 @@
-package org.example.sharedprompts.domain.prompt.application.service.orchestration.unified;
+package org.example.sharedprompts.domain.prompt.application.service.orchestration.legacy;
 
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.common.enums.*;
+import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDictionary;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -13,6 +14,7 @@ class RoutingRuleEngineTest {
     private UnifiedGeneratePromptCommand baseCommand(ActionIntent intent, String jsonSchema) {
         return UnifiedGeneratePromptCommand.of(
                 1L,
+                RequestMode.SIMPLE,
                 PromptCategory.ETC,
                 intent,
                 null,
@@ -29,17 +31,17 @@ class RoutingRuleEngineTest {
                 null,
                 null,
                 null,
-                null,
                 null
         );
     }
 
     private IntentDefaults baseDefaults(ActionIntent intent, TaskDomain affinity) {
+        var resolutionDefaults = IntentDictionary.getResolutionDefaults(intent);
         return new IntentDefaults(
                 intent,
-                intent.getDefaultObjective(),
-                intent.getPreferredOutputNeeds(),
-                intent.getDefaultResponseShape(),
+                resolutionDefaults.defaultObjective(),
+                resolutionDefaults.preferredOutputNeeds(),
+                resolutionDefaults.defaultResponseShape(),
                 affinity,
                 EngineProfile.QUALITY_PIPELINE
         );

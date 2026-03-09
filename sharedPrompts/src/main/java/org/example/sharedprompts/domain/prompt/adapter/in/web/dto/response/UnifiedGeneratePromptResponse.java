@@ -5,17 +5,19 @@ import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.EngineMode;
 import org.example.sharedprompts.domain.prompt.common.enums.EngineProfile;
 import org.example.sharedprompts.domain.prompt.common.enums.OutputNeeds;
+import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptObjective;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
-import org.example.sharedprompts.domain.prompt.common.enums.role.CoreRoleType;
-import org.example.sharedprompts.domain.prompt.common.enums.role.DomainRoleType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
 import java.util.List;
 
 /**
- * 통합 프롬프트 생성 응답 DTO.
+ * Unified prompt generation response DTO with semantic resolution metadata.
  *
- * <p>단일 안정된 계약으로, 출력과 메타데이터를 함께 반환한다.</p>
+ * <p>Single stable contract; output and metadata returned together.
+ * Semantic fields replace legacy routing terminology.</p>
  */
 public record UnifiedGeneratePromptResponse(
 
@@ -30,6 +32,9 @@ public record UnifiedGeneratePromptResponse(
         @JsonProperty("engine_profile")
         EngineProfile engineProfile,
 
+        @JsonProperty("resolved_category")
+        PromptCategory resolvedCategory,
+
         @JsonProperty("resolved_domain")
         TaskDomain resolvedDomain,
 
@@ -38,14 +43,15 @@ public record UnifiedGeneratePromptResponse(
         @JsonProperty("output_needs")
         OutputNeeds outputNeeds,
 
-        ActionIntent intent,
+        @JsonProperty("resolved_intent")
+        ActionIntent resolvedIntent,
         String variant,
 
-        @JsonProperty("core_role")
-        CoreRoleType coreRole,
+        @JsonProperty("resolved_role")
+        RoleTypeInterface resolvedRole,
 
-        @JsonProperty("domain_role")
-        DomainRoleType domainRole,
+        @JsonProperty("resolved_action")
+        ActionTypeInterface resolvedAction,
 
         @JsonProperty("quality_badges")
         List<BadgeDto> qualityBadges,
@@ -65,11 +71,16 @@ public record UnifiedGeneratePromptResponse(
         @JsonProperty("schema_failure_reasons")
         List<String> schemaFailureReasons,
 
-        @JsonProperty("applied_rule_ids")
-        List<String> appliedRuleIds,
+        @JsonProperty("semantic_profiles_applied")
+        List<String> semanticProfilesApplied,
 
-        @JsonProperty("routing_reasons")
-        List<String> routingReasons
+        @JsonProperty("validation_warnings")
+        List<String> validationWarnings,
+
+        @JsonProperty("recommendation_hints")
+        List<String> recommendationHints,
+
+        @JsonProperty("semantic_resolution_summary")
+        String semanticResolutionSummary
 ) {
 }
-

@@ -311,28 +311,22 @@ public enum StyleType implements StableKeyedEnum {
      *
      * <p>여러 값이 구조적으로 유사한 경우, 다음과 같이 대표 스타일로 매핑된다.</p>
      *
-+     * <ul>
+     * <ul>
      *   <li>STORYTELLING → NARRATIVE</li>
      *   <li>ANALYTICAL, COMPARATIVE → DESCRIPTIVE</li>
      *   <li>FORMATTED → CONCISE (구조적 측면에서 동일한 “정리형” 스타일)</li>
      *   <li>그 외 → 자기 자신</li>
      * </ul>
      */
+    @Deprecated(since = "enum-cleanup", forRemoval = true)
     public StyleType getCanonicalStyle() {
-        return switch (this) {
-            case STORYTELLING -> NARRATIVE;
-            case ANALYTICAL, COMPARATIVE -> DESCRIPTIVE;
-            case FORMATTED -> CONCISE;
-            default -> this;
-        };
+        return ToneStyleNormalizer.toCanonicalStyle(this);
     }
 
     /**
-     * 이 StyleType이 추천되는 TaskDomain 목록을 반환한다.
-     * <p>여러 도메인에 적합한 스타일은 여러 도메인을 반환할 수 있다.</p>
-     *
-     * @return 추천되는 TaskDomain 목록 (비어있지 않음)
+     * @deprecated Recommendation policy lives in {@link org.example.sharedprompts.domain.prompt.domain.service.recommendation.RecommendationRegistry#getRecommendedDomainsForStyle(StyleType)}. This method will be removed.
      */
+    @Deprecated(since = "enum-cleanup", forRemoval = true)
     public List<TaskDomain> getRecommendedDomains() {
         return switch (this) {
             // CREATIVE 도메인 추천 스타일
@@ -368,4 +362,3 @@ public enum StyleType implements StableKeyedEnum {
         };
     }
 }
-

@@ -22,6 +22,8 @@ import org.example.sharedprompts.domain.prompt.common.guideline.bundle.Guideline
 import org.example.sharedprompts.domain.prompt.common.guideline.bundle.GuidelineBundleBuilder;
 import org.example.sharedprompts.domain.prompt.common.guideline.context.RuleContext;
 import org.example.sharedprompts.domain.prompt.common.guideline.rule.GuidelineRule;
+import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
+import org.example.sharedprompts.domain.prompt.domain.descriptor.RoleDescriptorPort;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +44,7 @@ public class PromptSpecFactory {
     private final StrategyBundlePolicy strategyBundlePolicy;
     private final ObjectiveResolverPort objectiveResolver;
     private final GuidelineBundleBuilder guidelineBundleBuilder;
+    private final RoleDescriptorPort roleDescriptorPort;
 
     /**
      * 레거시/테스트 호환용 생성자.
@@ -51,21 +54,33 @@ public class PromptSpecFactory {
     public PromptSpecFactory(ObjectiveRegistry objectiveRegistry,
                              StrategyBundlePolicy strategyBundlePolicy,
                              ObjectiveResolverPort objectiveResolver) {
-        this(objectiveRegistry, strategyBundlePolicy, objectiveResolver, new GuidelineBundleBuilder());
+        this(objectiveRegistry, strategyBundlePolicy, objectiveResolver, new GuidelineBundleBuilder(), null);
     }
 
     public PromptSpecFactory(ObjectiveRegistry objectiveRegistry,
                              StrategyBundlePolicy strategyBundlePolicy,
                              ObjectiveResolverPort objectiveResolver,
                              GuidelineBundleBuilder guidelineBundleBuilder) {
+        this(objectiveRegistry, strategyBundlePolicy, objectiveResolver, guidelineBundleBuilder, null);
+    }
+
+    public PromptSpecFactory(ObjectiveRegistry objectiveRegistry,
+                             StrategyBundlePolicy strategyBundlePolicy,
+                             ObjectiveResolverPort objectiveResolver,
+                             GuidelineBundleBuilder guidelineBundleBuilder,
+                             RoleDescriptorPort roleDescriptorPort) {
         this.objectiveRegistry = Objects.requireNonNull(objectiveRegistry, "objectiveRegistry must not be null");
         this.strategyBundlePolicy = Objects.requireNonNull(strategyBundlePolicy, "strategyBundlePolicy must not be null");
         this.objectiveResolver = Objects.requireNonNull(objectiveResolver, "objectiveResolver must not be null");
         this.guidelineBundleBuilder = guidelineBundleBuilder != null ? guidelineBundleBuilder : new GuidelineBundleBuilder();
+        this.roleDescriptorPort = roleDescriptorPort;
     }
 
     /**
-     * V3 전용 생성 경로 — Intent에서 이미 Objective를 해석한 경우 사용한다.
+     * V3 path blocked: production must use {@link #createFromConfirmedAxes(ConfirmedSemanticAxes, String, String)}.
+     * This overload builds spec from taskDomain/objective/tone/style without category→intent mediation.
+     *
+     * @throws UnsupportedOperationException always
      */
     public PromptSpec createForV3(
             String rawInput,
@@ -77,34 +92,52 @@ public class PromptSpecFactory {
             ExperienceLevel experienceLevel,
             String jsonSchema
     ) {
-        if (rawInput == null || rawInput.isBlank()) {
-            throw new IllegalArgumentException("rawInput은 null/blank일 수 없습니다.");
+        throw new UnsupportedOperationException(
+                "PromptSpecFactory.createForV3(...) without ConfirmedSemanticAxes is not supported. "
+                        + "Use createFromConfirmedAxes(ConfirmedSemanticAxes, rawInput, jsonSchema).");
+    }
+
+    /**
+     * Builds PromptSpec from confirmed semantic axes (category-aware pipeline).
+     * Role and actionType are optional; when absent no role section is added.
+     *
+     * <p>This is the <b>canonical</b> path: all semantic meaning comes from {@code axes}; no inference from
+     * category, task domain, or output contract. Use this when the caller has already resolved
+     * PromptCategory → ActionIntent → RoleType/ActionType via {@link org.example.sharedprompts.domain.prompt.application.service.semantic.SemanticResolutionService}.
+     */
+    public PromptSpec createFromConfirmedAxes(
+            ConfirmedSemanticAxes axes,
+            String rawInput,
+            String jsonSchema
+    ) {
+        if (axes == null || rawInput == null || rawInput.isBlank()) {
+            throw new IllegalArgumentException("axes and rawInput are required.");
         }
+        TaskDomain effectiveTaskDomain = axes.taskDomain() != null ? axes.taskDomain() : TaskDomain.GENERAL;
+        PromptObjective objective = axes.objective();
         if (objective == null) {
-            throw new IllegalArgumentException("objective는 null일 수 없습니다.");
+            throw new IllegalArgumentException("axes.objective is required.");
         }
-
-        ExperienceLevel level = experienceLevel != null ? experienceLevel : ExperienceLevel.INTERMEDIATE;
-        TaskDomain effectiveTaskDomain = taskDomain != null ? taskDomain : TaskDomain.GENERAL;
-
         ObjectiveProfile profile = objectiveRegistry.get(objective);
-
+        ExperienceLevel level = axes.experienceLevel() != null ? axes.experienceLevel() : ExperienceLevel.INTERMEDIATE;
         Constraints constraints = profile.constraints(level);
         OutputContract outputContract = profile.outputContract(jsonSchema, constraints.getMaxLength());
-
         RuleContext ruleContext = RuleContext.of(
                 effectiveTaskDomain,
                 profile.objective().name(),
-                null,
+                axes.actionType().orElse(null),
                 profile.supportsConstrainedDecoding(),
                 outputContract.hasJsonSchema(),
                 rawInput
         );
-
-        List<PromptSection> sections = buildSections(profile, null, effectiveTaskDomain, locale, ruleContext);
-        boolean experimentalEnabled = false; // V3 경로에서는 실험 번들을 사용하지 않는다.
-        PromptStrategyBundle bundle = strategyBundlePolicy.resolveBundle(objective, experimentalEnabled);
-
+        List<PromptSection> sections = buildSections(
+                profile,
+                axes.role().orElse(null),
+                effectiveTaskDomain,
+                axes.language(),
+                ruleContext
+        );
+        PromptStrategyBundle bundle = strategyBundlePolicy.resolveBundle(objective, false);
         return PromptSpec.builder()
                 .objective(objective)
                 .priority(profile.priority())
@@ -115,16 +148,23 @@ public class PromptSpecFactory {
                 .constraints(constraints)
                 .outputContract(outputContract)
                 .contentSandbox(ContentSandbox.defaults())
-                .role(null)
-                .tone(tone != null ? tone : ToneType.NEUTRAL)
-                .style(style != null ? style : StyleType.NARRATIVE)
+                .role(axes.role().orElse(null))
+                .tone(axes.tone())
+                .style(axes.style())
                 .strategyBundle(bundle)
-                .locale(locale != null ? locale : LanguageType.KOREAN)
+                .locale(axes.language())
                 .rawInput(rawInput)
-                .actionType(null)
+                .actionType(axes.actionType().orElse(null))
                 .build();
     }
 
+    /**
+     * Blocked: production must use {@link #createFromConfirmedAxes(ConfirmedSemanticAxes, String, String)}.
+     * This overload derives objective from taskDomain+actionType only (no category→intent mediation).
+     *
+     * @throws UnsupportedOperationException always
+     */
+    @Deprecated(since = "semantic-pipeline", forRemoval = true)
     public PromptSpec create(
             String rawInput,
             TaskDomain taskDomain,
@@ -135,10 +175,17 @@ public class PromptSpecFactory {
             LanguageType locale,
             boolean experimentalEnabled
     ) {
-        return create(rawInput, taskDomain, actionType, role, tone, style, locale,
-                experimentalEnabled, ExperienceLevel.INTERMEDIATE, null);
+        throw new UnsupportedOperationException(
+                "PromptSpecFactory.create(...) without ConfirmedSemanticAxes is not supported. "
+                        + "Use createFromConfirmedAxes(ConfirmedSemanticAxes, rawInput, jsonSchema).");
     }
 
+    /**
+     * Blocked: production must use {@link #createFromConfirmedAxes(ConfirmedSemanticAxes, String, String)}.
+     *
+     * @throws UnsupportedOperationException always
+     */
+    @Deprecated(since = "semantic-pipeline", forRemoval = true)
     public PromptSpec create(
             String rawInput,
             TaskDomain taskDomain,
@@ -150,15 +197,19 @@ public class PromptSpecFactory {
             boolean experimentalEnabled,
             ExperienceLevel experienceLevel
     ) {
-        return create(rawInput, taskDomain, actionType, role, tone, style, locale,
-                experimentalEnabled, experienceLevel, null);
+        throw new UnsupportedOperationException(
+                "PromptSpecFactory.create(...) without ConfirmedSemanticAxes is not supported. "
+                        + "Use createFromConfirmedAxes(ConfirmedSemanticAxes, rawInput, jsonSchema).");
     }
 
     /**
-     * 전체 파라미터 버전.
+     * Blocked: production must use {@link #createFromConfirmedAxes(ConfirmedSemanticAxes, String, String)}.
+     * Legacy: objective from taskDomain+actionType only (no category→intent mediation).
      *
      * @param jsonSchema EXTRACTION 시 사용할 JSON Schema (null이면 기본 스키마 사용)
+     * @throws UnsupportedOperationException always
      */
+    @Deprecated(since = "semantic-pipeline", forRemoval = true)
     public PromptSpec create(
             String rawInput,
             TaskDomain taskDomain,
@@ -171,17 +222,21 @@ public class PromptSpecFactory {
             ExperienceLevel experienceLevel,
             String jsonSchema
     ) {
-        return create(rawInput, taskDomain, actionType, role, tone, style, locale,
-                experimentalEnabled, experienceLevel, jsonSchema, null, null);
+        throw new UnsupportedOperationException(
+                "PromptSpecFactory.create(...) without ConfirmedSemanticAxes is not supported. "
+                        + "Use createFromConfirmedAxes(ConfirmedSemanticAxes, rawInput, jsonSchema).");
     }
 
     /**
-     * 전체 파라미터 + 키워드 제약 버전.
+     * Blocked: production must use {@link #createFromConfirmedAxes(ConfirmedSemanticAxes, String, String)}.
+     * Legacy: objective from {@link ObjectiveResolverPort#resolve(TaskDomain, ActionTypeInterface)}; no category→intent.
      *
      * @param jsonSchema        EXTRACTION 시 사용할 JSON Schema (null이면 기본 스키마 사용)
      * @param requiredKeywords  생성 결과에 반드시 포함되어야 할 키워드 목록 (null/empty 허용)
      * @param prohibitedKeywords 생성 결과에 포함되면 안 되는 키워드 목록 (null/empty 허용)
+     * @throws UnsupportedOperationException always
      */
+    @Deprecated(since = "semantic-pipeline", forRemoval = true)
     public PromptSpec create(
             String rawInput,
             TaskDomain taskDomain,
@@ -196,56 +251,9 @@ public class PromptSpecFactory {
             List<String> requiredKeywords,
             List<String> prohibitedKeywords
     ) {
-        if (rawInput == null || rawInput.isBlank()) {
-            throw new IllegalArgumentException("rawInput은 null/blank일 수 없습니다.");
-        }
-
-        ExperienceLevel level = experienceLevel != null ? experienceLevel : ExperienceLevel.INTERMEDIATE;
-        TaskDomain effectiveTaskDomain = taskDomain != null ? taskDomain : TaskDomain.GENERAL;
-
-        // ── Objective 결정 ──────────────────────────────────────────────────
-        PromptObjective objective = objectiveResolver.resolve(effectiveTaskDomain, actionType);
-        ObjectiveProfile profile = objectiveRegistry.get(objective);
-
-        // ── Profile에서 Objective별 항목 조회 (switch/case 없음) ────────────
-        Constraints baseConstraints = profile.constraints(level);
-        Constraints constraints = enrichConstraintsWithKeywords(
-                baseConstraints,
-                requiredKeywords,
-                prohibitedKeywords
-        );
-        OutputContract outputContract = profile.outputContract(jsonSchema, constraints.getMaxLength());
-
-        RuleContext ruleContext = RuleContext.of(
-                effectiveTaskDomain,
-                profile.objective().name(),
-                actionType,
-                profile.supportsConstrainedDecoding(),
-                outputContract.hasJsonSchema(),
-                rawInput
-        );
-
-        List<PromptSection> sections = buildSections(profile, role, effectiveTaskDomain, locale, ruleContext);
-        PromptStrategyBundle bundle = strategyBundlePolicy.resolveBundle(objective, experimentalEnabled);
-
-        return PromptSpec.builder()
-                .objective(objective)
-                .priority(profile.priority())
-                .rubric(profile.rubric())
-                .taskDomain(effectiveTaskDomain)
-                .experienceLevel(level)
-                .sections(sections)
-                .constraints(constraints)
-                .outputContract(outputContract)
-                .contentSandbox(ContentSandbox.defaults())
-                .role(role)
-                .tone(tone != null ? tone : ToneType.NEUTRAL)
-                .style(style != null ? style : StyleType.NARRATIVE)
-                .strategyBundle(bundle)
-                .locale(locale != null ? locale : LanguageType.KOREAN)
-                .rawInput(rawInput)
-                .actionType(actionType)
-                .build();
+        throw new UnsupportedOperationException(
+                "PromptSpecFactory.create(...) without ConfirmedSemanticAxes is not supported. "
+                        + "Use createFromConfirmedAxes(ConfirmedSemanticAxes, rawInput, jsonSchema).");
     }
 
     private Constraints enrichConstraintsWithKeywords(Constraints base,
@@ -280,11 +288,15 @@ public class PromptSpecFactory {
     ) {
         List<PromptSection> sections = new ArrayList<>();
 
-        // 1) Role 섹션 (공통) — 로케일별 이름/설명은 RoleTypeInterface default 메서드에 위임
+        // 1) Role 섹션 (공통) — 로케일별 이름/설명은 RoleDescriptorPort에 위임
         if (role != null) {
             LanguageType effectiveLocale = locale != null ? locale : LanguageType.KOREAN;
-            String roleName = role.getRoleNameByLang(effectiveLocale);
-            String roleDesc = role.getDescriptionByLang(effectiveLocale);
+            String roleName = roleDescriptorPort != null
+                    ? roleDescriptorPort.getRoleName(role, effectiveLocale)
+                    : role.getRoleNameByLang(effectiveLocale);
+            String roleDesc = roleDescriptorPort != null
+                    ? roleDescriptorPort.getDescription(role, effectiveLocale)
+                    : role.getDescriptionByLang(effectiveLocale);
             sections.add(PromptSection.required(
                     PromptSection.SectionType.ROLE,
                     "You are a " + roleName + ". " + roleDesc

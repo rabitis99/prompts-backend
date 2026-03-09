@@ -2,10 +2,11 @@ package org.example.sharedprompts.domain.prompt.common.enums.role;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
 
 @Getter
 @AllArgsConstructor
-public enum HealthFitnessRoleType implements RoleTypeInterface {
+public enum HealthFitnessRoleType implements RoleTypeInterface, StableKeyedEnum {
     FITNESS_COACH(
             "피트니스 코치",
             "운동 계획 수립 및 피트니스 목표 달성 지원 전문가",
@@ -53,5 +54,15 @@ public enum HealthFitnessRoleType implements RoleTypeInterface {
     private final String descriptionEn;
     private final String roleNameJa;
     private final String descriptionJa;
+
+    @Override
+    public String keyPrefix() {
+        return "ROLE.HEALTH_FITNESS";
+    }
+
+    @Override
+    public String key() {
+        return keyPrefix() + "." + name();
+    }
 }
 

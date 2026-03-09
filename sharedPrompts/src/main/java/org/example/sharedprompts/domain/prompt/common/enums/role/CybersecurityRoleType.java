@@ -45,5 +45,10 @@ public enum CybersecurityRoleType implements RoleTypeInterface {
     private final String descriptionEn;
     private final String roleNameJa;
     private final String descriptionJa;
+
+    @Override
+    public String keyPrefix() {
+        return "ROLE.CYBERSECURITY";
+    }
 }
 

@@ -2,21 +2,27 @@ package org.example.sharedprompts.domain.prompt.adapter.out.render.section;
 
 import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
+import org.example.sharedprompts.domain.prompt.domain.descriptor.RoleDescriptorPort;
 import org.example.sharedprompts.domain.prompt.domain.model.spec.PromptSpec;
+import org.springframework.stereotype.Component;
 
 /**
  * [ROLE CONTEXT] 섹션 렌더러.
+ * Role display text is obtained via {@link RoleDescriptorPort}, not directly from the enum.
  */
+@Component
 public final class RoleContextRenderer {
 
-    private RoleContextRenderer() {
+    private final RoleDescriptorPort roleDescriptorPort;
+
+    public RoleContextRenderer(RoleDescriptorPort roleDescriptorPort) {
+        this.roleDescriptorPort = roleDescriptorPort;
     }
 
-    public static String render(PromptSpec spec) {
+    public String render(PromptSpec spec) {
         if (spec == null) {
             return "";
         }
-
         RoleTypeInterface role = spec.getRole();
         LanguageType locale = spec.getLocale();
 
@@ -46,8 +52,8 @@ public final class RoleContextRenderer {
             return sb.toString();
         }
 
-        String roleName = role.getRoleNameByLang(locale);
-        String roleDescription = role.getDescriptionByLang(locale);
+        String roleName = roleDescriptorPort.getRoleName(role, locale);
+        String roleDescription = roleDescriptorPort.getDescription(role, locale);
         String toneGuideline = spec.getTone() != null
                 ? spec.getTone().getGuidelineByLang(locale)
                 : null;

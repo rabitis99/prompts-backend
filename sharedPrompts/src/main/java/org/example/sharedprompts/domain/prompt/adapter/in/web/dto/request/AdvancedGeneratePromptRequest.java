@@ -4,12 +4,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.ExpressionOptions;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.OutputOptions;
+import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.SemanticSelection;
+import org.example.sharedprompts.domain.prompt.common.enums.RequestMode;
 import org.example.sharedprompts.domain.prompt.common.enums.*;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.common.enums.role.CoreRoleType;
-import org.example.sharedprompts.domain.prompt.common.enums.role.DomainRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTypeDeserializer;
 import org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTypeSerializer;
@@ -20,13 +23,20 @@ import java.util.List;
 
 /**
  * 고급 오버라이드 모드 요청.
+ *
+ * <p>Field order follows semantic hierarchy: category → intent → input/output (json_schema) →
+ * engine_mode → tone/style → role_type/action_type → tags. Role and action are optional overrides
+ * validated against category+intent by SemanticValidationService.</p>
  */
 public record AdvancedGeneratePromptRequest(
 
         @JsonProperty("request_type")
         RequestType requestType,
 
+        @NotNull(message = "카테고리를 선택해주세요.")
         PromptCategory category,
+
+        @NotNull(message = "의도(intent)를 선택해주세요.")
         ActionIntent intent,
         String variant,
 
@@ -65,12 +75,6 @@ public record AdvancedGeneratePromptRequest(
         @JsonDeserialize(using = RoleTypeDeserializer.class)
         RoleTypeInterface roleType,
 
-        @JsonProperty("core_role")
-        CoreRoleType coreRole,
-
-        @JsonProperty("domain_role")
-        DomainRoleType domainRole,
-
         @Size(max = 20, message = "태그는 최대 20개까지 가능합니다.")
         List<@NotBlank(message = "태그는 공백일 수 없습니다.")
                 @Size(max = 50, message = "태그는 1~50자로 입력해주세요.")
@@ -86,23 +90,18 @@ public record AdvancedGeneratePromptRequest(
     @Override
     public UnifiedGeneratePromptCommand toCommand(Long userId) {
         boolean normalizedDisableQualityPipeline = Boolean.TRUE.equals(disableQualityPipeline);
-        return UnifiedGeneratePromptCommand.of(
+        SemanticSelection semantic = new SemanticSelection(category, intent, roleType, actionType);
+        ExpressionOptions expression = new ExpressionOptions(tone, style, language, experience);
+        OutputOptions output = new OutputOptions(jsonSchema, engineMode);
+        return UnifiedGeneratePromptCommand.fromNormalized(
                 userId,
-                category,
-                intent,
+                RequestMode.ADVANCED,
+                semantic,
+                expression,
+                output,
                 variant,
                 input,
-                jsonSchema,
-                engineMode,
-                tone,
-                style,
-                language,
-                experience,
                 normalizedDisableQualityPipeline,
-                actionType,
-                roleType,
-                coreRole,
-                domainRole,
                 tags,
                 normalizeOptional(title),
                 normalizeOptional(description)

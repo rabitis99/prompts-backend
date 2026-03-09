@@ -8,9 +8,19 @@ import java.util.Optional;
 
 /**
  * ActionType 공통 인터페이스
- * 모든 ActionType enum이 구현해야 하는 공통 메서드 정의
+ * 모든 ActionType enum이 구현해야 하는 공통 메서드 정의.
+ *
+ * <p><b>책임 분리:</b> Enums identify; registries define compatibility and defaults.
+ * Display names are UI metadata (consider i18n/descriptor for future). TaskDomain is stable classification;
+ * default objective and output behavior are resolved via {@link ActionTypeBehaviorRegistry} and
+ * {@link org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistryPort}.</p>
  */
 public interface ActionTypeInterface {
+    /**
+     * Stable identifier for serialization and equality.
+     */
+    String key();
+
     String getDisplayNameKo();
     String getDisplayNameEn();
     String getDisplayNameJa();
@@ -28,8 +38,13 @@ public interface ActionTypeInterface {
 
     /**
      * 이 ActionType에 정책적으로 고정된 Objective가 있을 경우 반환한다.
-     * null이면 레지스트리/도메인 기본값을 따른다.
+     * <p><b>Active resolution must not use this.</b> {@link ObjectiveResolver} uses
+     * {@link org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistryPort} only.
+     * Retained for compatibility; may be removed once all callers are removed.</p>
+     *
+     * @deprecated Policy belongs in registry. Use {@link org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistryPort#findByActionType(ActionTypeInterface)} for resolution.
      */
+    @Deprecated(since = "enum-cleanup", forRemoval = true)
     default PromptObjective getDefaultObjective() {
         return null;
     }

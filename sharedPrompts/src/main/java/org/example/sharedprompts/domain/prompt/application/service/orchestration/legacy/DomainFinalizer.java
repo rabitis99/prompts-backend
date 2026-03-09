@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.application.service.orchestration.unified;
+package org.example.sharedprompts.domain.prompt.application.service.orchestration.legacy;
 
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
@@ -30,25 +30,21 @@ public class DomainFinalizer {
         TaskDomain baseDomain = chooseBaseDomain(command.category(), defaults);
         reasons.add("baseDomain:" + baseDomain.name());
 
-        if (defaults.domainAffinity() != null) {
-            baseDomain = defaults.domainAffinity();
-            reasons.add("intentAffinity:" + defaults.domainAffinity().name());
-        }
-
         if (overrides.domainOverride() != null) {
             baseDomain = overrides.domainOverride();
             reasons.add("ruleOverrideDomain:" + overrides.domainOverride().name());
         }
 
+        // Contract: second arg is intent affinity only; category default/override stay in DomainFinalizer.
         ResolvedDomain resolved = domainResolutionService.resolveForUnified(
                 command.category(),
-                baseDomain
+                defaults.domainAffinity()
         );
 
         TaskDomain finalDomain = baseDomain;
         if (resolved.domain() != null) {
             finalDomain = resolved.domain();
-            reasons.add("resolver:" + resolved.source());
+            reasons.add("resolver:" + (resolved.source() != null ? resolved.source() : "unknown"));
         }
 
         return new FinalDomainDecision(finalDomain, List.copyOf(reasons));

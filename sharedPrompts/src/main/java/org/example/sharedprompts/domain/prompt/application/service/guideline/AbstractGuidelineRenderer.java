@@ -8,6 +8,7 @@ import org.example.sharedprompts.domain.prompt.common.guideline.rule.GuidelineRu
 import org.example.sharedprompts.domain.prompt.common.guideline.content.GeneralGuidelines;
 import org.example.sharedprompts.domain.prompt.common.guideline.rule.RuleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
+import org.example.sharedprompts.domain.prompt.domain.descriptor.RoleDescriptorPort;
 
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,12 @@ import static java.util.stream.Collectors.joining;
  * <p>공통 렌더링 로직을 제공하고, 언어별 문자열만 추상 메서드로 남긴다.</p>
  */
 public abstract class AbstractGuidelineRenderer implements GuidelineRenderer {
+
+    protected final RoleDescriptorPort roleDescriptorPort;
+
+    protected AbstractGuidelineRenderer(RoleDescriptorPort roleDescriptorPort) {
+        this.roleDescriptorPort = roleDescriptorPort;
+    }
 
     @Override
     public String renderFallbackNotice(TaskDomain domain) {
@@ -38,7 +45,7 @@ public abstract class AbstractGuidelineRenderer implements GuidelineRenderer {
         }
 
         return getPersonaHeaderPrefix() +
-                role.getRoleNameByLang(getLanguageType()) +
+                (roleDescriptorPort != null ? roleDescriptorPort.getRoleName(role, getLanguageType()) : role.getRoleNameByLang(getLanguageType())) +
                 getPersonaHeaderSuffix() + "\n" +
                 renderToneStyleLine(tone, style);
     }

@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.prompt.application.service.guideline;
 import org.example.sharedprompts.domain.prompt.common.enums.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.common.guideline.rule.GuidelineRule;
+import org.example.sharedprompts.domain.prompt.domain.descriptor.RoleDescriptorPort;
 import org.springframework.stereotype.Component;
 
 /**
@@ -10,6 +11,10 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class JapaneseGuidelineRenderer extends AbstractGuidelineRenderer {
+
+    public JapaneseGuidelineRenderer(RoleDescriptorPort roleDescriptorPort) {
+        super(roleDescriptorPort);
+    }
 
     @Override
     protected LanguageType getLanguageType() {
