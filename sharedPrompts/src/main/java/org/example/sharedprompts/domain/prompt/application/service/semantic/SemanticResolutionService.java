@@ -13,6 +13,7 @@ import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticP
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
 import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDictionary;
 import org.example.sharedprompts.domain.prompt.domain.semantic.SemanticValidationResult;
+import org.example.sharedprompts.domain.prompt.domain.semantic.RecommendationResult;
 import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 import org.example.sharedprompts.domain.prompt.application.exception.SemanticResolutionException;
 import org.example.sharedprompts.domain.prompt.common.AxisSourceConstants;
@@ -104,7 +105,8 @@ public class SemanticResolutionService {
                 core.fallbackIntentUsed(),
                 command.intent() != null,
                 command.roleType() != null,
-                command.actionType() != null
+                command.actionType() != null,
+                false
         );
 
         ConfirmedSemanticAxes axes = ConfirmedSemanticAxes.builder()
@@ -135,10 +137,11 @@ public class SemanticResolutionService {
             boolean fallbackIntentUsed,
             boolean userProvidedIntent,
             boolean userProvidedRole,
-            boolean userProvidedAction
+            boolean userProvidedAction,
+            boolean isExtraction
     ) {
         public static ResolutionMetadata forExtraction() {
-            return new ResolutionMetadata(false, true, false, false);
+            return new ResolutionMetadata(false, false, false, false, true);
         }
     }
 
@@ -263,7 +266,7 @@ public class SemanticResolutionService {
             CategorySemanticProfile profile,
             boolean fallbackIntentUsed,
             SemanticValidationResult validation,
-            SemanticRecommendationService.RecommendationResult recommendation,
+            RecommendationResult recommendation,
             List<String> warnings
     ) {
         static CoreResolutionResult fail(List<String> errors) {
@@ -274,7 +277,7 @@ public class SemanticResolutionService {
                 CategorySemanticProfile profile,
                 boolean fallbackIntentUsed,
                 SemanticValidationResult validation,
-                SemanticRecommendationService.RecommendationResult recommendation,
+                RecommendationResult recommendation,
                 List<String> warnings) {
             return new CoreResolutionResult(true, null, resolvedIntent, profile, fallbackIntentUsed, validation, recommendation, warnings);
         }

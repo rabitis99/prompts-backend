@@ -133,6 +133,14 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
 
     /** Builds axis_sources map from resolution metadata (document: populate inside orchestrator after semantic resolution). */
     private static Map<String, String> buildAxisSources(SemanticResolutionService.ResolutionMetadata metadata) {
+        if (metadata.isExtraction()) {
+            return Map.of(
+                    "intent", AxisSourceConstants.IMPLIED_BY_MODE,
+                    "objective", AxisSourceConstants.IMPLIED_BY_MODE,
+                    "output_needs", AxisSourceConstants.IMPLIED_BY_MODE
+            );
+        }
+
         return Map.of(
                 "intent", metadata.userProvidedIntent() ? AxisSourceConstants.USER_PROVIDED : AxisSourceConstants.FALLBACK,
                 "role", metadata.userProvidedRole() ? AxisSourceConstants.USER_PROVIDED : AxisSourceConstants.RECOMMENDED,

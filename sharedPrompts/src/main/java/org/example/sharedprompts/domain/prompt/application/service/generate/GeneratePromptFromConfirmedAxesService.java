@@ -18,10 +18,12 @@ import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticP
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileRegistry;
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
 import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDictionary;
+import org.example.sharedprompts.domain.prompt.domain.semantic.SemanticValidationResult;
+import org.example.sharedprompts.domain.prompt.application.exception.SemanticResolutionException;
+import org.example.sharedprompts.domain.prompt.application.service.semantic.SemanticValidationService;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.Optional;
+import java.util.List;
 
 /**
  * Generates a prompt from already-confirmed semantic axes.
@@ -33,6 +35,7 @@ public class GeneratePromptFromConfirmedAxesService implements GeneratePromptFro
 
     private final ConfirmedAxesMapper confirmedAxesMapper;
     private final CategorySemanticProfileRegistry profileRegistry;
+    private final SemanticValidationService validationService;
     private final GeneratePromptUseCase generatePromptUseCase;
 
     private static final String DEFAULT_TITLE_PREFIX = "[Confirmed] ";
@@ -40,22 +43,48 @@ public class GeneratePromptFromConfirmedAxesService implements GeneratePromptFro
     public GeneratePromptFromConfirmedAxesService(
             ConfirmedAxesMapper confirmedAxesMapper,
             CategorySemanticProfileRegistry profileRegistry,
+            SemanticValidationService validationService,
             GeneratePromptUseCase generatePromptUseCase
     ) {
         this.confirmedAxesMapper = confirmedAxesMapper;
         this.profileRegistry = profileRegistry;
+        this.validationService = validationService;
         this.generatePromptUseCase = generatePromptUseCase;
     }
 
     @Override
     public UnifiedGeneratePromptResult generate(ConfirmedGeneratePromptCommand command) {
+        if (command.category() == org.example.sharedprompts.domain.prompt.common.enums.PromptCategory.EXTRACTION) {
+            if (command.requestMode() != org.example.sharedprompts.domain.prompt.common.enums.RequestMode.EXTRACTION) {
+                throw new SemanticResolutionException(List.of("EXTRACTION category is only valid with request_mode=EXTRACTION"));
+            }
+        }
+
+        CategorySemanticProfile profile = profileRegistry.getProfile(command.category()).orElse(null);
+        SemanticValidationResult validation = validationService.validate(command, profile);
+
+        if (validation.severity() == SemanticValidationResult.Severity.ERROR) {
+            List<String> messages = validation.items().stream()
+                    .map(i -> i.code() + ": " + i.message())
+                    .toList();
+            throw new SemanticResolutionException(messages);
+        }
+
         org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective domainObjective =
                 resolveObjective(command);
         OutputNeeds outputNeeds = resolveOutputNeeds(command);
-        TaskDomain taskDomain = resolveTaskDomain(command);
+        TaskDomain taskDomain = resolveTaskDomain(command, profile);
 
         ConfirmedSemanticAxes.Builder axesBuilder = confirmedAxesMapper.fromCommand(command);
         axesBuilder.objective(domainObjective).outputNeeds(outputNeeds).taskDomain(taskDomain);
+        
+        if (validation.severity() == SemanticValidationResult.Severity.WARNING) {
+            List<String> warnings = validation.items().stream()
+                    .map(SemanticValidationResult.SemanticValidationItem::message)
+                    .toList();
+            axesBuilder.validationWarnings(warnings);
+        }
+        
         ConfirmedSemanticAxes axes = axesBuilder.build();
 
         GeneratePromptCommand v2Command = toV2Command(command, axes);
@@ -63,13 +92,16 @@ public class GeneratePromptFromConfirmedAxesService implements GeneratePromptFro
 
         PromptObjective apiObjective = PromptObjective.fromDomainObjective(axes.objective());
 
-        Map<String, String> axisSources = Map.of(
-                "intent", AxisSourceConstants.USER_PROVIDED,
-                "role", axes.role().isPresent() ? AxisSourceConstants.USER_PROVIDED : AxisSourceConstants.RECOMMENDED,
-                "action", axes.actionType().isPresent() ? AxisSourceConstants.USER_PROVIDED : AxisSourceConstants.RECOMMENDED,
-                "objective", AxisSourceConstants.RECOMMENDED,
-                "output_needs", AxisSourceConstants.RECOMMENDED
-        );
+        java.util.Map<String, String> axisSources = new java.util.HashMap<>();
+        axisSources.put("intent", AxisSourceConstants.USER_PROVIDED);
+        if (axes.role().isPresent()) {
+            axisSources.put("role", AxisSourceConstants.USER_PROVIDED);
+        }
+        if (axes.actionType().isPresent()) {
+            axisSources.put("action", AxisSourceConstants.USER_PROVIDED);
+        }
+        axisSources.put("objective", AxisSourceConstants.RECOMMENDED);
+        axisSources.put("output_needs", AxisSourceConstants.RECOMMENDED);
 
         return new UnifiedGeneratePromptResult(
                 v2Result.generatedContent(),
@@ -122,11 +154,11 @@ public class GeneratePromptFromConfirmedAxesService implements GeneratePromptFro
     }
 
     /** Derives taskDomain from profile or category default. */
-    private TaskDomain resolveTaskDomain(ConfirmedGeneratePromptCommand command) {
-        Optional<CategorySemanticProfile> profileOpt = profileRegistry.getProfile(command.category());
-        return profileOpt
-                .map(CategorySemanticProfile::getBaseTaskDomain)
-                .orElseGet(() -> command.category().getDefaultDomain());
+    private TaskDomain resolveTaskDomain(ConfirmedGeneratePromptCommand command, CategorySemanticProfile profile) {
+        if (profile != null) {
+            return profile.getBaseTaskDomain();
+        }
+        return command.category().getDefaultDomain();
     }
 
     private GeneratePromptCommand toV2Command(ConfirmedGeneratePromptCommand command, ConfirmedSemanticAxes axes) {

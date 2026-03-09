@@ -1,0 +1,8 @@
+fix: enhance semantic validation and axis sources mapping
+
+- Update API specification docs to reflect IMPLIED_BY_MODE and String type for defaultSelection.
+- Group parameters into ValidationInput record in SemanticValidationService to prevent parameter mapping drift.
+- Enforce semantic validation checks in the confirmed generation path (GeneratePromptFromConfirmedAxesService).
+- Dynamically suggest preferred tones and styles in validation warnings instead of hardcoding NEUTRAL and TECHNICAL.
+- Map IMPLIED_BY_MODE for extraction request axis sources in UnifiedPromptGenerationOrchestrator.
+- Conditionally apply USER_PROVIDED source to role and action in confirmed generation to prevent mismatching RECOMMENDED for absent values.
