@@ -16,9 +16,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Response for POST /prompts/recommend.
+ * 프롬프트 축 추천 결과 응답 DTO
  */
 public record RecommendPromptResponse(
+
         @JsonProperty("request_mode")
         RequestMode requestMode,
 

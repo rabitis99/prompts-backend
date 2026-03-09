@@ -14,10 +14,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.RequestType;
 import java.util.List;
 
 /**
- * JSON Schema 기반 추출/구조화 모드 요청.
- *
- * <p>No category or intent—semantic resolution forces intent=EXTRACT and category=ETC.
- * Output (json_schema) is required; it does not drive semantic meaning.</p>
+ * JSON Schema 기반 데이터 추출/구조화 요청 DTO
  */
 public record ExtractionGeneratePromptRequest(
 
@@ -29,16 +26,17 @@ public record ExtractionGeneratePromptRequest(
         String input,
 
         @NotBlank(message = "JSON Schema를 입력해주세요.")
-        @Size(max = 20_000, message = "JSON Schema는 최대 20000자까지 허용됩니다.")
+        @Size(max = 20_000, message = "JSON Schema는 최대 20000자까지 입력해주세요.")
         @JsonProperty("json_schema")
         String jsonSchema,
 
         LanguageType language,
 
         @Size(max = 20, message = "태그는 최대 20개까지 가능합니다.")
-        List<@NotBlank(message = "태그는 공백일 수 없습니다.")
+        List<
+                @NotBlank(message = "태그는 공백일 수 없습니다.")
                 @Size(max = 50, message = "태그는 1~50자로 입력해주세요.")
-                String> tags,
+                        String> tags,
 
         @Size(max = 200, message = "제목은 최대 200자까지 입력해주세요.")
         String title,
@@ -48,6 +46,7 @@ public record ExtractionGeneratePromptRequest(
 ) implements UnifiedGeneratePromptRequest {
 
     public ExtractionGeneratePromptRequest {
+        // EXTRACTION 요청만 허용
         if (requestType != RequestType.EXTRACTION) {
             throw new IllegalArgumentException("request_type must be EXTRACTION for ExtractionGeneratePromptRequest");
         }
@@ -55,13 +54,23 @@ public record ExtractionGeneratePromptRequest(
 
     @Override
     public UnifiedGeneratePromptCommand toCommand(Long userId) {
-        SemanticSelection semantic = null;
-        ExpressionOptions expression = new ExpressionOptions(null, null, language, null);
-        OutputOptions output = new OutputOptions(jsonSchema, null);
+
+        ExpressionOptions expression = new ExpressionOptions(
+                null,
+                null,
+                language,
+                null
+        );
+
+        OutputOptions output = new OutputOptions(
+                jsonSchema,
+                null
+        );
+
         return UnifiedGeneratePromptCommand.fromNormalized(
                 userId,
                 RequestMode.EXTRACTION,
-                semantic,
+                null, // 추출 모드는 semantic 축을 사용하지 않음
                 expression,
                 output,
                 null,
@@ -73,9 +82,10 @@ public record ExtractionGeneratePromptRequest(
         );
     }
 
-    /** API에서는 선택값인 title/description을 빈 문자열이 아닌 null로 내려보내 downstream fallback이 적용되도록 함. */
+    /**
+     * 선택값이 빈 문자열이면 null로 변환하여 기본값 처리 가능하게 함
+     */
     private static String normalizeOptional(String value) {
         return (value != null && !value.isBlank()) ? value : null;
     }
 }
-

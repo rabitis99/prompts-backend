@@ -22,11 +22,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.serializer.RoleTypeS
 import java.util.List;
 
 /**
- * 고급 오버라이드 모드 요청.
- *
- * <p>Field order follows semantic hierarchy: category → intent → input/output (json_schema) →
- * engine_mode → tone/style → role_type/action_type → tags. Role and action are optional overrides
- * validated against category+intent by SemanticValidationService.</p>
+ * 고급 옵션을 직접 지정하는 프롬프트 생성 요청
  */
 public record AdvancedGeneratePromptRequest(
 
@@ -77,15 +73,9 @@ public record AdvancedGeneratePromptRequest(
 
         @Size(max = 20, message = "태그는 최대 20개까지 가능합니다.")
         List<@NotBlank(message = "태그는 공백일 수 없습니다.")
-                @Size(max = 50, message = "태그는 1~50자로 입력해주세요.")
+        @Size(max = 50, message = "태그는 1~50자로 입력해주세요.")
                 String> tags
 ) implements UnifiedGeneratePromptRequest {
-
-    public AdvancedGeneratePromptRequest {
-        if (requestType != RequestType.ADVANCED) {
-            throw new IllegalArgumentException("request_type must be ADVANCED for AdvancedGeneratePromptRequest");
-        }
-    }
 
     @Override
     public UnifiedGeneratePromptCommand toCommand(Long userId) {
@@ -93,6 +83,7 @@ public record AdvancedGeneratePromptRequest(
         SemanticSelection semantic = new SemanticSelection(category, intent, roleType, actionType);
         ExpressionOptions expression = new ExpressionOptions(tone, style, language, experience);
         OutputOptions output = new OutputOptions(jsonSchema, engineMode);
+
         return UnifiedGeneratePromptCommand.fromNormalized(
                 userId,
                 RequestMode.ADVANCED,
@@ -108,9 +99,10 @@ public record AdvancedGeneratePromptRequest(
         );
     }
 
-    /** API에서는 선택값인 title/description을 빈 문자열이 아닌 null로 내려보내 downstream fallback이 적용되도록 함. */
+    /**
+     * 빈 문자열은 null로 바꿔 후속 기본값 처리가 가능하도록 정규화
+     */
     private static String normalizeOptional(String value) {
         return (value != null && !value.isBlank()) ? value : null;
     }
 }
-

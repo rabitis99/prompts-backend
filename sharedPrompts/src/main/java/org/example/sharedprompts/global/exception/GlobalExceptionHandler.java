@@ -213,6 +213,13 @@ public class GlobalExceptionHandler {
         return ErrorCode.DATA_INTEGRITY_VIOLATION;
     }
 
+    // 비동기 요청 타임아웃 예외 처리
+    @ExceptionHandler(org.springframework.web.context.request.async.AsyncRequestTimeoutException.class)
+    public ResponseEntity<?> handleAsyncRequestTimeoutException(org.springframework.web.context.request.async.AsyncRequestTimeoutException e) {
+        log.warn("AsyncRequestTimeoutException: 비동기 처리 시간 초과");
+        return CustomResponseHelper.fail(new ApiException(ErrorCode.AI_GENERATION_TIMEOUT));
+    }
+
     // 커스텀 예외
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<?> handleCustomException(ApiException e) {

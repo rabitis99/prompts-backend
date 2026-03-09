@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.infrastructure.persistence;
 
-import org.example.sharedprompts.domain.prompt.adapter.out.persistence.PromptPersistenceAdapter;
+import org.example.sharedprompts.domain.prompt.adapter.out.persistence.adapter.PromptPersistenceAdapter;
 import org.example.sharedprompts.domain.prompt.application.port.out.persistence.PromptCommandPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.persistence.PromptQueryPort;
 import org.example.sharedprompts.domain.prompt.entity.Prompt;

@@ -5,12 +5,14 @@ import org.example.sharedprompts.domain.prompt.application.port.in.command.Recom
 import org.springframework.stereotype.Component;
 
 /**
- * Adapter mapper: request DTO → application command.
- * Keeps the web layer from directly constructing application command types.
+ * 추천 요청 DTO → 추천 커맨드 변환 매퍼
  */
 @Component
 public class RecommendationRequestMapper {
 
+    /**
+     * API 요청 DTO를 유즈케이스 커맨드로 변환
+     */
     public RecommendPromptCommand toCommand(RecommendPromptRequest request) {
         return new RecommendPromptCommand(
                 request.requestMode(),

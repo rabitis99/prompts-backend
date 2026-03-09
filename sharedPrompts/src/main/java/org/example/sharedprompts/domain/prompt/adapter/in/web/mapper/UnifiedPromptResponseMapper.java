@@ -7,12 +7,18 @@ import org.example.sharedprompts.domain.prompt.domain.value.quality.QualityBadge
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Map;
 
+/**
+ * 프롬프트 생성 결과 → 응답 DTO 변환 매퍼
+ */
 @Component
 public class UnifiedPromptResponseMapper {
 
+    /**
+     * 생성 결과를 API 응답 DTO로 변환
+     */
     public UnifiedGeneratePromptResponse toResponse(UnifiedGeneratePromptResult result) {
+
         List<BadgeDto> badgeDtos = result.qualityBadges().stream()
                 .map(this::toBadgeDto)
                 .toList();
@@ -44,8 +50,10 @@ public class UnifiedPromptResponseMapper {
         );
     }
 
+    /**
+     * 품질 배지 → 배지 응답 DTO 변환
+     */
     private BadgeDto toBadgeDto(QualityBadge badge) {
         return new BadgeDto(badge.name(), badge.getDisplayName());
     }
 }
-

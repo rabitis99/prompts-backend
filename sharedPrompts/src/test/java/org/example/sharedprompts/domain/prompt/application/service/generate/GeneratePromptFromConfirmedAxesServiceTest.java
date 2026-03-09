@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.application.service.generate;
 
-import org.example.sharedprompts.domain.prompt.adapter.in.web.mapper.ConfirmedAxesMapper;
+import org.example.sharedprompts.domain.prompt.application.mapping.ConfirmedAxesMapper;
 import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptUseCase;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.ConfirmedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.GeneratePromptCommand;

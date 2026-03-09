@@ -15,11 +15,14 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * 웹 DTO ↔ Prompt 유즈케이스 모델 매퍼.
+ * 웹 DTO ↔ 프롬프트 유즈케이스 모델 변환 매퍼
  */
 @Component
 public class PromptWebMapper {
 
+    /**
+     * 검색 조건 DTO → 검색 쿼리 변환
+     */
     public SearchPromptsQuery toSearchQuery(PromptSearchCondition condition,
                                             Long ownerId,
                                             Long viewerId) {
@@ -34,6 +37,9 @@ public class PromptWebMapper {
         );
     }
 
+    /**
+     * 페이지 조회 결과 → 페이지 응답 DTO 변환
+     */
     public PageResponse<PromptSummaryResponse> toPageResponse(PromptPageResult<PromptSummaryView> page) {
         List<PromptSummaryResponse> content = page.content().stream()
                 .map(this::toSummaryResponse)
@@ -49,6 +55,9 @@ public class PromptWebMapper {
                 .build();
     }
 
+    /**
+     * 프롬프트 요약 View → 응답 DTO 변환
+     */
     public PromptSummaryResponse toSummaryResponse(PromptSummaryView view) {
         return new PromptSummaryResponse(
                 view.id(),
@@ -63,6 +72,9 @@ public class PromptWebMapper {
         );
     }
 
+    /**
+     * 프롬프트 상세 View → 응답 DTO 변환
+     */
     public PromptDetailResponse toDetailResponse(PromptDetailView view) {
         return new PromptDetailResponse(
                 view.id(),
@@ -81,6 +93,9 @@ public class PromptWebMapper {
         );
     }
 
+    /**
+     * 수정 요청 DTO → 업데이트 커맨드 변환
+     */
     public UpdatePromptCommand toUpdateCommand(Long promptId,
                                                Long userId,
                                                PromptUpdateDto dto) {
@@ -91,8 +106,7 @@ public class PromptWebMapper {
                 dto.getDescription(),
                 dto.getIsPublic(),
                 dto.getTags(),
-                null // content, promptCategory는 현재 UpdatePromptCommand에서 지원하지 않음
+                null // content, promptCategory는 현재 업데이트에서 지원하지 않음
         );
     }
 }
-
