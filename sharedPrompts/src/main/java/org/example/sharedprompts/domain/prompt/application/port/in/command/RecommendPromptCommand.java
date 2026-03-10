@@ -4,10 +4,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.*;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
-/**
- * Command for the recommendation-only flow.
- * Used by POST /prompts/recommend to return recommended semantic axes without generating a prompt.
- */
+/** 추천 전용 커맨드. 생성 없이 추천 축만 반환 */
 public record RecommendPromptCommand(
         RequestMode requestMode,
         PromptCategory category,

@@ -6,17 +6,10 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/**
- * ConfirmedGeneratePromptCommand → ConfirmedSemanticAxes.Builder 변환 매퍼
- */
+/** Command → ConfirmedSemanticAxes.Builder. objective/outputNeeds/taskDomain은 서비스에서 설정 */
 @Component
 public class ConfirmedAxesMapper {
 
-    /**
-     * command 기반 축 정보로 Builder 생성.
-     * <p>
-     * objective / outputNeeds / taskDomain 은 서비스에서 설정합니다.
-     */
     public ConfirmedSemanticAxes.Builder fromCommand(ConfirmedGeneratePromptCommand command) {
         List<String> appliedProfileIds = List.of(
                 "confirmed:" + command.category().name(),

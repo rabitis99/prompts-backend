@@ -3,7 +3,7 @@ package org.example.sharedprompts.github.adapter.out.client;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptDetailView;
-import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptQueryUseCase;
+import org.example.sharedprompts.domain.prompt.application.port.in.prompt.PromptQueryUseCase;
 import org.example.sharedprompts.github.port.exception.TemplateException;
 import org.example.sharedprompts.github.port.out.BodyTemplatePort;
 import org.springframework.stereotype.Component;

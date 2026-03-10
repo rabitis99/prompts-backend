@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.prompt.domain.service.spec;
 
+import org.example.sharedprompts.domain.prompt.application.semantic.resolution.SemanticResolutionService;
 import org.example.sharedprompts.domain.prompt.domain.model.spec.Constraints;
 import org.example.sharedprompts.domain.prompt.domain.model.spec.ContentSandbox;
 import org.example.sharedprompts.domain.prompt.domain.model.contract.OutputContract;
@@ -103,7 +104,7 @@ public class PromptSpecFactory {
      *
      * <p>This is the <b>canonical</b> path: all semantic meaning comes from {@code axes}; no inference from
      * category, task domain, or output contract. Use this when the caller has already resolved
-     * PromptCategory → ActionIntent → RoleType/ActionType via {@link org.example.sharedprompts.domain.prompt.application.service.semantic.SemanticResolutionService}.
+     * PromptCategory → ActionIntent → RoleType/ActionType via {@link SemanticResolutionService}.
      */
     public PromptSpec createFromConfirmedAxes(
             ConfirmedSemanticAxes axes,
@@ -147,6 +148,7 @@ public class PromptSpecFactory {
                 .sections(sections)
                 .constraints(constraints)
                 .outputContract(outputContract)
+                .useConstrainedDecoding(profile.supportsConstrainedDecoding())
                 .contentSandbox(ContentSandbox.defaults())
                 .role(axes.role().orElse(null))
                 .tone(axes.tone())

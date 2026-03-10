@@ -11,18 +11,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterfa
 import java.util.List;
 import java.util.Objects;
 
-/**
- * 통합 프롬프트 생성 커맨드.
- *
- * <p>Semantic hierarchy (resolution order): category → intent → roleType/actionType → tone/style → output.
- * Category is required for SIMPLE/ADVANCED; intent may be provided explicitly or resolved from a
- * category-profile fallback. Role/action are optional and validated against the resolved
- * category+intent in {@link org.example.sharedprompts.domain.prompt.application.service.semantic.SemanticValidationService}.
- * Tone and style are expression modifiers only and do not drive semantic resolution.</p>
- *
- * <p>{@link #requestMode()} is set by the controller from request_type so that
- * semantic resolution does not rely on category=null heuristics.</p>
- */
+/** 통합 프롬프트 생성 커맨드 */
 public record UnifiedGeneratePromptCommand(
         Long userId,
         RequestMode requestMode,
@@ -58,7 +47,6 @@ public record UnifiedGeneratePromptCommand(
             throw new IllegalArgumentException("EXTRACTION 모드에서는 jsonSchema가 필수입니다.");
         }
 
-        // Do NOT default category or intent here; semantic resolution requires explicit or profile fallback.
         EngineMode safeEngineMode = engineMode != null ? engineMode : EngineMode.AUTO;
 
         ToneType safeTone = tone != null ? tone : ToneType.NEUTRAL;
@@ -88,18 +76,10 @@ public record UnifiedGeneratePromptCommand(
         tags = safeTags;
     }
 
-    /**
-     * True when this command represents an EXTRACTION request.
-     * Prefer using {@link #requestMode()} instead of this heuristic.
-     */
     public boolean isExtractionRequest() {
         return requestMode == RequestMode.EXTRACTION;
     }
 
-    /**
-     * Hierarchy-aware factory: builds command from semantic selection, expression options, and output options.
-     * Use this when normalizing requests so the internal model does not behave as a flat enum bag.
-     */
     public static UnifiedGeneratePromptCommand fromNormalized(
             Long userId,
             RequestMode requestMode,
@@ -177,9 +157,6 @@ public record UnifiedGeneratePromptCommand(
         );
     }
 
-    /**
-     * 단순 프롬프트 생성 요청을 위한 전용 팩토리.
-     */
     public static UnifiedGeneratePromptCommand forSimple(
             Long userId,
             PromptCategory category,
@@ -216,10 +193,6 @@ public record UnifiedGeneratePromptCommand(
         );
     }
 
-    /**
-     * 추출(EXTRACTION) 모드 요청을 위한 전용 팩토리.
-     * category와 intent는 null; semantic resolution이 EXTRACT로 고정한다.
-     */
     public static UnifiedGeneratePromptCommand forExtraction(
             Long userId,
             String input,

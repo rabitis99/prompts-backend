@@ -2,7 +2,7 @@ package org.example.sharedprompts.scheduler.prompt;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.prompt.application.service.usage.PromptUsageCountService;
+import org.example.sharedprompts.domain.prompt.application.port.out.usage.PromptUsageCountPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PromptUsageCountBatchService {
 
-    private final PromptUsageCountService promptUsageCountService;
+    private final PromptUsageCountPort promptUsageCountPort;
     private final JdbcTemplate jdbcTemplate;
 
     /**
@@ -42,7 +42,7 @@ public class PromptUsageCountBatchService {
         }
 
         // 1. Redis에서 누적된 조회수를 원자적으로 조회하고 0으로 리셋
-        Map<Long, Long> usageCounts = promptUsageCountService.getAndResetUsageCounts(promptIds);
+        Map<Long, Long> usageCounts = promptUsageCountPort.getAndResetUsageCounts(promptIds);
 
         // 2. 조회수가 있는 프롬프트만 필터링하여 배치 업데이트 준비
         List<Object[]> batchArgs = promptIds.stream()
@@ -69,7 +69,7 @@ public class PromptUsageCountBatchService {
                     promptIds, e.getMessage(), e);
             
             try {
-                promptUsageCountService.restoreUsageCounts(usageCounts);
+                promptUsageCountPort.restoreUsageCounts(usageCounts);
                 log.info("Restored usage counts to Redis after DB failure. count={}", usageCounts.size());
             } catch (Exception restoreException) {
                 log.error("Failed to restore usage counts to Redis. This may cause data loss. usageCounts={}, error={}", 

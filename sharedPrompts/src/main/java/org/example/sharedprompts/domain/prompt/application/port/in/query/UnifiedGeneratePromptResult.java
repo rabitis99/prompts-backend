@@ -14,17 +14,7 @@ import org.example.sharedprompts.domain.prompt.domain.value.quality.QualityBadge
 import java.util.List;
 import java.util.Map;
 
-/**
- * Unified prompt generation result with semantic resolution metadata.
- *
- * <ul>
- *   <li>{@code verifyPassed}: first verification pass (before repair)</li>
- *   <li>{@code finallyPassed}: final verification after repair</li>
- *   <li>{@code axisSources}: optional map (intent, role, action, objective, output_needs) → USER_PROVIDED | RECOMMENDED | FALLBACK</li>
- * </ul>
- *
- * <p>Semantic fields replace legacy routing (appliedRuleIds, routingReasons).</p>
- */
+/** 통합 프롬프트 생성 결과. axis_sources 등 시맨틱 해석 메타데이터 포함 */
 public record UnifiedGeneratePromptResult(
         String output,
         EngineMode requestedEngineMode,

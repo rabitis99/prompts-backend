@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.admin.util.AdminAuditLogger;
 import org.example.sharedprompts.domain.admin.util.AdminEntityFinder;
 import org.example.sharedprompts.domain.admin.validator.AdminValidator;
+import org.example.sharedprompts.domain.prompt.application.port.out.like.LikeCountPort;
 import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.example.sharedprompts.domain.prompt.infrastructure.persistence.PromptRepository;
 import org.example.sharedprompts.domain.user.User;
@@ -26,13 +27,14 @@ public class AdminPromptServiceImpl implements AdminPromptService {
     private final AdminValidator adminValidator;
     private final AdminEntityFinder entityFinder;
     private final AdminAuditLogger adminAuditLogger;
+    private final LikeCountPort likeCountPort;
 
     @Override
     @Transactional(readOnly = true)
     public Page<AdminPromptResponseDto> getPrompts(Pageable pageable) {
         adminValidator.validatePageSize(pageable, 100);
-        return promptRepository.findAll(pageable)
-                .map(AdminPromptResponseDto::from);
+        Page<Prompt> page = promptRepository.findAll(pageable);
+        return mapToAdminDtos(page);
     }
 
     @Override
@@ -43,16 +45,17 @@ public class AdminPromptServiceImpl implements AdminPromptService {
         if (trimmedKeyword == null || trimmedKeyword.isEmpty()) {
             return getPrompts(pageable);
         }
-
-        return promptRepository.searchPromptsForAdmin(trimmedKeyword, pageable)
-                .map(AdminPromptResponseDto::from);
+        Page<Prompt> page = promptRepository.searchPromptsForAdmin(trimmedKeyword, pageable);
+        return mapToAdminDtos(page);
     }
 
     @Override
     @Transactional(readOnly = true)
     public AdminPromptResponseDto getPrompt(Long promptId) {
         Prompt prompt = entityFinder.findPromptById(promptId);
-        return AdminPromptResponseDto.from(prompt);
+        long likeCount = likeCountPort.getPromptLikeCounts(java.util.List.of(promptId))
+                .getOrDefault(promptId, 0L);
+        return AdminPromptResponseDto.from(prompt, likeCount);
     }
 
     @Override
@@ -88,7 +91,15 @@ public class AdminPromptServiceImpl implements AdminPromptService {
 
         adminAuditLogger.logPromptVisibilityChange(admin, promptId, isPublic);
 
-        return AdminPromptResponseDto.from(prompt);
+        long likeCount = likeCountPort.getPromptLikeCounts(java.util.List.of(promptId))
+                .getOrDefault(promptId, 0L);
+        return AdminPromptResponseDto.from(prompt, likeCount);
+    }
+
+    private Page<AdminPromptResponseDto> mapToAdminDtos(Page<Prompt> page) {
+        var promptIds = page.getContent().stream().map(Prompt::getId).toList();
+        var likeCountByPromptId = likeCountPort.getPromptLikeCounts(promptIds);
+        return page.map(p -> AdminPromptResponseDto.from(p, likeCountByPromptId.getOrDefault(p.getId(), 0L)));
     }
 
     private String normalizeKeyword(String keyword) {

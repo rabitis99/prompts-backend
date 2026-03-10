@@ -17,8 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.core.NestedExceptionUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -156,5 +158,23 @@ public class PromptTagServiceImpl implements PromptTagService {
                 .stream()
                 .map(PromptTag::getTag)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, List<String>> getTagNamesByPromptIds(List<Long> promptIds) {
+        if (promptIds == null || promptIds.isEmpty()) {
+            return Map.of();
+        }
+        List<PromptTag> promptTags = promptTagRepository.findByPrompt_IdIn(promptIds);
+        Map<Long, List<String>> result = new HashMap<>();
+        for (Long id : promptIds) {
+            result.put(id, new ArrayList<>());
+        }
+        for (PromptTag pt : promptTags) {
+            Long promptId = pt.getPrompt().getId();
+            result.computeIfAbsent(promptId, k -> new ArrayList<>()).add(pt.getTag().getName());
+        }
+        return result;
     }
 }

@@ -5,13 +5,7 @@ import org.example.sharedprompts.domain.prompt.common.i18n.I18nKey;
 import org.example.sharedprompts.domain.prompt.common.i18n.I18nRegistry;
 import org.example.sharedprompts.domain.prompt.common.i18n.I18nText;
 
-/**
- * Prompt category — semantic identity for the prompt engine.
- *
- * <p>Identity: key, optional i18n keys for display/guideline (lookup via {@link I18nRegistry}).
- * defaultDomain is stable classification hint for resolution; routing and compatibility live in
- * {@link org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile} and profile registries.</p>
- */
+/** 프롬프트 엔진용 시맨틱 카테고리 식별자. key·i18n·defaultDomain 보유. */
 @Getter
 public enum PromptCategory implements StableKeyedEnum {
 
@@ -22,10 +16,7 @@ public enum PromptCategory implements StableKeyedEnum {
             TaskDomain.PRACTICAL
     ),
 
-    /**
-     * 개발 전반 (코딩/프로그래밍을 포함하는 상위 카테고리).
-     * <p>세분화된 레거시 카테고리 대신 대표 개발 카테고리로 사용한다.</p>
-     */
+    /** 개발 전반(코딩/프로그래밍 상위). 레거시 세분화 대신 대표 개발 카테고리. */
     DEVELOPMENT(
             "PROMPT_CATEGORY.DEVELOPMENT",
             I18nKey.of("prompt_category.development.display_name"),
@@ -104,10 +95,7 @@ public enum PromptCategory implements StableKeyedEnum {
             TaskDomain.CREATIVE
     ),
 
-    /**
-     * 추출 모드 전용 — 카테고리 미지정/별도 모드로, 구조화된 데이터 추출 요청에 사용.
-     * ETC와 구분하여 resolvedCategory·렌더링·집계에서 추출 모드임을 보존한다.
-     */
+    /** 추출 모드 전용. ETC와 구분해 resolvedCategory·렌더링에서 추출 모드 보존. */
     EXTRACTION(
             "PROMPT_CATEGORY.EXTRACTION",
             I18nKey.of("prompt_category.extraction.display_name"),
@@ -122,22 +110,15 @@ public enum PromptCategory implements StableKeyedEnum {
             TaskDomain.GENERAL
     );
 
-    /** Stable serialization-safe identifier */
     private final String key;
-
-    /** UI / 표시용 — 다국어 키 */
     private final I18nKey displayNameKey;
-
-    /** Prompt Role Guideline — 다국어 키 */
     private final I18nKey guidelineKey;
-
-    /** 대표 TaskDomain (힌트 — ActionType이 override 가능) */
+    /** 해석 힌트용 대표 TaskDomain. */
     private final TaskDomain defaultDomain;
 
     static {
         I18nRegistry registry = I18nRegistry.global();
 
-        // Display names
         registry.register(I18nKey.of("prompt_category.productivity.display_name"),
                 I18nText.of("생산성", "Productivity", "生産性"));
         registry.register(I18nKey.of("prompt_category.development.display_name"),
@@ -167,7 +148,6 @@ public enum PromptCategory implements StableKeyedEnum {
         registry.register(I18nKey.of("prompt_category.etc.display_name"),
                 I18nText.of("기타", "Etc", "その他"));
 
-        // Guidelines (기존 ko/en/ja 텍스트 그대로 등록)
         registry.register(I18nKey.of("prompt_category.productivity.guideline"),
                 I18nText.of(
                         "업무 효율 향상, 시간 관리, 자동화 전략",
@@ -266,31 +246,17 @@ public enum PromptCategory implements StableKeyedEnum {
         return key;
     }
 
-    /**
-     * UI 기본 표시는 한국어를 사용한다.
-     * (과거 displayName 필드의 값을 그대로 유지하는 동작)
-     */
+    /** UI 기본 표시(한국어). */
     public String getDisplayName() {
         return I18nRegistry.global().lookup(displayNameKey, LanguageType.KOREAN);
     }
 
-    /**
-     * 언어 타입에 따라 PromptCategory 가이드라인을 반환한다.
-     * 현재는 GuidelineRenderer에서 직접 사용하지 않지만,
-     * 엔드포인트/메타데이터 확장 시 재사용 가능하도록 제공한다.
-     */
     public String getGuidelineByLang(LanguageType lang) {
         return I18nRegistry.global().lookup(guidelineKey, lang);
     }
 
-    /**
-     * 영어 기준 카테고리 가이드라인을 반환한다.
-     * (기존 호출부의 getGuidelineEn()을 대체하기 위한 헬퍼)
-     */
     public String getGuidelineEn() {
         return getGuidelineByLang(LanguageType.ENGLISH);
     }
 
-    // 레거시 세분화 값(CODING, PROGRAMMING 등)은 제거되었으며,
-    // 필요한 경우 상위 카테고리(DEVELOPMENT, CONTENT, EDUCATION 등)만 사용한다.
 }

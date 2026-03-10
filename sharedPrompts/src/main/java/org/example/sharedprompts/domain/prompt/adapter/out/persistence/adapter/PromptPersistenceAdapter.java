@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
+// Dependency-direction adapter (no semantic translation)
 /**
  * Prompt 영속성 어댑터
  */

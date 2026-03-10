@@ -39,7 +39,16 @@ public class AdminPromptResponseDto {
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 
+    /**
+     * Build from prompt entity using entity's like count (DB snapshot).
+     * Prefer {@link #from(Prompt, long)} with LikeCountPort for consistent read model.
+     */
     public static AdminPromptResponseDto from(Prompt prompt) {
+        return from(prompt, prompt.getLikeCount());
+    }
+
+    /** Build with explicit like count (e.g. from LikeCountPort). */
+    public static AdminPromptResponseDto from(Prompt prompt, long likeCount) {
         return AdminPromptResponseDto.builder()
                 .id(prompt.getId())
                 .title(prompt.getTitle())
@@ -49,7 +58,7 @@ public class AdminPromptResponseDto {
                 .authorNickname(prompt.getAuthor().getNickname())
                 .viewCount(prompt.getViewCount())
                 .commentCount(prompt.getCommentCount())
-                .likeCount(prompt.getLikeCount())
+                .likeCount(likeCount)
                 .createdAt(prompt.getCreatedAt())
                 .updatedAt(prompt.getUpdatedAt())
                 .build();

@@ -39,16 +39,23 @@ public class PromptResponseDto {
     private Long favoriteCount;
 
 
-    public static PromptResponseDto from(Prompt prompt, List<Tag> tags) {
-        return from(prompt, tags, prompt.getLikeCount());
-    }
-
+    /**
+     * Build from entity tags and explicit like count.
+     * Prefer {@link #fromWithTagNames(Prompt, List, Long)} with port-supplied tag names and like count for read models.
+     */
     public static PromptResponseDto from(Prompt prompt, List<Tag> tags, Long likeCount) {
-
         List<String> tagNames = tags == null
                 ? List.of()
                 : tags.stream().map(Tag::getName).toList();
+        return buildFrom(prompt, tagNames, likeCount);
+    }
 
+    /** Build from tag names (e.g. from PromptTagQueryPort). Use for read models to avoid entity tag access. */
+    public static PromptResponseDto fromWithTagNames(Prompt prompt, List<String> tagNames, Long likeCount) {
+        return buildFrom(prompt, tagNames != null ? tagNames : List.of(), likeCount);
+    }
+
+    private static PromptResponseDto buildFrom(Prompt prompt, List<String> tagNames, Long likeCount) {
         return PromptResponseDto.builder()
                 .id(prompt.getId())
                 .title(prompt.getTitle())
@@ -60,7 +67,7 @@ public class PromptResponseDto {
                 .userResponseDto(prompt.getAuthor() != null ? UserResponseDto.from(prompt.getAuthor()) : null)
                 .viewCount(prompt.getViewCount())
                 .commentCount(prompt.getCommentCount())
-                .likeCount(likeCount)
+                .likeCount(likeCount != null ? likeCount : 0L)
                 .favoriteCount(prompt.getFavoriteCount())
                 .build();
     }

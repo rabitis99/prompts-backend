@@ -6,11 +6,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterfa
 
 import java.util.List;
 
-/**
- * Command for generating a prompt from already-confirmed semantic axes (POST /prompts/generate/confirmed).
- * Objective and outputNeeds are derived from IntentDictionary in the service, not from the request.
- * <p>{@code userId} is an extension for auth context (not in original doc); ensure it does not change domain rules or API contract.</p>
- */
+/** 확정 축 기반 생성 커맨드 */
 public record ConfirmedGeneratePromptCommand(
         Long userId,
         RequestMode requestMode,

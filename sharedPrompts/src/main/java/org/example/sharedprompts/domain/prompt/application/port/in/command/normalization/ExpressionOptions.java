@@ -5,10 +5,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.common.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
 
-/**
- * Expression modifiers only: tone and style.
- * Must not influence semantic routing, role/action, or intent resolution.
- */
+/** 표현 옵션 (tone, style) */
 public record ExpressionOptions(
         ToneType tone,
         StyleType style,

@@ -12,4 +12,7 @@ public interface PromptTagRepository extends JpaRepository<PromptTag, Long> {
     void deletePromptTagByPrompt(Prompt prompt);
 
     List<PromptTag> findPromptTagByPrompt(Prompt prompt);
+
+    /** Batch fetch for multiple prompts; used to avoid N+1 when building read models. */
+    List<PromptTag> findByPrompt_IdIn(List<Long> promptIds);
 }

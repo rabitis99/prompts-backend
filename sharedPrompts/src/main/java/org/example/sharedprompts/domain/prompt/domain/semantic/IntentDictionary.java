@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.prompt.domain.semantic;
 
+import org.example.sharedprompts.domain.prompt.application.semantic.resolution.SemanticResolutionService;
 import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.OutputNeeds;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
@@ -122,7 +123,7 @@ public final class IntentDictionary {
 
     /**
      * Intent-only resolution defaults: objective, output needs, response shape.
-     * Used by {@link org.example.sharedprompts.domain.prompt.application.service.semantic.SemanticResolutionService}.
+     * Used by {@link SemanticResolutionService}.
      */
     public record IntentResolutionDefaults(
             PromptObjective defaultObjective,

@@ -5,11 +5,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
-/**
- * Semantic selection axis: category → intent → role/action.
- * Used when normalizing requests so the internal model does not behave as a flat enum bag.
- * Compatibility and allowed combinations live in CategorySemanticProfile and IntentDictionary.
- */
+/** 시맨틱 선택 축 (category → intent → role/action) */
 public record SemanticSelection(
         PromptCategory category,
         ActionIntent intent,

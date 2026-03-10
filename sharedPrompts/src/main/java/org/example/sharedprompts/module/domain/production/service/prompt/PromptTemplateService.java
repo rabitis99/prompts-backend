@@ -3,7 +3,7 @@ package org.example.sharedprompts.module.domain.production.service.prompt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptDetailView;
-import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptQueryUseCase;
+import org.example.sharedprompts.domain.prompt.application.port.in.prompt.PromptQueryUseCase;
 import org.example.sharedprompts.module.domain.production.model.contract.command.ProductionCommand;
 import org.example.sharedprompts.module.domain.production.model.executor.literary.LiteraryCommand;
 import org.example.sharedprompts.module.domain.production.service.prompt.literary.LiteraryPromptComposer;

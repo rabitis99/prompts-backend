@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 /**
  * Legacy routing (UnifiedRoutingFacade, UnifiedRoutingPolicy, IntentDefaultsResolver,
  * RoutingRuleEngine, DomainFinalizer, OutputContractPlanner) lives in package
- * {@code ...orchestration.legacy} and is excluded from component scanning so it is not
+ * {@code ...engine.generation.legacy} and is excluded from component scanning so it is not
  * part of the active runtime. The active pipeline uses SemanticResolutionService only.
  */
 @EnableAsync
@@ -19,7 +19,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @ComponentScan(
         basePackages = "org.example.sharedprompts",
         excludeFilters = {
-                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "org\\.example\\.sharedprompts\\.domain\\.prompt\\.application\\.service\\.orchestration\\.legacy\\..*")
+                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "org\\.example\\.sharedprompts\\.domain\\.prompt\\.application\\.engine\\.generation\\.legacy\\..*")
         }
 )
 public class SharedPromptsApplication {

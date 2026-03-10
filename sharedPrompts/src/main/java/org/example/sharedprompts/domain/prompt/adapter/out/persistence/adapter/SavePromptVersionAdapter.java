@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.GeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.out.persistence.PromptCommandPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.persistence.SavePromptVersionPort;
+import org.example.sharedprompts.domain.prompt.application.prompt.notification.PromptNotificationService;
 import org.example.sharedprompts.domain.prompt.domain.model.spec.PromptSpec;
 import org.example.sharedprompts.domain.tag.service.PromptTagService;
 import org.example.sharedprompts.domain.user.User;
@@ -28,6 +29,7 @@ public class SavePromptVersionAdapter implements SavePromptVersionPort {
     private final UserRepository userRepository;
     private final PromptCommandPort promptCommandPort;
     private final PromptTagService promptTagService;
+    private final PromptNotificationService promptNotificationService;
 
     @Override
     @Transactional(timeout = 30)
@@ -64,6 +66,9 @@ public class SavePromptVersionAdapter implements SavePromptVersionPort {
 
         // 태그 저장
         promptTagService.addTags(saved, command.tags());
+
+        // 프롬프트 생성 알림 발행 (커밋 후 SSE 등)
+        promptNotificationService.publishPromptCreated(saved, user);
 
         // 내부 저장 로그 (objective는 enum 이름만 기록, 사용자 원문 미포함)
         log.info("[SavePromptVersion] 저장 완료: promptId={}, repairCount={}, finallyPassed={}, objective={}",
