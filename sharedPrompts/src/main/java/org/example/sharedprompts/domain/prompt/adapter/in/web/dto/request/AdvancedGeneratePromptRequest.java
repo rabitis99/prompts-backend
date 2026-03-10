@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.validator.RequestTypeMustBe;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.ExpressionOptions;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.OutputOptions;
@@ -27,6 +28,8 @@ import java.util.List;
 public record AdvancedGeneratePromptRequest(
 
         @JsonProperty("request_type")
+        @NotNull(message = "request_type을 입력해주세요.")
+        @RequestTypeMustBe(value = RequestType.ADVANCED, message = "request_type은 ADVANCED이어야 합니다.")
         RequestType requestType,
 
         @NotNull(message = "카테고리를 선택해주세요.")
@@ -76,12 +79,6 @@ public record AdvancedGeneratePromptRequest(
         @Size(max = 50, message = "태그는 1~50자로 입력해주세요.")
                 String> tags
 ) implements UnifiedGeneratePromptRequest {
-
-    public AdvancedGeneratePromptRequest {
-        if (requestType != null && requestType != RequestType.ADVANCED) {
-            throw new IllegalArgumentException("request_type must be ADVANCED for AdvancedGeneratePromptRequest");
-        }
-    }
 
     @Override
     public UnifiedGeneratePromptCommand toCommand(Long userId) {

@@ -39,7 +39,7 @@ public class SavePromptVersionAdapter implements SavePromptVersionPort {
         // description 기본값 처리
         String description = (command.description() != null && !command.description().isBlank())
                 ? command.description()
-                : (finalContent != null && !finalContent.isBlank() ? finalContent : "");
+                : "";
 
         // title 기본값 처리
         String title = (command.title() != null && !command.title().isBlank())
@@ -60,9 +60,7 @@ public class SavePromptVersionAdapter implements SavePromptVersionPort {
         Prompt saved = promptCommandPort.save(prompt);
 
         // 태그 저장
-        if (command.tags() != null && !command.tags().isEmpty()) {
-            promptTagService.addTags(saved, command.tags());
-        }
+        promptTagService.addTags(saved, command.tags());
 
         // 내부 저장 로그 (objective는 enum 이름만 기록, 사용자 원문 미포함)
         log.info("[SavePromptVersion] 저장 완료: promptId={}, repairCount={}, finallyPassed={}, objective={}",

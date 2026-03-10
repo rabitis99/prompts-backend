@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.validator.RequestTypeMustBe;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.ExpressionOptions;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.OutputOptions;
@@ -19,6 +20,7 @@ public record SimpleGeneratePromptRequest(
 
         @JsonProperty("request_type")
         @NotNull(message = "request_type을 입력해주세요.")
+        @RequestTypeMustBe(value = RequestType.SIMPLE, message = "request_type은 SIMPLE이어야 합니다.")
         RequestType requestType,
 
         @NotNull(message = "카테고리를 선택해주세요.")
@@ -50,13 +52,6 @@ public record SimpleGeneratePromptRequest(
         @Size(max = 65_535, message = "설명은 최대 65535자까지 입력해주세요.")
         String description
 ) implements UnifiedGeneratePromptRequest {
-
-    public SimpleGeneratePromptRequest {
-        // SIMPLE 요청만 허용
-        if (requestType != null && requestType != RequestType.SIMPLE) {
-            throw new IllegalArgumentException("request_type must be SIMPLE for SimpleGeneratePromptRequest");
-        }
-    }
 
     @Override
     public UnifiedGeneratePromptCommand toCommand(Long userId) {

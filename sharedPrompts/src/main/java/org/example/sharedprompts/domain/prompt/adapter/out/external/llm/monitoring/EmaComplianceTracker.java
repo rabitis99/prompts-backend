@@ -16,12 +16,20 @@ public class EmaComplianceTracker implements ComplianceTracker {
     // 임계값 복구 기준
     private static final double RECOVERY_THRESHOLD = 0.92;
 
+    private static final long MIN_SAMPLES_FOR_ALERT = 20;
+
     private double complianceRate = 1.0;
     private boolean thresholdBreached = false;
+    private long sampleCount = 0;
 
     @Override
     public synchronized void record(boolean compliant) {
+        sampleCount++;
         complianceRate = 0.95 * complianceRate + 0.05 * (compliant ? 1.0 : 0.0);
+
+        if (sampleCount < MIN_SAMPLES_FOR_ALERT) {
+            return;
+        }
 
         if (complianceRate < BREACH_THRESHOLD && !thresholdBreached) {
             thresholdBreached = true;

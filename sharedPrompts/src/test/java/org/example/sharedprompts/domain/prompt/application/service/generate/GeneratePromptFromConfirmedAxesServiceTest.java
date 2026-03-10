@@ -10,6 +10,7 @@ import org.example.sharedprompts.domain.prompt.common.AxisSourceConstants;
 import org.example.sharedprompts.domain.prompt.common.enums.*;
 import org.example.sharedprompts.domain.prompt.application.service.semantic.SemanticValidationService;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileRegistry;
+import org.example.sharedprompts.domain.prompt.application.exception.SemanticResolutionException;
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
 import org.example.sharedprompts.domain.prompt.domain.semantic.SemanticValidationResult;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -61,6 +63,7 @@ class GeneratePromptFromConfirmedAxesServiceTest {
 
         UnifiedGeneratePromptResult result = service.generate(command);
 
+        verify(validationService).validate(any(), any());
         ArgumentCaptor<ConfirmedSemanticAxes> axesCaptor = ArgumentCaptor.forClass(ConfirmedSemanticAxes.class);
         verify(generatePromptUseCase).generate(any(GeneratePromptCommand.class), axesCaptor.capture());
         
@@ -77,5 +80,29 @@ class GeneratePromptFromConfirmedAxesServiceTest {
         assertThat(result.axisSources()).containsEntry("action", AxisSourceConstants.USER_PROVIDED);
         assertThat(result.axisSources()).containsEntry("objective", AxisSourceConstants.RECOMMENDED);
         assertThat(result.axisSources()).containsEntry("output_needs", AxisSourceConstants.RECOMMENDED);
+    }
+
+    @Test
+    void generate_whenValidationFails_throwsSemanticResolutionException_andDoesNotCallUseCase() {
+        ConfirmedGeneratePromptCommand command = new ConfirmedGeneratePromptCommand(
+                1L, RequestMode.ADVANCED, PromptCategory.ETC, ActionIntent.GENERATE, null, null,
+                ToneType.NEUTRAL, StyleType.NARRATIVE, LanguageType.KOREAN, ExperienceLevel.INTERMEDIATE,
+                "input text", null, "Title", "Desc", List.of()
+        );
+
+        when(profileRegistry.getProfile(PromptCategory.ETC)).thenReturn(Optional.empty());
+        when(validationService.validate(any(), any())).thenReturn(
+                SemanticValidationResult.invalid(List.of(
+                        new SemanticValidationResult.SemanticValidationItem("INVALID_AXIS", "Invalid combination", "category", null)
+                ))
+        );
+
+        assertThatThrownBy(() -> service.generate(command))
+                .isInstanceOf(SemanticResolutionException.class)
+                .hasMessageContaining("INVALID_AXIS")
+                .hasMessageContaining("Invalid combination");
+
+        verify(validationService).validate(any(), any());
+        verify(generatePromptUseCase, never()).generate(any(), any());
     }
 }

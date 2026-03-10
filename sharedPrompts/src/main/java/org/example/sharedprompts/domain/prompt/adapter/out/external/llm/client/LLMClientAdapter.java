@@ -28,15 +28,15 @@ public class LLMClientAdapter implements LLMClientPort {
         // PromptSpec → 메타 프롬프트 변환
         String metaPrompt = promptSpecRenderer.render(spec);
 
-        log.debug("[LLMClientAdapter] Solve 호출: objective={}, strategyBundle={}",
-                spec.getObjective(), spec.getStrategyBundle().getName());
+        log.debug("[LLMClientAdapter] Solve 호출: strategyBundle={}",
+                spec.getStrategyBundle().getName());
 
         // LLM 호출
         String response = syncGoogleGeminiClient.chatSync(metaPrompt);
 
         // 응답 유효성 확인
         if (response == null || response.isBlank()) {
-            throw new IllegalStateException("LLM 응답이 비어있습니다. objective=" + spec.getObjective());
+            throw new IllegalStateException("LLM 응답이 비어있습니다.");
         }
 
         return response;
@@ -46,6 +46,11 @@ public class LLMClientAdapter implements LLMClientPort {
     public String repair(String draft, PromptSpec spec,
                          List<QualityRubric.RubricItem> failedItems,
                          List<String> failureReasons) {
+
+        if (failedItems == null || failedItems.isEmpty()) {
+            log.debug("[LLMClientAdapter] Repair 스킵: failedItems 없음");
+            return draft;
+        }
 
         // 실패 항목 설명 생성
         String failureHints = buildFailureHints(failedItems, failureReasons);

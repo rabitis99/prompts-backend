@@ -16,6 +16,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
@@ -214,8 +215,8 @@ public class GlobalExceptionHandler {
     }
 
     // 비동기 요청 타임아웃 예외 처리
-    @ExceptionHandler(org.springframework.web.context.request.async.AsyncRequestTimeoutException.class)
-    public ResponseEntity<?> handleAsyncRequestTimeoutException(org.springframework.web.context.request.async.AsyncRequestTimeoutException e) {
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    public ResponseEntity<?> handleAsyncRequestTimeoutException(AsyncRequestTimeoutException e) {
         log.warn("AsyncRequestTimeoutException: 비동기 처리 시간 초과");
         return CustomResponseHelper.fail(new ApiException(ErrorCode.AI_GENERATION_TIMEOUT));
     }

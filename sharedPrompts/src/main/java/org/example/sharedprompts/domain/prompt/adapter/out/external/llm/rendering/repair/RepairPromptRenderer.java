@@ -10,6 +10,8 @@ import org.example.sharedprompts.domain.prompt.adapter.out.external.llm.renderin
 import org.example.sharedprompts.domain.prompt.domain.model.spec.PromptSpec;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 /**
  * Repair 단계 프롬프트 렌더러
  */
@@ -36,12 +38,15 @@ public class RepairPromptRenderer {
                     .append("\n\n");
         }
 
-        // 원본 초안 포함 (구분자로 감싸서 내용 변형 없이 전달)
+        // 원본 초안 포함 (동적 구분자로 감싸서 내용 변형 없이 전달, 구분자 충돌 방지)
         String safeDraft = draft != null ? draft : "";
-        sb.append("[ORIGINAL DRAFT]\n")
-                .append("<original_draft>\n")
+        String draftDelimiter = "ORIGINAL_DRAFT_" + UUID.randomUUID();
+        while (safeDraft.contains(draftDelimiter)) {
+            draftDelimiter = "ORIGINAL_DRAFT_" + UUID.randomUUID();
+        }
+        sb.append("[ORIGINAL DRAFT ").append(draftDelimiter).append("]\n")
                 .append(safeDraft)
-                .append("\n</original_draft>\n\n");
+                .append("\n[/ORIGINAL DRAFT ").append(draftDelimiter).append("]\n\n");
 
         // 공통 섹션 렌더링
         sb.append(ObjectiveSectionRenderer.render(spec));
