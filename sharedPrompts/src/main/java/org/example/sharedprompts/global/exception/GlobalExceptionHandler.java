@@ -221,8 +221,15 @@ public class GlobalExceptionHandler {
     // 비동기 요청 타임아웃 예외 처리
     @ExceptionHandler(AsyncRequestTimeoutException.class)
     public ResponseEntity<?> handleAsyncRequestTimeoutException(AsyncRequestTimeoutException e) {
-        log.warn("AsyncRequestTimeoutException: 비동기 처리 시간 초과");
+        log.warn("AsyncRequestTimeoutException: 비동기 처리 시간 초과 - {}", e.getMessage());
         return CustomResponseHelper.fail(new ApiException(ErrorCode.AI_GENERATION_TIMEOUT));
+    }
+
+    // LLM 응답 비어있음/실패 (503 Service Unavailable)
+    @ExceptionHandler(LLMResponseException.class)
+    public ResponseEntity<?> handleLLMResponseException(LLMResponseException e) {
+        log.warn("LLMResponseException: {}", e.getMessage());
+        return CustomResponseHelper.fail(new ApiException(ErrorCode.LLM_RESPONSE_EMPTY));
     }
 
     // 커스텀 예외

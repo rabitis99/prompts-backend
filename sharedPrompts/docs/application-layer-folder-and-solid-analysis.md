@@ -1,7 +1,7 @@
 # Prompt Application Layer: 폴더 구조 및 SOLID 분석
 
 **대상 경로:** `src/main/java/org/example/sharedprompts/domain/prompt/application`  
-**분석 일자:** 2025-03-10
+**분석 일자:** 2026-03-10
 
 ---
 
@@ -9,7 +9,7 @@
 
 ### 1.1 전체 디렉터리 트리
 
-```
+```text
 application/
 ├── exception/                          # 도메인/애플리케이션 예외
 │   ├── PromptDomainException.java      # 도메인 예외 베이스
@@ -245,6 +245,36 @@ public class GuidelineRendererFactory {
 
 - `LanguageType` → `GuidelineRenderer` 매핑을 **외부에서 주입**하거나, `GuidelineRenderer`를 구현한 빈들을 `List`/`Map`으로 수집해 `LanguageType`으로 조회하도록 변경.
 - 예: `Map<LanguageType, GuidelineRenderer>`를 생성자로 받거나, `@PostConstruct`에서 `List<GuidelineRenderer>`를 순회하며 “언어 타입을 반환하는 메서드”로 맵 구성.
+
+**개선 예시 (Map 주입 방식):**
+
+`GuidelineRenderer` 인터페이스에 `LanguageType getSupportedLanguage()`(또는 기존 `getLanguageType()` 노출)를 추가한 뒤:
+
+```java
+@Component
+@RequiredArgsConstructor
+public class GuidelineRendererFactory {
+    private final Map<LanguageType, GuidelineRenderer> renderers;
+
+    public GuidelineRendererFactory(List<GuidelineRenderer> rendererList) {
+        this.renderers = rendererList.stream()
+            .collect(Collectors.toMap(
+                GuidelineRenderer::getSupportedLanguage,
+                Function.identity()
+            ));
+    }
+
+    public GuidelineRenderer getRenderer(LanguageType languageType) {
+        GuidelineRenderer renderer = renderers.get(languageType);
+        if (renderer == null) {
+            throw new UnsupportedLanguageException(languageType);
+        }
+        return renderer;
+    }
+}
+```
+
+이렇게 하면 새로운 언어를 추가할 때 `GuidelineRenderer`를 구현한 빈만 추가하면 되고, 팩토리 수정이 불필요합니다.
 
 ---
 

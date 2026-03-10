@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.prompt.application.port.out.llm.LLMClien
 import org.example.sharedprompts.domain.prompt.domain.model.spec.PromptSpec;
 import org.example.sharedprompts.domain.prompt.domain.model.result.QualityRubric;
 import org.example.sharedprompts.domain.prompt.application.port.out.render.PromptSpecRendererPort;
+import org.example.sharedprompts.global.exception.LLMResponseException;
 import org.example.sharedprompts.global.google.gemini.SyncGoogleGeminiClient;
 import org.springframework.stereotype.Component;
 
@@ -36,7 +37,7 @@ public class LLMClientAdapter implements LLMClientPort {
 
         // 응답 유효성 확인
         if (response == null || response.isBlank()) {
-            throw new IllegalStateException("LLM 응답이 비어있습니다.");
+            throw new LLMResponseException("LLM 응답이 비어있습니다.");
         }
 
         return response;
@@ -66,7 +67,7 @@ public class LLMClientAdapter implements LLMClientPort {
         // 빈 응답을 draft로 삼키면 호출자 루프가 같은 초안으로 재시도만 반복하므로 예외로 전파
         if (response == null || response.isBlank()) {
             log.warn("[LLMClientAdapter] Repair 응답이 비어있음");
-            throw new IllegalStateException("LLM Repair 응답이 비어있습니다.");
+            throw new LLMResponseException("LLM Repair 응답이 비어있습니다.");
         }
 
         return response;
