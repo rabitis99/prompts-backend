@@ -63,10 +63,10 @@ public class LLMClientAdapter implements LLMClientPort {
         // LLM 재호출
         String response = syncGoogleGeminiClient.chatSync(repairPrompt);
 
-        // 응답이 없으면 기존 초안 유지
+        // 빈 응답을 draft로 삼키면 호출자 루프가 같은 초안으로 재시도만 반복하므로 예외로 전파
         if (response == null || response.isBlank()) {
-            log.warn("[LLMClientAdapter] Repair 응답이 비어있어 원본 초안 반환");
-            return draft;
+            log.warn("[LLMClientAdapter] Repair 응답이 비어있음");
+            throw new IllegalStateException("LLM Repair 응답이 비어있습니다.");
         }
 
         return response;

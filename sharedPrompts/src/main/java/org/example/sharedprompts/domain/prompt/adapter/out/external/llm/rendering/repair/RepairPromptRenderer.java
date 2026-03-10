@@ -41,7 +41,8 @@ public class RepairPromptRenderer {
         // 원본 초안 포함 (동적 구분자로 감싸서 내용 변형 없이 전달, 구분자 충돌 방지)
         String safeDraft = draft != null ? draft : "";
         String draftDelimiter = "ORIGINAL_DRAFT_" + UUID.randomUUID();
-        while (safeDraft.contains(draftDelimiter)) {
+        int attempts = 0;
+        while (safeDraft.contains(draftDelimiter) && attempts++ < 5) {
             draftDelimiter = "ORIGINAL_DRAFT_" + UUID.randomUUID();
         }
         sb.append("[ORIGINAL DRAFT ").append(draftDelimiter).append("]\n")

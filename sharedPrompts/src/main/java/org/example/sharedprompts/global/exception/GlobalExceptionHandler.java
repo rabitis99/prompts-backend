@@ -11,6 +11,7 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -41,8 +42,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleValidationException(MethodArgumentNotValidException e) {
         FieldError fieldError = e.getBindingResult().getFieldError();
+        ObjectError globalError = e.getBindingResult().getGlobalError();
         String fieldName = fieldError != null ? fieldError.getField() : null;
-        String message = fieldError != null ? fieldError.getDefaultMessage() : "Validation failed";
+        String message = fieldError != null
+                ? fieldError.getDefaultMessage()
+                : globalError != null ? globalError.getDefaultMessage() : "Validation failed";
         log.warn("Validation failed: {} ({})", message, fieldName);
         return CustomResponseHelper.fail(new ApiException(ErrorCode.INVALID_INPUT_VALUE, fieldName, message));
     }

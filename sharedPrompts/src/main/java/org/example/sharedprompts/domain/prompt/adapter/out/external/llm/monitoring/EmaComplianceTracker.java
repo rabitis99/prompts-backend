@@ -35,7 +35,7 @@ public class EmaComplianceTracker implements ComplianceTracker {
             thresholdBreached = true;
             log.error("[ConstrainedDecoding] compliance rate 임계값 위반: rate={}. 대체 adapter 검토 필요",
                     complianceRate);
-        } else if (complianceRate >= RECOVERY_THRESHOLD) {
+        } else if (complianceRate >= RECOVERY_THRESHOLD && thresholdBreached) {
             thresholdBreached = false;
         }
     }
@@ -43,5 +43,12 @@ public class EmaComplianceTracker implements ComplianceTracker {
     @Override
     public synchronized double currentRate() {
         return complianceRate;
+    }
+
+    /** 테스트 또는 운영 환경에서 추적기 상태를 초기화할 때 사용 */
+    public synchronized void reset() {
+        this.complianceRate = 1.0;
+        this.thresholdBreached = false;
+        this.sampleCount = 0;
     }
 }
