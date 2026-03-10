@@ -43,7 +43,6 @@ public record UnifiedGeneratePromptResponse(
 
         @JsonProperty("resolved_intent")
         ActionIntent resolvedIntent,
-
         String variant,
 
         @JsonProperty("resolved_role")

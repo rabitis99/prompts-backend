@@ -77,6 +77,12 @@ public record AdvancedGeneratePromptRequest(
                 String> tags
 ) implements UnifiedGeneratePromptRequest {
 
+    public AdvancedGeneratePromptRequest {
+        if (requestType != null && requestType != RequestType.ADVANCED) {
+            throw new IllegalArgumentException("request_type must be ADVANCED for AdvancedGeneratePromptRequest");
+        }
+    }
+
     @Override
     public UnifiedGeneratePromptCommand toCommand(Long userId) {
         boolean normalizedDisableQualityPipeline = Boolean.TRUE.equals(disableQualityPipeline);
@@ -90,7 +96,7 @@ public record AdvancedGeneratePromptRequest(
                 semantic,
                 expression,
                 output,
-                variant,
+                normalizeOptional(variant),
                 input,
                 normalizedDisableQualityPipeline,
                 tags,

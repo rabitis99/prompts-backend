@@ -11,8 +11,9 @@ public class JsonSchemaConstrainedPromptBuilder implements ConstrainedPromptBuil
 
     @Override
     public String build(String prompt, OutputContract contract) {
-
-        // OutputContract 필수
+        if (prompt == null) {
+            throw new IllegalArgumentException("prompt must not be null");
+        }
         if (contract == null) {
             throw new IllegalArgumentException("contract must not be null");
         }

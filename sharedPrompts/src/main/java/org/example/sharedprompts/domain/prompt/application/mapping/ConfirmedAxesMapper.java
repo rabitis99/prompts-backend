@@ -13,16 +13,15 @@ import java.util.List;
 public class ConfirmedAxesMapper {
 
     /**
-     * command 기반 축 정보로 Builder 생성
+     * command 기반 축 정보로 Builder 생성.
+     * <p>
+     * objective / outputNeeds / taskDomain 은 서비스에서 설정합니다.
      */
     public ConfirmedSemanticAxes.Builder fromCommand(ConfirmedGeneratePromptCommand command) {
-
-        // 적용된 프로파일 ID 구성
         List<String> appliedProfileIds = List.of(
                 "confirmed:" + command.category().name(),
                 "intent:" + command.intent().name()
         );
-
         return ConfirmedSemanticAxes.builder()
                 .category(command.category())
                 .intent(command.intent())
@@ -35,7 +34,5 @@ public class ConfirmedAxesMapper {
                 .appliedProfileIds(appliedProfileIds)
                 .validationWarnings(List.of())
                 .recommendationHints(List.of());
-
-        // objective / outputNeeds / taskDomain 은 서비스에서 설정
     }
 }

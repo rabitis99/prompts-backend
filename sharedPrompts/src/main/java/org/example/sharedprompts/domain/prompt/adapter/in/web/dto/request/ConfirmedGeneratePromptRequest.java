@@ -7,7 +7,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.ConfirmedGeneratePromptCommand;
-import org.example.sharedprompts.domain.prompt.common.enums.*;
+import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
+import org.example.sharedprompts.domain.prompt.common.enums.ExperienceLevel;
+import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.RequestMode;
+import org.example.sharedprompts.domain.prompt.common.enums.StyleType;
+import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTypeDeserializer;
@@ -47,8 +53,8 @@ public record ConfirmedGeneratePromptRequest(
         LanguageType language,
         ExperienceLevel experience,
 
-        @NotBlank(message = "입력을 입력해주세요.")
-        @Size(max = 10_000, message = "입력은 최대 10000자까지 입력해주세요.")
+        @NotBlank(message = "입력 내용을 작성해주세요.")
+        @Size(max = 10_000, message = "입력 내용은 최대 10000자까지 허용됩니다.")
         String input,
 
         @JsonProperty("json_schema")
@@ -64,7 +70,7 @@ public record ConfirmedGeneratePromptRequest(
         @Size(max = 20, message = "태그는 최대 20개까지 가능합니다.")
         List<
                 @NotBlank(message = "태그는 공백일 수 없습니다.")
-                @Size(max = 50, message = "태그는 1~50자로 입력해주세요.")
+                @Size(min = 1, max = 50, message = "태그는 1~50자로 입력해주세요.")
                         String> tags
 ) {
 

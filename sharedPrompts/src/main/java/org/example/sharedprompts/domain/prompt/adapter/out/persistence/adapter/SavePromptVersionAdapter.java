@@ -64,9 +64,10 @@ public class SavePromptVersionAdapter implements SavePromptVersionPort {
             promptTagService.addTags(saved, command.tags());
         }
 
-        // 내부 저장 로그
+        // 내부 저장 로그 (objective는 enum 이름만 기록, 사용자 원문 미포함)
         log.info("[SavePromptVersion] 저장 완료: promptId={}, repairCount={}, finallyPassed={}, objective={}",
-                saved.getId(), repairCount, finallyPassed, spec.getObjective());
+                saved.getId(), repairCount, finallyPassed,
+                spec.getObjective() == null ? null : spec.getObjective().name());
 
         return saved.getId();
     }

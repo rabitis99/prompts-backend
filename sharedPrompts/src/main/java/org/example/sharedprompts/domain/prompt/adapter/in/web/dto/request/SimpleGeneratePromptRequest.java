@@ -18,6 +18,7 @@ import java.util.List;
 public record SimpleGeneratePromptRequest(
 
         @JsonProperty("request_type")
+        @NotNull(message = "request_type을 입력해주세요.")
         RequestType requestType,
 
         @NotNull(message = "카테고리를 선택해주세요.")
@@ -52,7 +53,7 @@ public record SimpleGeneratePromptRequest(
 
     public SimpleGeneratePromptRequest {
         // SIMPLE 요청만 허용
-        if (requestType != RequestType.SIMPLE) {
+        if (requestType != null && requestType != RequestType.SIMPLE) {
             throw new IllegalArgumentException("request_type must be SIMPLE for SimpleGeneratePromptRequest");
         }
     }
@@ -81,7 +82,7 @@ public record SimpleGeneratePromptRequest(
                 semantic,
                 expression,
                 output,
-                variant,
+                normalizeOptional(variant),
                 input,
                 false,
                 tags,

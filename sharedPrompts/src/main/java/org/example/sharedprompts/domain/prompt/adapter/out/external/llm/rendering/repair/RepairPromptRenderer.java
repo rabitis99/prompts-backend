@@ -36,12 +36,12 @@ public class RepairPromptRenderer {
                     .append("\n\n");
         }
 
-        // 원본 초안 포함
+        // 원본 초안 포함 (구분자로 감싸서 내용 변형 없이 전달)
         String safeDraft = draft != null ? draft : "";
-        String escapedDraft = safeDraft.replace("\"\"\"", "\\\"\\\"\\\"");
-        sb.append("[ORIGINAL DRAFT]\n\"\"\"\n")
-                .append(escapedDraft)
-                .append("\n\"\"\"\n\n");
+        sb.append("[ORIGINAL DRAFT]\n")
+                .append("<original_draft>\n")
+                .append(safeDraft)
+                .append("\n</original_draft>\n\n");
 
         // 공통 섹션 렌더링
         sb.append(ObjectiveSectionRenderer.render(spec));

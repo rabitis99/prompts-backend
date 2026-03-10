@@ -8,8 +8,10 @@ import org.example.sharedprompts.domain.prompt.application.port.in.query.Generat
 import org.example.sharedprompts.domain.prompt.application.port.in.query.UnifiedGeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.common.AxisSourceConstants;
 import org.example.sharedprompts.domain.prompt.common.enums.*;
+import org.example.sharedprompts.domain.prompt.application.service.semantic.SemanticValidationService;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileRegistry;
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
+import org.example.sharedprompts.domain.prompt.domain.semantic.SemanticValidationResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -25,6 +27,7 @@ class GeneratePromptFromConfirmedAxesServiceTest {
 
     private ConfirmedAxesMapper confirmedAxesMapper;
     private CategorySemanticProfileRegistry profileRegistry;
+    private SemanticValidationService validationService;
     private GeneratePromptUseCase generatePromptUseCase;
     private GeneratePromptFromConfirmedAxesService service;
 
@@ -32,10 +35,13 @@ class GeneratePromptFromConfirmedAxesServiceTest {
     void setUp() {
         confirmedAxesMapper = new ConfirmedAxesMapper();
         profileRegistry = mock(CategorySemanticProfileRegistry.class);
+        validationService = mock(SemanticValidationService.class);
         generatePromptUseCase = mock(GeneratePromptUseCase.class);
 
+        when(validationService.validate(any(), any())).thenReturn(SemanticValidationResult.success());
+
         service = new GeneratePromptFromConfirmedAxesService(
-                confirmedAxesMapper, profileRegistry, generatePromptUseCase
+                confirmedAxesMapper, profileRegistry, validationService, generatePromptUseCase
         );
     }
 

@@ -2,11 +2,12 @@ package org.example.sharedprompts.domain.prompt.adapter.in.web.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.validator.RequestTypeMustBe;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.ExpressionOptions;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.OutputOptions;
-import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.SemanticSelection;
 import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.common.enums.RequestMode;
 import org.example.sharedprompts.domain.prompt.common.enums.RequestType;
@@ -19,6 +20,8 @@ import java.util.List;
 public record ExtractionGeneratePromptRequest(
 
         @JsonProperty("request_type")
+        @NotNull(message = "request_type을 입력해주세요.")
+        @RequestTypeMustBe(value = RequestType.EXTRACTION, message = "request_type은 EXTRACTION이어야 합니다.")
         RequestType requestType,
 
         @NotBlank(message = "입력을 입력해주세요.")
@@ -44,13 +47,6 @@ public record ExtractionGeneratePromptRequest(
         @Size(max = 65_535, message = "설명은 최대 65535자까지 입력해주세요.")
         String description
 ) implements UnifiedGeneratePromptRequest {
-
-    public ExtractionGeneratePromptRequest {
-        // EXTRACTION 요청만 허용
-        if (requestType != RequestType.EXTRACTION) {
-            throw new IllegalArgumentException("request_type must be EXTRACTION for ExtractionGeneratePromptRequest");
-        }
-    }
 
     @Override
     public UnifiedGeneratePromptCommand toCommand(Long userId) {

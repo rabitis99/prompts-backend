@@ -28,6 +28,13 @@ public class ExceptionDto {
         this.details = details;
     }
 
+    public ExceptionDto(ErrorCode errorCode, String field, String messageOverride, Map<String, Object> details) {
+        this.code = errorCode.getCode();
+        this.message = (messageOverride != null && !messageOverride.isEmpty()) ? messageOverride : errorCode.getMessage();
+        this.field = field;
+        this.details = details;
+    }
+
     public ExceptionDto(ErrorCode errorCode, String field) {
         this(errorCode, field, null);
     }
@@ -42,6 +49,10 @@ public class ExceptionDto {
 
     public static ExceptionDto of(ErrorCode errorCode, String field) {
         return new ExceptionDto(errorCode, field);
+    }
+
+    public static ExceptionDto of(ErrorCode errorCode, String field, String messageOverride) {
+        return new ExceptionDto(errorCode, field, messageOverride, null);
     }
 
     public static ExceptionDto of(ErrorCode errorCode) {

@@ -29,6 +29,10 @@ public class AsyncWebTaskExecutor {
                 T result = callable.call();
                 log.info("[{}] 성공 userId={}", operation, userId);
                 return result;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("[{}] 인터럽트됨 userId={}", operation, userId);
+                throw e;
             } catch (ApiException e) {
                 log.warn("[{}] 비즈니스 예외 userId={}, code={}", operation, userId, e.getErrorCode());
                 throw e; // 예외를 숨기지 않고 GlobalExceptionHandler로 전파

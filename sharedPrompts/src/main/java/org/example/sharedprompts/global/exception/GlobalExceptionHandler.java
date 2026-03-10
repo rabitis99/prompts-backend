@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
         String fieldName = fieldError != null ? fieldError.getField() : null;
         String message = fieldError != null ? fieldError.getDefaultMessage() : "Validation failed";
         log.warn("Validation failed: {} ({})", message, fieldName);
-        return CustomResponseHelper.fail(new ApiException(ErrorCode.INVALID_INPUT_VALUE, fieldName));
+        return CustomResponseHelper.fail(new ApiException(ErrorCode.INVALID_INPUT_VALUE, fieldName, message));
     }
 
     // PathVariable 타입 불일치 예외 처리 (예: 유효하지 않은 enum 값)

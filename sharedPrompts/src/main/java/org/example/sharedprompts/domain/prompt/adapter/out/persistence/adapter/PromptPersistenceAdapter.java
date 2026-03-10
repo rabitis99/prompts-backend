@@ -22,29 +22,21 @@ public class PromptPersistenceAdapter implements PromptQueryPort, PromptCommandP
 
     @Override
     public Optional<Prompt> findById(Long promptId) {
-
-        // 프롬프트 단건 조회
         return promptRepository.findById(promptId);
     }
 
     @Override
     public Page<Prompt> search(PromptSearchQuery query) {
-
-        // 프롬프트 검색
         return promptRepository.search(query);
     }
 
     @Override
     public Prompt save(Prompt prompt) {
-
-        // 프롬프트 저장
         return promptRepository.saveAndFlush(prompt);
     }
 
     @Override
     public void delete(Prompt prompt) {
-
-        // 프롬프트 삭제
         promptRepository.delete(prompt);
     }
 }

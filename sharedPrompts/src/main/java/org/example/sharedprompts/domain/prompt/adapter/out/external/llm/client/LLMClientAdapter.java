@@ -79,6 +79,10 @@ public class LLMClientAdapter implements LLMClientPort {
         List<String> safeFailureReasons =
                 failureReasons != null ? failureReasons : List.of();
 
+        if (safeFailedItems.isEmpty()) {
+            return "";
+        }
+
         StringBuilder sb = new StringBuilder();
 
         // 실패 항목 안내 문구
