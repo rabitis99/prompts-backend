@@ -1,7 +1,6 @@
 package org.example.sharedprompts.domain.prompt.domain.model.spec;
 
 import lombok.Getter;
-import org.example.sharedprompts.domain.prompt.application.port.out.persistence.SavePromptVersionPort;
 import org.example.sharedprompts.domain.prompt.domain.model.contract.OutputContract;
 import org.example.sharedprompts.domain.prompt.domain.model.result.QualityRubric;
 import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
@@ -22,7 +21,7 @@ import java.util.List;
  *
  * <p>이 클래스는 순수 도메인 모델이며 JPA 엔티티와 분리된다.
  * 생성 완료 후 결과를 {@code Prompt} JPA 엔티티로 저장하는 것은
- * {@link SavePromptVersionPort}가 담당한다.
+ * 애플리케이션 계층이 담당한다.
  */
 @Getter
 public final class PromptSpec {

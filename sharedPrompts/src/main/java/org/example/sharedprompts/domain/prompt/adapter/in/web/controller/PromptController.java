@@ -22,9 +22,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 프롬프트 조회/수정/삭제 CRUD 컨트롤러.
- *
- * <p>생성은 PromptGenerationController 가 담당한다.</p>
+ * 프롬프트 조회/수정/삭제 API 컨트롤러
+ * 생성 기능은 PromptGenerationController 에서 담당한다.
  */
 @RestController
 @RequestMapping("/prompts")
@@ -35,39 +34,37 @@ public class PromptController {
     private final PromptCommandUseCase promptCommandUseCase;
     private final PromptWebMapper promptWebMapper;
 
-    /**
-     * 전체 프롬프트 목록 조회 (피드)
-     */
+    /** 전체 프롬프트 목록 조회 */
     @GetMapping
     public ResponseEntity<CustomResponse<PageResponse<PromptSummaryResponse>>> getPrompts(
             @Valid PromptSearchCondition condition,
             @CurrentUser AuthUser authUser
     ) {
         Long viewerId = authUser != null ? authUser.getId() : null;
+
         SearchPromptsQuery query = promptWebMapper.toSearchQuery(condition, null, viewerId);
         PromptPageResult<PromptSummaryView> result = promptQueryUseCase.getPrompts(query);
         PageResponse<PromptSummaryResponse> response = promptWebMapper.toPageResponse(result);
+
         return CustomResponseHelper.ok(response);
     }
 
-    /**
-     * 내 프롬프트 목록 조회
-     */
+    /** 내 프롬프트 목록 조회 */
     @GetMapping("/me")
     public ResponseEntity<CustomResponse<PageResponse<PromptSummaryResponse>>> getMyPrompts(
             @Valid PromptSearchCondition condition,
             @CurrentUser AuthUser authUser
     ) {
         Long userId = authUser.getId();
+
         SearchPromptsQuery query = promptWebMapper.toSearchQuery(condition, userId, null);
         PromptPageResult<PromptSummaryView> result = promptQueryUseCase.getMyPrompts(query);
         PageResponse<PromptSummaryResponse> response = promptWebMapper.toPageResponse(result);
+
         return CustomResponseHelper.ok(response);
     }
 
-    /**
-     * 특정 사용자의 프롬프트 목록 조회
-     */
+    /** 특정 사용자의 프롬프트 목록 조회 */
     @GetMapping("/users/{userId}")
     public ResponseEntity<CustomResponse<PageResponse<PromptSummaryResponse>>> getUserPrompts(
             @PathVariable Long userId,
@@ -75,29 +72,29 @@ public class PromptController {
             @CurrentUser AuthUser authUser
     ) {
         Long viewerId = authUser != null ? authUser.getId() : null;
+
         SearchPromptsQuery query = promptWebMapper.toSearchQuery(condition, userId, viewerId);
         PromptPageResult<PromptSummaryView> result = promptQueryUseCase.getUserPrompts(query);
         PageResponse<PromptSummaryResponse> response = promptWebMapper.toPageResponse(result);
+
         return CustomResponseHelper.ok(response);
     }
 
-    /**
-     * 프롬프트 상세 조회
-     */
+    /** 프롬프트 상세 조회 */
     @GetMapping("/{id}")
     public ResponseEntity<CustomResponse<PromptDetailResponse>> getPromptDetail(
             @PathVariable Long id,
             @CurrentUser AuthUser authUser
     ) {
         Long viewerId = authUser != null ? authUser.getId() : null;
+
         var view = promptQueryUseCase.getPromptDetail(id, viewerId);
         PromptDetailResponse response = promptWebMapper.toDetailResponse(view);
+
         return CustomResponseHelper.ok(response);
     }
 
-    /**
-     * 프롬프트 수정
-     */
+    /** 프롬프트 수정 */
     @PatchMapping("/{id}")
     public ResponseEntity<CustomResponse<PromptDetailResponse>> updatePrompt(
             @PathVariable Long id,
@@ -105,22 +102,24 @@ public class PromptController {
             @CurrentUser AuthUser authUser
     ) {
         Long userId = authUser.getId();
+
         var command = promptWebMapper.toUpdateCommand(id, userId, request);
         var view = promptCommandUseCase.updatePrompt(command);
         PromptDetailResponse response = promptWebMapper.toDetailResponse(view);
+
         return CustomResponseHelper.ok(response);
     }
 
-    /**
-     * 프롬프트 삭제
-     */
+    /** 프롬프트 삭제 */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePrompt(
             @PathVariable Long id,
             @CurrentUser AuthUser authUser
     ) {
         Long userId = authUser.getId();
+
         promptCommandUseCase.deletePrompt(new DeletePromptCommand(id, userId));
+
         return CustomResponseHelper.noContent();
     }
 }

@@ -5,6 +5,7 @@ import org.example.sharedprompts.global.config.async.security.SecurityContextTas
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.core.task.AsyncTaskExecutor;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -61,6 +62,13 @@ public class AsyncExecutorConfig {
     public Executor thumbnailTaskExecutor() {
         return createExecutor("thumbnail-", 3, 8, 50, DEFAULT_AWAIT_TERMINATION_SECONDS,
                 createCallerThreadRejectionHandler());
+    }
+
+    /** WebAsyncTask/LLM 장시간 작업 전용 Executor (SecurityContext 전파, 리소스 격리·모니터링 용이) */
+    @Bean(name = "webAsyncTaskExecutor")
+    public AsyncTaskExecutor webAsyncTaskExecutor() {
+        return (ThreadPoolTaskExecutor) createExecutorWithSecurityContext("web-async-", 5, 20, 100,
+                DEFAULT_AWAIT_TERMINATION_SECONDS, createCallerThreadRejectionHandler());
     }
 
     /** @EnableAsync의 기본 Executor */

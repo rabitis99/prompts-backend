@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.prompt.domain.service.badge;
 
-import org.example.sharedprompts.domain.prompt.application.service.generate.GeneratePromptService;
 import org.example.sharedprompts.domain.prompt.domain.model.result.QualityRubric;
 import org.example.sharedprompts.domain.prompt.domain.model.result.VerifyResult;
 import org.example.sharedprompts.domain.prompt.domain.value.quality.QualityBadge;
@@ -15,7 +14,7 @@ import java.util.List;
  * <p>Spring 의존 없음 — {@code PromptDomainConfig}에서 생성·주입한다.
  *
  * <p>pass rate, repair count 등 수치는 배지로만 표현하며 외부에 노출하지 않는다.
- * {@link GeneratePromptService}의 SRP 책임 분리 목적으로 추출되었다.
+ * 애플리케이션 서비스의 SRP 책임 분리 목적으로 추출되었다.
  */
 public class BadgeResolver {
 

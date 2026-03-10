@@ -15,10 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Unified prompt generation response DTO with semantic resolution metadata.
- *
- * <p>Single stable contract; output and metadata returned together.
- * Semantic fields replace legacy routing terminology.</p>
+ * 프롬프트 생성 결과와 실행 메타데이터를 함께 반환하는 응답 DTO
  */
 public record UnifiedGeneratePromptResponse(
 

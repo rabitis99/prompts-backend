@@ -9,24 +9,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.RequestType;
 import java.util.List;
 
 /**
- * 통합 프롬프트 생성 요청의 폴리모픽 루트 타입.
- *
- * <p>외부에는 단일 엔드포인트만 노출하지만, request_type 에 따라
- * SIMPLE / EXTRACTION / ADVANCED 서브 타입으로 디스패치된다.</p>
- *
- * <p><b>Semantic hierarchy</b> (resolution order, reflected in sub-type fields):
- * category → intent → roleType/actionType (ADVANCED only) → tone/style → input, output (json_schema).
- * Category and intent are required for SIMPLE/ADVANCED; tone and style are expression modifiers only
- * and do not drive semantic resolution.</p>
- *
- * <p>공통·필수 필드는 이 인터페이스에서 계약으로 관리한다.</p>
- * <ul>
- *   <li>{@link #requestType()} — 요청 유형 디스크리미네이터 (필수)</li>
- *   <li>{@link #input()} — 사용자 입력 본문 (필수, 최대 10_000자)</li>
- *   <li>{@link #tags()} — 태그 목록 (선택, 최대 20개, 각 1~50자)</li>
- *   <li>{@link #title()} — 제목 (선택, 최대 200자)</li>
- *   <li>{@link #description()} — 설명 (선택, 타입별 최대 길이 상이)</li>
- * </ul>
+ * 통합 프롬프트 생성 요청의 루트 타입
  */
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
@@ -43,33 +26,33 @@ public sealed interface UnifiedGeneratePromptRequest
         permits SimpleGeneratePromptRequest, ExtractionGeneratePromptRequest, AdvancedGeneratePromptRequest {
 
     /**
-     * 요청 유형 디스크리미네이터. (공통·필수)
+     * 요청 유형
      */
     @JsonProperty("request_type")
     RequestType requestType();
 
     /**
-     * 사용자 입력 본문. (공통·필수, 최대 10_000자)
+     * 사용자 입력
      */
     String input();
 
     /**
-     * 태그 목록. (공통, 최대 20개, 각 1~50자)
+     * 태그 목록
      */
     List<String> tags();
 
     /**
-     * 제목. (공통, 선택, 최대 200자)
+     * 제목
      */
     String title();
 
     /**
-     * 설명. (공통, 선택, 타입별 최대 길이 상이)
+     * 설명
      */
     String description();
 
     /**
-     * 도메인 유스케이스에서 사용하는 통합 커맨드로 변환.
+     * API 요청을 통합 커맨드로 변환
      */
     UnifiedGeneratePromptCommand toCommand(Long userId);
 }

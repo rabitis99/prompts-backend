@@ -24,9 +24,7 @@ public record CustomResponse<T>(
     }
 
     public static <T> CustomResponse<T> fail(final ApiException e) {
-        ExceptionDto dto = e.getFieldName() != null
-                ? ExceptionDto.of(e.getErrorCode(), e.getFieldName())
-                : ExceptionDto.of(e.getErrorCode());
+        ExceptionDto dto = ExceptionDto.of(e.getErrorCode(), e.getFieldName(), e.getMessage());
         return new CustomResponse<>(e.getErrorCode().getHttpStatus(), false, null, dto);
     }
 }

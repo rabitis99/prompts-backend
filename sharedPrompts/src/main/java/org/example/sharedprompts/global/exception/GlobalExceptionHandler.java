@@ -11,11 +11,13 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
@@ -40,10 +42,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleValidationException(MethodArgumentNotValidException e) {
         FieldError fieldError = e.getBindingResult().getFieldError();
+        ObjectError globalError = e.getBindingResult().getGlobalError();
         String fieldName = fieldError != null ? fieldError.getField() : null;
-        String message = fieldError != null ? fieldError.getDefaultMessage() : "Validation failed";
+        String message = fieldError != null
+                ? fieldError.getDefaultMessage()
+                : globalError != null ? globalError.getDefaultMessage() : "Validation failed";
         log.warn("Validation failed: {} ({})", message, fieldName);
-        return CustomResponseHelper.fail(new ApiException(ErrorCode.INVALID_INPUT_VALUE, fieldName));
+        return CustomResponseHelper.fail(new ApiException(ErrorCode.INVALID_INPUT_VALUE, fieldName, message));
     }
 
     // PathVariable 타입 불일치 예외 처리 (예: 유효하지 않은 enum 값)
@@ -211,6 +216,20 @@ public class GlobalExceptionHandler {
         
         // 기타 제약 조건 위반
         return ErrorCode.DATA_INTEGRITY_VIOLATION;
+    }
+
+    // 비동기 요청 타임아웃 예외 처리
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    public ResponseEntity<?> handleAsyncRequestTimeoutException(AsyncRequestTimeoutException e) {
+        log.warn("AsyncRequestTimeoutException: 비동기 처리 시간 초과 - {}", e.getMessage());
+        return CustomResponseHelper.fail(new ApiException(ErrorCode.AI_GENERATION_TIMEOUT));
+    }
+
+    // LLM 응답 비어있음/실패 (503 Service Unavailable)
+    @ExceptionHandler(LLMResponseException.class)
+    public ResponseEntity<?> handleLLMResponseException(LLMResponseException e) {
+        log.warn("LLMResponseException: {}", e.getMessage());
+        return CustomResponseHelper.fail(new ApiException(ErrorCode.LLM_RESPONSE_EMPTY));
     }
 
     // 커스텀 예외

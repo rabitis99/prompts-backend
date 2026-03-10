@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.prompt.adapter.in.web.dto.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import jakarta.validation.constraints.NotNull;
 import org.example.sharedprompts.domain.prompt.common.enums.*;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
@@ -11,15 +12,13 @@ import org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTyp
 import org.example.sharedprompts.domain.prompt.common.enums.serializer.RoleTypeDeserializer;
 import org.example.sharedprompts.domain.prompt.common.enums.serializer.RoleTypeSerializer;
 
-import jakarta.validation.constraints.NotNull;
-
 /**
- * Request for POST /prompts/recommend.
- * category required for SIMPLE/ADVANCED; optional for EXTRACTION.
+ * 프롬프트 추천 요청 DTO
  */
 public record RecommendPromptRequest(
+
         @JsonProperty("request_mode")
-        @NotNull(message = "request_mode is required")
+        @NotNull(message = "요청 모드를 선택해주세요.")
         RequestMode requestMode,
 
         PromptCategory category,

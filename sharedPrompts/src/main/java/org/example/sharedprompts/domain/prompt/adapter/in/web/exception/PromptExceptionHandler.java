@@ -14,9 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Prompt 도메인 전용 예외 핸들러.
- *
- * <p>애플리케이션 계층의 도메인 예외를 웹 전용 ApiException/ErrorCode 로 매핑한다.</p>
+ * Prompt 도메인 예외를 API 응답으로 변환하는 핸들러
  */
 @Slf4j
 @RestControllerAdvice(basePackages = "org.example.sharedprompts.domain.prompt")
@@ -62,4 +60,3 @@ public class PromptExceptionHandler {
         return toErrorResponse(apiEx);
     }
 }
-

@@ -46,8 +46,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/signup",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "signup"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "signup"
+              ]
             }
           }
         },
@@ -83,8 +88,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             }
           }
         },
@@ -104,8 +114,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/confirm",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "confirm"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "confirm"
+              ]
             }
           }
         },
@@ -125,8 +140,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/refresh",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "refresh"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
             }
           }
         },
@@ -150,8 +170,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/logout",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "logout"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
             }
           }
         }
@@ -172,8 +197,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "me"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
             }
           }
         },
@@ -197,8 +227,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "me"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
             }
           }
         },
@@ -222,8 +257,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/me/password",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "me", "password"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "password"
+              ]
             }
           }
         },
@@ -239,8 +280,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "1"
+              ]
             }
           }
         },
@@ -256,8 +302,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "1"
+              ]
             }
           }
         }
@@ -267,7 +318,7 @@
       "name": "Prompt",
       "item": [
         {
-          "name": "프롬프트 생성",
+          "name": "프롬프트 추천",
           "request": {
             "method": "POST",
             "header": [
@@ -282,12 +333,138 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"request_type\": \"SIMPLE\",\n  \"category\": \"DEVELOPMENT\",\n  \"intent\": \"GENERATE\",\n  \"variant\": null,\n  \"input\": \"REST API 설계 가이드라인을 작성해 주세요.\",\n  \"tone\": \"FRIENDLY\",\n  \"style\": \"NARRATIVE\",\n  \"language\": \"KOREAN\",\n  \"experience\": \"INTERMEDIATE\",\n  \"tags\": [\"아키텍처\", \"API\", \"설계\"]\n}"
+              "raw": "{\n  \"request_mode\": \"SIMPLE\",\n  \"category\": \"DEVELOPMENT\",\n  \"intent\": \"GENERATE\",\n  \"role_type\": \"SOFTWARE_ENGINEER\",\n  \"action_type\": \"CODE_REVIEW\",\n  \"tone\": \"PROFESSIONAL\",\n  \"style\": \"CONCISE\",\n  \"language\": \"KOREAN\",\n  \"experience\": \"EXPERT\",\n  \"raw_input\": \"REST API 설계 가이드라인을 작성해 주세요.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prompts/recommend",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "recommend"
+              ]
+            }
+          }
+        },
+        {
+          "name": "프롬프트 생성 (SIMPLE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"request_type\": \"SIMPLE\",\n  \"category\": \"DEVELOPMENT\",\n  \"intent\": \"GENERATE\",\n  \"variant\": null,\n  \"input\": \"REST API 설계 가이드라인을 작성해 주세요.\",\n  \"tone\": \"PROFESSIONAL\",\n  \"style\": \"CONCISE\",\n  \"language\": \"KOREAN\",\n  \"experience\": \"INTERMEDIATE\",\n  \"tags\": [\n    \"아키텍처\",\n    \"API\",\n    \"설계\"\n  ],\n  \"title\": \"API 가이드\",\n  \"description\": \"REST API 설계 가이드라인\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/prompts/generate",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "generate"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "generate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "프롬프트 생성 (EXTRACTION)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"request_type\": \"EXTRACTION\",\n  \"input\": \"요약할 텍스트입니다...\",\n  \"json_schema\": \"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{}}\",\n  \"language\": \"KOREAN\",\n  \"tags\": [\n    \"추출\",\n    \"JSON\"\n  ],\n  \"title\": \"데이터 추출\",\n  \"description\": \"설명\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prompts/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "generate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "프롬프트 생성 (ADVANCED)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"request_type\": \"ADVANCED\",\n  \"category\": \"DEVELOPMENT\",\n  \"intent\": \"GENERATE\",\n  \"role_type\": \"SOFTWARE_ENGINEER\",\n  \"action_type\": \"CODE_REVIEW\",\n  \"variant\": null,\n  \"input\": \"고급 프롬프트 생성 요청\",\n  \"title\": \"고급 생성\",\n  \"description\": \"고급 설정 설명\",\n  \"json_schema\": null,\n  \"engine_mode\": \"QUALITY\",\n  \"tone\": \"PROFESSIONAL\",\n  \"style\": \"CONCISE\",\n  \"language\": \"KOREAN\",\n  \"experience\": \"EXPERT\",\n  \"disable_quality_pipeline\": false,\n  \"tags\": [\n    \"고급\",\n    \"개발\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prompts/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "generate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "확정 축 기반 프롬프트 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"request_mode\": \"ADVANCED\",\n  \"category\": \"DEVELOPMENT\",\n  \"intent\": \"GENERATE\",\n  \"role_type\": \"SOFTWARE_ENGINEER\",\n  \"action_type\": \"CODE_REVIEW\",\n  \"tone\": \"PROFESSIONAL\",\n  \"style\": \"CONCISE\",\n  \"language\": \"KOREAN\",\n  \"experience\": \"EXPERT\",\n  \"input\": \"REST API 설계 가이드라인을 작성해 주세요.\",\n  \"json_schema\": null,\n  \"title\": \"확정된 생성\",\n  \"description\": \"확정 축 기반 생성 설명\",\n  \"tags\": [\n    \"확정\",\n    \"개발\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prompts/generate/confirmed",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "generate",
+                "confirmed"
+              ]
             }
           }
         },
@@ -302,9 +479,13 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/prompts?page=0&size=20&sort=LATEST&prompt_category=DEVELOPMENT",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts"],
+              "raw": "{{baseUrl}}/prompts?page=0&size=20&sort=LATEST",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -316,79 +497,19 @@
                 },
                 {
                   "key": "sort",
-                  "value": "LATEST",
-                  "description": "LATEST, POPULAR"
+                  "value": "LATEST"
                 },
                 {
                   "key": "prompt_category",
                   "value": "DEVELOPMENT",
-                  "description": "PRODUCTIVITY, DEVELOPMENT, ANALYSIS, MARKETING, CONTENT, CREATIVE, STUDY, EDUCATION, RESEARCH, BUSINESS, DESIGN, WRITING, ETC"
+                  "disabled": true
                 },
                 {
                   "key": "keyword",
                   "value": "",
-                  "description": "제목·설명·태그 검색어 (선택)"
+                  "disabled": true
                 }
               ]
-            }
-          }
-        },
-        {
-          "name": "프롬프트 상세 조회",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/prompts/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1"]
-            }
-          }
-        },
-        {
-          "name": "프롬프트 수정",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"수정된 제목\",\n  \"description\": \"수정된 설명\",\n  \"is_public\": false,\n  \"prompt_category\": \"CODING\",\n  \"tags\": [\"새태그1\", \"새태그2\"]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/prompts/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1"]
-            }
-          }
-        },
-        {
-          "name": "프롬프트 삭제",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/prompts/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1"]
             }
           }
         },
@@ -404,8 +525,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/me?page=0&size=20&sort=LATEST",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "me"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "me"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -435,8 +561,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/users/1?page=0&size=20&sort=LATEST",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "users", "1"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "users",
+                "1"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -455,94 +587,78 @@
           }
         },
         {
-          "name": "텍스트 전용",
-          "item": [
-            {
-              "name": "프롬프트 생성 (텍스트 전용)",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-"raw": "{\n  \"request_type\": \"SIMPLE\",\n  \"category\": \"WRITING\",\n  \"intent\": \"GENERATE\",\n  \"variant\": null,\n  \"input\": \"요약 보고서 초안을 작성해 주세요.\",\n  \"tone\": \"PROFESSIONAL\",\n  \"style\": \"CONCISE\",\n  \"language\": \"KOREAN\",\n  \"experience\": \"INTERMEDIATE\",\n  \"tags\": [\"문서\", \"텍스트\", \"작성\"]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/prompts/generate",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "generate"]
-            }
+          "name": "프롬프트 상세 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
               }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/prompts/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1"
+              ]
             }
-          ]
+          }
         },
         {
-          "name": "이미지 전용",
-          "item": [
-            {
-              "name": "프롬프트 생성 (이미지 전용)",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-"raw": "{\n  \"request_type\": \"SIMPLE\",\n  \"category\": \"CREATIVE\",\n  \"intent\": \"GENERATE\",\n  \"variant\": null,\n  \"input\": \"미니멀한 풍경 일러스트, 파스텔 톤, 해질녘 바다.\",\n  \"tone\": \"FRIENDLY\",\n  \"style\": \"DESCRIPTIVE\",\n  \"language\": \"KOREAN\",\n  \"experience\": \"INTERMEDIATE\",\n  \"tags\": [\"이미지\", \"생성\", \"아트\"]\n}"
+          "name": "프롬프트 수정",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"수정된 제목\",\n  \"description\": \"수정된 설명\",\n  \"is_public\": false,\n  \"prompt_category\": \"DEVELOPMENT\",\n  \"tags\": [\n    \"새태그1\",\n    \"새태그2\"\n  ]\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/prompts/generate",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "generate"]
+              "raw": "{{baseUrl}}/prompts/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1"
+              ]
             }
-              }
-            }
-          ]
+          }
         },
         {
-          "name": "이메일 전용",
-          "item": [
-            {
-              "name": "프롬프트 생성 (이메일 전용)",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-"raw": "{\n  \"request_type\": \"SIMPLE\",\n  \"category\": \"PRODUCTIVITY\",\n  \"intent\": \"GENERATE\",\n  \"variant\": null,\n  \"input\": \"고객 문의에 대한 답변 이메일 초안을 작성해 주세요.\",\n  \"tone\": \"FORMAL\",\n  \"style\": \"FORMATTED\",\n  \"language\": \"KOREAN\",\n  \"experience\": \"INTERMEDIATE\",\n  \"tags\": [\"이메일\", \"작성\", \"비즈니스\"]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/prompts/generate",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "generate"]
-            }
+          "name": "프롬프트 삭제",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
               }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/prompts/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1"
+              ]
             }
-          ]
+          }
         }
       ]
     },
@@ -561,8 +677,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/metadata/domains",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "metadata", "domains"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "metadata",
+                "domains"
+              ]
             }
           }
         },
@@ -578,8 +700,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/metadata/domains/ARCHITECTURE_DESIGN",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "metadata", "domains", "ARCHITECTURE_DESIGN"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "metadata",
+                "domains",
+                "ARCHITECTURE_DESIGN"
+              ]
             }
           }
         },
@@ -595,8 +724,16 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/metadata/domains/ARCHITECTURE_DESIGN/styles",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "metadata", "domains", "ARCHITECTURE_DESIGN", "styles"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "metadata",
+                "domains",
+                "ARCHITECTURE_DESIGN",
+                "styles"
+              ]
             }
           }
         },
@@ -612,8 +749,16 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/metadata/domains/ARCHITECTURE_DESIGN/tones",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "metadata", "domains", "ARCHITECTURE_DESIGN", "tones"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "metadata",
+                "domains",
+                "ARCHITECTURE_DESIGN",
+                "tones"
+              ]
             }
           }
         },
@@ -629,8 +774,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/metadata/styles",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "metadata", "styles"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "metadata",
+                "styles"
+              ]
             }
           }
         },
@@ -646,8 +797,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/metadata/styles/NARRATIVE",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "metadata", "styles", "NARRATIVE"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "metadata",
+                "styles",
+                "NARRATIVE"
+              ]
             }
           }
         },
@@ -663,8 +821,16 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/metadata/styles/NARRATIVE/domains",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "metadata", "styles", "NARRATIVE", "domains"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "metadata",
+                "styles",
+                "NARRATIVE",
+                "domains"
+              ]
             }
           }
         },
@@ -680,8 +846,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/metadata/tones",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "metadata", "tones"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "metadata",
+                "tones"
+              ]
             }
           }
         },
@@ -697,8 +869,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/metadata/tones/FRIENDLY",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "metadata", "tones", "FRIENDLY"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "metadata",
+                "tones",
+                "FRIENDLY"
+              ]
             }
           }
         },
@@ -714,8 +893,16 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/metadata/tones/FRIENDLY/domains",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "metadata", "tones", "FRIENDLY", "domains"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "metadata",
+                "tones",
+                "FRIENDLY",
+                "domains"
+              ]
             }
           }
         }
@@ -744,8 +931,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/prompts/1/comments",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "comments"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1",
+                "comments"
+              ]
             }
           }
         },
@@ -769,8 +962,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/prompts/1/comments",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "comments"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1",
+                "comments"
+              ]
             }
           }
         },
@@ -780,8 +979,14 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/prompts/1/comments",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "comments"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1",
+                "comments"
+              ]
             }
           }
         },
@@ -805,8 +1010,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/prompts/1/comments/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "comments", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1",
+                "comments",
+                "1"
+              ]
             }
           }
         },
@@ -822,8 +1034,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/1/comments/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "comments", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1",
+                "comments",
+                "1"
+              ]
             }
           }
         }
@@ -844,8 +1063,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/2/follow",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "2", "follow"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "2",
+                "follow"
+              ]
             }
           }
         },
@@ -861,8 +1086,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/2/follow/accept",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "2", "follow", "accept"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "2",
+                "follow",
+                "accept"
+              ]
             }
           }
         },
@@ -878,8 +1110,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/2/follow/reject",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "2", "follow", "reject"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "2",
+                "follow",
+                "reject"
+              ]
             }
           }
         },
@@ -895,8 +1134,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/2/follow/block",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "2", "follow", "block"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "2",
+                "follow",
+                "block"
+              ]
             }
           }
         },
@@ -912,8 +1158,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/2/follow/block",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "2", "follow", "block"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "2",
+                "follow",
+                "block"
+              ]
             }
           }
         },
@@ -929,8 +1182,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/2/follow",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "2", "follow"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "2",
+                "follow"
+              ]
             }
           }
         },
@@ -946,8 +1205,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/me/followers/2",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "me", "followers", "2"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "followers",
+                "2"
+              ]
             }
           }
         },
@@ -963,8 +1229,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/2/follow",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "2", "follow"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "2",
+                "follow"
+              ]
             }
           }
         },
@@ -980,8 +1252,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/me/followers?status=FOLLOWING&page=0&size=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "me", "followers"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "followers"
+              ],
               "query": [
                 {
                   "key": "status",
@@ -1012,8 +1290,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/me/following?status=FOLLOWING&page=0&size=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "me", "following"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "following"
+              ],
               "query": [
                 {
                   "key": "status",
@@ -1043,8 +1327,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/me/follow/count?status=FOLLOWING",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "me", "follow", "count"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "follow",
+                "count"
+              ],
               "query": [
                 {
                   "key": "status",
@@ -1071,8 +1362,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/1/likes",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "likes"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1",
+                "likes"
+              ]
             }
           }
         },
@@ -1088,8 +1385,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/1/likes",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "likes"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1",
+                "likes"
+              ]
             }
           }
         },
@@ -1105,8 +1408,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/1/likes",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "likes"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1",
+                "likes"
+              ]
             }
           }
         },
@@ -1122,8 +1431,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/comments/1/likes",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "1", "likes"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "1",
+                "likes"
+              ]
             }
           }
         },
@@ -1139,8 +1454,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/comments/1/likes",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "1", "likes"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "1",
+                "likes"
+              ]
             }
           }
         },
@@ -1156,8 +1477,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/comments/1/likes",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "1", "likes"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "1",
+                "likes"
+              ]
             }
           }
         }
@@ -1178,8 +1505,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/1/favorites",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "favorites"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1",
+                "favorites"
+              ]
             }
           }
         },
@@ -1195,8 +1528,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/1/favorites",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "favorites"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1",
+                "favorites"
+              ]
             }
           }
         },
@@ -1212,8 +1551,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/prompts/1/favorites",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "favorites"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1",
+                "favorites"
+              ]
             }
           }
         },
@@ -1229,8 +1574,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/favorites?page=0&size=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["favorites"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "favorites"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -1261,8 +1610,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/notifications?page=0&size=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["notifications"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -1288,8 +1641,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/notifications/unread-count",
-              "host": ["{{baseUrl}}"],
-              "path": ["notifications", "unread-count"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "unread-count"
+              ]
             }
           }
         },
@@ -1305,8 +1663,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/notifications/subscribe",
-              "host": ["{{baseUrl}}"],
-              "path": ["notifications", "subscribe"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "subscribe"
+              ]
             }
           }
         },
@@ -1322,8 +1685,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/notifications/1/read",
-              "host": ["{{baseUrl}}"],
-              "path": ["notifications", "1", "read"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "1",
+                "read"
+              ]
             }
           }
         },
@@ -1339,8 +1708,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/notifications/read-all",
-              "host": ["{{baseUrl}}"],
-              "path": ["notifications", "read-all"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "read-all"
+              ]
             }
           }
         }
@@ -1369,8 +1743,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/reports",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports"
+              ]
             }
           }
         },
@@ -1394,8 +1772,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/reports",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports"
+              ]
             }
           }
         },
@@ -1411,8 +1793,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/reports/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "1"
+              ]
             }
           }
         },
@@ -1428,8 +1815,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/reports?page=0&size=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -1455,8 +1846,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/reports/status/PENDING?page=0&size=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports", "status", "PENDING"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "status",
+                "PENDING"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -1482,8 +1879,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/reports/type/PROMPT?page=0&size=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports", "type", "PROMPT"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "type",
+                "PROMPT"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -1509,8 +1912,16 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/reports/status/PENDING/type/PROMPT?page=0&size=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports", "status", "PENDING", "type", "PROMPT"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "status",
+                "PENDING",
+                "type",
+                "PROMPT"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -1536,8 +1947,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/reports/me?page=0&size=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports", "me"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "me"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -1571,8 +1987,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/reports/1/process",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports", "1", "process"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "1",
+                "process"
+              ]
             }
           }
         }
@@ -1601,8 +2023,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/payments",
-              "host": ["{{baseUrl}}"],
-              "path": ["payments"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments"
+              ]
             }
           }
         },
@@ -1618,8 +2044,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/payments/1/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["payments", "1", "status"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "1",
+                "status"
+              ]
             }
           }
         },
@@ -1643,8 +2075,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/payments/cancel",
-              "host": ["{{baseUrl}}"],
-              "path": ["payments", "cancel"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "cancel"
+              ]
             }
           }
         },
@@ -1668,8 +2105,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/payments/refund",
-              "host": ["{{baseUrl}}"],
-              "path": ["payments", "refund"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "refund"
+              ]
             }
           }
         },
@@ -1685,8 +2127,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/payments/me/tier",
-              "host": ["{{baseUrl}}"],
-              "path": ["payments", "me", "tier"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "me",
+                "tier"
+              ]
             }
           }
         },
@@ -1702,8 +2150,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/payments/me/tier-info?moduleType=LITERARY",
-              "host": ["{{baseUrl}}"],
-              "path": ["payments", "me", "tier-info"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "me",
+                "tier-info"
+              ],
               "query": [
                 {
                   "key": "moduleType",
@@ -1726,8 +2180,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/payments/history?page=0&size=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["payments", "history"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "history"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -1753,8 +2212,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/payments/me/tier-history?page=0&size=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["payments", "me", "tier-history"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "me",
+                "tier-history"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -1788,8 +2253,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/payments/usage/consume",
-              "host": ["{{baseUrl}}"],
-              "path": ["payments", "usage", "consume"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "usage",
+                "consume"
+              ]
             }
           }
         },
@@ -1813,8 +2284,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/payments/confirm",
-              "host": ["{{baseUrl}}"],
-              "path": ["payments", "confirm"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "confirm"
+              ]
             }
           }
         }
@@ -1839,8 +2315,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/webhooks/payments/kakao",
-              "host": ["{{baseUrl}}"],
-              "path": ["webhooks", "payments", "kakao"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "payments",
+                "kakao"
+              ]
             }
           }
         },
@@ -1860,8 +2342,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/webhooks/payments/toss",
-              "host": ["{{baseUrl}}"],
-              "path": ["webhooks", "payments", "toss"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "payments",
+                "toss"
+              ]
             }
           }
         },
@@ -1881,8 +2369,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/webhooks/payments/paypal",
-              "host": ["{{baseUrl}}"],
-              "path": ["webhooks", "payments", "paypal"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "payments",
+                "paypal"
+              ]
             }
           }
         }
@@ -1903,8 +2397,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/points/balance",
-              "host": ["{{baseUrl}}"],
-              "path": ["points", "balance"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "points",
+                "balance"
+              ]
             }
           }
         },
@@ -1920,8 +2419,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/points/history",
-              "host": ["{{baseUrl}}"],
-              "path": ["points", "history"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "points",
+                "history"
+              ]
             }
           }
         },
@@ -1945,8 +2449,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/points/use",
-              "host": ["{{baseUrl}}"],
-              "path": ["points", "use"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "points",
+                "use"
+              ]
             }
           }
         },
@@ -1962,8 +2471,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/points/payment/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["points", "payment", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "points",
+                "payment",
+                "1"
+              ]
             }
           }
         }
@@ -1984,8 +2499,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/cashbacks/history",
-              "host": ["{{baseUrl}}"],
-              "path": ["cashbacks", "history"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashbacks",
+                "history"
+              ]
             }
           }
         },
@@ -2001,8 +2521,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/cashbacks/unpaid-total",
-              "host": ["{{baseUrl}}"],
-              "path": ["cashbacks", "unpaid-total"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashbacks",
+                "unpaid-total"
+              ]
             }
           }
         },
@@ -2018,8 +2543,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/cashbacks/unpaid",
-              "host": ["{{baseUrl}}"],
-              "path": ["cashbacks", "unpaid"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashbacks",
+                "unpaid"
+              ]
             }
           }
         },
@@ -2035,8 +2565,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/cashbacks/1/pay",
-              "host": ["{{baseUrl}}"],
-              "path": ["cashbacks", "1", "pay"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashbacks",
+                "1",
+                "pay"
+              ]
             }
           }
         }
@@ -2057,8 +2593,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/statistics",
-              "host": ["{{baseUrl}}"],
-              "path": ["statistics"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "statistics"
+              ]
             }
           }
         },
@@ -2074,8 +2614,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/statistics/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["statistics", "users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "statistics",
+                "users"
+              ]
             }
           }
         },
@@ -2091,8 +2636,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/statistics/prompts",
-              "host": ["{{baseUrl}}"],
-              "path": ["statistics", "prompts"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "statistics",
+                "prompts"
+              ]
             }
           }
         },
@@ -2108,8 +2658,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/statistics/ai-calls",
-              "host": ["{{baseUrl}}"],
-              "path": ["statistics", "ai-calls"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "statistics",
+                "ai-calls"
+              ]
             }
           }
         },
@@ -2125,8 +2680,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/statistics/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["statistics", "me"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "statistics",
+                "me"
+              ]
             }
           }
         }
@@ -2159,8 +2719,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/prompts/1/production/text",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "production", "text"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1",
+                "production",
+                "text"
+              ]
             }
           }
         },
@@ -2188,8 +2755,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/prompts/1/production/image",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "production", "image"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1",
+                "production",
+                "image"
+              ]
             }
           }
         },
@@ -2217,8 +2791,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/prompts/1/production/email",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "production", "email"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1",
+                "production",
+                "email"
+              ]
             }
           }
         },
@@ -2246,8 +2827,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/prompts/1/production/blog",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "production", "blog"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1",
+                "production",
+                "blog"
+              ]
             }
           }
         },
@@ -2275,8 +2863,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/prompts/1/production/document",
-              "host": ["{{baseUrl}}"],
-              "path": ["prompts", "1", "production", "document"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prompts",
+                "1",
+                "production",
+                "document"
+              ]
             }
           }
         },
@@ -2296,8 +2891,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/production/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["production", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "production",
+                "1"
+              ]
             }
           }
         },
@@ -2317,8 +2917,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/jobs/job-id-123",
-              "host": ["{{baseUrl}}"],
-              "path": ["jobs", "job-id-123"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "jobs",
+                "job-id-123"
+              ]
             }
           }
         },
@@ -2338,8 +2943,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/jobs/job-id-123/retry",
-              "host": ["{{baseUrl}}"],
-              "path": ["jobs", "job-id-123", "retry"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "jobs",
+                "job-id-123",
+                "retry"
+              ]
             }
           }
         },
@@ -2359,8 +2970,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/productions/1/artifacts",
-              "host": ["{{baseUrl}}"],
-              "path": ["productions", "1", "artifacts"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "productions",
+                "1",
+                "artifacts"
+              ]
             }
           }
         },
@@ -2380,8 +2997,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/productions/1/artifacts/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["productions", "1", "artifacts", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "productions",
+                "1",
+                "artifacts",
+                "1"
+              ]
             }
           }
         },
@@ -2412,8 +3036,15 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/prompts/1/production/text",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["prompts", "1", "production", "text"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "prompts",
+                    "1",
+                    "production",
+                    "text"
+                  ]
                 }
               }
             },
@@ -2433,8 +3064,13 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/production/1",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["production", "1"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "production",
+                    "1"
+                  ]
                 }
               }
             },
@@ -2454,8 +3090,13 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/jobs/job-id-123",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["jobs", "job-id-123"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "jobs",
+                    "job-id-123"
+                  ]
                 }
               }
             },
@@ -2475,8 +3116,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/jobs/job-id-123/retry",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["jobs", "job-id-123", "retry"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "jobs",
+                    "job-id-123",
+                    "retry"
+                  ]
                 }
               }
             },
@@ -2496,8 +3143,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/productions/1/artifacts",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["productions", "1", "artifacts"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "productions",
+                    "1",
+                    "artifacts"
+                  ]
                 }
               }
             },
@@ -2517,8 +3170,15 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/productions/1/artifacts/1",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["productions", "1", "artifacts", "1"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "productions",
+                    "1",
+                    "artifacts",
+                    "1"
+                  ]
                 }
               }
             }
@@ -2551,8 +3211,15 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/prompts/1/production/image",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["prompts", "1", "production", "image"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "prompts",
+                    "1",
+                    "production",
+                    "image"
+                  ]
                 }
               }
             },
@@ -2572,8 +3239,13 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/production/1",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["production", "1"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "production",
+                    "1"
+                  ]
                 }
               }
             },
@@ -2593,8 +3265,13 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/jobs/job-id-123",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["jobs", "job-id-123"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "jobs",
+                    "job-id-123"
+                  ]
                 }
               }
             },
@@ -2614,8 +3291,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/jobs/job-id-123/retry",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["jobs", "job-id-123", "retry"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "jobs",
+                    "job-id-123",
+                    "retry"
+                  ]
                 }
               }
             },
@@ -2635,8 +3318,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/productions/1/artifacts",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["productions", "1", "artifacts"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "productions",
+                    "1",
+                    "artifacts"
+                  ]
                 }
               }
             },
@@ -2656,8 +3345,15 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/productions/1/artifacts/1",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["productions", "1", "artifacts", "1"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "productions",
+                    "1",
+                    "artifacts",
+                    "1"
+                  ]
                 }
               }
             }
@@ -2690,8 +3386,15 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/prompts/1/production/email",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["prompts", "1", "production", "email"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "prompts",
+                    "1",
+                    "production",
+                    "email"
+                  ]
                 }
               }
             },
@@ -2711,8 +3414,13 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/production/1",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["production", "1"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "production",
+                    "1"
+                  ]
                 }
               }
             },
@@ -2732,8 +3440,13 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/jobs/job-id-123",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["jobs", "job-id-123"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "jobs",
+                    "job-id-123"
+                  ]
                 }
               }
             },
@@ -2753,8 +3466,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/jobs/job-id-123/retry",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["jobs", "job-id-123", "retry"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "jobs",
+                    "job-id-123",
+                    "retry"
+                  ]
                 }
               }
             },
@@ -2774,8 +3493,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/productions/1/artifacts",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["productions", "1", "artifacts"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "productions",
+                    "1",
+                    "artifacts"
+                  ]
                 }
               }
             },
@@ -2795,8 +3520,15 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/productions/1/artifacts/1",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["productions", "1", "artifacts", "1"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "productions",
+                    "1",
+                    "artifacts",
+                    "1"
+                  ]
                 }
               }
             }
@@ -2827,8 +3559,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/storage/upload-url",
-              "host": ["{{baseUrl}}"],
-              "path": ["storage", "upload-url"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "storage",
+                "upload-url"
+              ]
             }
           }
         },
@@ -2852,8 +3589,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/storage/download-url",
-              "host": ["{{baseUrl}}"],
-              "path": ["storage", "download-url"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "storage",
+                "download-url"
+              ]
             }
           }
         },
@@ -2877,8 +3619,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/storage/preview-url",
-              "host": ["{{baseUrl}}"],
-              "path": ["storage", "preview-url"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "storage",
+                "preview-url"
+              ]
             }
           }
         }
@@ -2902,8 +3649,13 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/users?page=0&size=20",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "users"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "users"
+                  ],
                   "query": [
                     {
                       "key": "keyword",
@@ -2934,8 +3686,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/users/1",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "users", "1"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "users",
+                    "1"
+                  ]
                 }
               }
             },
@@ -2959,8 +3717,15 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/admin/users/1/block",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "users", "1", "block"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "users",
+                    "1",
+                    "block"
+                  ]
                 }
               }
             },
@@ -2984,8 +3749,15 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/admin/users/1/role",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "users", "1", "role"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "users",
+                    "1",
+                    "role"
+                  ]
                 }
               }
             },
@@ -3001,8 +3773,13 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/follows?status=FOLLOWING&page=0&size=20",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "follows"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "follows"
+                  ],
                   "query": [
                     {
                       "key": "follower_id",
@@ -3048,8 +3825,13 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/prompts?page=0&size=20",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "prompts"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "prompts"
+                  ],
                   "query": [
                     {
                       "key": "keyword",
@@ -3080,8 +3862,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/prompts/1",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "prompts", "1"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "prompts",
+                    "1"
+                  ]
                 }
               }
             },
@@ -3097,8 +3885,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/prompts/1",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "prompts", "1"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "prompts",
+                    "1"
+                  ]
                 }
               }
             },
@@ -3122,8 +3916,15 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/admin/prompts/1/visibility",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "prompts", "1", "visibility"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "prompts",
+                    "1",
+                    "visibility"
+                  ]
                 }
               }
             }
@@ -3144,8 +3945,13 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/reports?status=PENDING&page=0&size=20",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "reports"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "reports"
+                  ],
                   "query": [
                     {
                       "key": "status",
@@ -3176,8 +3982,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/reports/1",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "reports", "1"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "reports",
+                    "1"
+                  ]
                 }
               }
             },
@@ -3201,8 +4013,15 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/admin/reports/1/process",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "reports", "1", "process"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "reports",
+                    "1",
+                    "process"
+                  ]
                 }
               }
             }
@@ -3223,8 +4042,13 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/audit-logs?page=0&size=50",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "audit-logs"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "audit-logs"
+                  ],
                   "query": [
                     {
                       "key": "page",
@@ -3250,8 +4074,13 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/auth-audit-logs?page=0&size=50",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "auth-audit-logs"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "auth-audit-logs"
+                  ],
                   "query": [
                     {
                       "key": "page",
@@ -3282,8 +4111,13 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/rate-limit-logs?page=0&size=50",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "rate-limit-logs"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "rate-limit-logs"
+                  ],
                   "query": [
                     {
                       "key": "page",
@@ -3309,8 +4143,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/rate-limit-logs/statistics",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "rate-limit-logs", "statistics"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "rate-limit-logs",
+                    "statistics"
+                  ],
                   "query": [
                     {
                       "key": "start_date",
@@ -3343,8 +4183,15 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/payments/1/status",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "payments", "1", "status"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "payments",
+                    "1",
+                    "status"
+                  ]
                 }
               }
             },
@@ -3360,8 +4207,16 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/payments/users/1/history?page=0&size=20",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "payments", "users", "1", "history"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "payments",
+                    "users",
+                    "1",
+                    "history"
+                  ],
                   "query": [
                     {
                       "key": "page",
@@ -3387,8 +4242,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/payments/history?page=0&size=20",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "payments", "history"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "payments",
+                    "history"
+                  ],
                   "query": [
                     {
                       "key": "page",
@@ -3422,8 +4283,15 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/admin/payments/1/cancel",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "payments", "1", "cancel"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "payments",
+                    "1",
+                    "cancel"
+                  ]
                 }
               }
             },
@@ -3447,8 +4315,15 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/admin/payments/1/refund",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "payments", "1", "refund"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "payments",
+                    "1",
+                    "refund"
+                  ]
                 }
               }
             },
@@ -3464,8 +4339,16 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/payments/users/1/tier",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "payments", "users", "1", "tier"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "payments",
+                    "users",
+                    "1",
+                    "tier"
+                  ]
                 }
               }
             },
@@ -3481,8 +4364,16 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/payments/users/1/tier-info",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "payments", "users", "1", "tier-info"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "payments",
+                    "users",
+                    "1",
+                    "tier-info"
+                  ]
                 }
               }
             },
@@ -3498,8 +4389,16 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/payments/users/1/tier-history?page=0&size=20",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "payments", "users", "1", "tier-history"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "payments",
+                    "users",
+                    "1",
+                    "tier-history"
+                  ],
                   "query": [
                     {
                       "key": "page",
@@ -3533,8 +4432,16 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/admin/payments/users/1/tier",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "payments", "users", "1", "tier"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "payments",
+                    "users",
+                    "1",
+                    "tier"
+                  ]
                 }
               }
             }
@@ -3555,8 +4462,15 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/maintenance/likes/rebuild",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "maintenance", "likes", "rebuild"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "maintenance",
+                    "likes",
+                    "rebuild"
+                  ]
                 }
               }
             },
@@ -3572,8 +4486,16 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/maintenance/likes/rebuild/status",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "maintenance", "likes", "rebuild", "status"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "maintenance",
+                    "likes",
+                    "rebuild",
+                    "status"
+                  ]
                 }
               }
             }
@@ -3594,8 +4516,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/redis/status",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "redis", "status"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "redis",
+                    "status"
+                  ]
                 }
               }
             },
@@ -3611,8 +4539,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/redis/restart",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "redis", "restart"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "redis",
+                    "restart"
+                  ]
                 }
               }
             },
@@ -3628,8 +4562,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/redis/test-connection",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "redis", "test-connection"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "redis",
+                    "test-connection"
+                  ]
                 }
               }
             },
@@ -3645,8 +4585,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/redis/health-check",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "redis", "health-check"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "redis",
+                    "health-check"
+                  ]
                 }
               }
             }
@@ -3667,8 +4613,16 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/points/users/1/balance",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "points", "users", "1", "balance"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "points",
+                    "users",
+                    "1",
+                    "balance"
+                  ]
                 }
               }
             },
@@ -3684,8 +4638,16 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/points/users/1/history?page=0&size=20",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "points", "users", "1", "history"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "points",
+                    "users",
+                    "1",
+                    "history"
+                  ],
                   "query": [
                     {
                       "key": "page",
@@ -3719,8 +4681,16 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/admin/points/users/1/use",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "points", "users", "1", "use"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "points",
+                    "users",
+                    "1",
+                    "use"
+                  ]
                 }
               }
             },
@@ -3736,8 +4706,15 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/points/payments/1?page=0&size=20",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "points", "payments", "1"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "points",
+                    "payments",
+                    "1"
+                  ],
                   "query": [
                     {
                       "key": "page",
@@ -3768,8 +4745,16 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/cashbacks/users/1/history?page=0&size=20",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "cashbacks", "users", "1", "history"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "cashbacks",
+                    "users",
+                    "1",
+                    "history"
+                  ],
                   "query": [
                     {
                       "key": "page",
@@ -3795,8 +4780,16 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/cashbacks/users/1/unpaid-total",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "cashbacks", "users", "1", "unpaid-total"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "cashbacks",
+                    "users",
+                    "1",
+                    "unpaid-total"
+                  ]
                 }
               }
             },
@@ -3812,8 +4805,16 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/cashbacks/users/1/unpaid?page=0&size=20",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "cashbacks", "users", "1", "unpaid"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "cashbacks",
+                    "users",
+                    "1",
+                    "unpaid"
+                  ],
                   "query": [
                     {
                       "key": "page",
@@ -3839,8 +4840,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/cashbacks/unpaid-total",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "cashbacks", "unpaid-total"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "cashbacks",
+                    "unpaid-total"
+                  ]
                 }
               }
             },
@@ -3856,8 +4863,14 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/cashbacks/unpaid?page=0&size=20",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "cashbacks", "unpaid"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "cashbacks",
+                    "unpaid"
+                  ],
                   "query": [
                     {
                       "key": "page",
@@ -3883,8 +4896,15 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/cashbacks/1/pay",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "cashbacks", "1", "pay"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "cashbacks",
+                    "1",
+                    "pay"
+                  ]
                 }
               }
             }
@@ -3905,8 +4925,15 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/production/jobs/failed?page=0&size=50",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "production", "jobs", "failed"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "production",
+                    "jobs",
+                    "failed"
+                  ],
                   "query": [
                     {
                       "key": "page",
@@ -3932,8 +4959,15 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/production/jobs/unknown?page=0&size=50",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "production", "jobs", "unknown"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "production",
+                    "jobs",
+                    "unknown"
+                  ],
                   "query": [
                     {
                       "key": "page",
@@ -3959,8 +4993,16 @@
                 ],
                 "url": {
                   "raw": "{{baseUrl}}/admin/production/jobs/job-id-123/retry",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["admin", "production", "jobs", "job-id-123", "retry"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "production",
+                    "jobs",
+                    "job-id-123",
+                    "retry"
+                  ]
                 }
               }
             }

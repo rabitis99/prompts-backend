@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Recommendation-only endpoint: returns recommended semantic axes without generating a prompt.
+ * 프롬프트 생성 없이 추천 축만 반환하는 컨트롤러
  */
 @RestController
 @RequestMapping("/prompts")
@@ -29,6 +29,7 @@ public class RecommendationController {
     private final RecommendationRequestMapper requestMapper;
     private final RecommendPromptResponseMapper responseMapper;
 
+    /** 추천 축 반환 */
     @PostMapping("/recommend")
     public ResponseEntity<CustomResponse<RecommendPromptResponse>> recommend(
             @Valid @RequestBody RecommendPromptRequest request
