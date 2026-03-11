@@ -2,10 +2,11 @@ package org.example.sharedprompts.domain.prompt.application.engine.generation.le
 
 import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineProfile;
 import org.example.sharedprompts.domain.prompt.common.enums.output.OutputNeeds;
+import org.example.sharedprompts.domain.prompt.common.enums.role.core.CoreRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptObjective;
 import org.example.sharedprompts.domain.prompt.common.enums.output.ResponseShape;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
-import org.example.sharedprompts.domain.prompt.common.enums.role.CoreRoleType;
+
 import org.example.sharedprompts.domain.prompt.common.enums.role.metadata.DomainRoleType;
 
 import java.util.Collections;

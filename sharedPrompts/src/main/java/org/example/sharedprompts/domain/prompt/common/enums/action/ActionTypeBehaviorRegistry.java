@@ -26,6 +26,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.category.etc.
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.PersonalDevelopmentActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.ProductivityActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.ShoppingActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.marketing.MarketingActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.research.ResearchActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.study.StudyActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.writing.WritingActionType;
@@ -46,12 +47,13 @@ public final class ActionTypeBehaviorRegistry {
             return OutputBehaviorType.GENERAL_CONSULTATION;
         }
 
-        // 생산성/실무 계획 계열
+        // 생산성/실무/마케팅 계획 계열
         if (actionType instanceof ProductivityActionType
                 || actionType instanceof PersonalDevelopmentActionType
                 || actionType instanceof BusinessActionType
                 || actionType instanceof CareerActionType
-                || actionType instanceof ShoppingActionType) {
+                || actionType instanceof ShoppingActionType
+                || actionType instanceof MarketingActionType) {
             return OutputBehaviorType.STRATEGIC_PLAN;
         }
 

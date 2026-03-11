@@ -1,5 +1,7 @@
 package org.example.sharedprompts.domain.prompt.common.enums;
 
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
+
 import java.util.Objects;
 import java.util.function.Function;
 

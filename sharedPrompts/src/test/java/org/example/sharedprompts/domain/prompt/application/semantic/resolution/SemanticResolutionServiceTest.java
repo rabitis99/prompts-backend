@@ -4,8 +4,16 @@ import org.example.sharedprompts.domain.prompt.application.port.in.command.Recom
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.RecommendPromptResult;
 import org.example.sharedprompts.domain.prompt.common.constants.AxisSourceConstants;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineMode;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.experience.ExperienceLevel;
+import org.example.sharedprompts.domain.prompt.common.enums.output.OutputNeeds;
+import org.example.sharedprompts.domain.prompt.common.enums.request.RequestMode;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
+import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
 import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 import org.junit.jupiter.api.BeforeEach;

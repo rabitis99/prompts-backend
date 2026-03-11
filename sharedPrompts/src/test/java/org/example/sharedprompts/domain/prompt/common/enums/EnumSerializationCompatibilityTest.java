@@ -1,6 +1,8 @@
 package org.example.sharedprompts.domain.prompt.common.enums;
 
 import org.example.sharedprompts.domain.prompt.common.enums.serializer.EnumCompatParser;
+import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
+import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
