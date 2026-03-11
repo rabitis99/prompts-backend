@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.prompt.application.semantic.resolution;
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
 
 import java.util.List;
+import java.util.Objects;
 
 /** 시맨틱 해석(생성 플로우) 결과 타입 */
 public final class ResolutionResult {
@@ -28,6 +29,13 @@ public final class ResolutionResult {
     }
 
     public record Result(boolean success, ConfirmedSemanticAxes axes, List<String> errors, ResolutionMetadata metadata) {
+        public Result {
+            errors = errors != null ? List.copyOf(errors) : List.of();
+            if (success) {
+                axes = Objects.requireNonNull(axes, "axes");
+            }
+        }
+
         public static Result ok(ConfirmedSemanticAxes axes, ResolutionMetadata metadata) {
             return new Result(true, axes, List.of(), metadata);
         }

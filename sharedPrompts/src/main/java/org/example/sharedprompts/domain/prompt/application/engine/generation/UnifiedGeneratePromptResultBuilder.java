@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.prompt.application.engine.generation;
 
 import org.example.sharedprompts.domain.prompt.application.engine.contract.SchemaContractEvaluator;
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptResult;
-import org.example.sharedprompts.domain.prompt.application.port.in.query.UnifiedGeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.UnifiedGeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.common.enums.EngineMode;
 import org.example.sharedprompts.domain.prompt.common.enums.EngineProfile;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptObjective;
@@ -28,6 +28,8 @@ public class UnifiedGeneratePromptResultBuilder {
         PromptObjective apiObjective = PromptObjective.fromDomainObjective(axes.objective());
         List<String> schemaReasons = schemaEval != null ? schemaEval.schemaFailureReasons() : List.of();
         boolean schemaFailed = schemaEval != null && schemaEval.schemaContractFailed();
+        Map<String, String> normalizedAxisSources =
+                axisSources != null ? Map.copyOf(axisSources) : Map.of();
 
         return new UnifiedGeneratePromptResult(
                 v2Result.generatedContent(),
@@ -52,7 +54,7 @@ public class UnifiedGeneratePromptResultBuilder {
                 axes.validationWarnings(),
                 axes.recommendationHints(),
                 semanticResolutionSummary != null ? semanticResolutionSummary : "",
-                axisSources
+                normalizedAxisSources
         );
     }
 }

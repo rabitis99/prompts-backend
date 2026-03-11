@@ -26,10 +26,10 @@ public record ConfirmedGeneratePromptCommand(
         List<String> tags
 ) {
     public ConfirmedGeneratePromptCommand {
-        tone = tone != null ? tone : ToneType.NEUTRAL;
-        style = style != null ? style : StyleType.NARRATIVE;
-        language = language != null ? language : LanguageType.KOREAN;
-        experience = experience != null ? experience : ExperienceLevel.INTERMEDIATE;
+        Objects.requireNonNull(tone, "tone must not be null");
+        Objects.requireNonNull(style, "style must not be null");
+        Objects.requireNonNull(language, "language must not be null");
+        Objects.requireNonNull(experience, "experience must not be null");
         if (tags == null) {
             tags = List.of();
         } else {

@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.application.port.in.query;
+package org.example.sharedprompts.domain.prompt.application.port.in.generate;
 
 import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.EngineMode;

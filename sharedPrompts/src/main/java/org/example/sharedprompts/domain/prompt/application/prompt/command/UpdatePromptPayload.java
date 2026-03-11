@@ -1,5 +1,7 @@
 package org.example.sharedprompts.domain.prompt.application.prompt.command;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /** 프롬프트 수정 페이로드 (Validator·Service 간 전달) */
@@ -11,6 +13,6 @@ public record UpdatePromptPayload(
         String content
 ) {
     public UpdatePromptPayload {
-        tags = tags == null ? null : List.copyOf(tags);
+        tags = tags == null ? null : Collections.unmodifiableList(new ArrayList<>(tags));
     }
 }

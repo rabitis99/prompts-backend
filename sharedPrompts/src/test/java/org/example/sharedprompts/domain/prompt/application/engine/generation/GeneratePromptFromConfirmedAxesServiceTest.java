@@ -7,7 +7,7 @@ import org.example.sharedprompts.domain.prompt.application.port.in.generate.Gene
 import org.example.sharedprompts.domain.prompt.application.port.in.command.ConfirmedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.GeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptResult;
-import org.example.sharedprompts.domain.prompt.application.port.in.query.UnifiedGeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.UnifiedGeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.semantic.IntentBasedAxisDefaultsResolver;
 import org.example.sharedprompts.domain.prompt.application.semantic.validation.SemanticValidationService;
 import org.example.sharedprompts.domain.prompt.common.AxisSourceConstants;

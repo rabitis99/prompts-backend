@@ -7,7 +7,7 @@ import org.example.sharedprompts.domain.prompt.application.port.in.generate.Gene
 import org.example.sharedprompts.domain.prompt.application.port.in.command.ConfirmedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.GeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptResult;
-import org.example.sharedprompts.domain.prompt.application.port.in.query.UnifiedGeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.UnifiedGeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.semantic.IntentBasedAxisDefaultsResolver;
 import org.example.sharedprompts.domain.prompt.application.semantic.validation.SemanticValidationService;
 import org.example.sharedprompts.domain.prompt.common.enums.EngineMode;
@@ -36,6 +36,8 @@ public class GeneratePromptFromConfirmedAxesService implements GeneratePromptFro
     private final SchemaContractEvaluator schemaContractEvaluator;
 
     private static final String DEFAULT_TITLE_PREFIX = "[Confirmed] ";
+    private static final boolean IS_NOT_PUBLIC = false;
+    private static final boolean EXPERIMENTAL_DISABLED = false;
 
     public GeneratePromptFromConfirmedAxesService(
             ConfirmedAxesMapper confirmedAxesMapper,
@@ -122,7 +124,7 @@ public class GeneratePromptFromConfirmedAxesService implements GeneratePromptFro
                 command.userId(),
                 title,
                 description,
-                false,
+                IS_NOT_PUBLIC,
                 axes.category(),
                 command.tags(),
                 command.input(),
@@ -132,7 +134,7 @@ public class GeneratePromptFromConfirmedAxesService implements GeneratePromptFro
                 axes.style(),
                 axes.language(),
                 axes.experienceLevel(),
-                false,
+                EXPERIMENTAL_DISABLED,
                 command.jsonSchema()
         );
     }

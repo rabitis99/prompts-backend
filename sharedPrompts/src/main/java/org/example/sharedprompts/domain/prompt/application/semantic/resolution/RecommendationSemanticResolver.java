@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.prompt.application.semantic.resolution;
 
-import org.example.sharedprompts.domain.prompt.application.exception.SemanticResolutionException;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.RecommendPromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.RecommendPromptResult;
 import org.example.sharedprompts.domain.prompt.application.policy.AxisSourcePolicy;
@@ -32,9 +31,9 @@ public class RecommendationSemanticResolver {
         this.axisSourcePolicy = axisSourcePolicy;
     }
 
-    public RecommendPromptResult resolveForRecommendation(RecommendPromptCommand command) {
+    public RecommendationResolutionResult.Result resolveForRecommendation(RecommendPromptCommand command) {
         if (command.requestMode() == RequestMode.EXTRACTION) {
-            return resolveForRecommendationExtraction(command);
+            return RecommendationResolutionResult.Result.ok(resolveForRecommendationExtraction(command));
         }
 
         CoreSemanticResolver.CoreResolutionResult core = coreSemanticResolver.performCoreResolution(
@@ -47,7 +46,7 @@ public class RecommendationSemanticResolver {
         );
 
         if (!core.success()) {
-            throw new SemanticResolutionException(core.errors());
+            return RecommendationResolutionResult.Result.fail(core.errors());
         }
 
         var intent = core.resolvedIntent();
@@ -67,10 +66,10 @@ public class RecommendationSemanticResolver {
         }
 
         List<ActionIntent> intentCandidates = profile != null
-                ? new ArrayList<>(profile.getAllowedIntents())
+                ? List.copyOf(profile.getAllowedIntents())
                 : List.of();
 
-        return new RecommendPromptResult(
+        RecommendPromptResult result = new RecommendPromptResult(
                 command.requestMode(),
                 command.category(),
                 intent,
@@ -87,6 +86,7 @@ public class RecommendationSemanticResolver {
                 fallbackApplied,
                 intent.name()
         );
+        return RecommendationResolutionResult.Result.ok(result);
     }
 
     private RecommendPromptResult resolveForRecommendationExtraction(RecommendPromptCommand command) {

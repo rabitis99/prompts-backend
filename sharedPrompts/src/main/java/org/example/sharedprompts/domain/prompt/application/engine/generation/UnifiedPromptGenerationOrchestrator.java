@@ -9,7 +9,7 @@ import org.example.sharedprompts.domain.prompt.application.port.in.generate.Gene
 import org.example.sharedprompts.domain.prompt.application.port.in.command.GeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptResult;
-import org.example.sharedprompts.domain.prompt.application.port.in.query.UnifiedGeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.UnifiedGeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.policy.AxisSourcePolicy;
 import org.example.sharedprompts.domain.prompt.application.semantic.resolution.ResolutionResult;
 import org.example.sharedprompts.domain.prompt.application.semantic.resolution.SemanticResolutionService;
@@ -30,6 +30,9 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
     private final PromptEngineMetrics promptEngineMetrics;
     private final AxisSourcePolicy axisSourcePolicy;
     private final UnifiedGeneratePromptResultBuilder resultBuilder;
+
+    private static final boolean IS_NOT_PUBLIC = false;
+    private static final boolean EXPERIMENTAL_DISABLED = false;
 
     @Override
     public UnifiedGeneratePromptResult generate(UnifiedGeneratePromptCommand command) {
@@ -101,7 +104,7 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
                 command.userId(),
                 title,
                 description,
-                false,
+                IS_NOT_PUBLIC,
                 axes.category(),
                 command.tags(),
                 command.input(),
@@ -111,7 +114,7 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
                 axes.style(),
                 axes.language(),
                 axes.experienceLevel(),
-                false,
+                EXPERIMENTAL_DISABLED,
                 command.jsonSchema()
         );
     }

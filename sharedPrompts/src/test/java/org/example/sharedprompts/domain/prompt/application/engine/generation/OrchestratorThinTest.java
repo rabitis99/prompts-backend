@@ -5,7 +5,7 @@ import org.example.sharedprompts.domain.prompt.application.port.in.generate.Gene
 import org.example.sharedprompts.domain.prompt.application.port.in.command.GeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptResult;
-import org.example.sharedprompts.domain.prompt.application.port.in.query.UnifiedGeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.UnifiedGeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.policy.AxisSourcePolicy;
 import org.example.sharedprompts.domain.prompt.application.semantic.resolution.ResolutionResult;
 import org.example.sharedprompts.domain.prompt.application.semantic.resolution.SemanticResolutionService;

@@ -1,4 +1,4 @@
-package org.example.sharedprompts.global.config;
+package org.example.sharedprompts.global.scan;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

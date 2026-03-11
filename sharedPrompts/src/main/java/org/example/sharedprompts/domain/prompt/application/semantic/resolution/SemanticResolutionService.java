@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.prompt.application.semantic.resolution;
 
+import org.example.sharedprompts.domain.prompt.application.exception.SemanticResolutionException;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.RecommendPromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.RecommendPromptResult;
@@ -25,6 +26,10 @@ public class SemanticResolutionService {
     }
 
     public RecommendPromptResult resolveForRecommendation(RecommendPromptCommand command) {
-        return recommendationSemanticResolver.resolveForRecommendation(command);
+        RecommendationResolutionResult.Result result = recommendationSemanticResolver.resolveForRecommendation(command);
+        if (!result.success()) {
+            throw new SemanticResolutionException(result.errors());
+        }
+        return result.result();
     }
 }

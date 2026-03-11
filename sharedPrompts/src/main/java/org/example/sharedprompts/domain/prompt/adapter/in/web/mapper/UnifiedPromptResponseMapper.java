@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.prompt.adapter.in.web.mapper;
 
 import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.response.BadgeDto;
 import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.response.UnifiedGeneratePromptResponse;
-import org.example.sharedprompts.domain.prompt.application.port.in.query.UnifiedGeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.UnifiedGeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.domain.value.quality.QualityBadge;
 import org.springframework.stereotype.Component;
 

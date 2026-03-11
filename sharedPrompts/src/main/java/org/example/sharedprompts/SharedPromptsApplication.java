@@ -1,6 +1,6 @@
 package org.example.sharedprompts;
 
-import org.example.sharedprompts.global.config.ExcludeFromComponentScan;
+import org.example.sharedprompts.global.scan.ExcludeFromComponentScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;

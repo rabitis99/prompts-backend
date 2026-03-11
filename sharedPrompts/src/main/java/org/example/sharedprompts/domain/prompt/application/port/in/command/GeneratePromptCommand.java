@@ -34,7 +34,13 @@ public record GeneratePromptCommand(
         if (input == null || input.isBlank()) throw new IllegalArgumentException("input은 비어있을 수 없습니다.");
 
         isPublic = isPublic != null ? isPublic : false;
-        tags = tags != null ? tags.stream().filter(Objects::nonNull).toList() : List.of();
+        tags = tags != null
+                ? tags.stream()
+                        .filter(Objects::nonNull)
+                        .map(String::trim)
+                        .filter(tag -> !tag.isBlank())
+                        .toList()
+                : List.of();
 
         tone = tone != null ? tone : ToneType.NEUTRAL;
         style = style != null ? style : StyleType.NARRATIVE;

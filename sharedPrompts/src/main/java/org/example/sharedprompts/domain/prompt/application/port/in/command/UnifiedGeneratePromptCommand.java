@@ -135,12 +135,12 @@ public record UnifiedGeneratePromptCommand(
             StyleType style,
             LanguageType language,
             ExperienceLevel experience,
-        Boolean disableQualityPipeline,
-        ActionTypeInterface actionType,
-        RoleTypeInterface roleType,
-        List<String> tags,
-        String title,
-        String description
+            Boolean disableQualityPipeline,
+            ActionTypeInterface actionType,
+            RoleTypeInterface roleType,
+            List<String> tags,
+            String title,
+            String description
 ) {
         return new UnifiedGeneratePromptCommand(
                 userId,

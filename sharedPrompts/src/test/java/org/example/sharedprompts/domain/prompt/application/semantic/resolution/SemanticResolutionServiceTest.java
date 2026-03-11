@@ -95,7 +95,7 @@ class SemanticResolutionServiceTest {
         );
 
         when(recommendationSemanticResolver.resolveForRecommendation(any(RecommendPromptCommand.class)))
-                .thenReturn(stubResult);
+                .thenReturn(RecommendationResolutionResult.Result.ok(stubResult));
 
         RecommendPromptResult result = resolutionService.resolveForRecommendation(command);
 

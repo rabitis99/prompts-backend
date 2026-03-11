@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.prompt.application.port.out.tag.PromptTa
 import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +24,9 @@ public class PromptReadModelAssembler {
         }
         List<Long> promptIds = prompts.stream().map(Prompt::getId).toList();
         Map<Long, List<String>> tagNamesByPromptId = promptTagQueryPort.getTagNamesByPromptIds(promptIds);
-        Map<Long, Long> likeCountByPromptId = likeCountPort.getPromptLikeCounts(promptIds);
+        Map<Long, Long> likeCountByPromptId = new HashMap<>();
+        promptIds.forEach(id -> likeCountByPromptId.put(id, 0L));
+        likeCountByPromptId.putAll(likeCountPort.getPromptLikeCounts(promptIds));
         return new AssembledReadModel(tagNamesByPromptId, likeCountByPromptId);
     }
 

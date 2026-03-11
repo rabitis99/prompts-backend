@@ -17,8 +17,6 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Objects;
-
 /**
  * 생성된 프롬프트 저장 어댑터
  */
@@ -36,8 +34,6 @@ public class SavePromptVersionAdapter implements SavePromptVersionPort {
     @Transactional(timeout = 30)
     public Long save(GeneratePromptCommand command, @NotNull PromptSpec spec,
                      String finalContent, int repairCount, boolean finallyPassed) {
-        Objects.requireNonNull(spec, "spec must not be null");
-
         // 사용자 조회
         User user = userRepository.findById(command.userId())
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));

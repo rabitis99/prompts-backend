@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.prompt.application.engine.generation.le
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
-import org.example.sharedprompts.global.config.ExcludeFromComponentScan;
+import org.example.sharedprompts.global.scan.ExcludeFromComponentScan;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
