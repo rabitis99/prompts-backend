@@ -2,12 +2,11 @@ package org.example.sharedprompts.domain.prompt.common.enums.role.category.busin
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
 @Getter
 @AllArgsConstructor
-public enum BusinessRoleType implements RoleTypeInterface, StableKeyedEnum {
+public enum BusinessRoleType implements RoleTypeInterface {
     BUSINESS_CONSULTANT(
             "비즈니스 컨설턴트",
             "사업 전략 수립 및 비즈니스 문제 해결 전문가",

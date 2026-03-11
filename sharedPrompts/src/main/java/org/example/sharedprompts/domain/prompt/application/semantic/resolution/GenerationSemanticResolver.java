@@ -96,6 +96,13 @@ public class GenerationSemanticResolver {
         return ResolutionResult.Result.ok(axes, metadata);
     }
 
+    /**
+     * EXTRACTION is an intentional special category. It bypasses
+     * {@link org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileRegistry};
+     * it is resolved only here via resolveExtraction(), with a fixed semantic axis configuration
+     * (intent=EXTRACT, objective=EXTRACTION). This is by design, not an omission—do not add
+     * EXTRACTION to the category profile registry.
+     */
     private ResolutionResult.Result resolveExtraction(UnifiedGeneratePromptCommand command) {
         ActionIntent intent = ActionIntent.EXTRACT;
         TaskDomain taskDomain = TaskDomain.ANALYTICAL;

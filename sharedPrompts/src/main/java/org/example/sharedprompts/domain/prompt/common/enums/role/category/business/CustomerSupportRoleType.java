@@ -2,7 +2,6 @@ package org.example.sharedprompts.domain.prompt.common.enums.role.category.busin
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
 /**
@@ -23,7 +22,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterfa
  */
 @Getter
 @AllArgsConstructor
-public enum CustomerSupportRoleType implements RoleTypeInterface, StableKeyedEnum {
+public enum CustomerSupportRoleType implements RoleTypeInterface {
     CUSTOMER_SUPPORT_SPECIALIST(
             "고객 지원 전문가",                    // roleNameKo
             "고객 문의 응대 및 문제 해결 전문가",      // descriptionKo

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.validation.constraints.NotNull;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.experience.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.common.enums.request.RequestMode;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
@@ -13,6 +15,8 @@ import org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTyp
 import org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTypeSerializer;
 import org.example.sharedprompts.domain.prompt.common.enums.serializer.RoleTypeDeserializer;
 import org.example.sharedprompts.domain.prompt.common.enums.serializer.RoleTypeSerializer;
+import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
+import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 
 /**
  * 프롬프트 추천 요청 DTO

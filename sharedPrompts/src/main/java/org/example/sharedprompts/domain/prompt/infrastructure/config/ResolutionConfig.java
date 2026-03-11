@@ -1,5 +1,11 @@
 package org.example.sharedprompts.domain.prompt.infrastructure.config;
 
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.analysis.AnalysisActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.creative.CreativeActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.development.CodingActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.etc.EtcActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.ProductivityActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.writing.WritingActionType;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolver;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolverPort;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistry;
@@ -7,13 +13,7 @@ import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappi
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolver;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolverPort;
 import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
-import org.example.sharedprompts.domain.prompt.common.enums.action.AnalysisActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.common.enums.action.CodingActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.CreativeActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.EtcActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.ProductivityActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.WritingActionType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

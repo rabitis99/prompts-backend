@@ -2,12 +2,11 @@ package org.example.sharedprompts.domain.prompt.common.enums.role.category.study
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
 @Getter
 @AllArgsConstructor
-public enum StudyRoleType implements RoleTypeInterface, StableKeyedEnum {
+public enum StudyRoleType implements RoleTypeInterface {
     STUDY_COACH(
             "학습 코치",
             "효율적인 학습 방법 제시 및 학습 계획 수립 전문가",

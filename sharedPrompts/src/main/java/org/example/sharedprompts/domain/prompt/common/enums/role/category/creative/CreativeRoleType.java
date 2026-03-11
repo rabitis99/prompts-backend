@@ -2,12 +2,11 @@ package org.example.sharedprompts.domain.prompt.common.enums.role.category.creat
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
 @Getter
 @AllArgsConstructor
-public enum CreativeRoleType implements RoleTypeInterface, StableKeyedEnum {
+public enum CreativeRoleType implements RoleTypeInterface {
     CREATIVE_DIRECTOR(
             "크리에이티브 디렉터",
             "창의적 아이디어 개발 및 창작물 기획 전문가",

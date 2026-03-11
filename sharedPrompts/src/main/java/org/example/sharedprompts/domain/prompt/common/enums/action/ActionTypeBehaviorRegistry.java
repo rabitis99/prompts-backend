@@ -26,6 +26,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.category.etc.
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.PersonalDevelopmentActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.ProductivityActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.ShoppingActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.marketing.MarketingActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.research.ResearchActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.study.StudyActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.writing.WritingActionType;
@@ -35,6 +36,10 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.category.writ
  *
  * <p>하위 enum의 내용을 크게 변경하지 않고도,
  * 엔진 레벨에서는 일관된 "출력 행동" 시그널을 사용할 수 있도록 한다.</p>
+ *
+ * <p><b>Synchronization:</b> When adding a new ActionType enum, (1) add its class to
+ * {@link org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTypeDeserializer#ACTION_TYPE_ENUMS}
+ * and (2) add a corresponding {@code instanceof} branch here. Coverage tests enforce both.</p>
  */
 public final class ActionTypeBehaviorRegistry {
 
@@ -53,6 +58,15 @@ public final class ActionTypeBehaviorRegistry {
                 || actionType instanceof CareerActionType
                 || actionType instanceof ShoppingActionType) {
             return OutputBehaviorType.STRATEGIC_PLAN;
+        }
+
+        // 마케팅 — 상수별로 분석형 / 콘텐츠·카피형 / 전략·계획형 분리
+        if (actionType instanceof MarketingActionType marketing) {
+            return switch (marketing) {
+                case MARKET_RESEARCH, CUSTOMER_ANALYSIS -> OutputBehaviorType.ANALYTICAL_REPORT;
+                case AD_CAMPAIGN, CONTENT_MARKETING, INFLUENCER_MARKETING -> OutputBehaviorType.LONG_FORM_WRITING;
+                default -> OutputBehaviorType.STRATEGIC_PLAN;
+            };
         }
 
         // 개발/엔지니어링/인프라/보안/AI 계열 — 코드 및 기술 구현 중심
