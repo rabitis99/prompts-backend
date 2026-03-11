@@ -12,12 +12,12 @@ import java.util.Optional;
 /**
  * 소셜/커뮤니티 관련 액션 타입 enum
  *
- * <p>생성자 파라미터 순서 (모든 파라미터는 String 타입):
+ * <p>생성자 파라미터 순서:
  * <ol>
- *   <li>stableKey - 안정 키 (직렬화/호환성용)</li>
  *   <li>displayNameKo - 표시 이름 (한국어)</li>
  *   <li>displayNameEn - 표시 이름 (영어)</li>
  *   <li>displayNameJa - 표시 이름 (일본어)</li>
+ *   <li>outputBehavior - 출력 행동 유형 ({@link OutputBehaviorType})</li>
  * </ol>
  */
 @Getter
@@ -39,17 +39,17 @@ public enum SocialActionType implements ActionTypeInterface, StableKeyedEnum {
     COLLABORATION("협업", "Collaboration", "協力", OutputBehaviorType.STRATEGIC_PLAN),
     PARTNERSHIP_BUILDING("파트너십 구축", "Partnership Building", "パートナーシップ構築", OutputBehaviorType.STRATEGIC_PLAN),
     CROSS_CULTURAL_COMMUNICATION("문화 간 소통", "Cross-cultural Communication", "異文化コミュニケーション", OutputBehaviorType.STRATEGIC_PLAN),
-    COMPLAINT_WRITING("불만 접수", "Complaint Writing", "苦情申し立て", OutputBehaviorType.STRATEGIC_PLAN),
-    FEEDBACK_WRITING("피드백 작성", "Feedback Writing", "フィードバック作成", OutputBehaviorType.STRATEGIC_PLAN),
-    REVIEW_WRITING("리뷰 작성", "Review Writing", "レビュー作成", OutputBehaviorType.STRATEGIC_PLAN),
-    TESTIMONIAL_WRITING("추천서 작성", "Testimonial Writing", "推薦文作成", OutputBehaviorType.STRATEGIC_PLAN),
-    FOLLOW_UP_MESSAGE("후속 메시지", "Follow-up Message", "フォローアップメッセージ", OutputBehaviorType.STRATEGIC_PLAN),
-    APPOINTMENT_SCHEDULING("약속 잡기", "Appointment Scheduling", "予約調整", OutputBehaviorType.STRATEGIC_PLAN),
-    REMINDER_MESSAGE("알림 메시지", "Reminder Message", "リマインダーメッセージ", OutputBehaviorType.STRATEGIC_PLAN),
-    BIRTHDAY_MESSAGE("생일 메시지", "Birthday Message", "誕生日メッセージ", OutputBehaviorType.STRATEGIC_PLAN),
-    ANNIVERSARY_MESSAGE("기념일 메시지", "Anniversary Message", "記念日メッセージ", OutputBehaviorType.STRATEGIC_PLAN),
-    HOLIDAY_GREETING("명절 인사", "Holiday Greeting", "祝日の挨拶", OutputBehaviorType.STRATEGIC_PLAN),
-    SEASONAL_GREETING("계절 인사", "Seasonal Greeting", "季節の挨拶", OutputBehaviorType.STRATEGIC_PLAN);
+    COMPLAINT_WRITING("불만 접수", "Complaint Writing", "苦情申し立て", OutputBehaviorType.LONG_FORM_WRITING),
+    FEEDBACK_WRITING("피드백 작성", "Feedback Writing", "フィードバック作成", OutputBehaviorType.LONG_FORM_WRITING),
+    REVIEW_WRITING("리뷰 작성", "Review Writing", "レビュー作成", OutputBehaviorType.LONG_FORM_WRITING),
+    TESTIMONIAL_WRITING("추천서 작성", "Testimonial Writing", "推薦文作成", OutputBehaviorType.LONG_FORM_WRITING),
+    FOLLOW_UP_MESSAGE("후속 메시지", "Follow-up Message", "フォローアップメッセージ", OutputBehaviorType.MESSAGE_COMPOSITION),
+    APPOINTMENT_SCHEDULING("약속 잡기", "Appointment Scheduling", "予約調整", OutputBehaviorType.MESSAGE_COMPOSITION),
+    REMINDER_MESSAGE("알림 메시지", "Reminder Message", "リマインダーメッセージ", OutputBehaviorType.MESSAGE_COMPOSITION),
+    BIRTHDAY_MESSAGE("생일 메시지", "Birthday Message", "誕生日メッセージ", OutputBehaviorType.MESSAGE_COMPOSITION),
+    ANNIVERSARY_MESSAGE("기념일 메시지", "Anniversary Message", "記念日メッセージ", OutputBehaviorType.MESSAGE_COMPOSITION),
+    HOLIDAY_GREETING("명절 인사", "Holiday Greeting", "祝日の挨拶", OutputBehaviorType.SHORT_COPY),
+    SEASONAL_GREETING("계절 인사", "Seasonal Greeting", "季節の挨拶", OutputBehaviorType.SHORT_COPY);
 
     private final String displayNameKo;
     private final String displayNameEn;

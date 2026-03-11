@@ -137,7 +137,7 @@
 ### 아직은 괜찮지만 위험 신호인 부분
 
 - **ActionType key() 구현 방식 불일치**: `ActionTypeInterface`는 `StableKeyedEnum`을 상속하지 않고, 각 enum이 `key()`를 직접 구현. WritingActionType은 `stableKey` 필드를 두고, MarketingActionType은 `"ACTION.MARKETING." + name()`로 조합. 패턴이 통일되지 않아, 나중에 key 규칙을 바꿀 때 모든 ActionType을 검토해야 함.
-- **RoleType**: category 하위 *RoleType은 모두 `RoleTypeInterface`만 구현하며, key는 인터페이스 상속(RoleTypeInterface extends StableKeyedEnum)으로 제공. 확장 규칙이 정리된 상태. “어떤 것이 계약인가”가 한눈에 안 들어옴.
+- **RoleType**: category 하위 *RoleType은 모두 `RoleTypeInterface`만 구현하며, key는 인터페이스 상속(RoleTypeInterface extends StableKeyedEnum)으로 제공. 확장 규칙이 정리된 상태.
 
 ### 문서/레지스트리/직렬화/매핑 불일치가 장기적으로 생기는 경로
 
@@ -236,7 +236,7 @@
 
 ### 지금은 두어도 되는 것
 
-- **RoleType의 “implements RoleTypeInterface, StableKeyedEnum” vs “RoleTypeInterface”만**: 동작은 동일하므로 리팩터는 나중에 일괄 정리해도 됨. 다만 새로 만드는 RoleType은 RoleTypeInterface만 구현하도록 팀 규칙으로 두면 됨.
+- **RoleType**: category *RoleType은 이미 RoleTypeInterface만 구현하는 것으로 정리됨. 새 역할 추가 시에도 RoleTypeInterface만 구현하면 됨.
 - **ActionType key() 구현 방식 통일**(stableKey 필드 vs "ACTION.XXX." + name()): 당장 버그를 유발하지는 않으므로, 새 ActionType 추가 시 keyPrefix() 스타일로 통일하는 방향만 정해 두고 점진적으로 맞춰도 됨.
 - **guideline/i18n 구조**: 현재 수준이면 유지 가능. 다만 RoleType의 6개 display 메서드가 언어 추가 시 비용이 크다는 점만 인지하고, “언어 추가” 요구가 들어오면 그때 descriptor/i18n 키 기반으로 빼는 걸 검토하면 됨.
 - **패키지 재구성(예: role/action 카테고리 병합)**: 카테고리 수가 크게 늘지 않는 한, 현재 패키지 이름만으로도 위치 파악은 가능. “수정 지점 일원화”가 먼저이고, 패키지 구조 자체의 대대적 변경은 그 다음 검토해도 됨.

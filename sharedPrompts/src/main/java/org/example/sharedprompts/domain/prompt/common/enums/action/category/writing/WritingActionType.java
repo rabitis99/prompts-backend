@@ -25,13 +25,13 @@ public enum WritingActionType implements ActionTypeInterface, StableKeyedEnum {
     LETTER_WRITING("ACTION.WRITING.LETTER_WRITING", "편지 작성", "Letter Writing", "手紙作成", OutputBehaviorType.LONG_FORM_WRITING),
     PERSONAL_LETTER("ACTION.WRITING.PERSONAL_LETTER", "개인 편지", "Personal Letter", "個人手紙", OutputBehaviorType.LONG_FORM_WRITING),
     BUSINESS_LETTER("ACTION.WRITING.BUSINESS_LETTER", "공식 편지", "Business Letter", "ビジネスレター", OutputBehaviorType.LONG_FORM_WRITING),
-    INVITATION_CARD("ACTION.WRITING.INVITATION_CARD", "초대장 작성", "Invitation Card", "招待状作成", OutputBehaviorType.LONG_FORM_WRITING),
-    THANK_YOU_CARD("ACTION.WRITING.THANK_YOU_CARD", "감사 카드", "Thank You Card", "お礼カード", OutputBehaviorType.LONG_FORM_WRITING),
-    CONGRATULATORY_MESSAGE("ACTION.WRITING.CONGRATULATORY_MESSAGE", "축하 메시지", "Congratulatory Message", "お祝いメッセージ", OutputBehaviorType.LONG_FORM_WRITING),
-    CONDOLENCE_MESSAGE("ACTION.WRITING.CONDOLENCE_MESSAGE", "조의 메시지", "Condolence Message", "お悔やみメッセージ", OutputBehaviorType.LONG_FORM_WRITING),
-    MESSAGE_WRITING("ACTION.WRITING.MESSAGE_WRITING", "메시지 작성", "Message Writing", "メッセージ作成", OutputBehaviorType.LONG_FORM_WRITING),
-    TEXT_MESSAGE("ACTION.WRITING.TEXT_MESSAGE", "문자 메시지", "Text Message", "テキストメッセージ", OutputBehaviorType.LONG_FORM_WRITING),
-    WHATSAPP_MESSAGE("ACTION.WRITING.WHATSAPP_MESSAGE", "왓츠앱 메시지", "WhatsApp Message", "WhatsAppメッセージ", OutputBehaviorType.LONG_FORM_WRITING);
+    INVITATION_CARD("ACTION.WRITING.INVITATION_CARD", "초대장 작성", "Invitation Card", "招待状作成", OutputBehaviorType.SHORT_COPY),
+    THANK_YOU_CARD("ACTION.WRITING.THANK_YOU_CARD", "감사 카드", "Thank You Card", "お礼カード", OutputBehaviorType.SHORT_COPY),
+    CONGRATULATORY_MESSAGE("ACTION.WRITING.CONGRATULATORY_MESSAGE", "축하 메시지", "Congratulatory Message", "お祝いメッセージ", OutputBehaviorType.MESSAGE_COMPOSITION),
+    CONDOLENCE_MESSAGE("ACTION.WRITING.CONDOLENCE_MESSAGE", "조의 메시지", "Condolence Message", "お悔やみメッセージ", OutputBehaviorType.MESSAGE_COMPOSITION),
+    MESSAGE_WRITING("ACTION.WRITING.MESSAGE_WRITING", "메시지 작성", "Message Writing", "メッセージ作成", OutputBehaviorType.MESSAGE_COMPOSITION),
+    TEXT_MESSAGE("ACTION.WRITING.TEXT_MESSAGE", "문자 메시지", "Text Message", "テキストメッセージ", OutputBehaviorType.MESSAGE_COMPOSITION),
+    WHATSAPP_MESSAGE("ACTION.WRITING.WHATSAPP_MESSAGE", "왓츠앱 메시지", "WhatsApp Message", "WhatsAppメッセージ", OutputBehaviorType.MESSAGE_COMPOSITION);
 
     private final String stableKey;
     private final String displayNameKo;

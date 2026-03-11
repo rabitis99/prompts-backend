@@ -15,16 +15,16 @@ import java.util.Optional;
 @Getter
 @AllArgsConstructor
 public enum EmailActionType implements ActionTypeInterface, StableKeyedEnum {
-    EMAIL_WRITING("이메일 작성", "Email Writing", "メール作成", OutputBehaviorType.LONG_FORM_WRITING),
-    BUSINESS_EMAIL("비즈니스 이메일", "Business Email", "ビジネスメール", OutputBehaviorType.LONG_FORM_WRITING),
-    PERSONAL_EMAIL("개인 이메일", "Personal Email", "個人メール", OutputBehaviorType.LONG_FORM_WRITING),
-    THANK_YOU_EMAIL("감사 이메일", "Thank You Email", "お礼メール", OutputBehaviorType.LONG_FORM_WRITING),
-    APOLOGY_EMAIL("사과 이메일", "Apology Email", "謝罪メール", OutputBehaviorType.LONG_FORM_WRITING),
-    INQUIRY_EMAIL("문의 이메일", "Inquiry Email", "問い合わせメール", OutputBehaviorType.LONG_FORM_WRITING),
-    INVITATION_EMAIL("초대 이메일", "Invitation Email", "招待メール", OutputBehaviorType.LONG_FORM_WRITING),
-    FOLLOW_UP_EMAIL("후속 이메일", "Follow-up Email", "フォローアップメール", OutputBehaviorType.LONG_FORM_WRITING),
-    REJECTION_EMAIL("거절 이메일", "Rejection Email", "断りメール", OutputBehaviorType.LONG_FORM_WRITING),
-    CONFIRMATION_EMAIL("확인 이메일", "Confirmation Email", "確認メール", OutputBehaviorType.LONG_FORM_WRITING);
+    EMAIL_WRITING("이메일 작성", "Email Writing", "メール作成", OutputBehaviorType.MESSAGE_COMPOSITION),
+    BUSINESS_EMAIL("비즈니스 이메일", "Business Email", "ビジネスメール", OutputBehaviorType.MESSAGE_COMPOSITION),
+    PERSONAL_EMAIL("개인 이메일", "Personal Email", "個人メール", OutputBehaviorType.MESSAGE_COMPOSITION),
+    THANK_YOU_EMAIL("감사 이메일", "Thank You Email", "お礼メール", OutputBehaviorType.MESSAGE_COMPOSITION),
+    APOLOGY_EMAIL("사과 이메일", "Apology Email", "謝罪メール", OutputBehaviorType.MESSAGE_COMPOSITION),
+    INQUIRY_EMAIL("문의 이메일", "Inquiry Email", "問い合わせメール", OutputBehaviorType.MESSAGE_COMPOSITION),
+    INVITATION_EMAIL("초대 이메일", "Invitation Email", "招待メール", OutputBehaviorType.MESSAGE_COMPOSITION),
+    FOLLOW_UP_EMAIL("후속 이메일", "Follow-up Email", "フォローアップメール", OutputBehaviorType.MESSAGE_COMPOSITION),
+    REJECTION_EMAIL("거절 이메일", "Rejection Email", "断りメール", OutputBehaviorType.MESSAGE_COMPOSITION),
+    CONFIRMATION_EMAIL("확인 이메일", "Confirmation Email", "確認メール", OutputBehaviorType.MESSAGE_COMPOSITION);
 
     private final String displayNameKo;
     private final String displayNameEn;

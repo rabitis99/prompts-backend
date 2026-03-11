@@ -23,11 +23,11 @@ import java.util.Optional;
 @Getter
 @AllArgsConstructor
 public enum CareerActionType implements ActionTypeInterface, StableKeyedEnum {
-    RESUME_WRITING("이력서 작성", "Resume Writing", "履歴書作成", OutputBehaviorType.STRATEGIC_PLAN),
-    COVER_LETTER("자기소개서", "Cover Letter", "カバーレター", OutputBehaviorType.STRATEGIC_PLAN),
+    RESUME_WRITING("이력서 작성", "Resume Writing", "履歴書作成", OutputBehaviorType.LONG_FORM_WRITING),
+    COVER_LETTER("자기소개서", "Cover Letter", "カバーレター", OutputBehaviorType.LONG_FORM_WRITING),
     INTERVIEW_PREPARATION("면접 준비", "Interview Preparation", "面接準備", OutputBehaviorType.STRATEGIC_PLAN),
-    NETWORKING_MESSAGE("네트워킹 메시지", "Networking Message", "ネットワーキングメッセージ", OutputBehaviorType.STRATEGIC_PLAN),
-    APPLICATION_WRITING("지원서 작성", "Application Writing", "応募書類作成", OutputBehaviorType.STRATEGIC_PLAN);
+    NETWORKING_MESSAGE("네트워킹 메시지", "Networking Message", "ネットワーキングメッセージ", OutputBehaviorType.LONG_FORM_WRITING),
+    APPLICATION_WRITING("지원서 작성", "Application Writing", "応募書類作成", OutputBehaviorType.LONG_FORM_WRITING);
 
     private final String displayNameKo;
     private final String displayNameEn;

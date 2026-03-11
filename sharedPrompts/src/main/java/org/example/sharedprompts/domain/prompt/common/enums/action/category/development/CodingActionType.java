@@ -14,10 +14,10 @@ import java.util.Optional;
 public enum CodingActionType implements ActionTypeInterface, StableKeyedEnum {
     CODE_GENERATION("코드 생성", "Code Generation", "コード生成", OutputBehaviorType.CODE_IMPLEMENTATION),
     CODE_MODIFICATION("코드 수정", "Code Modification", "コード修正", OutputBehaviorType.CODE_IMPLEMENTATION),
-    CODE_REVIEW("코드 리뷰", "Code Review", "コードレビュー", OutputBehaviorType.CODE_IMPLEMENTATION),
+    CODE_REVIEW("코드 리뷰", "Code Review", "コードレビュー", OutputBehaviorType.CODE_REVIEW_FEEDBACK),
     REFACTORING("리팩토링", "Refactoring", "リファクタリング", OutputBehaviorType.CODE_IMPLEMENTATION),
     TEST_GENERATION("테스트 코드 생성", "Test Code Generation", "テストコード生成", OutputBehaviorType.CODE_IMPLEMENTATION),
-    DEBUGGING("디버깅", "Debugging", "デバッグ", OutputBehaviorType.CODE_IMPLEMENTATION),
+    DEBUGGING("디버깅", "Debugging", "デバッグ", OutputBehaviorType.DEBUGGING_SESSION),
     CODE_ANALYSIS("코드 분석", "Code Analysis", "コード分析", OutputBehaviorType.CODE_IMPLEMENTATION),
     PATTERN_APPLICATION("디자인 패턴 적용", "Design Pattern Application", "デザインパターン適用", OutputBehaviorType.CODE_IMPLEMENTATION),
     CODE_OPTIMIZATION("코드 최적화", "Code Optimization", "コード最適化", OutputBehaviorType.CODE_IMPLEMENTATION),
