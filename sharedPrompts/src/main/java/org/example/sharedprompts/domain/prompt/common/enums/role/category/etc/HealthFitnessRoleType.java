@@ -2,12 +2,11 @@ package org.example.sharedprompts.domain.prompt.common.enums.role.category.etc;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
 @Getter
 @AllArgsConstructor
-public enum HealthFitnessRoleType implements RoleTypeInterface, StableKeyedEnum {
+public enum HealthFitnessRoleType implements RoleTypeInterface {
     FITNESS_COACH(
             "피트니스 코치",
             "운동 계획 수립 및 피트니스 목표 달성 지원 전문가",

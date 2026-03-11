@@ -44,10 +44,10 @@ import java.util.*;
 /**
  * In-memory registry of category semantic profiles for all {@link PromptCategory} values.
  *
- * <p><b>EXTRACTION is intentionally not registered here.</b> {@link PromptCategory#EXTRACTION} does NOT
- * use {@link CategorySemanticProfile}. It is handled directly by
- * {@link org.example.sharedprompts.domain.prompt.application.semantic.resolution.GenerationSemanticResolver#resolveExtraction}.
- * That path bypasses profile lookup and applies a fixed semantic axis configuration (intent=EXTRACT, objective=EXTRACTION).
+ * <p><b>EXTRACTION is an intentional special case, not an omission.</b> {@link PromptCategory#EXTRACTION}
+ * does NOT use {@link CategorySemanticProfile}. It is resolved only via
+ * {@link org.example.sharedprompts.domain.prompt.application.semantic.resolution.GenerationSemanticResolver#resolveExtraction},
+ * which bypasses this registry and applies a fixed semantic axis (intent=EXTRACT, objective=EXTRACTION).
  * Do not add EXTRACTION to this registry.</p>
  *
  * <p>DESIGN: create, review, critique, explain, plan branches.

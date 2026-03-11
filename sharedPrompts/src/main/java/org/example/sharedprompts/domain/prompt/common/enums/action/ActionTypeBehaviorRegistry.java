@@ -36,6 +36,10 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.category.writ
  *
  * <p>하위 enum의 내용을 크게 변경하지 않고도,
  * 엔진 레벨에서는 일관된 "출력 행동" 시그널을 사용할 수 있도록 한다.</p>
+ *
+ * <p><b>Synchronization:</b> When adding a new ActionType enum, (1) add its class to
+ * {@link org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTypeDeserializer#ACTION_TYPE_ENUMS}
+ * and (2) add a corresponding {@code instanceof} branch here. Coverage tests enforce both.</p>
  */
 public final class ActionTypeBehaviorRegistry {
 

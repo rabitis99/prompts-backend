@@ -2,12 +2,11 @@ package org.example.sharedprompts.domain.prompt.common.enums.role.category.desig
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
 @Getter
 @AllArgsConstructor
-public enum DesignRoleType implements RoleTypeInterface, StableKeyedEnum {
+public enum DesignRoleType implements RoleTypeInterface {
     UI_UX_DESIGNER(
             "UI/UX 디자이너",
             "사용자 경험을 고려한 인터페이스 설계 및 디자인 전문가",

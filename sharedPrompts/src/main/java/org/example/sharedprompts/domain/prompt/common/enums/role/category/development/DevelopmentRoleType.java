@@ -2,12 +2,11 @@ package org.example.sharedprompts.domain.prompt.common.enums.role.category.devel
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
 @Getter
 @AllArgsConstructor
-public enum DevelopmentRoleType implements RoleTypeInterface, StableKeyedEnum {
+public enum DevelopmentRoleType implements RoleTypeInterface {
     BACKEND_DEVELOPER(
             "백엔드 개발자",
             "시스템 아키텍처 설계, 기술 스택 선택 및 성능 최적화 전문가",

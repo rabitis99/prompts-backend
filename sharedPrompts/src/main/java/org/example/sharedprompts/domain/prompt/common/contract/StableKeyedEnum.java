@@ -3,9 +3,9 @@ package org.example.sharedprompts.domain.prompt.common.contract;
 /**
  * Stable, serialization-safe enum identifier contract.
  *
- * <p><b>Recommended policy:</b> Enums exposed through API, persistence, or serialization
- * should implement StableKeyedEnum so that external keys remain stable across refactors
- * and renames. This avoids breaking clients and stored data when enum constant names change.
+ * <p><b>Policy:</b> Enums exposed through API, persistence, or serialization contracts
+ * should implement StableKeyedEnum unless they are intentionally internal-only. This keeps
+ * external keys stable across refactors and renames and avoids breaking clients and stored data.
  *
  * <p>Implementations must provide a {@link #key()} value that is:
  * <ul>

@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.common.enums;
 
-import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.serializer.EnumResolver;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,20 +14,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 /**
- * Safety test: every enum class in ActionTypeDeserializer.ACTION_TYPE_ENUMS must implement
- * ActionTypeInterface, have valid keys, work with EnumResolver, and have no duplicate keys
- * across enums (to avoid ambiguous resolution).
+ * Safety test: every enum class in RoleTypeDeserializer.ROLE_TYPE_ENUMS must implement
+ * RoleTypeInterface, have valid stable keys, work with EnumResolver, and have no duplicate
+ * keys across enums (to avoid ambiguous resolution).
  */
-@DisplayName("ActionTypeDeserializer coverage and contract")
-class ActionTypeDeserializerCoverageTest {
+@DisplayName("RoleTypeDeserializer coverage and contract")
+class RoleTypeDeserializerCoverageTest {
 
     @Test
-    @DisplayName("every enum in ACTION_TYPE_ENUMS implements ActionTypeInterface and has valid key()")
-    void everyEnumImplementsActionTypeInterfaceAndHasValidKey() throws Exception {
-        List<Class<? extends Enum<?>>> enumClasses = DeserializerEnumTestUtils.getActionTypeEnums();
+    @DisplayName("every enum in ROLE_TYPE_ENUMS implements RoleTypeInterface and has valid key()")
+    void everyEnumImplementsRoleTypeInterfaceAndHasValidKey() throws Exception {
+        List<Class<? extends Enum<?>>> enumClasses = DeserializerEnumTestUtils.getRoleTypeEnums();
         for (Class<? extends Enum<?>> enumClass : enumClasses) {
-            assertThat(ActionTypeInterface.class.isAssignableFrom(enumClass))
-                    .as("Enum " + enumClass.getName() + " must implement ActionTypeInterface")
+            assertThat(RoleTypeInterface.class.isAssignableFrom(enumClass))
+                    .as("Enum " + enumClass.getName() + " must implement RoleTypeInterface")
                     .isTrue();
 
             Enum<?>[] constants = enumClass.getEnumConstants();
@@ -35,8 +35,8 @@ class ActionTypeDeserializerCoverageTest {
                 continue;
             }
             for (Enum<?> constant : constants) {
-                ActionTypeInterface actionType = (ActionTypeInterface) constant;
-                String key = actionType.key();
+                RoleTypeInterface roleType = (RoleTypeInterface) constant;
+                String key = roleType.key();
                 assertThat(key).isNotBlank();
                 assertThat(key.trim()).isEqualTo(key);
             }
@@ -46,9 +46,9 @@ class ActionTypeDeserializerCoverageTest {
     @Test
     @DisplayName("each constant key() round-trips via EnumResolver without throwing")
     void eachConstantKeyRoundTripsViaEnumResolver() throws Exception {
-        List<Class<? extends Enum<?>>> enumClasses = DeserializerEnumTestUtils.getActionTypeEnums();
+        List<Class<? extends Enum<?>>> enumClasses = DeserializerEnumTestUtils.getRoleTypeEnums();
         for (Class<? extends Enum<?>> enumClass : enumClasses) {
-            if (!ActionTypeInterface.class.isAssignableFrom(enumClass)) {
+            if (!RoleTypeInterface.class.isAssignableFrom(enumClass)) {
                 continue;
             }
             Enum<?>[] constants = enumClass.getEnumConstants();
@@ -56,8 +56,8 @@ class ActionTypeDeserializerCoverageTest {
                 continue;
             }
             for (Enum<?> constant : constants) {
-                ActionTypeInterface actionType = (ActionTypeInterface) constant;
-                String key = actionType.key();
+                RoleTypeInterface roleType = (RoleTypeInterface) constant;
+                String key = roleType.key();
                 assertDoesNotThrow(
                         () -> EnumResolver.resolve(key, enumClasses),
                         "Resolving key " + key + " for " + enumClass.getSimpleName() + " must not throw"
@@ -67,13 +67,13 @@ class ActionTypeDeserializerCoverageTest {
     }
 
     @Test
-    @DisplayName("no duplicate stable keys across ActionType enums (avoids ambiguous resolution)")
-    void noDuplicateKeysAcrossActionTypeEnums() throws Exception {
-        List<Class<? extends Enum<?>>> enumClasses = DeserializerEnumTestUtils.getActionTypeEnums();
+    @DisplayName("no duplicate stable keys across RoleType enums (avoids ambiguous resolution)")
+    void noDuplicateKeysAcrossRoleTypeEnums() throws Exception {
+        List<Class<? extends Enum<?>>> enumClasses = DeserializerEnumTestUtils.getRoleTypeEnums();
         Set<String> seenKeys = new HashSet<>();
         List<String> duplicates = new ArrayList<>();
         for (Class<? extends Enum<?>> enumClass : enumClasses) {
-            if (!ActionTypeInterface.class.isAssignableFrom(enumClass)) {
+            if (!RoleTypeInterface.class.isAssignableFrom(enumClass)) {
                 continue;
             }
             Enum<?>[] constants = enumClass.getEnumConstants();
@@ -81,8 +81,8 @@ class ActionTypeDeserializerCoverageTest {
                 continue;
             }
             for (Enum<?> constant : constants) {
-                ActionTypeInterface actionType = (ActionTypeInterface) constant;
-                String key = actionType.key();
+                RoleTypeInterface roleType = (RoleTypeInterface) constant;
+                String key = roleType.key();
                 if (key != null && !key.isBlank()) {
                     if (!seenKeys.add(key)) {
                         duplicates.add(key + " (second in " + enumClass.getSimpleName() + "." + constant.name() + ")");
