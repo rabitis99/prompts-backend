@@ -11,8 +11,10 @@ import org.example.sharedprompts.domain.prompt.application.port.in.command.Unifi
 import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.ExpressionOptions;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.OutputOptions;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.SemanticSelection;
-import org.example.sharedprompts.domain.prompt.common.enums.RequestMode;
-import org.example.sharedprompts.domain.prompt.common.enums.*;
+import org.example.sharedprompts.domain.prompt.common.enums.request.RequestMode;
+import org.example.sharedprompts.domain.prompt.common.enums.request.RequestType;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTypeDeserializer;

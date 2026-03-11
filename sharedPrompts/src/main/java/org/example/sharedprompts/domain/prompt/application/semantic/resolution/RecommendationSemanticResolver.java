@@ -4,9 +4,9 @@ import org.example.sharedprompts.domain.prompt.application.port.in.command.Recom
 import org.example.sharedprompts.domain.prompt.application.port.in.query.RecommendPromptResult;
 import org.example.sharedprompts.domain.prompt.application.policy.AxisSourcePolicy;
 import org.example.sharedprompts.domain.prompt.application.semantic.validation.SemanticValidationService;
-import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
-import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
-import org.example.sharedprompts.domain.prompt.common.enums.RequestMode;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.request.RequestMode;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;

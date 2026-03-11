@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.prompt.application.engine.generation.legacy;
 
-import org.example.sharedprompts.domain.prompt.common.enums.OutputNeeds;
-import org.example.sharedprompts.domain.prompt.common.enums.PromptObjective;
+import org.example.sharedprompts.domain.prompt.common.enums.output.OutputNeeds;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptObjective;
 
 import java.util.List;
 

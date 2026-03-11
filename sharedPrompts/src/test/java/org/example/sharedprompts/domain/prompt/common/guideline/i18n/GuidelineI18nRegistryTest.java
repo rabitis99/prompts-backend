@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.common.guideline.i18n;
 
-import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
 import org.example.sharedprompts.domain.prompt.common.i18n.I18nText;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

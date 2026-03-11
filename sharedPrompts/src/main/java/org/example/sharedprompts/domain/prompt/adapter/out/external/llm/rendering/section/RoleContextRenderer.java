@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.adapter.out.external.llm.rendering.section;
 
-import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.domain.descriptor.RoleDescriptorPort;
 import org.example.sharedprompts.domain.prompt.domain.model.spec.PromptSpec;

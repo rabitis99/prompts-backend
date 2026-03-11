@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
-import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 
 import java.util.Objects;
 

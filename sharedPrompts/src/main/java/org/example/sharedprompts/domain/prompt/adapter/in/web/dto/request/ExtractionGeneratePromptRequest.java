@@ -8,9 +8,9 @@ import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.validator.Requ
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.ExpressionOptions;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.OutputOptions;
-import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
-import org.example.sharedprompts.domain.prompt.common.enums.RequestMode;
-import org.example.sharedprompts.domain.prompt.common.enums.RequestType;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.request.RequestMode;
+import org.example.sharedprompts.domain.prompt.common.enums.request.RequestType;
 
 import java.util.List;
 

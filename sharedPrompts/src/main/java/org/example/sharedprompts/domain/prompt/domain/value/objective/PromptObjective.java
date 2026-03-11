@@ -7,7 +7,7 @@ package org.example.sharedprompts.domain.prompt.domain.value.objective;
  * 구현체로 이동했다. {@code ObjectiveRegistry.get(this)}로 프로파일을 조회하라.
  *
  * <p>DB 컬럼값 = {@code name()} (기존 데이터 마이그레이션 불필요).
- * API·라우팅 계약용 목적은 {@link org.example.sharedprompts.domain.prompt.common.enums.PromptObjective}를 사용하며,
+ * API·라우팅 계약용 목적은 {@link org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptObjective}를 사용하며,
  * 문서에서는 "Domain Prompt Objective"로 구분한다. 자세한 내용은 {@code docs/PROMPT_COMMON.md} "2.0 PromptObjective 이중 정의" 참고.</p>
  */
 public enum PromptObjective {

@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.prompt.adapter.in.web.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 
 import java.time.Instant;
 import java.util.List;

@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.sharedprompts.domain.prompt.entity.Prompt;
-import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 
 import java.time.LocalDateTime;
 

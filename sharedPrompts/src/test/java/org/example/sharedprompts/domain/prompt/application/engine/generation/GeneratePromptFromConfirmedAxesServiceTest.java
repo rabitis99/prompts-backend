@@ -10,8 +10,8 @@ import org.example.sharedprompts.domain.prompt.application.port.in.generate.Gene
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.UnifiedGeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.semantic.IntentBasedAxisDefaultsResolver;
 import org.example.sharedprompts.domain.prompt.application.semantic.validation.SemanticValidationService;
-import org.example.sharedprompts.domain.prompt.common.AxisSourceConstants;
-import org.example.sharedprompts.domain.prompt.common.enums.*;
+import org.example.sharedprompts.domain.prompt.common.constants.AxisSourceConstants;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileRegistry;
 import org.example.sharedprompts.domain.prompt.application.exception.SemanticResolutionException;
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;

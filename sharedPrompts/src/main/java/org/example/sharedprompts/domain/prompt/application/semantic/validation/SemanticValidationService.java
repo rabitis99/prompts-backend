@@ -3,9 +3,9 @@ package org.example.sharedprompts.domain.prompt.application.semantic.validation;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.ConfirmedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.RecommendPromptCommand;
-import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
-import org.example.sharedprompts.domain.prompt.common.enums.StyleType;
-import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
+import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
+import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile;
@@ -30,7 +30,7 @@ public class SemanticValidationService {
     }
 
     public record ValidationInput(
-            org.example.sharedprompts.domain.prompt.common.enums.PromptCategory category,
+            org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory category,
             ToneType tone,
             StyleType style,
             RoleTypeInterface roleType,

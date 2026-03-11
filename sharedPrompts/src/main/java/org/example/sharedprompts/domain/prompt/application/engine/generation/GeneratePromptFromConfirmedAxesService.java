@@ -10,8 +10,8 @@ import org.example.sharedprompts.domain.prompt.application.port.in.generate.Gene
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.UnifiedGeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.semantic.IntentBasedAxisDefaultsResolver;
 import org.example.sharedprompts.domain.prompt.application.semantic.validation.SemanticValidationService;
-import org.example.sharedprompts.domain.prompt.common.enums.EngineMode;
-import org.example.sharedprompts.domain.prompt.common.enums.RequestMode;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineMode;
+import org.example.sharedprompts.domain.prompt.common.enums.request.RequestMode;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileRegistry;
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
@@ -61,8 +61,8 @@ public class GeneratePromptFromConfirmedAxesService implements GeneratePromptFro
 
     @Override
     public UnifiedGeneratePromptResult generate(ConfirmedGeneratePromptCommand command) {
-        if (command.category() == org.example.sharedprompts.domain.prompt.common.enums.PromptCategory.EXTRACTION) {
-            if (command.requestMode() != org.example.sharedprompts.domain.prompt.common.enums.RequestMode.EXTRACTION) {
+        if (command.category() == org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory.EXTRACTION) {
+            if (command.requestMode() != org.example.sharedprompts.domain.prompt.common.enums.request.RequestMode.EXTRACTION) {
                 throw new SemanticResolutionException(List.of("EXTRACTION category is only valid with request_mode=EXTRACTION"));
             }
         }

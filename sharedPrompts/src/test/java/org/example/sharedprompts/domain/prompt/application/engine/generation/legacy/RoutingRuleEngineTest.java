@@ -1,7 +1,18 @@
 package org.example.sharedprompts.domain.prompt.application.engine.generation.legacy;
 
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
-import org.example.sharedprompts.domain.prompt.common.enums.*;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineMode;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineProfile;
+import org.example.sharedprompts.domain.prompt.common.enums.output.OutputNeeds;
+import org.example.sharedprompts.domain.prompt.common.enums.output.ResponseShape;
+import org.example.sharedprompts.domain.prompt.common.enums.request.RequestMode;
+import org.example.sharedprompts.domain.prompt.common.enums.role.core.CoreRoleType;
+import org.example.sharedprompts.domain.prompt.common.enums.role.metadata.DomainRoleType;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptObjective;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDictionary;
 import org.junit.jupiter.api.Test;
 

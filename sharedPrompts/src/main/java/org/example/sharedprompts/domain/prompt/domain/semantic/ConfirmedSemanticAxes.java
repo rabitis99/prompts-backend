@@ -1,8 +1,15 @@
 package org.example.sharedprompts.domain.prompt.domain.semantic;
 
-import org.example.sharedprompts.domain.prompt.common.enums.*;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.experience.ExperienceLevel;
+import org.example.sharedprompts.domain.prompt.common.enums.output.OutputNeeds;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
+import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 
 import java.util.List;

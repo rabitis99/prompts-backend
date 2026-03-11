@@ -12,11 +12,11 @@ import org.example.sharedprompts.domain.prompt.domain.policy.strategy.StrategyBu
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolverPort;
 import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 import org.example.sharedprompts.domain.prompt.domain.value.strategy.PromptStrategyBundle;
-import org.example.sharedprompts.domain.prompt.common.enums.ExperienceLevel;
-import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
-import org.example.sharedprompts.domain.prompt.common.enums.StyleType;
-import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
-import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
+import org.example.sharedprompts.domain.prompt.common.enums.experience.ExperienceLevel;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.guideline.bundle.GuidelineBundle;

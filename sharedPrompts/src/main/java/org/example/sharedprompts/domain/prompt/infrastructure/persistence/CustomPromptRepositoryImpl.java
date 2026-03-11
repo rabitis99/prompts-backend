@@ -6,7 +6,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.example.sharedprompts.domain.follow.repository.FollowPredicates;
 import org.example.sharedprompts.domain.prompt.application.port.out.persistence.PromptSearchQuery;
-import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;

@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.common.enums.serializer;
 
-import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
+import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
 
 import java.util.HashMap;
 import java.util.Map;

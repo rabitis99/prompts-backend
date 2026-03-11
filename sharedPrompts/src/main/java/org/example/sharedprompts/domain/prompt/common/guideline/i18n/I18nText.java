@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.common.guideline.i18n;
 
-import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
 
 /**
  * 다국어 텍스트 record (Ko, En, Ja)

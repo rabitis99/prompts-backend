@@ -9,7 +9,9 @@ import org.example.sharedprompts.domain.prompt.application.port.in.command.Unifi
 import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.ExpressionOptions;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.OutputOptions;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.normalization.SemanticSelection;
-import org.example.sharedprompts.domain.prompt.common.enums.*;
+import org.example.sharedprompts.domain.prompt.common.enums.request.RequestType;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 
 import java.util.List;
 

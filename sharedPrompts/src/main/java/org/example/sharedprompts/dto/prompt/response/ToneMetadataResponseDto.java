@@ -6,8 +6,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.sharedprompts.domain.prompt.domain.service.recommendation.RecommendationRegistry;
-import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
-import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 
 import java.util.List;
 

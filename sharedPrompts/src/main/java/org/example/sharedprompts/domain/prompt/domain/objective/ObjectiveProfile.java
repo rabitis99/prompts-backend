@@ -8,8 +8,8 @@ import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObje
 import org.example.sharedprompts.domain.prompt.domain.value.strategy.PromptStrategyBundle;
 import org.example.sharedprompts.domain.prompt.domain.value.quality.QualityPriority;
 import org.example.sharedprompts.domain.prompt.domain.verification.VerificationStrategy;
-import org.example.sharedprompts.domain.prompt.common.enums.ExperienceLevel;
-import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.experience.ExperienceLevel;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
 
 import java.util.List;
 

@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.prompt.common.enums.role;
 
-import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
-import org.example.sharedprompts.domain.prompt.common.enums.StableKeyedEnum;
+import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
 import org.example.sharedprompts.domain.prompt.domain.descriptor.RoleDescriptorPort;
 
 /**

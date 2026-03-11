@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.prompt.application.port.in.query;
 
-import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
-import org.example.sharedprompts.domain.prompt.common.enums.SortType;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.sort.SortType;
 
 /** 프롬프트 검색 쿼리 */
 public record SearchPromptsQuery(

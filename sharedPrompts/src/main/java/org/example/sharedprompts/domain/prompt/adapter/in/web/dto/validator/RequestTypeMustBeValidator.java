@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.prompt.adapter.in.web.dto.validator;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-import org.example.sharedprompts.domain.prompt.common.enums.RequestType;
+import org.example.sharedprompts.domain.prompt.common.enums.request.RequestType;
 
 public class RequestTypeMustBeValidator implements ConstraintValidator<RequestTypeMustBe, RequestType> {
 

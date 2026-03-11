@@ -1,10 +1,10 @@
 package org.example.sharedprompts.domain.prompt.application.port.in.command;
 
-import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
-import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
-import org.example.sharedprompts.domain.prompt.common.enums.StyleType;
-import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
-import org.example.sharedprompts.domain.prompt.common.enums.ExperienceLevel;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
+import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
+import org.example.sharedprompts.domain.prompt.common.enums.experience.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 

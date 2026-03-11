@@ -3,9 +3,9 @@ package org.example.sharedprompts.domain.prompt.application.engine.generation;
 import org.example.sharedprompts.domain.prompt.application.engine.contract.SchemaContractEvaluator;
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.UnifiedGeneratePromptResult;
-import org.example.sharedprompts.domain.prompt.common.enums.EngineMode;
-import org.example.sharedprompts.domain.prompt.common.enums.EngineProfile;
-import org.example.sharedprompts.domain.prompt.common.enums.PromptObjective;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineMode;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineProfile;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptObjective;
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
 import org.springframework.stereotype.Component;
 

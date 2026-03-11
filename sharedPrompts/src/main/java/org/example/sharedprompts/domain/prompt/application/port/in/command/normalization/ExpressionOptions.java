@@ -1,9 +1,9 @@
 package org.example.sharedprompts.domain.prompt.application.port.in.command.normalization;
 
-import org.example.sharedprompts.domain.prompt.common.enums.ExperienceLevel;
-import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
-import org.example.sharedprompts.domain.prompt.common.enums.StyleType;
-import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
+import org.example.sharedprompts.domain.prompt.common.enums.experience.ExperienceLevel;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
+import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 
 /** 표현 옵션 (tone, style, language, experienceLevel) */
 public record ExpressionOptions(
