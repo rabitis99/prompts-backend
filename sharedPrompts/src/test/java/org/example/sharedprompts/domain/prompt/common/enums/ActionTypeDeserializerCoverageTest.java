@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 class ActionTypeDeserializerCoverageTest {
 
     @Test
-    @DisplayName("every enum in ACTION_TYPE_ENUMS implements ActionTypeInterface and has valid key()")
-    void everyEnumImplementsActionTypeInterfaceAndHasValidKey() throws Exception {
+    @DisplayName("every enum in ActionTypeCatalog implements ActionTypeInterface and has valid key()")
+    void everyEnumImplementsActionTypeInterfaceAndHasValidKey() {
         List<Class<? extends Enum<?>>> enumClasses = DeserializerEnumTestUtils.getActionTypeEnums();
         for (Class<? extends Enum<?>> enumClass : enumClasses) {
             assertThat(ActionTypeInterface.class.isAssignableFrom(enumClass))
@@ -45,7 +45,7 @@ class ActionTypeDeserializerCoverageTest {
 
     @Test
     @DisplayName("each constant key() round-trips via EnumResolver without throwing")
-    void eachConstantKeyRoundTripsViaEnumResolver() throws Exception {
+    void eachConstantKeyRoundTripsViaEnumResolver() {
         List<Class<? extends Enum<?>>> enumClasses = DeserializerEnumTestUtils.getActionTypeEnums();
         for (Class<? extends Enum<?>> enumClass : enumClasses) {
             if (!ActionTypeInterface.class.isAssignableFrom(enumClass)) {
@@ -68,7 +68,7 @@ class ActionTypeDeserializerCoverageTest {
 
     @Test
     @DisplayName("no duplicate stable keys across ActionType enums (avoids ambiguous resolution)")
-    void noDuplicateKeysAcrossActionTypeEnums() throws Exception {
+    void noDuplicateKeysAcrossActionTypeEnums() {
         List<Class<? extends Enum<?>>> enumClasses = DeserializerEnumTestUtils.getActionTypeEnums();
         Set<String> seenKeys = new HashSet<>();
         List<String> duplicates = new ArrayList<>();

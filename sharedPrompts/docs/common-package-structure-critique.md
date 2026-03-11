@@ -41,7 +41,7 @@
 
 - **CoreRoleType**: `StableKeyedEnum`만 구현. 엔진용 “코어 역할”.
 - **DomainRoleType** (metadata): `RoleTypeInterface`·`StableKeyedEnum` 모두 미구현. 상수만 있는 단순 enum. **`RoleTypeDeserializer.ROLE_TYPE_ENUMS`에 포함되지 않음.**
-- **category 하위 *RoleType** (18개 클래스): `RoleTypeInterface` 구현, 대부분 `StableKeyedEnum`도 구현(일부는 인터페이스 상속으로만 key 제공).
+- **category 하위 *RoleType** (18개 클래스): `RoleTypeInterface`만 구현. key는 `RoleTypeInterface`가 `StableKeyedEnum`을 상속하여 제공하므로, 별도 `StableKeyedEnum` 구현은 하지 않음.
 
 즉, “역할”이라는 한 개념이 **엔진용 코어 / 메타데이터용 도메인 / API·역직렬화용 카테고리** 세 갈래로 나뉘어 있고, DomainRoleType은 역직렬화 경로에조차 없다.
 
@@ -99,7 +99,7 @@
 1. **역할/액션 identity에 display·i18n을 직접 묶은 것**  
    `RoleTypeInterface`에 getRoleNameKo/En/Ja, getDescriptionKo/En/Ja가 있고, 각 enum이 6개 문자열을 생성자로 받는다. 언어가 하나 늘어나면 모든 RoleType enum 생성자와 호출부를 건드린다. “식별자”와 “표시용 메타데이터”를 한 인터페이스에 넣어서 확장 비용이 커진다.
 2. **ActionTypeBehaviorRegistry의 24개 instanceof**  
-   새 ActionType 추가 시 반드시 여기 분기 추가가 필요하고, 이미 MarketingActionType 누락으로 런타임 오류가 나는 상태. “행동”을 enum 타입 이름에 따라 나열하는 방식은 enum 개수가 70개에 가까워진 시점에서 유지보수 한계가 드러난다.
+   새 ActionType 추가 시 반드시 여기 분기 추가가 필요하다. 과거에는 MarketingActionType 분기 누락으로 런타임 오류가 났으나, 현재는 상수별 분기로 반영되어 해결된 상태다. 다만 “행동”을 enum 타입 이름에 따라 나열하는 방식은 enum 개수가 70개에 가까워진 시점에서 유지보수 한계가 드러난다.
 3. **Deserializer의 하드코딩된 enum 클래스 리스트**  
    새 enum 클래스를 만들면 Deserializer 리스트에 추가하는 것을 사람이 기억해야 한다. 컴파일 타임에 “이 인터페이스를 구현한 모든 enum”을 쓰는 구조가 아니라, “이 목록에 있는 것만 역직렬화”라서 누락이 발생한다.
 
@@ -137,7 +137,7 @@
 ### 아직은 괜찮지만 위험 신호인 부분
 
 - **ActionType key() 구현 방식 불일치**: `ActionTypeInterface`는 `StableKeyedEnum`을 상속하지 않고, 각 enum이 `key()`를 직접 구현. WritingActionType은 `stableKey` 필드를 두고, MarketingActionType은 `"ACTION.MARKETING." + name()`로 조합. 패턴이 통일되지 않아, 나중에 key 규칙을 바꿀 때 모든 ActionType을 검토해야 함.
-- **RoleType**: 일부는 `implements RoleTypeInterface, StableKeyedEnum`, 일부는 `implements RoleTypeInterface`만. 동작은 RoleTypeInterface default key()로 통일되지만, 선언이 혼재해 “어떤 것이 계약인가”가 한눈에 안 들어옴.
+- **RoleType**: category 하위 *RoleType은 모두 `RoleTypeInterface`만 구현하며, key는 인터페이스 상속(RoleTypeInterface extends StableKeyedEnum)으로 제공. 확장 규칙이 정리된 상태. “어떤 것이 계약인가”가 한눈에 안 들어옴.
 
 ### 문서/레지스트리/직렬화/매핑 불일치가 장기적으로 생기는 경로
 
@@ -171,7 +171,7 @@
 
 ### DomainRoleType / CoreRoleType / category RoleType
 
-- **현재 상태**: CoreRoleType = 엔진용, StableKeyedEnum만. DomainRoleType = 메타/페르소나용, key·인터페이스 없음. category *RoleType = API/역직렬화용, RoleTypeInterface 구현.
+- **현재 상태**: CoreRoleType = 엔진용, StableKeyedEnum만. DomainRoleType = 메타/페르소나용, key·인터페이스 없음. category *RoleType = API/역직렬화용, RoleTypeInterface만 구현(key는 인터페이스가 StableKeyedEnum 상속으로 제공).
 - **장점**: 용도별로 역할을 나눈 의도는 읽힘.
 - **문제점**: 세 가지가 “역할”이라는 같은 이름을 쓰지만 역직렬화·계약·사용처가 다르고, 한곳에 “역할 계층/용도”가 정리되어 있지 않음. DomainRoleType이 Deserializer에 없어서, API에서 “role” 필드로 DomainRoleType 값을 받는 경로가 있다면 별도 처리 필요.
 - **방치 시 리스크**: 새 역할 타입 추가 시 Core/Domain/category 중 어디에 넣을지 혼란, 또는 중복 정의.

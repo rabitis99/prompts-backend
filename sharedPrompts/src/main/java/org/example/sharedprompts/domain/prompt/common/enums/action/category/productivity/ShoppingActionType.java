@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.output.OutputBehaviorType;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 
 import java.util.Optional;
@@ -22,13 +23,14 @@ import java.util.Optional;
 @Getter
 @AllArgsConstructor
 public enum ShoppingActionType implements ActionTypeInterface, StableKeyedEnum {
-    COMPARISON_SHOPPING("ACTION.SHOPPING.COMPARISON_SHOPPING", "상품 비교", "Comparison Shopping", "商品比較"),
-    PRICE_NEGOTIATION("ACTION.SHOPPING.PRICE_NEGOTIATION", "가격 협상", "Price Negotiation", "価格交渉");
+    COMPARISON_SHOPPING("ACTION.SHOPPING.COMPARISON_SHOPPING", "상품 비교", "Comparison Shopping", "商品比較", OutputBehaviorType.STRATEGIC_PLAN),
+    PRICE_NEGOTIATION("ACTION.SHOPPING.PRICE_NEGOTIATION", "가격 협상", "Price Negotiation", "価格交渉", OutputBehaviorType.STRATEGIC_PLAN);
 
     private final String stableKey;
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+    private final OutputBehaviorType outputBehavior;
 
     @Override
     public String key() {
@@ -38,6 +40,11 @@ public enum ShoppingActionType implements ActionTypeInterface, StableKeyedEnum {
     @Override
     public Optional<TaskDomain> getTaskDomain() {
         return Optional.of(TaskDomain.PRACTICAL);
+    }
+
+    @Override
+    public OutputBehaviorType getOutputBehavior() {
+        return outputBehavior;
     }
 }
 

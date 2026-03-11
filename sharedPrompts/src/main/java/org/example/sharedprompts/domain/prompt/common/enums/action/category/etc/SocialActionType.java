@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.output.OutputBehaviorType;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 
 import java.util.Optional;
@@ -22,37 +23,38 @@ import java.util.Optional;
 @Getter
 @AllArgsConstructor
 public enum SocialActionType implements ActionTypeInterface, StableKeyedEnum {
-    COMMUNITY_ENGAGEMENT("커뮤니티 참여", "Community Engagement", "コミュニティ参加"),
-    EVENT_ORGANIZATION("이벤트 조직", "Event Organization", "イベントオーガナイズ"),
-    SOCIAL_CAUSE_SUPPORT("사회적 원인 지원", "Social Cause Support", "社会的な原因支援"),
-    VOLUNTEER_COORDINATION("자원봉사 조정", "Volunteer Coordination", "ボランティア調整"),
-    FUNDRAISING("모금", "Fundraising", "資金調達"),
-    COMMUNITY_OUTREACH("커뮤니티 외부 연계", "Community Outreach", "コミュニティアウトリーチ"),
-    SOCIAL_MEDIA_ENGAGEMENT("소셜 미디어 참여", "Social Media Engagement", "ソーシャルメディア参加"),
-    NETWORKING_EVENT("네트워킹 이벤트", "Networking Event", "ネットワーキングイベント"),
-    COMMUNITY_BUILDING("커뮤니티 구축", "Community Building", "コミュニティ構築"),
-    SOCIAL_ACTIVISM("사회 운동", "Social Activism", "社会運動"),
-    ADVOCACY("옹호 활동", "Advocacy", "擁護活動"),
-    PUBLIC_SPEAKING("공개 연설", "Public Speaking", "公開演説"),
-    SOCIAL_IMPACT("사회적 영향", "Social Impact", "社会的影響"),
-    COLLABORATION("협업", "Collaboration", "協力"),
-    PARTNERSHIP_BUILDING("파트너십 구축", "Partnership Building", "パートナーシップ構築"),
-    CROSS_CULTURAL_COMMUNICATION("문화 간 소통", "Cross-cultural Communication", "異文化コミュニケーション"),
-    COMPLAINT_WRITING("불만 접수", "Complaint Writing", "苦情申し立て"),
-    FEEDBACK_WRITING("피드백 작성", "Feedback Writing", "フィードバック作成"),
-    REVIEW_WRITING("리뷰 작성", "Review Writing", "レビュー作成"),
-    TESTIMONIAL_WRITING("추천서 작성", "Testimonial Writing", "推薦文作成"),
-    FOLLOW_UP_MESSAGE("후속 메시지", "Follow-up Message", "フォローアップメッセージ"),
-    APPOINTMENT_SCHEDULING("약속 잡기", "Appointment Scheduling", "予約調整"),
-    REMINDER_MESSAGE("알림 메시지", "Reminder Message", "リマインダーメッセージ"),
-    BIRTHDAY_MESSAGE("생일 메시지", "Birthday Message", "誕生日メッセージ"),
-    ANNIVERSARY_MESSAGE("기념일 메시지", "Anniversary Message", "記念日メッセージ"),
-    HOLIDAY_GREETING("명절 인사", "Holiday Greeting", "祝日の挨拶"),
-    SEASONAL_GREETING("계절 인사", "Seasonal Greeting", "季節の挨拶");
+    COMMUNITY_ENGAGEMENT("커뮤니티 참여", "Community Engagement", "コミュニティ参加", OutputBehaviorType.STRATEGIC_PLAN),
+    EVENT_ORGANIZATION("이벤트 조직", "Event Organization", "イベントオーガナイズ", OutputBehaviorType.STRATEGIC_PLAN),
+    SOCIAL_CAUSE_SUPPORT("사회적 원인 지원", "Social Cause Support", "社会的な原因支援", OutputBehaviorType.STRATEGIC_PLAN),
+    VOLUNTEER_COORDINATION("자원봉사 조정", "Volunteer Coordination", "ボランティア調整", OutputBehaviorType.STRATEGIC_PLAN),
+    FUNDRAISING("모금", "Fundraising", "資金調達", OutputBehaviorType.STRATEGIC_PLAN),
+    COMMUNITY_OUTREACH("커뮤니티 외부 연계", "Community Outreach", "コミュニティアウトリーチ", OutputBehaviorType.STRATEGIC_PLAN),
+    SOCIAL_MEDIA_ENGAGEMENT("소셜 미디어 참여", "Social Media Engagement", "ソーシャルメディア参加", OutputBehaviorType.STRATEGIC_PLAN),
+    NETWORKING_EVENT("네트워킹 이벤트", "Networking Event", "ネットワーキングイベント", OutputBehaviorType.STRATEGIC_PLAN),
+    COMMUNITY_BUILDING("커뮤니티 구축", "Community Building", "コミュニティ構築", OutputBehaviorType.STRATEGIC_PLAN),
+    SOCIAL_ACTIVISM("사회 운동", "Social Activism", "社会運動", OutputBehaviorType.STRATEGIC_PLAN),
+    ADVOCACY("옹호 활동", "Advocacy", "擁護活動", OutputBehaviorType.STRATEGIC_PLAN),
+    PUBLIC_SPEAKING("공개 연설", "Public Speaking", "公開演説", OutputBehaviorType.STRATEGIC_PLAN),
+    SOCIAL_IMPACT("사회적 영향", "Social Impact", "社会的影響", OutputBehaviorType.STRATEGIC_PLAN),
+    COLLABORATION("협업", "Collaboration", "協力", OutputBehaviorType.STRATEGIC_PLAN),
+    PARTNERSHIP_BUILDING("파트너십 구축", "Partnership Building", "パートナーシップ構築", OutputBehaviorType.STRATEGIC_PLAN),
+    CROSS_CULTURAL_COMMUNICATION("문화 간 소통", "Cross-cultural Communication", "異文化コミュニケーション", OutputBehaviorType.STRATEGIC_PLAN),
+    COMPLAINT_WRITING("불만 접수", "Complaint Writing", "苦情申し立て", OutputBehaviorType.STRATEGIC_PLAN),
+    FEEDBACK_WRITING("피드백 작성", "Feedback Writing", "フィードバック作成", OutputBehaviorType.STRATEGIC_PLAN),
+    REVIEW_WRITING("리뷰 작성", "Review Writing", "レビュー作成", OutputBehaviorType.STRATEGIC_PLAN),
+    TESTIMONIAL_WRITING("추천서 작성", "Testimonial Writing", "推薦文作成", OutputBehaviorType.STRATEGIC_PLAN),
+    FOLLOW_UP_MESSAGE("후속 메시지", "Follow-up Message", "フォローアップメッセージ", OutputBehaviorType.STRATEGIC_PLAN),
+    APPOINTMENT_SCHEDULING("약속 잡기", "Appointment Scheduling", "予約調整", OutputBehaviorType.STRATEGIC_PLAN),
+    REMINDER_MESSAGE("알림 메시지", "Reminder Message", "リマインダーメッセージ", OutputBehaviorType.STRATEGIC_PLAN),
+    BIRTHDAY_MESSAGE("생일 메시지", "Birthday Message", "誕生日メッセージ", OutputBehaviorType.STRATEGIC_PLAN),
+    ANNIVERSARY_MESSAGE("기념일 메시지", "Anniversary Message", "記念日メッセージ", OutputBehaviorType.STRATEGIC_PLAN),
+    HOLIDAY_GREETING("명절 인사", "Holiday Greeting", "祝日の挨拶", OutputBehaviorType.STRATEGIC_PLAN),
+    SEASONAL_GREETING("계절 인사", "Seasonal Greeting", "季節の挨拶", OutputBehaviorType.STRATEGIC_PLAN);
 
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+    private final OutputBehaviorType outputBehavior;
 
     @Override
     public String key() {
@@ -62,6 +64,11 @@ public enum SocialActionType implements ActionTypeInterface, StableKeyedEnum {
     @Override
     public Optional<TaskDomain> getTaskDomain() {
         return Optional.of(TaskDomain.PRACTICAL);
+    }
+
+    @Override
+    public OutputBehaviorType getOutputBehavior() {
+        return outputBehavior;
     }
 }
 
