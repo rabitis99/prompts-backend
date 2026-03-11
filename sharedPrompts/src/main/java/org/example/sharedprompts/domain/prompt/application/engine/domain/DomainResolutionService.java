@@ -32,15 +32,14 @@ public class DomainResolutionService {
     ) {
         ResolvedDomain resolved = domainResolver.resolveDomainWithFallback(null, categoryHint);
 
-        if (resolved.fallback() && intentDomainAffinity != null) {
-            return new ResolvedDomain(intentDomainAffinity, false, ResolutionSource.INTENT_AFFINITY);
-        }
-
         if (resolved.fallback()) {
             log.warn("Unified domain fallback used — category: {}, intentAffinity: {}, source: {}. Consider adding mapping.",
                     categoryHint,
                     intentDomainAffinity,
                     resolved.source());
+            if (intentDomainAffinity != null) {
+                return new ResolvedDomain(intentDomainAffinity, true, ResolutionSource.INTENT_AFFINITY);
+            }
         }
 
         return resolved;

@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.prompt.application.port.in.command.Unifi
 import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ResolvedDomain;
+import org.example.sharedprompts.global.config.ExcludeFromComponentScan;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import java.util.List;
 
 /** 최종 TaskDomain 결정 */
 @Component
+@ExcludeFromComponentScan
 @RequiredArgsConstructor
 public class DomainFinalizer {
 

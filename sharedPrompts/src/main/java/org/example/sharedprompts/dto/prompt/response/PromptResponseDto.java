@@ -22,37 +22,51 @@ public class PromptResponseDto {
     private String title;
     private String description;
     private String content;
+
     @JsonProperty("is_public")
     private boolean isPublic;
+
     @JsonProperty("prompt_category")
     private PromptCategory promptCategory;
+
     private List<String> tags;
+
     @JsonProperty("user_response_dto")
     private UserResponseDto userResponseDto;
+
     @JsonProperty("view_count")
     private Long viewCount;
+
     @JsonProperty("comment_count")
     private Long commentCount;
+
     @JsonProperty("like_count")
     private Long likeCount;
+
     @JsonProperty("favorite_count")
     private Long favoriteCount;
 
-
     /**
-     * Build from entity tags and explicit like count.
-     * Prefer {@link #fromWithTagNames(Prompt, List, Long)} with port-supplied tag names and like count for read models.
+     * 엔티티 태그와 likeCount를 기반으로 DTO 생성.
+     * 조회 모델에서는 {@link #fromWithTagNames(Prompt, List, Long)} 사용을 권장.
      */
     public static PromptResponseDto from(Prompt prompt, List<Tag> tags, Long likeCount) {
         List<String> tagNames = tags == null
                 ? List.of()
                 : tags.stream().map(Tag::getName).toList();
+
         return buildFrom(prompt, tagNames, likeCount);
     }
 
-    /** Build from tag names (e.g. from PromptTagQueryPort). Use for read models to avoid entity tag access. */
+    /**
+     * 태그 이름 기반 DTO 생성 (PromptTagQueryPort 등 조회 모델에서 사용).
+     */
     public static PromptResponseDto fromWithTagNames(Prompt prompt, List<String> tagNames, Long likeCount) {
-        return buildFrom(prompt, tagNames != null ? tagNames : List.of(), likeCount);
+        return buildFrom(
+                prompt,
+                tagNames == null ? List.of() : tagNames.stream().toList(),
+                likeCount
+        );
     }
 
     private static PromptResponseDto buildFrom(Prompt prompt, List<String> tagNames, Long likeCount) {

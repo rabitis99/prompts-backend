@@ -46,6 +46,6 @@ public record UnifiedGeneratePromptResult(
         semanticProfilesApplied = semanticProfilesApplied != null ? List.copyOf(semanticProfilesApplied) : List.of();
         validationWarnings = validationWarnings != null ? List.copyOf(validationWarnings) : List.of();
         recommendationHints = recommendationHints != null ? List.copyOf(recommendationHints) : List.of();
-        axisSources = axisSources != null ? Map.copyOf(axisSources) : null;
+        axisSources = axisSources != null ? Map.copyOf(axisSources) : Map.of();
     }
 }

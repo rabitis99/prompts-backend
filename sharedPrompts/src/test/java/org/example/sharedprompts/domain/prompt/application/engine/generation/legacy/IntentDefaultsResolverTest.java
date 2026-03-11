@@ -18,15 +18,14 @@ class IntentDefaultsResolverTest {
 
     private final IntentDefaultsResolver resolver = new IntentDefaultsResolver();
 
-    @Test
-    void generate_intent_should_use_generate_metadata() {
-        UnifiedGeneratePromptCommand command = UnifiedGeneratePromptCommand.of(
+    private UnifiedGeneratePromptCommand command(ActionIntent intent, PromptCategory category, String input) {
+        return UnifiedGeneratePromptCommand.of(
                 1L,
                 RequestMode.SIMPLE,
-                PromptCategory.ETC,
-                ActionIntent.GENERATE,
+                category,
+                intent,
                 null,
-                "hello",
+                input,
                 null,
                 EngineMode.AUTO,
                 ToneType.NEUTRAL,
@@ -38,9 +37,13 @@ class IntentDefaultsResolverTest {
                 null,
                 null,
                 null,
-                null,
                 null
         );
+    }
+
+    @Test
+    void generate_intent_should_use_generate_metadata() {
+        UnifiedGeneratePromptCommand command = command(ActionIntent.GENERATE, PromptCategory.ETC, "hello");
 
         IntentDefaults defaults = resolver.resolve(command);
         // Use fixed expected values so mapping bugs in IntentDictionary are caught by this test
@@ -54,27 +57,7 @@ class IntentDefaultsResolverTest {
 
     @Test
     void null_intent_should_default_to_generate_and_fill_recommended_engine_profile() {
-        UnifiedGeneratePromptCommand command = UnifiedGeneratePromptCommand.of(
-                1L,
-                RequestMode.SIMPLE,
-                PromptCategory.ETC,
-                null,
-                null,
-                "hello",
-                null,
-                EngineMode.AUTO,
-                ToneType.NEUTRAL,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
+        UnifiedGeneratePromptCommand command = command(null, PromptCategory.ETC, "hello");
 
         IntentDefaults defaults = resolver.resolve(command);
         assertThat(defaults.intent()).isEqualTo(ActionIntent.GENERATE);
@@ -87,27 +70,7 @@ class IntentDefaultsResolverTest {
 
     @Test
     void extract_intent_should_have_extraction_defaults() {
-        UnifiedGeneratePromptCommand command = UnifiedGeneratePromptCommand.of(
-                1L,
-                RequestMode.SIMPLE,
-                PromptCategory.ANALYSIS,
-                ActionIntent.EXTRACT,
-                null,
-                "input",
-                null,
-                EngineMode.AUTO,
-                ToneType.NEUTRAL,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
+        UnifiedGeneratePromptCommand command = command(ActionIntent.EXTRACT, PromptCategory.ANALYSIS, "input");
 
         IntentDefaults defaults = resolver.resolve(command);
         assertThat(defaults.intent()).isEqualTo(ActionIntent.EXTRACT);

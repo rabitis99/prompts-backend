@@ -6,5 +6,9 @@ public class InvalidPromptUpdateException extends PromptDomainException {
     public InvalidPromptUpdateException(String message) {
         super(message);
     }
+
+    public InvalidPromptUpdateException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
 

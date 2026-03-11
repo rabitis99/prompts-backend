@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.prompt.application.semantic.resolution;
 
 import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.RequestMode;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileRegistry;
 import org.example.sharedprompts.domain.prompt.domain.semantic.RecommendationResult;
@@ -36,13 +37,14 @@ public class CoreSemanticResolver {
     }
 
     public CoreResolutionResult performCoreResolution(
+            RequestMode requestMode,
             PromptCategory category,
             ActionIntent initialIntent,
             org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface roleType,
             org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface actionType,
             BiFunction<CategorySemanticProfile, ActionIntent, SemanticValidationResult> validator
     ) {
-        List<String> validationErrors = requestModeValidator.validateForResolution(category);
+        List<String> validationErrors = requestModeValidator.validateForResolution(category, requestMode);
         if (!validationErrors.isEmpty()) {
             return CoreResolutionResult.fail(validationErrors);
         }

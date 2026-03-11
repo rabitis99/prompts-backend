@@ -10,6 +10,7 @@ import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptS
 import org.example.sharedprompts.domain.prompt.application.port.in.query.SearchPromptsQuery;
 import org.example.sharedprompts.domain.prompt.application.port.out.block.BlockPolicyPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.event.PromptEventPort;
+import org.example.sharedprompts.domain.prompt.application.port.out.event.PromptViewedEvent;
 import org.example.sharedprompts.domain.prompt.application.port.out.like.LikeCountPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.persistence.PromptQueryPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.persistence.PromptSearchQuery;
@@ -65,7 +66,7 @@ public class PromptQueryService implements PromptQueryUseCase {
                 .orElseThrow(() -> new PromptNotFoundException(promptId));
 
         Long authorId = prompt.getAuthor().getId();
-        if (!prompt.isPublic() && (viewerId == null || !authorId.equals(viewerId))) {
+        if (!prompt.isPublic() && (!authorId.equals(viewerId))) {
             throw new PromptAccessDeniedException(promptId, viewerId);
         }
 
@@ -74,21 +75,23 @@ public class PromptQueryService implements PromptQueryUseCase {
             throw new PromptAccessDeniedException(promptId, viewerId);
         }
 
-        promptEventPort.publishPromptViewed(promptId, viewerId);
+        promptEventPort.publishPromptViewed(new PromptViewedEvent(promptId, viewerId));
 
-        List<String> tagNames = promptTagQueryPort.getTagNames(prompt);
+        List<String> tagNames = promptTagQueryPort.getTagNames(promptId);
         Long likeCount = likeCountPort
                 .getPromptLikeCounts(List.of(promptId))
                 .getOrDefault(promptId, 0L);
         return promptDetailViewMapper.toDetailView(prompt, tagNames, likeCount);
     }
 
+    /** 내 프롬프트 목록. 호출부에서 query에 ownerId=caller, viewerId=caller 등으로 세팅해 전달한다. */
     @Override
     @Transactional(readOnly = true)
     public PromptPageResult<PromptSummaryView> getMyPrompts(SearchPromptsQuery query) {
         return searchPrompts(query);
     }
 
+    /** 특정 사용자 프롬프트 목록. 호출부에서 query에 ownerId=대상사용자, viewerId=caller 등으로 세팅해 전달한다. 구분은 SearchPromptsQuery의 ownerId/viewerId로만 이루어진다. */
     @Override
     @Transactional(readOnly = true)
     public PromptPageResult<PromptSummaryView> getUserPrompts(SearchPromptsQuery query) {
@@ -108,6 +111,7 @@ public class PromptQueryService implements PromptQueryUseCase {
             );
         }
         var assembled = promptReadModelAssembler.assemble(content);
+        // createdAt은 UTC로 저장된다고 가정. 서버/DB가 다른 타임존을 쓰면 시스템 타임존 정책 확인 필요.
         var mappedContent = content.stream()
                 .map(p -> new PromptSummaryView(
                         p.getId(),

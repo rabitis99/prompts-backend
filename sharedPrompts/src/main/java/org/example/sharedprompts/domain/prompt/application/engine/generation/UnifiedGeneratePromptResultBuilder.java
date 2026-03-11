@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.prompt.application.engine.generation;
 
 import org.example.sharedprompts.domain.prompt.application.engine.contract.SchemaContractEvaluator;
-import org.example.sharedprompts.domain.prompt.application.port.in.query.GeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.UnifiedGeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.common.enums.EngineMode;
 import org.example.sharedprompts.domain.prompt.common.enums.EngineProfile;

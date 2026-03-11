@@ -6,11 +6,12 @@ import org.example.sharedprompts.domain.prompt.application.port.in.generate.Gene
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptUseCase;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.ConfirmedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.GeneratePromptCommand;
-import org.example.sharedprompts.domain.prompt.application.port.in.query.GeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.UnifiedGeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.semantic.IntentBasedAxisDefaultsResolver;
 import org.example.sharedprompts.domain.prompt.application.semantic.validation.SemanticValidationService;
 import org.example.sharedprompts.domain.prompt.common.enums.EngineMode;
+import org.example.sharedprompts.domain.prompt.common.enums.RequestMode;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileRegistry;
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
@@ -75,8 +76,9 @@ public class GeneratePromptFromConfirmedAxesService implements GeneratePromptFro
         }
 
         boolean hasJsonSchema = command.jsonSchema() != null && !command.jsonSchema().isBlank();
+        boolean extractionRequestMode = command.requestMode() == RequestMode.EXTRACTION;
         org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective domainObjective =
-                axisDefaultsResolver.resolveObjective(command.intent(), hasJsonSchema, false);
+                axisDefaultsResolver.resolveObjective(command.intent(), hasJsonSchema, extractionRequestMode);
         var outputNeeds = axisDefaultsResolver.resolveOutputNeeds(command.intent(), hasJsonSchema);
         var taskDomain = axisDefaultsResolver.resolveTaskDomain(profile, command.category());
 

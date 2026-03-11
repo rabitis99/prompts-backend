@@ -18,7 +18,7 @@ public class PromptDetailViewMapper {
                 prompt.getDescription(),
                 prompt.getContent(),
                 prompt.getPromptCategory(),
-                tagNames != null ? tagNames : List.of(),
+                tagNames != null ? List.copyOf(tagNames) : List.of(),
                 prompt.getAuthor().getId(),
                 prompt.getAuthor().getNickname(),
                 likeCount != null ? likeCount : 0L,

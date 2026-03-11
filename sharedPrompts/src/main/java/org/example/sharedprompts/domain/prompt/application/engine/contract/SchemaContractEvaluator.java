@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.application.engine.contract;
 
-import org.example.sharedprompts.domain.prompt.application.port.in.query.GeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptResult;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

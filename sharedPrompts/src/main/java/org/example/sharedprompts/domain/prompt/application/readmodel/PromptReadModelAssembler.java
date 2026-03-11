@@ -18,6 +18,9 @@ public class PromptReadModelAssembler {
     private final LikeCountPort likeCountPort;
 
     public AssembledReadModel assemble(List<Prompt> prompts) {
+        if (prompts.isEmpty()) {
+            return new AssembledReadModel(Map.of(), Map.of());
+        }
         List<Long> promptIds = prompts.stream().map(Prompt::getId).toList();
         Map<Long, List<String>> tagNamesByPromptId = promptTagQueryPort.getTagNamesByPromptIds(promptIds);
         Map<Long, Long> likeCountByPromptId = likeCountPort.getPromptLikeCounts(promptIds);

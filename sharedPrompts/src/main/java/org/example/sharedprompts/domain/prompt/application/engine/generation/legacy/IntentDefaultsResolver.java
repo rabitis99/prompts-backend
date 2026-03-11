@@ -5,13 +5,11 @@ import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.EngineProfile;
 import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
 import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDictionary;
-import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 import java.util.Optional;
 
 /** legacy 라우팅용 Intent 기본값 */
-@Component
 public class IntentDefaultsResolver {
 
     public IntentDefaults resolve(UnifiedGeneratePromptCommand command) {

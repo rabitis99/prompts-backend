@@ -20,6 +20,11 @@ public final class ResolutionResult {
         public static ResolutionMetadata forExtraction() {
             return new ResolutionMetadata(false, false, false, false, true);
         }
+
+        /** 사용자가 intent, role, action을 제공했고 fallback 미사용, 비-EXTRACTION 요청용 */
+        public static ResolutionMetadata userProvidedIntentRoleAction() {
+            return new ResolutionMetadata(false, true, true, true, false);
+        }
     }
 
     public record Result(boolean success, ConfirmedSemanticAxes axes, List<String> errors, ResolutionMetadata metadata) {

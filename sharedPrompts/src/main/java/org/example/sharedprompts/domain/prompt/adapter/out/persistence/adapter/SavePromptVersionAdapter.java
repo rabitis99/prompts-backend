@@ -13,6 +13,7 @@ import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.global.exception.ApiException;
 import org.example.sharedprompts.global.exception.ErrorCode;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +34,7 @@ public class SavePromptVersionAdapter implements SavePromptVersionPort {
 
     @Override
     @Transactional(timeout = 30)
-    public Long save(GeneratePromptCommand command, PromptSpec spec,
+    public Long save(GeneratePromptCommand command, @NotNull PromptSpec spec,
                      String finalContent, int repairCount, boolean finallyPassed) {
         Objects.requireNonNull(spec, "spec must not be null");
 
@@ -73,7 +74,7 @@ public class SavePromptVersionAdapter implements SavePromptVersionPort {
         // 내부 저장 로그 (objective는 enum 이름만 기록, 사용자 원문 미포함)
         log.info("[SavePromptVersion] 저장 완료: promptId={}, repairCount={}, finallyPassed={}, objective={}",
                 saved.getId(), repairCount, finallyPassed,
-                spec == null || spec.getObjective() == null ? null : spec.getObjective().name());
+                spec.getObjective() == null ? null : spec.getObjective().name());
 
         return saved.getId();
     }

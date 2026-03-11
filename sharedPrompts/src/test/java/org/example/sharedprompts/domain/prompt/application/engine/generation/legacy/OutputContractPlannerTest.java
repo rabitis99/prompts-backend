@@ -2,32 +2,55 @@ package org.example.sharedprompts.domain.prompt.application.engine.generation.le
 
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.common.enums.*;
+import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class OutputContractPlannerTest {
 
-    private UnifiedGeneratePromptCommand commandWithSchema(String schema) {
+    /** Extraction-unrelated category/intent so schema is the only trigger for EXTRACTION in tests. */
+    private UnifiedGeneratePromptCommand commandWithSchema(String jsonSchema) {
+        Long userId = 1L;
+        RequestMode requestMode = RequestMode.SIMPLE;
+        PromptCategory category = PromptCategory.ETC;
+        ActionIntent intent = ActionIntent.GENERATE;
+        String variant = null;
+        String input = "input";
+        EngineMode engineMode = EngineMode.AUTO;
+        ToneType tone = ToneType.NEUTRAL;
+        StyleType style = null;
+        LanguageType language = null;
+        ExperienceLevel experience = null;
+        boolean disableQualityPipeline = false;
+        ActionTypeInterface actionType = null;
+        RoleTypeInterface roleType = null;
+        List<String> tags = null;
+        String title = null;
+        String description = null;
+
         return UnifiedGeneratePromptCommand.of(
-                1L,
-                RequestMode.SIMPLE,
-                PromptCategory.ANALYSIS,
-                ActionIntent.EXTRACT,
-                null,
-                "input",
-                schema,
-                EngineMode.AUTO,
-                ToneType.NEUTRAL,
-                null,
-                null,
-                null,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null
+                userId,
+                requestMode,
+                category,
+                intent,
+                variant,
+                input,
+                jsonSchema,
+                engineMode,
+                tone,
+                style,
+                language,
+                experience,
+                disableQualityPipeline,
+                actionType,
+                roleType,
+                tags,
+                title,
+                description
         );
     }
 

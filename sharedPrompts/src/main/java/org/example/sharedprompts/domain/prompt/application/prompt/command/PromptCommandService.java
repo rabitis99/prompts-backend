@@ -7,6 +7,7 @@ import org.example.sharedprompts.domain.prompt.application.port.in.prompt.Prompt
 import org.example.sharedprompts.domain.prompt.application.port.in.command.DeletePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UpdatePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptDetailView;
+import org.example.sharedprompts.domain.prompt.application.port.out.event.PromptDeletedEvent;
 import org.example.sharedprompts.domain.prompt.application.port.out.event.PromptEventPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.like.LikeCountPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.persistence.PromptCommandPort;
@@ -76,7 +77,7 @@ public class PromptCommandService implements PromptCommandUseCase {
 
         promptCommandPort.save(prompt);
 
-        List<String> tagNames = promptTagQueryPort.getTagNames(prompt);
+        List<String> tagNames = promptTagQueryPort.getTagNames(promptId);
         Long likeCount = likeCountPort
                 .getPromptLikeCounts(List.of(promptId))
                 .getOrDefault(promptId, 0L);
@@ -101,6 +102,6 @@ public class PromptCommandService implements PromptCommandUseCase {
         promptTagCommandPort.updateTags(prompt, List.of());
         promptCommandPort.delete(prompt);
 
-        promptEventPort.publishPromptDeleted(promptId, authorId);
+        promptEventPort.publishPromptDeleted(new PromptDeletedEvent(promptId, authorId));
     }
 }

@@ -3,38 +3,34 @@ package org.example.sharedprompts.domain.prompt.application.semantic.resolution;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.RecommendPromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.RecommendPromptResult;
-import org.example.sharedprompts.domain.prompt.application.semantic.recommendation.SemanticRecommendationService;
-import org.example.sharedprompts.domain.prompt.application.semantic.validation.SemanticValidationService;
 import org.example.sharedprompts.domain.prompt.common.AxisSourceConstants;
 import org.example.sharedprompts.domain.prompt.common.enums.*;
-import org.example.sharedprompts.domain.prompt.domain.semantic.*;
+import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
+import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class SemanticResolutionServiceTest {
 
-    private CategorySemanticProfileRegistry profileRegistry;
-    private SemanticRecommendationService recommendationService;
-    private SemanticValidationService validationService;
+    private GenerationSemanticResolver generationSemanticResolver;
+    private RecommendationSemanticResolver recommendationSemanticResolver;
     private SemanticResolutionService resolutionService;
 
     @BeforeEach
     void setUp() {
-        profileRegistry = mock(CategorySemanticProfileRegistry.class);
-        recommendationService = mock(SemanticRecommendationService.class);
-        validationService = mock(SemanticValidationService.class);
+        generationSemanticResolver = mock(GenerationSemanticResolver.class);
+        recommendationSemanticResolver = mock(RecommendationSemanticResolver.class);
 
         resolutionService = new SemanticResolutionService(
-                profileRegistry, recommendationService, validationService
+                generationSemanticResolver, recommendationSemanticResolver
         );
     }
 
@@ -46,11 +42,26 @@ class SemanticResolutionServiceTest {
                 false, null, null, null, "title", "desc"
         );
 
-        when(validationService.validate(any(), any(), any())).thenReturn(SemanticValidationResult.success());
-        when(recommendationService.recommend(any(), any(), any(), any(), any(), eq(false)))
-                .thenReturn(new RecommendationResult(PromptCategory.ETC, ActionIntent.GENERATE, Optional.empty(), Optional.empty(), List.of(), List.of(), List.of()));
+        ConfirmedSemanticAxes axes = ConfirmedSemanticAxes.builder()
+                .category(PromptCategory.ETC)
+                .taskDomain(TaskDomain.GENERAL)
+                .intent(ActionIntent.GENERATE)
+                .objective(PromptObjective.CREATIVE_WITH_CONSTRAINTS)
+                .outputNeeds(OutputNeeds.FREE_FORM)
+                .tone(ToneType.NEUTRAL)
+                .style(StyleType.NARRATIVE)
+                .language(LanguageType.KOREAN)
+                .experienceLevel(ExperienceLevel.INTERMEDIATE)
+                .build();
 
-        SemanticResolutionService.Result result = resolutionService.resolve(command);
+        ResolutionResult.ResolutionMetadata metadata = new ResolutionResult.ResolutionMetadata(
+                false, true, false, false, false
+        );
+
+        when(generationSemanticResolver.resolve(any(UnifiedGeneratePromptCommand.class)))
+                .thenReturn(ResolutionResult.Result.ok(axes, metadata));
+
+        ResolutionResult.Result result = resolutionService.resolve(command);
 
         assertThat(result.success()).isTrue();
         assertThat(result.axes().category()).isEqualTo(PromptCategory.ETC);
@@ -65,19 +76,31 @@ class SemanticResolutionServiceTest {
                 RequestMode.ADVANCED, PromptCategory.ETC, null, null, null, ToneType.NEUTRAL, StyleType.NARRATIVE, LanguageType.KOREAN, ExperienceLevel.INTERMEDIATE, "input"
         );
 
-        CategorySemanticProfile profile = mock(CategorySemanticProfile.class);
-        when(profile.getFallbackIntent()).thenReturn(ActionIntent.GENERATE);
-        when(profile.getAllowedIntents()).thenReturn(List.of(ActionIntent.GENERATE, ActionIntent.ANALYZE));
-        when(profileRegistry.getProfile(PromptCategory.ETC)).thenReturn(Optional.of(profile));
+        RecommendPromptResult stubResult = new RecommendPromptResult(
+                RequestMode.ADVANCED,
+                PromptCategory.ETC,
+                ActionIntent.GENERATE,
+                List.of(ActionIntent.GENERATE, ActionIntent.ANALYZE),
+                null,
+                List.of(),
+                null,
+                List.of(),
+                ToneType.NEUTRAL,
+                StyleType.NARRATIVE,
+                Map.of("intent", AxisSourceConstants.FALLBACK),
+                List.of(),
+                List.of(),
+                List.of("intent: profile fallback applied"),
+                ActionIntent.GENERATE.name()
+        );
 
-        when(validationService.validate(any(), any(), any())).thenReturn(SemanticValidationResult.success());
-        when(recommendationService.recommend(any(), any(), any(), any(), any(), eq(true)))
-                .thenReturn(new RecommendationResult(PromptCategory.ETC, ActionIntent.GENERATE, Optional.empty(), Optional.empty(), List.of(), List.of(), List.of()));
+        when(recommendationSemanticResolver.resolveForRecommendation(any(RecommendPromptCommand.class)))
+                .thenReturn(stubResult);
 
         RecommendPromptResult result = resolutionService.resolveForRecommendation(command);
 
-        assertThat(result.resolvedIntent()).isEqualTo(ActionIntent.GENERATE);
-        assertThat(result.fallbackAppliedWarnings()).contains("intent: profile fallback applied");
+        assertThat(result.recommendedIntent()).isEqualTo(ActionIntent.GENERATE);
+        assertThat(result.fallbackApplied()).contains("intent: profile fallback applied");
         assertThat(result.intentCandidates()).containsExactly(ActionIntent.GENERATE, ActionIntent.ANALYZE);
         assertThat(result.axisSources()).containsEntry("intent", AxisSourceConstants.FALLBACK);
     }

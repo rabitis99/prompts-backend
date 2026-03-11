@@ -1,6 +1,5 @@
 package org.example.sharedprompts.domain.prompt.domain.semantic;
 
-import org.example.sharedprompts.domain.prompt.application.semantic.resolution.SemanticResolutionService;
 import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.OutputNeeds;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
@@ -15,17 +14,18 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Formal Intent Dictionary: canonical meaning, usage guidance, and resolution defaults for every {@link ActionIntent}.
- * Reduces semantic drift by making intent semantics explicit and reviewable.
+ * 공식 Intent 사전: 각 {@link ActionIntent}의 정식 의미, 사용 지침, 해석 기본값을 정의한다.
+ * Intent 의미를 명시적으로 관리하여 의미적 드리프트를 줄인다.
  *
- * <p>Resolution defaults (objective, output needs, response shape) are provided here so that production
- * resolution does not rely on enum getters for semantic branching. Compatibility and intent-only defaults
- * belong in the dictionary/profile layer, not in the enum identity.</p>
+ * <p>해석 기본값(objective, output needs, response shape)은 여기에서 제공된다.
+ * 프로덕션 해석 로직이 enum getter 기반 분기에 의존하지 않도록 하기 위함이다.
+ * 호환성 및 intent 기본값은 enum이 아니라 dictionary/profile 레이어에서 관리한다.</p>
  */
 public final class IntentDictionary {
 
     private static final Map<ActionIntent, IntentDefinition> DEFINITIONS;
-    /** Resolution defaults per intent (objective, output needs, response shape). Canonical source for semantic resolution. */
+
+    /** Intent별 해석 기본값(objective, output needs, response shape). 의미 해석의 기준 소스. */
     private static final Map<ActionIntent, IntentResolutionDefaults> RESOLUTION_DEFAULTS;
 
     static {
@@ -123,7 +123,7 @@ public final class IntentDictionary {
 
     /**
      * Intent-only resolution defaults: objective, output needs, response shape.
-     * Used by {@link SemanticResolutionService}.
+     * Used by the semantic resolution flow.
      */
     public record IntentResolutionDefaults(
             PromptObjective defaultObjective,

@@ -41,6 +41,7 @@ public class GenerationSemanticResolver {
         }
 
         CoreSemanticResolver.CoreResolutionResult core = coreSemanticResolver.performCoreResolution(
+                command.requestMode(),
                 command.category(),
                 command.intent(),
                 command.roleType(),
@@ -55,9 +56,8 @@ public class GenerationSemanticResolver {
         ActionIntent intent = core.resolvedIntent();
         CategorySemanticProfile profile = core.profile();
         boolean hasJsonSchema = command.jsonSchema() != null && !command.jsonSchema().isBlank();
-        boolean extractionRequestMode = command.requestMode() == RequestMode.EXTRACTION;
 
-        PromptObjective domainObjective = axisDefaultsResolver.resolveObjective(intent, hasJsonSchema, extractionRequestMode);
+        PromptObjective domainObjective = axisDefaultsResolver.resolveObjective(intent, hasJsonSchema, false);
         OutputNeeds outputNeeds = axisDefaultsResolver.resolveOutputNeeds(intent, hasJsonSchema);
         TaskDomain taskDomain = axisDefaultsResolver.resolveTaskDomain(profile, command.category());
 

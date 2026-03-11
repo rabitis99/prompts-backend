@@ -4,11 +4,14 @@ import org.example.sharedprompts.domain.prompt.application.engine.contract.Schem
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptUseCase;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.GeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
-import org.example.sharedprompts.domain.prompt.application.port.in.query.GeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.UnifiedGeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.application.policy.AxisSourcePolicy;
+import org.example.sharedprompts.domain.prompt.application.semantic.resolution.ResolutionResult;
 import org.example.sharedprompts.domain.prompt.application.semantic.resolution.SemanticResolutionService;
 import org.example.sharedprompts.domain.prompt.common.enums.*;
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
+import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 import org.example.sharedprompts.domain.prompt.metrics.PromptEngineMetrics;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -32,7 +35,7 @@ class OrchestratorThinTest {
                             cmd.title(),
                             "output",
                             List.of(),
-                            org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective.CREATIVE_WITH_CONSTRAINTS,
+                            PromptObjective.CREATIVE_WITH_CONSTRAINTS,
                             true,
                             true,
                             0,
@@ -45,7 +48,7 @@ class OrchestratorThinTest {
                 .category(PromptCategory.ETC)
                 .taskDomain(TaskDomain.GENERAL)
                 .intent(ActionIntent.GENERATE)
-                .objective(org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective.CREATIVE_WITH_CONSTRAINTS)
+                .objective(PromptObjective.CREATIVE_WITH_CONSTRAINTS)
                 .outputNeeds(OutputNeeds.FREE_FORM)
                 .appliedProfileIds(List.of("profile:ETC", "intent:GENERATE"))
                 .validationWarnings(List.of())
@@ -53,20 +56,22 @@ class OrchestratorThinTest {
                 .build();
 
         SemanticResolutionService semanticResolutionService = mock(SemanticResolutionService.class);
-        SemanticResolutionService.ResolutionMetadata metadata = new SemanticResolutionService.ResolutionMetadata(
-                false, true, true, true, false
-        );
+        ResolutionResult.ResolutionMetadata metadata = ResolutionResult.ResolutionMetadata.userProvidedIntentRoleAction();
         when(semanticResolutionService.resolve(any(UnifiedGeneratePromptCommand.class)))
-                .thenReturn(SemanticResolutionService.Result.ok(axes, metadata));
+                .thenReturn(ResolutionResult.Result.ok(axes, metadata));
 
         SchemaContractEvaluator schemaContractEvaluator = new SchemaContractEvaluator();
         PromptEngineMetrics metrics = new PromptEngineMetrics(new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
+        AxisSourcePolicy axisSourcePolicy = new AxisSourcePolicy();
+        UnifiedGeneratePromptResultBuilder resultBuilder = new UnifiedGeneratePromptResultBuilder();
 
         UnifiedPromptGenerationOrchestrator orchestrator = new UnifiedPromptGenerationOrchestrator(
                 generatePromptUseCase,
                 semanticResolutionService,
                 schemaContractEvaluator,
-                metrics
+                metrics,
+                axisSourcePolicy,
+                resultBuilder
         );
 
         // Request uses different category/intent so result must reflect resolved axes (ETC, GENERATE), not request

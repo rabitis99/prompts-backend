@@ -6,7 +6,7 @@ import org.example.sharedprompts.domain.prompt.application.policy.AxisSourcePoli
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptUseCase;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.ConfirmedGeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.GeneratePromptCommand;
-import org.example.sharedprompts.domain.prompt.application.port.in.query.GeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.UnifiedGeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.semantic.IntentBasedAxisDefaultsResolver;
 import org.example.sharedprompts.domain.prompt.application.semantic.validation.SemanticValidationService;
@@ -46,7 +46,7 @@ class GeneratePromptFromConfirmedAxesServiceTest {
         confirmedAxesMapper = new ConfirmedAxesMapper();
         profileRegistry = mock(CategorySemanticProfileRegistry.class);
         validationService = mock(SemanticValidationService.class);
-        axisDefaultsResolver = mock(IntentBasedAxisDefaultsResolver.class);
+        axisDefaultsResolver = new IntentBasedAxisDefaultsResolver();
         generatePromptUseCase = mock(GeneratePromptUseCase.class);
         axisSourcePolicy = mock(AxisSourcePolicy.class);
         resultBuilder = mock(UnifiedGeneratePromptResultBuilder.class);
@@ -62,8 +62,7 @@ class GeneratePromptFromConfirmedAxesServiceTest {
                 "objective", AxisSourceConstants.RECOMMENDED,
                 "output_needs", AxisSourceConstants.RECOMMENDED
         ));
-        when(resultBuilder.build(any(), any(), any(), any(), any(), any(), any(), any())).thenAnswer(inv -> {
-            @SuppressWarnings("unchecked")
+        when(resultBuilder.build(any(), any(), any(), any(), any(), any(), any())).thenAnswer(inv -> {
             Map<String, String> axisSources = inv.getArgument(5);
             return new UnifiedGeneratePromptResult(
                     "output content", EngineMode.AUTO, EngineMode.V2, PromptCategory.ETC, null, null, null,

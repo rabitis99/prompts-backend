@@ -10,4 +10,7 @@ public record UpdatePromptPayload(
         List<String> tags,
         String content
 ) {
+    public UpdatePromptPayload {
+        tags = tags == null ? null : List.copyOf(tags);
+    }
 }

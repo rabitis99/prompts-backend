@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.prompt.application.engine.generation.le
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
+import org.example.sharedprompts.global.config.ExcludeFromComponentScan;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /** 룰 기반 라우팅 override 엔진 */
 @Slf4j
 @Component
+@ExcludeFromComponentScan
 public class RoutingRuleEngine {
 
     private final List<RoutingRule> rules = new CopyOnWriteArrayList<>();
@@ -26,14 +28,13 @@ public class RoutingRuleEngine {
         }
     }
 
-    public void registerRule(RoutingRule rule) {
+    public synchronized void registerRule(RoutingRule rule) {
         Objects.requireNonNull(rule, "rule must not be null");
         if (rule.getId() == null || rule.getId().isBlank()) {
             throw new IllegalArgumentException("rule.id must not be blank");
         }
         Objects.requireNonNull(rule.getCondition(), "rule.condition must not be null");
-        boolean duplicateExists = rules.stream().anyMatch(r -> r.getId().equals(rule.getId()));
-        if (duplicateExists) {
+        if (rules.stream().anyMatch(r -> r.getId().equals(rule.getId()))) {
             throw new IllegalArgumentException("duplicate rule.id: " + rule.getId());
         }
         rules.add(rule);
@@ -83,7 +84,11 @@ public class RoutingRuleEngine {
     private static Comparator<MatchedRule> byPriorityThenSpecificityThenOrder() {
         return Comparator
                 .comparingInt((MatchedRule m) -> m.rule.getPriority()).reversed()
-                .thenComparingInt((MatchedRule m) -> m.rule.getCondition().specificity()).reversed()
+                .thenComparing(
+                        Comparator.comparingInt(
+                                (MatchedRule m) -> m.rule.getCondition().specificity()
+                        ).reversed()
+                )
                 .thenComparingInt(m -> m.index);
     }
 

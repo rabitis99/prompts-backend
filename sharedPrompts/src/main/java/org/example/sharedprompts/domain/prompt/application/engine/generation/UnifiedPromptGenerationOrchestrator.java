@@ -8,7 +8,7 @@ import org.example.sharedprompts.domain.prompt.application.port.in.generate.Gene
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.GenerateUnifiedPromptUseCase;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.GeneratePromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
-import org.example.sharedprompts.domain.prompt.application.port.in.query.GeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.UnifiedGeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.policy.AxisSourcePolicy;
 import org.example.sharedprompts.domain.prompt.application.semantic.resolution.ResolutionResult;
@@ -48,15 +48,6 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
             SchemaContractEvaluator.SchemaContractEvaluation schemaEval =
                     schemaContractEvaluator.evaluate(v2Result);
 
-            long latencyMs = (System.nanoTime() - startNs) / 1_000_000;
-            promptEngineMetrics.recordSuccess(
-                    EngineMode.V2,
-                    latencyMs,
-                    v2Result.repairCount(),
-                    v2Result.finallyPassed(),
-                    schemaEval.schemaContractFailed()
-            );
-
             EngineMode requestedMode = command.engineMode() != null ? command.engineMode() : EngineMode.AUTO;
             String summary = "category=" + axes.category()
                     + ", intent=" + axes.intent()
@@ -73,7 +64,7 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
                             metadata.fallbackIntentUsed())
                     : null;
 
-            return resultBuilder.build(
+            UnifiedGeneratePromptResult result = resultBuilder.build(
                     v2Result,
                     axes,
                     requestedMode,
@@ -82,6 +73,15 @@ public class UnifiedPromptGenerationOrchestrator implements GenerateUnifiedPromp
                     axisSources,
                     summary
             );
+            long latencyMs = (System.nanoTime() - startNs) / 1_000_000;
+            promptEngineMetrics.recordSuccess(
+                    EngineMode.V2,
+                    latencyMs,
+                    v2Result.repairCount(),
+                    v2Result.finallyPassed(),
+                    schemaEval.schemaContractFailed()
+            );
+            return result;
         } catch (RuntimeException ex) {
             long latencyMs = (System.nanoTime() - startNs) / 1_000_000;
             promptEngineMetrics.recordFailure(EngineMode.V2, latencyMs, ex.getClass().getSimpleName());

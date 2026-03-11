@@ -9,6 +9,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInt
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
 import java.util.List;
+import java.util.Objects;
 
 /** 프롬프트 생성 커맨드 */
 public record GeneratePromptCommand(
@@ -33,7 +34,7 @@ public record GeneratePromptCommand(
         if (input == null || input.isBlank()) throw new IllegalArgumentException("input은 비어있을 수 없습니다.");
 
         isPublic = isPublic != null ? isPublic : false;
-        tags = tags != null ? List.copyOf(tags) : List.of();
+        tags = tags != null ? tags.stream().filter(Objects::nonNull).toList() : List.of();
 
         tone = tone != null ? tone : ToneType.NEUTRAL;
         style = style != null ? style : StyleType.NARRATIVE;

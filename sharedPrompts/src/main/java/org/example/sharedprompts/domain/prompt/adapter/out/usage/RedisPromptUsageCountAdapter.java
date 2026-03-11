@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Redis-backed implementation of prompt usage count. Failures are logged; no exceptions thrown to callers. */
+/** Redis 기반 프롬프트 사용 횟수 구현체. 실패 시 예외를 던지지 않고 로그만 기록한다. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -31,7 +31,7 @@ public class RedisPromptUsageCountAdapter implements PromptUsageCountPort {
         try {
             baseCountService.increment(usageKey(promptId));
         } catch (Exception e) {
-            log.warn("Failed to increment usage count in Redis. promptId={}, error={}",
+            log.warn("Redis 사용 횟수 증가 실패. promptId={}, error={}",
                     promptId, e.getMessage());
         }
     }
@@ -53,21 +53,22 @@ public class RedisPromptUsageCountAdapter implements PromptUsageCountPort {
             );
 
             Map<Long, Long> result = new HashMap<>(promptIds.size());
-            if (values != null && values.size() == promptIds.size()) {
+            if (values.size() == promptIds.size()) {
                 for (int i = 0; i < promptIds.size(); i++) {
                     Long promptId = promptIds.get(i);
-                    long count = values.get(i) != null ? values.get(i) : 0L;
+                    Long rawCount = values.get(i);
+                    long count = rawCount != null ? rawCount : 0L;
                     if (count > 0) {
                         result.put(promptId, count);
                     }
                 }
             }
 
-            log.debug("Retrieved and reset usage counts. promptIds={}, found={}",
+            log.debug("사용 횟수 조회 및 초기화 완료. promptIds={}, found={}",
                     promptIds.size(), result.size());
             return result;
         } catch (Exception e) {
-            log.error("Failed to get and reset usage counts from Redis. promptIds={}, error={}",
+            log.error("Redis 사용 횟수 조회/초기화 실패. promptIds={}, error={}",
                     promptIds, e.getMessage(), e);
             return Map.of();
         }
@@ -90,15 +91,15 @@ public class RedisPromptUsageCountAdapter implements PromptUsageCountPort {
                         redisTemplate.opsForValue().increment(key, count);
                         restoredCount++;
                     } catch (Exception e) {
-                        log.warn("Failed to restore usage count for promptId={}, count={}, error={}",
+                        log.warn("사용 횟수 복구 실패. promptId={}, count={}, error={}",
                                 promptId, count, e.getMessage());
                     }
                 }
             }
-            log.info("Restored usage counts to Redis. total={}, restored={}",
+            log.info("Redis 사용 횟수 복구 완료. total={}, restored={}",
                     usageCounts.size(), restoredCount);
         } catch (Exception e) {
-            log.error("Failed to restore usage counts to Redis. usageCounts={}, error={}",
+            log.error("Redis 사용 횟수 복구 실패. usageCounts={}, error={}",
                     usageCounts, e.getMessage(), e);
         }
     }

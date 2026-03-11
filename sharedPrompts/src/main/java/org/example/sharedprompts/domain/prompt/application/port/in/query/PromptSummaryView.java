@@ -17,5 +17,8 @@ public record PromptSummaryView(
         Long viewCount,
         Instant createdAt
 ) {
+    public PromptSummaryView {
+        tags = tags == null ? List.of() : List.copyOf(tags);
+    }
 }
 

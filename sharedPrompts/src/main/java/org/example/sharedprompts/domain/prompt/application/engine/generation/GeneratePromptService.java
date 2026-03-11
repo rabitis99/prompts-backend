@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptUseCase;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.GeneratePromptCommand;
-import org.example.sharedprompts.domain.prompt.application.port.in.query.GeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.application.port.out.llm.LLMClientPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.persistence.SavePromptVersionPort;
 import org.example.sharedprompts.domain.prompt.domain.model.result.VerifyResult;

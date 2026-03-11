@@ -5,6 +5,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInt
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
 import java.util.List;
+import java.util.Objects;
 
 /** 확정 축 기반 생성 커맨드 */
 public record ConfirmedGeneratePromptCommand(
@@ -29,6 +30,13 @@ public record ConfirmedGeneratePromptCommand(
         style = style != null ? style : StyleType.NARRATIVE;
         language = language != null ? language : LanguageType.KOREAN;
         experience = experience != null ? experience : ExperienceLevel.INTERMEDIATE;
-        tags = tags != null ? List.copyOf(tags) : List.of();
+        if (tags == null) {
+            tags = List.of();
+        } else {
+            if (tags.stream().anyMatch(Objects::isNull)) {
+                throw new IllegalArgumentException("tags must not contain null values");
+            }
+            tags = List.copyOf(tags);
+        }
     }
 }

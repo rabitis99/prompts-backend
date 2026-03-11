@@ -11,7 +11,13 @@ import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterfa
 import java.util.List;
 import java.util.Objects;
 
-/** 통합 프롬프트 생성 커맨드 */
+/**
+ * 통합 프롬프트 생성 커맨드.
+ *
+ * <p>{@code disableQualityPipeline}: API에서 받을 수 있으나 현재는 미구현이다.
+ * true이면 {@link UnsupportedQualityPipelineOptionException}을 던져 명시적으로 거부한다.
+ * 파라미터를 유지하는 이유는 향후 품질 파이프라인 비활성화를 지원할 때 API 계약을 바꾸지 않기 위함이다.
+ */
 public record UnifiedGeneratePromptCommand(
         Long userId,
         RequestMode requestMode,
@@ -54,6 +60,7 @@ public record UnifiedGeneratePromptCommand(
         LanguageType safeLanguage = language != null ? language : LanguageType.KOREAN;
         ExperienceLevel safeExperience = experience != null ? experience : ExperienceLevel.INTERMEDIATE;
 
+        // disableQualityPipeline=true는 현재 미지원; 향후 구현 시 계약 유지를 위해 파라미터는 수용 후 거부
         if (disableQualityPipeline) {
             throw new UnsupportedQualityPipelineOptionException();
         }

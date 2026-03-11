@@ -173,7 +173,7 @@ public class PromptTagServiceImpl implements PromptTagService {
         }
         for (PromptTag pt : promptTags) {
             Long promptId = pt.getPrompt().getId();
-            result.computeIfAbsent(promptId, k -> new ArrayList<>()).add(pt.getTag().getName());
+            result.get(promptId).add(pt.getTag().getName());
         }
         return result;
     }

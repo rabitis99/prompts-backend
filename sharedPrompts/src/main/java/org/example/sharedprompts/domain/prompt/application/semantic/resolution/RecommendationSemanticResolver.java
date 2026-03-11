@@ -8,7 +8,6 @@ import org.example.sharedprompts.domain.prompt.application.semantic.validation.S
 import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.RequestMode;
-import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -39,6 +38,7 @@ public class RecommendationSemanticResolver {
         }
 
         CoreSemanticResolver.CoreResolutionResult core = coreSemanticResolver.performCoreResolution(
+                command.requestMode(),
                 command.category(),
                 command.intent(),
                 command.roleType(),
@@ -89,7 +89,7 @@ public class RecommendationSemanticResolver {
         );
     }
 
-    public RecommendPromptResult resolveForRecommendationExtraction(RecommendPromptCommand command) {
+    private RecommendPromptResult resolveForRecommendationExtraction(RecommendPromptCommand command) {
         return new RecommendPromptResult(
                 RequestMode.EXTRACTION,
                 PromptCategory.EXTRACTION,

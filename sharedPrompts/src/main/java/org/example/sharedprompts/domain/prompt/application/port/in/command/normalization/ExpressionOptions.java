@@ -5,7 +5,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
 import org.example.sharedprompts.domain.prompt.common.enums.StyleType;
 import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
 
-/** 표현 옵션 (tone, style) */
+/** 표현 옵션 (tone, style, language, experienceLevel) */
 public record ExpressionOptions(
         ToneType tone,
         StyleType style,
