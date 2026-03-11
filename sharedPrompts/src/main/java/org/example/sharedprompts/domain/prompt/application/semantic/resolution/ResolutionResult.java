@@ -1,0 +1,47 @@
+package org.example.sharedprompts.domain.prompt.application.semantic.resolution;
+
+import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
+
+import java.util.List;
+import java.util.Objects;
+
+/** 시맨틱 해석(생성 플로우) 결과 타입 */
+public final class ResolutionResult {
+
+    private ResolutionResult() {}
+
+    /** axis_sources 조립용 메타데이터 */
+    public record ResolutionMetadata(
+            boolean fallbackIntentUsed,
+            boolean userProvidedIntent,
+            boolean userProvidedRole,
+            boolean userProvidedAction,
+            boolean isExtraction
+    ) {
+        public static ResolutionMetadata forExtraction() {
+            return new ResolutionMetadata(false, false, false, false, true);
+        }
+
+        /** 사용자가 intent, role, action을 제공했고 fallback 미사용, 비-EXTRACTION 요청용 */
+        public static ResolutionMetadata userProvidedIntentRoleAction() {
+            return new ResolutionMetadata(false, true, true, true, false);
+        }
+    }
+
+    public record Result(boolean success, ConfirmedSemanticAxes axes, List<String> errors, ResolutionMetadata metadata) {
+        public Result {
+            errors = errors != null ? List.copyOf(errors) : List.of();
+            if (success) {
+                axes = Objects.requireNonNull(axes, "axes");
+            }
+        }
+
+        public static Result ok(ConfirmedSemanticAxes axes, ResolutionMetadata metadata) {
+            return new Result(true, axes, List.of(), metadata);
+        }
+
+        public static Result fail(List<String> errors) {
+            return new Result(false, null, errors != null ? List.copyOf(errors) : List.of(), null);
+        }
+    }
+}

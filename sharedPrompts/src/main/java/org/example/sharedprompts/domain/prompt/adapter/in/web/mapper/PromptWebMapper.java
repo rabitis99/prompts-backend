@@ -26,15 +26,15 @@ public class PromptWebMapper {
     public SearchPromptsQuery toSearchQuery(PromptSearchCondition condition,
                                             Long ownerId,
                                             Long viewerId) {
-        return new SearchPromptsQuery(
-                condition.getPage(),
-                condition.getSize(),
-                condition.getSort(),
-                condition.getPromptCategory(),
-                ownerId,
-                viewerId,
-                condition.getKeyword()
-        );
+        return SearchPromptsQuery.builder()
+                .page(condition.getPage())
+                .size(condition.getSize())
+                .sort(condition.getSort())
+                .category(condition.getPromptCategory())
+                .ownerId(ownerId)
+                .viewerId(viewerId)
+                .keyword(condition.getKeyword())
+                .build();
     }
 
     /**

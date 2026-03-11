@@ -11,10 +11,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterfa
 import java.util.List;
 import java.util.Map;
 
-/**
- * Result of the recommendation-only flow (POST /prompts/recommend).
- * Mapped to RecommendPromptResponse in the adapter.
- */
+/** 추천 플로우 결과 */
 public record RecommendPromptResult(
         RequestMode requestMode,
         PromptCategory category,

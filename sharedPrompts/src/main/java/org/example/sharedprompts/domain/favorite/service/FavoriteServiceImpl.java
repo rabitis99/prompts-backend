@@ -5,9 +5,9 @@ import org.example.sharedprompts.domain.favorite.Favorite;
 import org.example.sharedprompts.domain.favorite.FavoriteId;
 import org.example.sharedprompts.domain.favorite.event.FavoriteEvent;
 import org.example.sharedprompts.domain.favorite.repository.FavoriteRepository;
+import org.example.sharedprompts.domain.prompt.application.readmodel.PromptReadModelAssembler;
 import org.example.sharedprompts.domain.prompt.entity.Prompt;
 import org.example.sharedprompts.domain.prompt.infrastructure.persistence.PromptRepository;
-import org.example.sharedprompts.domain.tag.PromptTag;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.domain.user.repository.UserRepository;
 import org.example.sharedprompts.dto.favorite.response.FavoriteResponseDto;
@@ -22,6 +22,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class FavoriteServiceImpl implements FavoriteService {
@@ -29,6 +31,7 @@ public class FavoriteServiceImpl implements FavoriteService {
     private final FavoriteRepository favoriteRepository;
     private final UserRepository userRepository;
     private final PromptRepository promptRepository;
+    private final PromptReadModelAssembler promptReadModelAssembler;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -72,7 +75,8 @@ public class FavoriteServiceImpl implements FavoriteService {
     @Transactional(readOnly = true)
     public PageResponse<PromptResponseDto> getFavoritePrompts(Long userId, Pageable pageable) {
         Page<Prompt> page = favoriteRepository.findPromptsByUserId(userId, pageable);
-        return PageResponse.of(page.map(this::toPromptResponseDto));
+        var assembled = promptReadModelAssembler.assemble(page.getContent());
+        return PageResponse.of(page.map(p -> toPromptResponseDto(p, assembled)));
     }
 
     private void validateUserExists(Long userId) {
@@ -108,13 +112,11 @@ public class FavoriteServiceImpl implements FavoriteService {
                 .build();
     }
 
-    private PromptResponseDto toPromptResponseDto(Prompt prompt) {
-        return PromptResponseDto.from(
-                prompt,
-                prompt.getPromptTags().stream()
-                        .map(PromptTag::getTag)
-                        .toList()
-        );
+    private PromptResponseDto toPromptResponseDto(Prompt prompt,
+                                                  PromptReadModelAssembler.AssembledReadModel assembled) {
+        Long likeCount = assembled.likeCountByPromptId().getOrDefault(prompt.getId(), 0L);
+        List<String> tagNames = assembled.tagNamesByPromptId().getOrDefault(prompt.getId(), List.of());
+        return PromptResponseDto.fromWithTagNames(prompt, tagNames, likeCount);
     }
 }
 

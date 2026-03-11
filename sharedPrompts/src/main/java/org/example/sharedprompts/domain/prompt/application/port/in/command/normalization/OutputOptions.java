@@ -2,10 +2,7 @@ package org.example.sharedprompts.domain.prompt.application.port.in.command.norm
 
 import org.example.sharedprompts.domain.prompt.common.enums.EngineMode;
 
-/**
- * Output configuration only: schema and engine mode.
- * Does not define semantic meaning; output contract is applied after semantic axes are fixed.
- */
+/** 출력 설정 (schema, engine mode) */
 public record OutputOptions(
         String jsonSchema,
         EngineMode engineMode

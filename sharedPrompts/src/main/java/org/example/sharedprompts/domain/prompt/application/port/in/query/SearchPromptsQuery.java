@@ -3,13 +3,7 @@ package org.example.sharedprompts.domain.prompt.application.port.in.query;
 import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.SortType;
 
-/**
- * 애플리케이션 계층에서 사용하는 프롬프트 검색 쿼리.
- *
- * <p>웹 DTO(PromptSearchCondition)와 분리되어 있으며,
- * 필요한 경우 어댑터에서 이 타입으로 변환한다.</p>
- * <p>keyword가 있으면 제목·설명·태그명 검색 조건으로 persistence 계층에 전달된다.</p>
- */
+/** 프롬프트 검색 쿼리 */
 public record SearchPromptsQuery(
         int page,
         int size,
@@ -19,5 +13,65 @@ public record SearchPromptsQuery(
         Long viewerId,
         String keyword
 ) {
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * 빌더로 생성 시 인자 순서/타입 실수를 줄이고 의도를 드러낸다.
+     * 특히 ownerId/viewerId는 타입이 같아 positional 생성 시 바꿔도 컴파일 통과하므로
+     * 명명된 setter 사용을 권장한다.
+     */
+    public static final class Builder {
+        private int page;
+        private int size;
+        private SortType sort;
+        private PromptCategory category;
+        private Long ownerId;
+        private Long viewerId;
+        private String keyword;
+
+        private Builder() {}
+
+        public Builder page(int page) {
+            this.page = page;
+            return this;
+        }
+
+        public Builder size(int size) {
+            this.size = size;
+            return this;
+        }
+
+        public Builder sort(SortType sort) {
+            this.sort = sort;
+            return this;
+        }
+
+        public Builder category(PromptCategory category) {
+            this.category = category;
+            return this;
+        }
+
+        public Builder ownerId(Long ownerId) {
+            this.ownerId = ownerId;
+            return this;
+        }
+
+        public Builder viewerId(Long viewerId) {
+            this.viewerId = viewerId;
+            return this;
+        }
+
+        public Builder keyword(String keyword) {
+            this.keyword = keyword;
+            return this;
+        }
+
+        public SearchPromptsQuery build() {
+            return new SearchPromptsQuery(page, size, sort, category, ownerId, viewerId, keyword);
+        }
+    }
 }
 

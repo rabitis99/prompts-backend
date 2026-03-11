@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.prompt.event;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.prompt.application.service.usage.PromptUsageCountService;
+import org.example.sharedprompts.domain.prompt.application.port.out.usage.PromptUsageCountPort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -18,7 +18,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class PromptViewedEventListener {
 
-    private final PromptUsageCountService promptUsageCountService;
+    private final PromptUsageCountPort promptUsageCountPort;
 
     /**
      * 프롬프트 조회 이벤트 처리
@@ -28,7 +28,7 @@ public class PromptViewedEventListener {
      */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handlePromptViewed(PromptEvent.Viewed event) {
-        promptUsageCountService.incrementUsageCount(event.promptId());
+        promptUsageCountPort.incrementUsageCount(event.promptId());
 
         log.debug(
                 "Prompt viewed event processed. promptId={}, viewerId={}",

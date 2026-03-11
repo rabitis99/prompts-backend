@@ -2,11 +2,7 @@ package org.example.sharedprompts.domain.prompt.application.port.in.command;
 
 import java.util.List;
 
-/**
- * 프롬프트 수정 유즈케이스용 커맨드 모델.
- *
- * <p>웹 DTO 나 전송 계층에 의존하지 않는다.</p>
- */
+/** 프롬프트 수정 커맨드. 웹 DTO와 분리 */
 public record UpdatePromptCommand(
         Long promptId,
         Long userId,

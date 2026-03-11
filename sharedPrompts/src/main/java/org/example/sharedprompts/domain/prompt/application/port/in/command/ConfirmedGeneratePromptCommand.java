@@ -5,12 +5,9 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInt
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
 import java.util.List;
+import java.util.Objects;
 
-/**
- * Command for generating a prompt from already-confirmed semantic axes (POST /prompts/generate/confirmed).
- * Objective and outputNeeds are derived from IntentDictionary in the service, not from the request.
- * <p>{@code userId} is an extension for auth context (not in original doc); ensure it does not change domain rules or API contract.</p>
- */
+/** 확정 축 기반 생성 커맨드 */
 public record ConfirmedGeneratePromptCommand(
         Long userId,
         RequestMode requestMode,
@@ -29,10 +26,17 @@ public record ConfirmedGeneratePromptCommand(
         List<String> tags
 ) {
     public ConfirmedGeneratePromptCommand {
-        tone = tone != null ? tone : ToneType.NEUTRAL;
-        style = style != null ? style : StyleType.NARRATIVE;
-        language = language != null ? language : LanguageType.KOREAN;
-        experience = experience != null ? experience : ExperienceLevel.INTERMEDIATE;
-        tags = tags != null ? List.copyOf(tags) : List.of();
+        Objects.requireNonNull(tone, "tone must not be null");
+        Objects.requireNonNull(style, "style must not be null");
+        Objects.requireNonNull(language, "language must not be null");
+        Objects.requireNonNull(experience, "experience must not be null");
+        if (tags == null) {
+            tags = List.of();
+        } else {
+            if (tags.stream().anyMatch(Objects::isNull)) {
+                throw new IllegalArgumentException("tags must not contain null values");
+            }
+            tags = List.copyOf(tags);
+        }
     }
 }

@@ -2,6 +2,7 @@ package org.example.sharedprompts.domain.prompt.adapter.out.external.llm.client;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.sharedprompts.domain.prompt.application.port.out.llm.ConstrainedDecodingPort;
 import org.example.sharedprompts.domain.prompt.application.port.out.llm.LLMClientPort;
 import org.example.sharedprompts.domain.prompt.domain.model.spec.PromptSpec;
 import org.example.sharedprompts.domain.prompt.domain.model.result.QualityRubric;
@@ -22,9 +23,15 @@ public class LLMClientAdapter implements LLMClientPort {
 
     private final SyncGoogleGeminiClient syncGoogleGeminiClient;
     private final PromptSpecRendererPort promptSpecRenderer;
+    private final ConstrainedDecodingPort constrainedDecodingPort;
 
     @Override
     public String solve(PromptSpec spec) {
+        if (spec.isUseConstrainedDecoding() && spec.getOutputContract() != null && spec.getOutputContract().hasJsonSchema()) {
+            String prompt = promptSpecRenderer.render(spec);
+            log.debug("[LLMClientAdapter] Solve via ConstrainedDecoding: strategyBundle={}", spec.getStrategyBundle().getName());
+            return constrainedDecodingPort.generateConstrained(prompt, spec.getOutputContract());
+        }
 
         // PromptSpec → 메타 프롬프트 변환
         String metaPrompt = promptSpecRenderer.render(spec);

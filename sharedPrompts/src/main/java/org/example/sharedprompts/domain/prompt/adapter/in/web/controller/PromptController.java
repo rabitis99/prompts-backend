@@ -8,8 +8,8 @@ import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.response.Promp
 import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.response.PromptSummaryResponse;
 import org.example.sharedprompts.domain.prompt.adapter.in.web.mapper.PromptWebMapper;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.DeletePromptCommand;
-import org.example.sharedprompts.domain.prompt.application.port.in.command.PromptCommandUseCase;
-import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptQueryUseCase;
+import org.example.sharedprompts.domain.prompt.application.port.in.prompt.PromptCommandUseCase;
+import org.example.sharedprompts.domain.prompt.application.port.in.prompt.PromptQueryUseCase;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptPageResult;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptSummaryView;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.SearchPromptsQuery;

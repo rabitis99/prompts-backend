@@ -14,14 +14,9 @@ import java.util.Objects;
 /**
  * 통합 프롬프트 생성 커맨드.
  *
- * <p>Semantic hierarchy (resolution order): category → intent → roleType/actionType → tone/style → output.
- * Category is required for SIMPLE/ADVANCED; intent may be provided explicitly or resolved from a
- * category-profile fallback. Role/action are optional and validated against the resolved
- * category+intent in {@link org.example.sharedprompts.domain.prompt.application.service.semantic.SemanticValidationService}.
- * Tone and style are expression modifiers only and do not drive semantic resolution.</p>
- *
- * <p>{@link #requestMode()} is set by the controller from request_type so that
- * semantic resolution does not rely on category=null heuristics.</p>
+ * <p>{@code disableQualityPipeline}: API에서 받을 수 있으나 현재는 미구현이다.
+ * true이면 {@link UnsupportedQualityPipelineOptionException}을 던져 명시적으로 거부한다.
+ * 파라미터를 유지하는 이유는 향후 품질 파이프라인 비활성화를 지원할 때 API 계약을 바꾸지 않기 위함이다.
  */
 public record UnifiedGeneratePromptCommand(
         Long userId,
@@ -58,7 +53,6 @@ public record UnifiedGeneratePromptCommand(
             throw new IllegalArgumentException("EXTRACTION 모드에서는 jsonSchema가 필수입니다.");
         }
 
-        // Do NOT default category or intent here; semantic resolution requires explicit or profile fallback.
         EngineMode safeEngineMode = engineMode != null ? engineMode : EngineMode.AUTO;
 
         ToneType safeTone = tone != null ? tone : ToneType.NEUTRAL;
@@ -66,6 +60,7 @@ public record UnifiedGeneratePromptCommand(
         LanguageType safeLanguage = language != null ? language : LanguageType.KOREAN;
         ExperienceLevel safeExperience = experience != null ? experience : ExperienceLevel.INTERMEDIATE;
 
+        // disableQualityPipeline=true는 현재 미지원; 향후 구현 시 계약 유지를 위해 파라미터는 수용 후 거부
         if (disableQualityPipeline) {
             throw new UnsupportedQualityPipelineOptionException();
         }
@@ -88,18 +83,10 @@ public record UnifiedGeneratePromptCommand(
         tags = safeTags;
     }
 
-    /**
-     * True when this command represents an EXTRACTION request.
-     * Prefer using {@link #requestMode()} instead of this heuristic.
-     */
     public boolean isExtractionRequest() {
         return requestMode == RequestMode.EXTRACTION;
     }
 
-    /**
-     * Hierarchy-aware factory: builds command from semantic selection, expression options, and output options.
-     * Use this when normalizing requests so the internal model does not behave as a flat enum bag.
-     */
     public static UnifiedGeneratePromptCommand fromNormalized(
             Long userId,
             RequestMode requestMode,
@@ -148,12 +135,12 @@ public record UnifiedGeneratePromptCommand(
             StyleType style,
             LanguageType language,
             ExperienceLevel experience,
-        Boolean disableQualityPipeline,
-        ActionTypeInterface actionType,
-        RoleTypeInterface roleType,
-        List<String> tags,
-        String title,
-        String description
+            Boolean disableQualityPipeline,
+            ActionTypeInterface actionType,
+            RoleTypeInterface roleType,
+            List<String> tags,
+            String title,
+            String description
 ) {
         return new UnifiedGeneratePromptCommand(
                 userId,
@@ -177,9 +164,6 @@ public record UnifiedGeneratePromptCommand(
         );
     }
 
-    /**
-     * 단순 프롬프트 생성 요청을 위한 전용 팩토리.
-     */
     public static UnifiedGeneratePromptCommand forSimple(
             Long userId,
             PromptCategory category,
@@ -216,10 +200,6 @@ public record UnifiedGeneratePromptCommand(
         );
     }
 
-    /**
-     * 추출(EXTRACTION) 모드 요청을 위한 전용 팩토리.
-     * category와 intent는 null; semantic resolution이 EXTRACT로 고정한다.
-     */
     public static UnifiedGeneratePromptCommand forExtraction(
             Long userId,
             String input,

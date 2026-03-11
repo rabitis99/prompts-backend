@@ -39,6 +39,8 @@ public final class PromptSpec {
     private final List<PromptSection> sections;
     private final Constraints constraints;
     private final OutputContract outputContract;
+    /** true면 Solve 단계에서 ConstrainedDecodingPort 사용 (EXTRACTION 등) */
+    private final boolean useConstrainedDecoding;
     private final ContentSandbox contentSandbox;
 
     // ─── 스타일 ───
@@ -66,6 +68,7 @@ public final class PromptSpec {
         this.outputContract = builder.outputContract != null
                 ? builder.outputContract
                 : OutputContract.freeText(2000);
+        this.useConstrainedDecoding = builder.useConstrainedDecoding;
         this.contentSandbox = builder.contentSandbox != null
                 ? builder.contentSandbox
                 : ContentSandbox.defaults();
@@ -94,6 +97,7 @@ public final class PromptSpec {
                 .objective(objective).priority(priority).rubric(rubric)
                 .taskDomain(taskDomain).experienceLevel(experienceLevel)
                 .sections(sections).constraints(constraints).outputContract(outputContract)
+                .useConstrainedDecoding(useConstrainedDecoding)
                 .contentSandbox(contentSandbox).role(role).tone(tone).style(style)
                 .strategyBundle(strategyBundle).locale(locale)
                 .rawInput(rawInput).clarifiedInput(clarifiedInput).actionType(actionType);
@@ -110,6 +114,7 @@ public final class PromptSpec {
         private List<PromptSection> sections;
         private Constraints constraints;
         private OutputContract outputContract;
+        private boolean useConstrainedDecoding;
         private ContentSandbox contentSandbox;
         private RoleTypeInterface role;
         private ToneType tone;
@@ -128,6 +133,7 @@ public final class PromptSpec {
         public Builder sections(List<PromptSection> v) { sections = v; return this; }
         public Builder constraints(Constraints v) { constraints = v; return this; }
         public Builder outputContract(OutputContract v) { outputContract = v; return this; }
+        public Builder useConstrainedDecoding(boolean v) { useConstrainedDecoding = v; return this; }
         public Builder contentSandbox(ContentSandbox v) { contentSandbox = v; return this; }
         public Builder role(RoleTypeInterface v) { role = v; return this; }
         public Builder tone(ToneType v) { tone = v; return this; }

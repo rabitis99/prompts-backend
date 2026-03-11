@@ -8,8 +8,8 @@ import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.request.Confir
 import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.request.UnifiedGeneratePromptRequest;
 import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.response.UnifiedGeneratePromptResponse;
 import org.example.sharedprompts.domain.prompt.adapter.in.web.mapper.UnifiedPromptResponseMapper;
-import org.example.sharedprompts.domain.prompt.application.port.in.GeneratePromptFromConfirmedAxesUseCase;
-import org.example.sharedprompts.domain.prompt.application.port.in.GenerateUnifiedPromptUseCase;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptFromConfirmedAxesUseCase;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.GenerateUnifiedPromptUseCase;
 import org.example.sharedprompts.dto.common.CustomResponse;
 import org.example.sharedprompts.dto.common.CustomResponseHelper;
 import org.example.sharedprompts.global.async.AsyncWebTaskExecutor;

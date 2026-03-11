@@ -6,7 +6,7 @@ import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.request.Recomm
 import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.response.RecommendPromptResponse;
 import org.example.sharedprompts.domain.prompt.adapter.in.web.mapper.RecommendPromptResponseMapper;
 import org.example.sharedprompts.domain.prompt.adapter.in.web.mapper.RecommendationRequestMapper;
-import org.example.sharedprompts.domain.prompt.application.port.in.RecommendPromptAxesUseCase;
+import org.example.sharedprompts.domain.prompt.application.port.in.recommend.RecommendPromptAxesUseCase;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.RecommendPromptCommand;
 import org.example.sharedprompts.domain.prompt.application.port.in.query.RecommendPromptResult;
 import org.example.sharedprompts.dto.common.CustomResponse;

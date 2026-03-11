@@ -1,8 +1,6 @@
 package org.example.sharedprompts.domain.prompt.application.exception;
 
-/**
- * 지원되지 않는 품질 파이프라인 옵션 사용 시 던지는 예외.
- */
+/** 품질 파이프라인 비활성화 옵션 미지원 */
 public class UnsupportedQualityPipelineOptionException extends PromptDomainException {
 
     public UnsupportedQualityPipelineOptionException() {

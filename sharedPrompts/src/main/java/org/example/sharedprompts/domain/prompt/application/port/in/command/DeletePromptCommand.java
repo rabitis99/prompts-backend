@@ -1,8 +1,6 @@
 package org.example.sharedprompts.domain.prompt.application.port.in.command;
 
-/**
- * 프롬프트 삭제 유즈케이스용 커맨드 모델.
- */
+/** 프롬프트 삭제 커맨드 */
 public record DeletePromptCommand(
         Long promptId,
         Long userId

@@ -2,7 +2,7 @@ package org.example.sharedprompts.github.application.usecase;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.sharedprompts.domain.prompt.application.port.in.query.PromptQueryUseCase;
+import org.example.sharedprompts.domain.prompt.application.port.in.prompt.PromptQueryUseCase;
 import org.example.sharedprompts.github.domain.model.GitHubWebhookConfig;
 import org.example.sharedprompts.github.port.in.CreateWebhookConfigUseCase;
 import org.example.sharedprompts.github.port.out.WebhookConfigPersistencePort;
