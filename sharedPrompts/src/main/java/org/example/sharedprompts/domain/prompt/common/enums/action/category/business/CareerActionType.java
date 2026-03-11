@@ -12,12 +12,12 @@ import java.util.Optional;
 /**
  * 커리어/취업 관련 액션 타입 enum
  *
- * <p>생성자 파라미터 순서 (모든 파라미터는 String 타입):
+ * <p>생성자 파라미터 순서:
  * <ol>
- *   <li>stableKey - 안정 키 (직렬화/호환성용)</li>
  *   <li>displayNameKo - 표시 이름 (한국어)</li>
  *   <li>displayNameEn - 표시 이름 (영어)</li>
  *   <li>displayNameJa - 표시 이름 (일본어)</li>
+ *   <li>outputBehavior - 출력 동작 유형 (OutputBehaviorType)</li>
  * </ol>
  */
 @Getter

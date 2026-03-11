@@ -9,6 +9,15 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 
 import java.util.Optional;
 
+/**
+ * 개발 관련 액션 타입 enum.
+ *
+ * <p>설계 관련 액션(ARCHITECTURE_DESIGN, SYSTEM_DESIGN, TECH_STACK_SELECTION)은
+ * 현재 {@link OutputBehaviorType#CODE_IMPLEMENTATION}으로 매핑되어 있습니다.
+ * 설계 문서·계획서가 주 결과물이라면 {@link OutputBehaviorType#STRATEGIC_PLAN} 또는
+ * 별도 설계용 behavior로의 변경을 검토할 수 있으며, 설계 과정에서 코드 예시가 포함될 수 있어
+ * 현재 매핑도 허용 가능합니다.
+ */
 @Getter
 @AllArgsConstructor
 public enum DevelopmentActionType implements ActionTypeInterface, StableKeyedEnum {
