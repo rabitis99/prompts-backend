@@ -1,7 +1,8 @@
 package org.example.sharedprompts.domain.prompt.common.enums.action;
 
-import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
-import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.output.OutputBehaviorType;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 
 import java.util.Optional;

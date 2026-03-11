@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.application.policy;
 
-import org.example.sharedprompts.domain.prompt.common.AxisSourceConstants;
+import org.example.sharedprompts.domain.prompt.common.constants.AxisSourceConstants;
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
 import org.springframework.stereotype.Component;
 

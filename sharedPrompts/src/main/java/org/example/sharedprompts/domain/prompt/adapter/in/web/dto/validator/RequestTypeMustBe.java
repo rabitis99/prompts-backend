@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.prompt.adapter.in.web.dto.validator;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
-import org.example.sharedprompts.domain.prompt.common.enums.RequestType;
+import org.example.sharedprompts.domain.prompt.common.enums.request.RequestType;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

@@ -2,12 +2,12 @@ package org.example.sharedprompts.domain.prompt.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
-import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
-import org.example.sharedprompts.domain.prompt.common.enums.StyleType;
-import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
-import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
+import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.example.sharedprompts.domain.tag.PromptTag;
 import org.example.sharedprompts.domain.user.User;
 import org.example.sharedprompts.global.entity.BaseEntity;

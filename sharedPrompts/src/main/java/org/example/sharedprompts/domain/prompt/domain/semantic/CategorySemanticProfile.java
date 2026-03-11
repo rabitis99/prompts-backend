@@ -1,10 +1,10 @@
 package org.example.sharedprompts.domain.prompt.domain.semantic;
 
-import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
-import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
-import org.example.sharedprompts.domain.prompt.common.enums.StyleType;
-import org.example.sharedprompts.domain.prompt.common.enums.ToneType;
-import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
+import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 

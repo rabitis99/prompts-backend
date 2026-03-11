@@ -5,7 +5,7 @@ import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
-import org.example.sharedprompts.domain.prompt.common.enums.EngineMode;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineMode;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;

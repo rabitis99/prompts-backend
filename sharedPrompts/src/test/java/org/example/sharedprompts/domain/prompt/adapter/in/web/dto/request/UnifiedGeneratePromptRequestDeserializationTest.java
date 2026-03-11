@@ -2,10 +2,10 @@ package org.example.sharedprompts.domain.prompt.adapter.in.web.dto.request;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
-import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
-import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
-import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
-import org.example.sharedprompts.domain.prompt.common.enums.RequestType;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.request.RequestType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

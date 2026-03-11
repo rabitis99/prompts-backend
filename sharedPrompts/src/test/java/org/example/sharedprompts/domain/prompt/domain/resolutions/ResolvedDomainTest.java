@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.domain.resolutions;
 
-import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

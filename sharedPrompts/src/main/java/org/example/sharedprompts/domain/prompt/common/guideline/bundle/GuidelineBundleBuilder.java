@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.common.guideline.bundle;
 
-import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.guideline.context.GuidelineRuleApplicability;
 import org.example.sharedprompts.domain.prompt.common.guideline.context.RuleContext;
 import org.example.sharedprompts.domain.prompt.common.guideline.rule.GuidelineRule;

@@ -4,13 +4,13 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
-import org.example.sharedprompts.domain.prompt.common.enums.EngineProfile;
-import org.example.sharedprompts.domain.prompt.common.enums.OutputNeeds;
-import org.example.sharedprompts.domain.prompt.common.enums.PromptObjective;
-import org.example.sharedprompts.domain.prompt.common.enums.ResponseShape;
-import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineProfile;
+import org.example.sharedprompts.domain.prompt.common.enums.output.OutputNeeds;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptObjective;
+import org.example.sharedprompts.domain.prompt.common.enums.output.ResponseShape;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.role.CoreRoleType;
-import org.example.sharedprompts.domain.prompt.common.enums.role.DomainRoleType;
+import org.example.sharedprompts.domain.prompt.common.enums.role.metadata.DomainRoleType;
 
 import java.util.Optional;
 

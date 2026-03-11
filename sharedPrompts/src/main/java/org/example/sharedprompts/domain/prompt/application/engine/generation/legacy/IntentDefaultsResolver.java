@@ -1,9 +1,9 @@
 package org.example.sharedprompts.domain.prompt.application.engine.generation.legacy;
 
 import org.example.sharedprompts.domain.prompt.application.port.in.command.UnifiedGeneratePromptCommand;
-import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
-import org.example.sharedprompts.domain.prompt.common.enums.EngineProfile;
-import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineProfile;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDictionary;
 
 import java.util.Objects;

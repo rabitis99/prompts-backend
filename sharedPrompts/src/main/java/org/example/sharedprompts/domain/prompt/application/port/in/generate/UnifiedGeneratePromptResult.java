@@ -1,12 +1,12 @@
 package org.example.sharedprompts.domain.prompt.application.port.in.generate;
 
-import org.example.sharedprompts.domain.prompt.common.enums.ActionIntent;
-import org.example.sharedprompts.domain.prompt.common.enums.EngineMode;
-import org.example.sharedprompts.domain.prompt.common.enums.EngineProfile;
-import org.example.sharedprompts.domain.prompt.common.enums.OutputNeeds;
-import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
-import org.example.sharedprompts.domain.prompt.common.enums.PromptObjective;
-import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineMode;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineProfile;
+import org.example.sharedprompts.domain.prompt.common.enums.output.OutputNeeds;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptObjective;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.domain.value.quality.QualityBadge;

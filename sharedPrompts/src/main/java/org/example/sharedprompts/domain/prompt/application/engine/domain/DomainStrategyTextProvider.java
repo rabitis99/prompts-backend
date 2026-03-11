@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.application.engine.domain;
 
-import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.guideline.rule.GuidelineRule;
 import org.example.sharedprompts.domain.prompt.common.guideline.rule.RuleLevel;
 import org.example.sharedprompts.global.util.ValidationUtils;

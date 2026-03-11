@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.common.i18n;
 
-import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
 
 /**
  * Core i18n text triple (ko, en, ja) used across enums and guideline metadata.

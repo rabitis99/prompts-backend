@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.application.engine.generation.legacy;
 
-import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 
 import java.util.List;
 import java.util.Objects;

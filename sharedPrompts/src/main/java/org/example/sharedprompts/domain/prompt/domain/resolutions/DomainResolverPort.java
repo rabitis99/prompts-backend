@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.domain.resolutions;
 
-import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 
 /**

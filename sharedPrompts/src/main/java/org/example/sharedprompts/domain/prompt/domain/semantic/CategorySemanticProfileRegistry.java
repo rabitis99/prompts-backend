@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.domain.semantic;
 
-import org.example.sharedprompts.domain.prompt.common.enums.PromptCategory;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 
 import java.util.Optional;
 

@@ -13,7 +13,7 @@ import org.example.sharedprompts.domain.prompt.application.port.in.generate.Unif
 import org.example.sharedprompts.domain.prompt.application.policy.AxisSourcePolicy;
 import org.example.sharedprompts.domain.prompt.application.semantic.resolution.ResolutionResult;
 import org.example.sharedprompts.domain.prompt.application.semantic.resolution.SemanticResolutionService;
-import org.example.sharedprompts.domain.prompt.common.enums.EngineMode;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineMode;
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
 import org.example.sharedprompts.domain.prompt.metrics.PromptEngineMetrics;
 import org.springframework.stereotype.Service;

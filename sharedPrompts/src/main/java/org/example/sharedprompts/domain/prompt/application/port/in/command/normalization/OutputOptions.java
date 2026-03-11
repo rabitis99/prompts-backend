@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.application.port.in.command.normalization;
 
-import org.example.sharedprompts.domain.prompt.common.enums.EngineMode;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineMode;
 
 /** 출력 설정 (schema, engine mode) */
 public record OutputOptions(

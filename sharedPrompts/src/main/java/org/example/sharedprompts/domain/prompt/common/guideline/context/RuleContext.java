@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.common.guideline.context;
 
-import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 public record RuleContext(
         TaskDomain taskDomain,

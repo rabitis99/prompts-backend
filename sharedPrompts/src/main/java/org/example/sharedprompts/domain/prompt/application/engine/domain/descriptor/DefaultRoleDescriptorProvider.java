@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.application.engine.domain.descriptor;
 
-import org.example.sharedprompts.domain.prompt.common.enums.LanguageType;
+import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.domain.descriptor.RoleDescriptorPort;
 import org.springframework.stereotype.Component;

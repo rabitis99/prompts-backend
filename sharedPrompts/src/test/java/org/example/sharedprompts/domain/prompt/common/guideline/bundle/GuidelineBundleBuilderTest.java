@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.common.guideline.bundle;
 
-import org.example.sharedprompts.domain.prompt.common.enums.TaskDomain;
+import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.guideline.rule.RuleLevel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
