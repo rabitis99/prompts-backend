@@ -1,8 +1,10 @@
 # common 패키지 구조 냉정 분석
 
+**문서 유지보수:** 이 문서는 시점 기반 분석이므로, 항목이 해결될 때마다 갱신하는 것을 권장합니다. 해결된 항목에는 체크박스(`- [ ]` → `- [x]`) 또는 "Resolved in PR #xxx" 표시를 추가하면 추적이 용이합니다. 장기적으로는 ADR(Architecture Decision Record) 형식으로 전환해 "결정 사항", "상태(제안됨/수락됨/완료됨)", "날짜" 등을 명시하는 것도 고려할 수 있습니다.
+
 ## 1. 전체 평가 요약
 
-이 패키지는 **역할/액션/카테고리/출력/시맨틱**을 일관된 계약(StableKeyedEnum, RoleTypeInterface, ActionTypeInterface)과 레지스트리·역직렬화기로 묶어 도메인 정체성을 명확히 하려 한 설계다. EnumCompatParser로 legacy name과 stable key를 동시에 수용하는 점, output을 action에서 분리한 점, role/action을 카테고리별 enum으로 쪼갠 점은 의도가 읽힌다. 그러나 **세 곳(Deserializer 목록, ActionTypeBehaviorRegistry instanceof, 실제 enum 클래스)을 반드시 동기화해야 하는 구조**가 이미 한 곳에서 깨져 있다: `MarketingActionType`은 역직렬화 대상이지만 `ActionTypeBehaviorRegistry`에 분기 없이, `getOutputBehavior()` 호출 시 `IllegalArgumentException`을 던진다. **과설계 여부**: “완전한 과설계”라기보다 **동기화 책임이 분산된 준(準)과설계**에 가깝다. 복잡도 자체보다 “enum 추가 시 반드시 수정해야 할 지점이 3곳 이상”인 것이 가장 위험하다. 결론부터 말하면, **지금 단계에서도 유지보수 붕괴의 초기 징후(레지스트리·역직렬화 누락)가 이미 나타나 있으며, 70개에 가까운 enum 클래스 규모에서 리스트/instanceof 기반 설계는 한계에 도달했다.**
+이 패키지는 **역할/액션/카테고리/출력/시맨틱**을 일관된 계약(StableKeyedEnum, RoleTypeInterface, ActionTypeInterface)과 레지스트리·역직렬화기로 묶어 도메인 정체성을 명확히 하려 한 설계다. EnumCompatParser로 legacy name과 stable key를 동시에 수용하는 점, output을 action에서 분리한 점, role/action을 카테고리별 enum으로 쪼갠 점은 의도가 읽힌다. **세 곳(Deserializer 목록, ActionTypeBehaviorRegistry instanceof, 실제 enum 클래스)을 반드시 동기화해야 하는 구조**이며, 과거에 `MarketingActionType`이 Registry 분기에 누락되어 `getOutputBehavior()` 호출 시 예외가 나던 사례가 있었으나 **현재는 ActionTypeBehaviorRegistry에 상수별 분기로 반영되어 해결된 상태**다. **과설계 여부**: “완전한 과설계”라기보다 **동기화 책임이 분산된 준(準)과설계**에 가깝다. 복잡도 자체보다 “enum 추가 시 반드시 수정해야 할 지점이 3곳 이상”인 것이 가장 위험하다. 결론부터 말하면, **동일한 누락 패턴이 재발하지 않도록 테스트·문서로 강제할 필요가 있으며**, 70개에 가까운 enum 클래스 규모에서 리스트/instanceof 기반 설계는 한계에 도달했다.
 
 ---
 
@@ -13,13 +15,13 @@
 **문제가 되는 구조**
 
 - `ActionTypeDeserializer.ACTION_TYPE_ENUMS`: 27개 ActionType enum 클래스 하드코딩.
-- `ActionTypeBehaviorRegistry.resolveBehavior()`: 24개 `instanceof` 분기만 존재. **`MarketingActionType`에 대한 분기가 없음.**
+- `ActionTypeBehaviorRegistry.resolveBehavior()`: Deserializer에 등록된 각 ActionType enum에 대해 `instanceof`(및 필요 시 상수별 switch) 분기가 있어야 한다. **과거 사례(해결됨):** `MarketingActionType`에 대한 분기가 없어 `getOutputBehavior()` 호출 시 예외가 났으나, 현재는 Registry에 상수별 분기로 반영되어 있음.
 - 새 ActionType enum을 추가하면 (1) 새 enum 클래스, (2) Deserializer 리스트, (3) Registry의 `instanceof` + 반환값 — 세 곳을 모두 수정해야 한다.
 
 **왜 위험한지**
 
 - 한 곳이라도 빠지면 **런타임 실패**가 난다. Deserializer에만 넣고 Registry를 잊으면 JSON은 파싱되지만 `actionType.getOutputBehavior()` 호출 시 `IllegalArgumentException("Unmapped ActionTypeInterface: ...")` 발생.
-- **이미 발생한 사례**: `MarketingActionType`은 `ActionTypeDeserializer` 41~70행에 포함되어 있으나, `ActionTypeBehaviorRegistry` 44~126행 어디에도 `instanceof MarketingActionType`이 없다. 따라서 마케팅 액션으로 요청이 들어오면 역직렬화는 되고, 이후 시맨틱/엔진 쪽에서 `getOutputBehavior()`를 호출하는 시점에 예외가 난다.
+- **과거 발생 사례(해결됨):** `MarketingActionType`은 Deserializer에는 포함되어 있었으나 Registry에 분기가 없어, 마케팅 액션 요청 시 역직렬화 후 `getOutputBehavior()` 호출 시점에 예외가 났다. 현재는 ActionTypeBehaviorRegistry에 `MarketingActionType` 상수별 분기(MARKET_RESEARCH/CUSTOMER_ANALYSIS → ANALYTICAL_REPORT, AD_CAMPAIGN/CONTENT_MARKETING/INFLUENCER_MARKETING → LONG_FORM_WRITING, 그 외 → STRATEGIC_PLAN)가 추가되어 해결된 상태다.
 
 **나중에 왜 터지는지**
 
@@ -27,9 +29,9 @@
 
 **어떤 변경 때 가장 먼저 드러나는지**
 
-- 신규 ActionType 카테고리 추가 시. 또는 기존에 사용 빈도가 낮았던 `MarketingActionType`을 실제 API에서 쓰기 시작할 때.
+- 신규 ActionType 카테고리 추가 시. (과거에는 사용 빈도가 낮았던 `MarketingActionType`에서 동일한 누락이 발생했으나, 현재는 해결됨.)
 
-**심각도**: **높음** (이미 버그 존재, 동일 패턴으로 재발 가능)
+**심각도**: **높음** (과거 사례는 해결됨; 동일 패턴 재발 방지를 위해 Deserializer–Registry 동기화를 테스트로 강제할 필요 있음)
 
 ---
 
@@ -176,9 +178,9 @@
 
 ### ActionTypeBehaviorRegistry
 
-- **현재 상태**: 정적 메서드 `resolveBehavior(ActionTypeInterface)` 하나. 24개 `instanceof` 분기로 OutputBehaviorType 반환. MarketingActionType 분기 없음 → unmapped 시 예외.
+- **현재 상태**: 정적 메서드 `resolveBehavior(ActionTypeInterface)` 하나. Deserializer에 등록된 각 ActionType에 대해 `instanceof`(및 일부는 상수별 switch, 예: MarketingActionType) 분기로 OutputBehaviorType 반환. MarketingActionType은 상수별 분기로 반영됨(해결됨).
 - **장점**: ActionType 수백 개 상수를 타입 단위로 묶어서 코어 행동으로 줄인 것은 이해 가능.
-- **문제점**: (1) 새 ActionType enum 추가 시 반드시 여기 분기 추가 필요. (2) Deserializer 목록과 완전히 별도로 관리되어 동기화가 사람 몫. (3) 이미 누락으로 런타임 오류 발생 중.
+- **문제점**: (1) 새 ActionType enum 추가 시 반드시 여기 분기 추가 필요. (2) Deserializer 목록과 완전히 별도로 관리되어 동기화가 사람 몫. (3) 과거에는 누락으로 런타임 오류가 있었으나 현재는 해결됨; 동일 패턴 재발 방지를 위해 커버리지 테스트 등으로 강제할 필요 있음.
 - **방치 시 리스크**: 액션 추가할 때마다 Registry 누락 가능, 테스트가 모든 액션을 커버하지 않으면 프로덕션에서만 터짐.
 
 ### serializer/* (EnumResolver, EnumCompatParser, RoleTypeDeserializer, ActionTypeDeserializer)
@@ -217,8 +219,8 @@
 
 ### 반드시 손봐야 하는 것
 
-1. **ActionTypeBehaviorRegistry에 MarketingActionType 분기 추가 (즉시)**  
-   현재 마케팅 액션 요청이 getOutputBehavior()에서 예외를 던지는 버그를 제거. MARKETING은 PRACTICAL·전략/콘텐츠 성격이므로 STRATEGIC_PLAN 또는 LONG_FORM_WRITING 중 정책에 맞게 한 개 지정.
+1. **ActionTypeBehaviorRegistry–MarketingActionType (완료)**  
+   마케팅 액션 요청 시 getOutputBehavior()에서 예외가 나던 문제는 상수별 분기(MARKET_RESEARCH/CUSTOMER_ANALYSIS → ANALYTICAL_REPORT, AD_CAMPAIGN/CONTENT_MARKETING/INFLUENCER_MARKETING → LONG_FORM_WRITING, 그 외 → STRATEGIC_PLAN) 추가로 해결됨.
 
 2. **Deserializer/Registry/실제 enum 동기화를 한 곳으로 끌어오기**  
    “새 ActionType 추가 시 수정할 곳”을 최대한 한 곳으로. 예: ActionType enum에 @OutputBehavior 같은 메타데이터를 두고 Registry는 리플렉션/등록 리스트로 자동 수집하거나, “등록 리스트 하나”를 만들어서 Deserializer와 Registry가 같은 소스를 참조하도록 변경. 최소한 “Registry 분기 누락”을 컴파일/테스트로 잡을 수 있게(예: 모든 ACTION_TYPE_ENUMS에 대해 resolveBehavior가 예외를 던지지 않음을 검증하는 테스트) 해야 함.
@@ -249,7 +251,7 @@
 
 ## 7. 최종 결론
 
-이 구조는 **“의도와 계약은 읽히지만, enum 추가·변경 시 동기화해야 할 지점이 여러 곳으로 흩어져 있고, 이미 그 동기화가 한 곳( ActionTypeBehaviorRegistry – MarketingActionType )에서 깨져 런타임 오류가 나는 상태”**다.  
+이 구조는 **“의도와 계약은 읽히지만, enum 추가·변경 시 동기화해야 할 지점이 여러 곳으로 흩어져 있는 구조”**다. **ActionTypeBehaviorRegistry–MarketingActionType 누락으로 런타임 오류가 나던 문제는 상수별 분기 추가로 해결된 상태**다.  
 따라서 **“이미 복잡도가 과한 구조”**라기보다 **“복잡도는 감당 가능한데, 유지보수 지점이 분산되어 있어 팀 규모가 커지거나 enum이 더 늘어나면 위험한 구조”**에 가깝다.  
-즉, **지금은 버틸 수 있지만, Deserializer·Registry·enum 목록의 3중 동기화를 그대로 두고 계속 가면 팀이 커질수록 누락과 런타임 실패가 반복될 가능성이 높다.**  
-우선 **MarketingActionType 매핑 추가**와 **“새 ActionType 추가 시 반드시 수정할 곳”을 한 곳으로 모으거나 테스트로 강제**하는 것을 진행하고, 그 다음 StableKeyedEnum 정책·EXTRACTION 문서화·역할 3분화 설명을 정리하는 순서를 권장한다.
+즉, **지금은 버틸 수 있지만, Deserializer·Registry·enum 목록의 3중 동기화를 그대로 두고 계속 가면 팀이 커질수록 누락과 런타임 실패가 재발할 가능성이 높다.**  
+**“새 ActionType 추가 시 반드시 수정할 곳”을 한 곳으로 모으거나 테스트(커버리지)로 강제**하는 것을 진행하고, 그 다음 StableKeyedEnum 정책·EXTRACTION 문서화·역할 3분화 설명을 정리하는 순서를 권장한다.

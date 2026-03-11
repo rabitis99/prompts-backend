@@ -13,18 +13,21 @@ import java.util.List;
  */
 public final class DeserializerEnumTestUtils {
 
+    private static final String ACTION_TYPE_ENUMS_FIELD = "ACTION_TYPE_ENUMS";
+    private static final String ROLE_TYPE_ENUMS_FIELD = "ROLE_TYPE_ENUMS";
+
     private DeserializerEnumTestUtils() {}
 
     @SuppressWarnings("unchecked")
     public static List<Class<? extends Enum<?>>> getActionTypeEnums() throws Exception {
-        Field field = ActionTypeDeserializer.class.getDeclaredField("ACTION_TYPE_ENUMS");
+        Field field = ActionTypeDeserializer.class.getDeclaredField(ACTION_TYPE_ENUMS_FIELD);
         field.setAccessible(true);
         return (List<Class<? extends Enum<?>>>) field.get(null);
     }
 
     @SuppressWarnings("unchecked")
     public static List<Class<? extends Enum<?>>> getRoleTypeEnums() throws Exception {
-        Field field = RoleTypeDeserializer.class.getDeclaredField("ROLE_TYPE_ENUMS");
+        Field field = RoleTypeDeserializer.class.getDeclaredField(ROLE_TYPE_ENUMS_FIELD);
         field.setAccessible(true);
         return (List<Class<? extends Enum<?>>>) field.get(null);
     }

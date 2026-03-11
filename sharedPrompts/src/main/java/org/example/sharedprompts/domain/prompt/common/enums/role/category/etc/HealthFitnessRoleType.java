@@ -59,10 +59,5 @@ public enum HealthFitnessRoleType implements RoleTypeInterface {
     public String keyPrefix() {
         return "ROLE.HEALTH_FITNESS";
     }
-
-    @Override
-    public String key() {
-        return keyPrefix() + "." + name();
-    }
 }
 

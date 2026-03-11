@@ -51,14 +51,22 @@ public final class ActionTypeBehaviorRegistry {
             return OutputBehaviorType.GENERAL_CONSULTATION;
         }
 
-        // 생산성/실무/마케팅 계획 계열
+        // 생산성/실무 계획 계열
         if (actionType instanceof ProductivityActionType
                 || actionType instanceof PersonalDevelopmentActionType
                 || actionType instanceof BusinessActionType
                 || actionType instanceof CareerActionType
-                || actionType instanceof ShoppingActionType
-                || actionType instanceof MarketingActionType) {
+                || actionType instanceof ShoppingActionType) {
             return OutputBehaviorType.STRATEGIC_PLAN;
+        }
+
+        // 마케팅 — 상수별로 분석형 / 콘텐츠·카피형 / 전략·계획형 분리
+        if (actionType instanceof MarketingActionType marketing) {
+            return switch (marketing) {
+                case MARKET_RESEARCH, CUSTOMER_ANALYSIS -> OutputBehaviorType.ANALYTICAL_REPORT;
+                case AD_CAMPAIGN, CONTENT_MARKETING, INFLUENCER_MARKETING -> OutputBehaviorType.LONG_FORM_WRITING;
+                default -> OutputBehaviorType.STRATEGIC_PLAN;
+            };
         }
 
         // 개발/엔지니어링/인프라/보안/AI 계열 — 코드 및 기술 구현 중심

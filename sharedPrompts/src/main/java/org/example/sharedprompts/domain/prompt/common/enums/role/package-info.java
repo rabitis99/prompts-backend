@@ -15,5 +15,10 @@
  * API-facing, deserializable role types (e.g. WritingRoleType, BusinessRoleType). Registered in
  * RoleTypeDeserializer.ROLE_TYPE_ENUMS. When adding a new role that the API or clients can send,
  * add it as a new category enum and register it in RoleTypeDeserializer.
+ *
+ * <p><b>Key-based deserialization:</b> {@link org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface} extends {@link org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum},
+ * so the stable-key contract (and thus key-based deserialization) is inherited. Category enums need
+ * only implement {@link org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface#keyPrefix()}; do not override {@code key()} unless the default
+ * ({@code keyPrefix() + "." + name()}) is not appropriate.
  */
 package org.example.sharedprompts.domain.prompt.common.enums.role;
