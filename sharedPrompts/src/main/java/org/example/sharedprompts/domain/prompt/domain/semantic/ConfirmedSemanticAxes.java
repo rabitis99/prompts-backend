@@ -1,6 +1,8 @@
 package org.example.sharedprompts.domain.prompt.domain.semantic;
 
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionId;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
 import org.example.sharedprompts.domain.prompt.common.enums.experience.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.common.enums.output.OutputNeeds;
@@ -52,6 +54,12 @@ public record ConfirmedSemanticAxes(
         appliedProfileIds = appliedProfileIds != null ? List.copyOf(appliedProfileIds) : List.of();
         validationWarnings = validationWarnings != null ? List.copyOf(validationWarnings) : List.of();
         recommendationHints = recommendationHints != null ? List.copyOf(recommendationHints) : List.of();
+    }
+
+    /** Resolve canonical action for prompt assembly / resolution. Use registry when building prompts. */
+    public Optional<CanonicalActionId> canonicalActionId(CanonicalActionRegistry registry) {
+        if (registry == null) return Optional.empty();
+        return actionType.flatMap(registry::toCanonical);
     }
 
     public static Builder builder() {

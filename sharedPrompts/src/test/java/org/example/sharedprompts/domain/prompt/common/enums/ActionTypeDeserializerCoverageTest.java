@@ -6,9 +6,9 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.category.anal
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.business.BusinessActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.business.CareerActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.business.CustomerSupportActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.content.ContentActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.content.EmailActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.content.RecommendationActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.content_creation.ContentCreationActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.content_creation.EmailActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.content_creation.RecommendationActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.creative.CreativeActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.design.DesignActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.development.AiMlActionType;
@@ -28,7 +28,6 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.category.prod
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.ProductivityActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.ShoppingActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.research.ResearchActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.study.StudyActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.writing.WritingActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.serializer.EnumResolver;
 import org.junit.jupiter.api.DisplayName;
@@ -66,9 +65,8 @@ class ActionTypeDeserializerCoverageTest {
             AiMlActionType.class,
             AnalysisActionType.class,
             MarketingActionType.class,
-            ContentActionType.class,
+            ContentCreationActionType.class,
             CreativeActionType.class,
-            StudyActionType.class,
             EducationActionType.class,
             ResearchActionType.class,
             BusinessActionType.class,

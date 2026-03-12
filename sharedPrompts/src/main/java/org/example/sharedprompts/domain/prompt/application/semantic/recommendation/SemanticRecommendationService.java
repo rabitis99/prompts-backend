@@ -3,6 +3,8 @@ package org.example.sharedprompts.domain.prompt.application.semantic.recommendat
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionId;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile;
 import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDefinition;
@@ -15,9 +17,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/** 카테고리·Intent 기반 역할/액션 추천·힌트 */
+/** 카테고리·Intent 기반 역할/액션 추천·힌트. Action 호환성은 canonical 기준으로 비교. */
 @Service
 public class SemanticRecommendationService {
+
+    private final CanonicalActionRegistry canonicalActionRegistry;
+
+    public SemanticRecommendationService(CanonicalActionRegistry canonicalActionRegistry) {
+        this.canonicalActionRegistry = canonicalActionRegistry;
+    }
 
     public RecommendationResult recommend(
             PromptCategory category,
@@ -136,7 +144,10 @@ public class SemanticRecommendationService {
                 hints.add("Action recommended from category+intent; override with action_type if needed.");
             }
         } else if (userProvidedAction != null && !actionCandidates.isEmpty()) {
-            boolean match = actionCandidates.stream().anyMatch(a -> a.key().equals(userProvidedAction.key()));
+            List<CanonicalActionId> compatibleCanonical = profile.getCompatibleCanonicalActionsForIntent(intent);
+            boolean match = !compatibleCanonical.isEmpty()
+                    ? canonicalActionRegistry.toCanonical(userProvidedAction).map(compatibleCanonical::contains).orElse(false)
+                    : actionCandidates.stream().anyMatch(a -> canonicalActionRegistry.sameCanonicalCapability(a, userProvidedAction));
             if (!match) {
                 hints.add("Selected action may not match " + intent + " for " + category + "; profile recommends compatible actions for this branch.");
             }

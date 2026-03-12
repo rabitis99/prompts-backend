@@ -3,6 +3,8 @@ package org.example.sharedprompts.domain.prompt.domain.resolutions;
 import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionId;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -12,13 +14,15 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 명시 매핑 + 액션 이름 휴리스틱 + TaskDomain 기본값.
+ * 명시 매핑은 canonical action 기준으로 저장; 조회 시 action → canonical → 명시 → 휴리스틱 → 도메인 기본 순.
  *
- * <p>Config에서 put()으로 명시 매핑을 등록한 뒤, 조회 시 명시 → 휴리스틱 → 도메인 기본 순으로 사용.
- * Spring/로깅 의존 없음. {@link ObjectiveMappingRegistryPort} 유일 구현체.
+ * <p>Config에서 put()으로 명시 매핑을 등록한 뒤, 조회 시 canonical 해석 후 명시 → 휴리스틱 → 도메인 기본 순으로 사용.
+ * {@link ObjectiveMappingRegistryPort} 유일 구현체.
  */
 public class ObjectiveMappingRegistry implements ObjectiveMappingRegistryPort {
 
-    private final Map<ActionTypeInterface, PromptObjective> explicitMap = new ConcurrentHashMap<>();
+    private final CanonicalActionRegistry canonicalActionRegistry;
+    private final Map<CanonicalActionId, PromptObjective> explicitByCanonical = new ConcurrentHashMap<>();
 
     private static final Map<PromptObjective, Set<String>> KEYWORD_MAP;
 
@@ -68,10 +72,14 @@ public class ObjectiveMappingRegistry implements ObjectiveMappingRegistryPort {
         ));
     }
 
-    /** Config/테스트 전용. 명시 매핑 등록. */
+    public ObjectiveMappingRegistry(CanonicalActionRegistry canonicalActionRegistry) {
+        this.canonicalActionRegistry = canonicalActionRegistry;
+    }
+
+    /** Config/테스트 전용. 명시 매핑 등록; canonical로 저장되어 동일 capability의 다른 action도 동일 objective 사용. */
     public void put(ActionTypeInterface actionType, PromptObjective objective) {
         if (actionType != null && objective != null) {
-            explicitMap.put(actionType, objective);
+            canonicalActionRegistry.toCanonical(actionType).ifPresent(c -> explicitByCanonical.put(c, objective));
         }
     }
 
@@ -80,9 +88,12 @@ public class ObjectiveMappingRegistry implements ObjectiveMappingRegistryPort {
         if (actionType == null) {
             return Optional.empty();
         }
-        PromptObjective explicit = explicitMap.get(actionType);
-        if (explicit != null) {
-            return Optional.of(explicit);
+        Optional<CanonicalActionId> canonical = canonicalActionRegistry.toCanonical(actionType);
+        if (canonical.isPresent()) {
+            PromptObjective explicit = explicitByCanonical.get(canonical.get());
+            if (explicit != null) {
+                return Optional.of(explicit);
+            }
         }
         return Optional.ofNullable(inferByActionName(actionType));
     }

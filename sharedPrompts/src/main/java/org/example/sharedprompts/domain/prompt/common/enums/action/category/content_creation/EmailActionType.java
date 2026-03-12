@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.common.enums.action.category.content;
+package org.example.sharedprompts.domain.prompt.common.enums.action.category.content_creation;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,9 +9,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 
 import java.util.Optional;
 
-/**
- * 이메일 관련 액션 타입 enum
- */
+/** 이메일 관련 액션 타입 (content_creation 패키지에 배치). */
 @Getter
 @AllArgsConstructor
 public enum EmailActionType implements ActionTypeInterface, StableKeyedEnum {
@@ -46,4 +44,3 @@ public enum EmailActionType implements ActionTypeInterface, StableKeyedEnum {
         return outputBehavior;
     }
 }
-

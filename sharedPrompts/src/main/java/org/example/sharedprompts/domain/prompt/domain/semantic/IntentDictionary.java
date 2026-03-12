@@ -141,7 +141,7 @@ public final class IntentDictionary {
                 "When the goal is to produce output quickly from a spec (use GENERATE) or to list ideas without a single artifact (use BRAINSTORM).",
                 "CREATE = original authored composition; GENERATE = produce requested output (may be template-driven); BRAINSTORM = ideation, multiple options.",
                 "Narrative or structured new artifact; single coherent output.",
-                List.of(PromptCategory.DESIGN, PromptCategory.WRITING, PromptCategory.CONTENT, PromptCategory.CREATIVE),
+                List.of(PromptCategory.DESIGN, PromptCategory.WRITING, PromptCategory.CONTENT_CREATION, PromptCategory.CREATIVE),
                 List.of("UI_DESIGN", "UX_DESIGN", "ARTICLE_WRITING", "CONTENT_CREATION"),
                 List.of("UI_UX_DESIGNER", "CONTENT_WRITER", "CREATIVE_DIRECTOR"),
                 "In CONTENT: prefer CREATE for long-form authored pieces; GENERATE for quick posts or templated output."
@@ -153,7 +153,7 @@ public final class IntentDictionary {
                 "When the user explicitly wants original authorship or heavy creative ownership (use CREATE).",
                 "GENERATE = produce to spec; CREATE = author from scratch with stronger creative control.",
                 "Narrative or structured output matching the request; may be more template- or spec-driven than CREATE.",
-                List.of(PromptCategory.DEVELOPMENT, PromptCategory.CONTENT, PromptCategory.MARKETING, PromptCategory.CREATIVE),
+                List.of(PromptCategory.DEVELOPMENT, PromptCategory.CONTENT_CREATION, PromptCategory.MARKETING, PromptCategory.CREATIVE),
                 List.of("CODE_GENERATION", "CONTENT_CREATION", "CONTENT_MARKETING"),
                 List.of("FULL_STACK_DEVELOPER", "CONTENT_CREATOR", "DIGITAL_MARKETER"),
                 "Default fallback for many categories when intent is unspecified."
@@ -182,7 +182,7 @@ public final class IntentDictionary {
                 "When only local corrections or light edits are needed (use EDIT) or polish without restructuring (use REFINE).",
                 "REWRITE = substantial restructuring/re-expression; EDIT = correctness and local fixes; REFINE = polish; IMPROVE = broader clarity/effectiveness.",
                 "Structured or narrative output in the new form; length may change.",
-                List.of(PromptCategory.WRITING, PromptCategory.CONTENT, PromptCategory.CREATIVE),
+                List.of(PromptCategory.WRITING, PromptCategory.CONTENT_CREATION, PromptCategory.CREATIVE),
                 List.of("EDITING", "CONTENT_REVISION", "CREATIVE_WRITING"),
                 List.of("EDITOR", "COPYWRITER", "CONTENT_STRATEGIST"),
                 "WRITING category: REWRITE and EDIT must be clearly distinguished in profiles."
@@ -194,7 +194,7 @@ public final class IntentDictionary {
                 "When substantial restructuring or re-expression is needed (use REWRITE) or quality polish (use REFINE).",
                 "EDIT = correctness/local fixes; REWRITE = re-expression; REFINE = polish; IMPROVE = broader enhancement.",
                 "Same structure as input with corrections; minimal structural change.",
-                List.of(PromptCategory.WRITING, PromptCategory.CONTENT),
+                List.of(PromptCategory.WRITING, PromptCategory.CONTENT_CREATION),
                 List.of("EDITING", "PROOFREADING", "DOC_UPDATE"),
                 List.of("EDITOR", "CONTENT_WRITER"),
                 "Preferred for copy-editing and proofreading flows."
@@ -218,7 +218,7 @@ public final class IntentDictionary {
                 "When the need is narrowly correctness (EDIT), polish only (REFINE), or full re-expression (REWRITE).",
                 "IMPROVE = broad enhancement; REFINE = polish; EDIT = fixes; REWRITE = re-express.",
                 "Improved version; may include structural tweaks and content adjustments.",
-                List.of(PromptCategory.WRITING, PromptCategory.DEVELOPMENT, PromptCategory.CONTENT),
+                List.of(PromptCategory.WRITING, PromptCategory.DEVELOPMENT, PromptCategory.CONTENT_CREATION),
                 List.of("EDITING", "CODE_MODIFICATION", "CONTENT_OPTIMIZATION"),
                 List.of("EDITOR", "CONTENT_WRITER", "BACKEND_DEVELOPER"),
                 "General-purpose improvement intent across writing and development."
@@ -235,7 +235,7 @@ public final class IntentDictionary {
                 "When the goal is judgment of merit (use EVALUATE), comparison (use COMPARE), or fault-finding (use DIAGNOSE).",
                 "ANALYZE = break down and examine; EVALUATE = judge merit; CRITIQUE = judge with standards; DIAGNOSE = find cause of problem.",
                 "Structured analysis; components, factors, or patterns.",
-                List.of(PromptCategory.ANALYSIS, PromptCategory.RESEARCH, PromptCategory.BUSINESS),
+                List.of(PromptCategory.ANALYSIS, PromptCategory.DATA_ANALYSIS, PromptCategory.RESEARCH, PromptCategory.BUSINESS),
                 List.of("DATA_ANALYSIS", "LITERATURE_REVIEW", "ROOT_CAUSE_ANALYSIS"),
                 List.of("GENERAL_CONSULTANT", "RESEARCHER", "BUSINESS_ANALYST_BUSINESS"),
                 "Core intent for ANALYSIS and RESEARCH categories."
@@ -259,7 +259,7 @@ public final class IntentDictionary {
                 "When the goal is single-item analysis (ANALYZE) or a merit judgment (EVALUATE).",
                 "COMPARE = side-by-side comparison; ANALYZE = single subject breakdown; EVALUATE = merit judgment.",
                 "Structured comparison; pros/cons or dimension-based.",
-                List.of(PromptCategory.ANALYSIS, PromptCategory.BUSINESS, PromptCategory.RESEARCH),
+                List.of(PromptCategory.ANALYSIS, PromptCategory.DATA_ANALYSIS, PromptCategory.BUSINESS, PromptCategory.RESEARCH),
                 List.of("COMPARATIVE_ANALYSIS", "DATA_ANALYSIS"),
                 List.of("BUSINESS_ANALYST_BUSINESS", "RESEARCHER"),
                 "Fits ANALYSIS and RESEARCH; often used with DECIDE or RECOMMEND."
@@ -283,7 +283,7 @@ public final class IntentDictionary {
                 "When the goal is general analysis (ANALYZE), merit evaluation (EVALUATE), or design critique (CRITIQUE).",
                 "DIAGNOSE = find cause of problem; ANALYZE = general breakdown; CRITIQUE = judge against standards.",
                 "Step-by-step or structured diagnosis; cause-and-effect.",
-                List.of(PromptCategory.DEVELOPMENT, PromptCategory.ANALYSIS),
+                List.of(PromptCategory.DEVELOPMENT, PromptCategory.ANALYSIS, PromptCategory.DATA_ANALYSIS),
                 List.of("DEBUGGING", "CODE_ANALYSIS", "ROOT_CAUSE_ANALYSIS"),
                 List.of("BACKEND_DEVELOPER", "FRONTEND_DEVELOPER"),
                 "DESIGN: discouraged unless critique/debug context is explicit (e.g. usability bug)."
@@ -300,7 +300,7 @@ public final class IntentDictionary {
                 "When the goal is to teach a curriculum (use TEACH), shorten (use SIMPLIFY), or condense (use SUMMARIZE).",
                 "EXPLAIN = clarify how/why; TEACH = instructional sequence; SIMPLIFY = reduce complexity; SUMMARIZE = condense.",
                 "Step-by-step or structured explanation; pedagogical tone optional.",
-                List.of(PromptCategory.EDUCATION, PromptCategory.STUDY, PromptCategory.DEVELOPMENT, PromptCategory.RESEARCH),
+                List.of(PromptCategory.EDUCATION, PromptCategory.DEVELOPMENT, PromptCategory.RESEARCH),
                 List.of("DOCUMENTATION", "TEACHING_METHOD", "RESEARCH_DESIGN"),
                 List.of("EDUCATOR", "RESEARCH_METHODOLOGIST", "FULL_STACK_DEVELOPER"),
                 "Core intent for EDUCATION and STUDY."
@@ -312,7 +312,7 @@ public final class IntentDictionary {
                 "When the goal is a one-off explanation (EXPLAIN) or simplification of existing content (SIMPLIFY).",
                 "TEACH = instructional sequence; EXPLAIN = single explanation; SIMPLIFY = reduce complexity of given content.",
                 "Step-by-step lesson; may include examples and exercises.",
-                List.of(PromptCategory.EDUCATION, PromptCategory.STUDY),
+                List.of(PromptCategory.EDUCATION),
                 List.of("TEACHING_METHOD", "LESSON_PLANNING", "EXAM_PREPARATION"),
                 List.of("EDUCATOR", "CURRICULUM_DESIGNER", "TUTOR"),
                 "Prefer EXPLAIN for one-off clarification; TEACH for learning paths."
@@ -324,7 +324,7 @@ public final class IntentDictionary {
                 "When the goal is to condense length (use SUMMARIZE) or to explain from scratch (use EXPLAIN).",
                 "SIMPLIFY = reduce complexity; SUMMARIZE = shorten; EXPLAIN = clarify how/why.",
                 "Simpler version of the same content; structure may be reorganized.",
-                List.of(PromptCategory.EDUCATION, PromptCategory.STUDY, PromptCategory.WRITING),
+                List.of(PromptCategory.EDUCATION, PromptCategory.WRITING),
                 List.of("MATERIAL_CREATION", "KNOWLEDGE_ORGANIZATION"),
                 List.of("EDUCATOR", "TECHNICAL_WRITER"),
                 "Often used for technical or academic content simplification."
@@ -336,7 +336,7 @@ public final class IntentDictionary {
                 "When the goal is to simplify complexity (SIMPLIFY) or to explain (EXPLAIN).",
                 "SUMMARIZE = condense; SIMPLIFY = reduce complexity; OUTLINE = structure only.",
                 "Bullet list or concise narrative; minimal new content.",
-                List.of(PromptCategory.RESEARCH, PromptCategory.WRITING, PromptCategory.STUDY, PromptCategory.BUSINESS),
+                List.of(PromptCategory.RESEARCH, PromptCategory.WRITING, PromptCategory.EDUCATION, PromptCategory.BUSINESS),
                 List.of("LITERATURE_REVIEW", "NOTE_TAKING", "ARTICLE_WRITING"),
                 List.of("RESEARCHER", "EDITOR", "STUDY_COACH"),
                 "Output often bullet-list; OutputNeeds.BULLET_LIST_REQUIRED in intent."
@@ -348,7 +348,7 @@ public final class IntentDictionary {
                 "When the goal is full content (CREATE/GENERATE) or a summary of existing content (SUMMARIZE).",
                 "OUTLINE = structure only; PLAN = plan of work; SUMMARIZE = condense existing.",
                 "Structured list of sections or steps; no full narrative.",
-                List.of(PromptCategory.WRITING, PromptCategory.CONTENT, PromptCategory.BUSINESS),
+                List.of(PromptCategory.WRITING, PromptCategory.CONTENT_CREATION, PromptCategory.BUSINESS),
                 List.of("CONTENT_PLANNING", "ARTICLE_WRITING"),
                 List.of("CONTENT_WRITER", "PROJECT_MANAGER"),
                 "WRITING: preferred for structuring before writing."
@@ -401,7 +401,7 @@ public final class IntentDictionary {
                 "When the goal is to create new content (CREATE/GENERATE) or to plan from scratch (PLAN).",
                 "ORGANIZE = arrange existing; PLAN = define steps; OUTLINE = structure for content.",
                 "Structured list or taxonomy.",
-                List.of(PromptCategory.PRODUCTIVITY, PromptCategory.STUDY, PromptCategory.CONTENT),
+                List.of(PromptCategory.PRODUCTIVITY, PromptCategory.EDUCATION, PromptCategory.CONTENT_CREATION),
                 List.of("TASK_AUTOMATION", "KNOWLEDGE_ORGANIZATION", "CONTENT_PLANNING"),
                 List.of("PRODUCTIVITY_EXPERT", "STUDY_COACH"),
                 "Less common than PLAN; fits productivity and study."
@@ -459,7 +459,7 @@ public final class IntentDictionary {
                 "When the goal is to synthesize into one view (SYNTHESIZE) or to explore freely (EXPLORE).",
                 "INVESTIGATE = systematic inquiry; SYNTHESIZE = combine into one view; EXPLORE = open exploration.",
                 "Structured findings; may include sources and caveats.",
-                List.of(PromptCategory.RESEARCH, PromptCategory.ANALYSIS),
+                List.of(PromptCategory.RESEARCH, PromptCategory.ANALYSIS, PromptCategory.DATA_ANALYSIS),
                 List.of("LITERATURE_REVIEW", "DATA_INTERPRETATION", "RESEARCH_DESIGN"),
                 List.of("RESEARCHER", "RESEARCH_METHODOLOGIST"),
                 "RESEARCH: preferred for literature and evidence-based inquiry."
@@ -471,7 +471,7 @@ public final class IntentDictionary {
                 "When the goal is to investigate (INVESTIGATE) or to explore (EXPLORE) without synthesis.",
                 "SYNTHESIZE = combine into one; INVESTIGATE = look into; EXPLORE = open exploration.",
                 "Structured synthesis; integrated view with sources.",
-                List.of(PromptCategory.RESEARCH, PromptCategory.ANALYSIS),
+                List.of(PromptCategory.RESEARCH, PromptCategory.ANALYSIS, PromptCategory.DATA_ANALYSIS),
                 List.of("LITERATURE_REVIEW", "STATISTICAL_MODELING", "DATA_INTERPRETATION"),
                 List.of("RESEARCHER", "ACADEMIC_WRITER"),
                 "RESEARCH: preferred for literature review and evidence synthesis; PERSUASIVE tone discouraged unless explicit."
@@ -500,7 +500,7 @@ public final class IntentDictionary {
                 "When the goal is to classify into categories only (use CLASSIFY) or to summarize (use SUMMARIZE).",
                 "EXTRACT = structured extraction to schema; CLASSIFY = assign categories/labels.",
                 "Structured output (e.g. JSON); schema-driven.",
-                List.of(PromptCategory.EXTRACTION, PromptCategory.ANALYSIS, PromptCategory.RESEARCH),
+                List.of(PromptCategory.EXTRACTION, PromptCategory.ANALYSIS, PromptCategory.DATA_ANALYSIS, PromptCategory.RESEARCH),
                 List.of("DATA_ANALYSIS"),
                 List.of("GENERAL_CONSULTANT"),
                 "EXTRACTION request_mode forces intent=EXTRACT; category=EXTRACTION."
@@ -512,7 +512,7 @@ public final class IntentDictionary {
                 "When the goal is to extract multiple fields (use EXTRACT) or to summarize (use SUMMARIZE).",
                 "CLASSIFY = assign category; EXTRACT = extract fields to schema.",
                 "Structured labels or categories.",
-                List.of(PromptCategory.ANALYSIS),
+                List.of(PromptCategory.ANALYSIS, PromptCategory.DATA_ANALYSIS),
                 List.of("DATA_ANALYSIS"),
                 List.of("GENERAL_CONSULTANT"),
                 "Fits ANALYSIS and extraction-style flows."

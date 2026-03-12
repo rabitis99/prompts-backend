@@ -7,7 +7,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterfa
 import org.example.sharedprompts.domain.prompt.common.enums.role.core.CoreRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.business.BusinessRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.business.CustomerSupportRoleType;
-import org.example.sharedprompts.domain.prompt.common.enums.role.category.content.ContentRoleType;
+import org.example.sharedprompts.domain.prompt.common.enums.role.category.content_creation.ContentCreationRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.creative.CreativeRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.design.DesignRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.development.AiMlRoleType;
@@ -20,7 +20,6 @@ import org.example.sharedprompts.domain.prompt.common.enums.role.category.etc.So
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.marketing.MarketingRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.productivity.ProductivityRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.research.ResearchRoleType;
-import org.example.sharedprompts.domain.prompt.common.enums.role.category.study.StudyRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.writing.WritingRoleType;
 
 import java.io.IOException;
@@ -38,9 +37,8 @@ public class RoleTypeDeserializer extends JsonDeserializer<RoleTypeInterface> {
             AiMlRoleType.class,
             CybersecurityRoleType.class,
             MarketingRoleType.class,
-            ContentRoleType.class,
+            ContentCreationRoleType.class,
             CreativeRoleType.class,
-            StudyRoleType.class,
             EducationRoleType.class,
             ResearchRoleType.class,
             BusinessRoleType.class,

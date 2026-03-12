@@ -1,12 +1,13 @@
-package org.example.sharedprompts.domain.prompt.common.enums.role.category.content;
+package org.example.sharedprompts.domain.prompt.common.enums.role.category.content_creation;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
+/** PromptCategory.CONTENT_CREATION 대응 역할 타입. 직렬화 호환을 위해 keyPrefix는 ROLE.CONTENT 유지. */
 @Getter
 @AllArgsConstructor
-public enum ContentRoleType implements RoleTypeInterface {
+public enum ContentCreationRoleType implements RoleTypeInterface {
     CONTENT_CREATOR(
             "콘텐츠 제작자",
             "콘텐츠 생성 및 편집을 통한 브랜드 강화 전문가",
@@ -44,4 +45,3 @@ public enum ContentRoleType implements RoleTypeInterface {
         return "ROLE.CONTENT";
     }
 }
-
