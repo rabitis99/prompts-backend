@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
 import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionId;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 
 import java.util.Collections;
@@ -52,8 +53,19 @@ public interface CategorySemanticProfile {
 
     /**
      * Compatible action types for (category, intent). Used for validation and recommendation.
+     * Concrete list is retained for API/response (e.g. recommendation candidates); internal
+     * compatibility checks prefer {@link #getCompatibleCanonicalActionsForIntent(ActionIntent)}.
      */
     List<ActionTypeInterface> getCompatibleActionsForIntent(ActionIntent intent);
+
+    /**
+     * Compatible canonical actions for (category, intent). Primary internal capability layer;
+     * validation and recommendation use this for capability matching. Default returns empty
+     * so profiles without canonical data remain valid.
+     */
+    default List<CanonicalActionId> getCompatibleCanonicalActionsForIntent(ActionIntent intent) {
+        return Collections.emptyList();
+    }
 
     /**
      * Preferred tone types for (category, intent). Optional constraint.

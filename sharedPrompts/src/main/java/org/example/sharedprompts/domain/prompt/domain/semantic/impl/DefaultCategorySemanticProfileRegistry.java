@@ -2,7 +2,7 @@ package org.example.sharedprompts.domain.prompt.domain.semantic.impl;
 
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.analysis.AnalysisActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.business.BusinessActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.content.ContentActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.business.CustomerSupportActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.creative.CreativeActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.design.DesignActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.development.CodingActionType;
@@ -11,7 +11,6 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.category.educ
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.marketing.MarketingActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.ProductivityActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.research.ResearchActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.study.StudyActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.writing.WritingActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
@@ -19,9 +18,11 @@ import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.*;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionId;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.business.BusinessRoleType;
-import org.example.sharedprompts.domain.prompt.common.enums.role.category.content.ContentRoleType;
+import org.example.sharedprompts.domain.prompt.common.enums.role.category.business.CustomerSupportRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.creative.CreativeRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.design.DesignRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.development.DevelopmentRoleType;
@@ -29,7 +30,6 @@ import org.example.sharedprompts.domain.prompt.common.enums.role.category.etc.Et
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.marketing.MarketingRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.productivity.ProductivityRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.research.ResearchRoleType;
-import org.example.sharedprompts.domain.prompt.common.enums.role.category.study.StudyRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.education.EducationRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.writing.WritingRoleType;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile;
@@ -40,6 +40,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * In-memory registry of category semantic profiles for all {@link PromptCategory} values.
@@ -59,29 +60,30 @@ import java.util.*;
  *
  * <p>Categories that use the full constructor can specify intent fit levels (PREFERRED/ALLOWED/DISCOURAGED)
  * and discouraged tones/styles. Those that pass empty fit levels and null for discouraged get
- * "all allowed intents treated as ALLOWED" with no tone/style restrictions—intentional for simpler categories.
- * PRODUCTIVITY, ANALYSIS, MARKETING, CREATIVE, STUDY, EDUCATION, and ETC currently use this simpler contract.
- * If requirements evolve, consider adding PREFERRED fit levels or discouraged tones/styles for MARKETING or CREATIVE
- * (e.g. GENERATE as PREFERRED, or restricting certain tones) to better match category needs.</p>
+ * "all allowed intents treated as ALLOWED" with no tone/style restrictions.
+ * <p>Legacy categories (SALES, OPERATIONS, CONTENT_CREATION, ANALYSIS) are not registered; {@link #getProfile(PromptCategory)}
+ * uses {@link PromptCategory#canonical()} so they resolve to MARKETING, BUSINESS, WRITING, DATA_ANALYSIS respectively.</p>
  */
 @Component
 public class DefaultCategorySemanticProfileRegistry implements CategorySemanticProfileRegistry {
 
     private final Map<PromptCategory, CategorySemanticProfile> profiles;
+    private final CanonicalActionRegistry canonicalActionRegistry;
 
-    public DefaultCategorySemanticProfileRegistry() {
+    public DefaultCategorySemanticProfileRegistry(CanonicalActionRegistry canonicalActionRegistry) {
+        this.canonicalActionRegistry = canonicalActionRegistry;
         Map<PromptCategory, CategorySemanticProfile> map = new HashMap<>();
         registerDesign(map);
         registerDevelopment(map);
         registerWriting(map);
         registerResearch(map);
         registerBusiness(map);
-        registerContent(map);
         registerProductivity(map);
-        registerAnalysis(map);
+        registerDataAnalysis(map);
         registerMarketing(map);
+        registerCustomerSupport(map);
         registerCreative(map);
-        registerStudy(map);
+        registerLegal(map);
         registerEducation(map);
         registerEtc(map);
         this.profiles = Collections.unmodifiableMap(map);
@@ -92,7 +94,24 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
         if (category == null) {
             return Optional.empty();
         }
-        return Optional.ofNullable(profiles.get(category));
+        // Semantic resolution uses canonical category; legacy (SALES, OPERATIONS, CONTENT_CREATION, ANALYSIS) resolve to same profile as canonical.
+        return Optional.ofNullable(profiles.get(category.canonical()));
+    }
+
+    /** Builds canonical capability map from concrete actions; used as primary internal capability layer. */
+    private Map<ActionIntent, List<CanonicalActionId>> toCanonicalMap(Map<ActionIntent, List<ActionTypeInterface>> actions) {
+        if (canonicalActionRegistry == null || actions == null || actions.isEmpty()) return Map.of();
+        Map<ActionIntent, List<CanonicalActionId>> out = new HashMap<>();
+        for (Map.Entry<ActionIntent, List<ActionTypeInterface>> e : actions.entrySet()) {
+            List<CanonicalActionId> canonicals = e.getValue().stream()
+                    .map(canonicalActionRegistry::toCanonical)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .distinct()
+                    .collect(Collectors.toList());
+            if (!canonicals.isEmpty()) out.put(e.getKey(), canonicals);
+        }
+        return out;
     }
 
     private void registerDesign(Map<PromptCategory, CategorySemanticProfile> target) {
@@ -131,7 +150,8 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
         target.put(PromptCategory.DESIGN, new DefaultCategorySemanticProfile(
                 PromptCategory.DESIGN, TaskDomain.CREATIVE, allowed, fitLevels, roles, actions,
                 null, null, ActionIntent.CREATE,
-                List.of(new FallbackCandidate(ActionIntent.CREATE, "Design typically starts with creating or generating; CREATE is the default when intent is unspecified."))));
+                List.of(new FallbackCandidate(ActionIntent.CREATE, "Design typically starts with creating or generating; CREATE is the default when intent is unspecified.")),
+                toCanonicalMap(actions)));
     }
 
     private void registerDevelopment(Map<PromptCategory, CategorySemanticProfile> target) {
@@ -169,7 +189,8 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
         target.put(PromptCategory.DEVELOPMENT, new DefaultCategorySemanticProfile(
                 PromptCategory.DEVELOPMENT, TaskDomain.TECHNICAL, allowed, fitLevels, roles, actions,
                 null, discouragedStyles, ActionIntent.GENERATE,
-                List.of(new FallbackCandidate(ActionIntent.GENERATE, "Development default: generate code or artifacts; override with intent for debug, explain, or plan."))));
+                List.of(new FallbackCandidate(ActionIntent.GENERATE, "Development default: generate code or artifacts; override with intent for debug, explain, or plan.")),
+                toCanonicalMap(actions)));
     }
 
     private void registerWriting(Map<PromptCategory, CategorySemanticProfile> target) {
@@ -211,7 +232,8 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
         target.put(PromptCategory.WRITING, new DefaultCategorySemanticProfile(
                 PromptCategory.WRITING, TaskDomain.CREATIVE, allowed, fitLevels, roles, actions,
                 null, null, ActionIntent.GENERATE,
-                List.of(new FallbackCandidate(ActionIntent.GENERATE, "Writing default: generate new content; use REWRITE/EDIT/REFINE/IMPROVE for existing text."))));
+                List.of(new FallbackCandidate(ActionIntent.GENERATE, "Writing default: generate new content; use REWRITE/EDIT/REFINE/IMPROVE for existing text.")),
+                toCanonicalMap(actions)));
     }
 
     private void registerResearch(Map<PromptCategory, CategorySemanticProfile> target) {
@@ -250,7 +272,8 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
         target.put(PromptCategory.RESEARCH, new DefaultCategorySemanticProfile(
                 PromptCategory.RESEARCH, TaskDomain.ANALYTICAL, allowed, fitLevels, roles, actions,
                 discouragedTones, null, ActionIntent.ANALYZE,
-                List.of(new FallbackCandidate(ActionIntent.ANALYZE, "Research default: analyze or investigate; use SYNTHESIZE for literature/evidence synthesis."))));
+                List.of(new FallbackCandidate(ActionIntent.ANALYZE, "Research default: analyze or investigate; use SYNTHESIZE for literature/evidence synthesis.")),
+                toCanonicalMap(actions)));
     }
 
     private void registerBusiness(Map<PromptCategory, CategorySemanticProfile> target) {
@@ -280,33 +303,8 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
         target.put(PromptCategory.BUSINESS, new DefaultCategorySemanticProfile(
                 PromptCategory.BUSINESS, TaskDomain.PRACTICAL, allowed, fitLevels, roles, actions,
                 null, null, ActionIntent.GENERATE,
-                List.of(new FallbackCandidate(ActionIntent.GENERATE, "Business default: generate proposals/reports; use PLAN/PROPOSE/DECIDE for strategy and decisions."))));
-    }
-
-    private void registerContent(Map<PromptCategory, CategorySemanticProfile> target) {
-        Map<ActionIntent, List<RoleTypeInterface>> roles = new HashMap<>();
-        roles.put(ActionIntent.CREATE, List.of(ContentRoleType.CONTENT_CREATOR, ContentRoleType.CONTENT_STRATEGIST));
-        roles.put(ActionIntent.GENERATE, List.of(ContentRoleType.CONTENT_CREATOR, ContentRoleType.SOCIAL_MEDIA_MANAGER));
-        roles.put(ActionIntent.REWRITE, List.of(ContentRoleType.CONTENT_CREATOR, ContentRoleType.CONTENT_STRATEGIST));
-
-        Map<ActionIntent, List<ActionTypeInterface>> actions = new HashMap<>();
-        actions.put(ActionIntent.CREATE, List.of(ContentActionType.CONTENT_CREATION, ContentActionType.BLOG_WRITING));
-        actions.put(ActionIntent.GENERATE, List.of(ContentActionType.CONTENT_CREATION, ContentActionType.BLOG_WRITING, ContentActionType.SOCIAL_MEDIA_POST));
-        actions.put(ActionIntent.REWRITE, List.of(ContentActionType.CONTENT_REVISION, ContentActionType.CONTENT_OPTIMIZATION));
-        actions.put(ActionIntent.PLAN, List.of(ContentActionType.CONTENT_PLANNING, ContentActionType.CONTENT_CREATION));
-
-        Set<ActionIntent> allowed = Set.of(ActionIntent.CREATE, ActionIntent.GENERATE, ActionIntent.REWRITE, ActionIntent.PLAN, ActionIntent.SUMMARIZE);
-        Map<ActionIntent, SemanticFitLevel> fitLevels = new HashMap<>();
-        fitLevels.put(ActionIntent.CREATE, SemanticFitLevel.PREFERRED);  // long-form authored
-        fitLevels.put(ActionIntent.GENERATE, SemanticFitLevel.PREFERRED); // quick/templated output
-        fitLevels.put(ActionIntent.REWRITE, SemanticFitLevel.PREFERRED);
-        fitLevels.put(ActionIntent.PLAN, SemanticFitLevel.ALLOWED);
-        fitLevels.put(ActionIntent.SUMMARIZE, SemanticFitLevel.ALLOWED);
-
-        target.put(PromptCategory.CONTENT, new DefaultCategorySemanticProfile(
-                PromptCategory.CONTENT, TaskDomain.CREATIVE, allowed, fitLevels, roles, actions,
-                null, null, ActionIntent.GENERATE,
-                List.of(new FallbackCandidate(ActionIntent.GENERATE, "Content default: generate; use CREATE for long-form authored pieces, GENERATE for quick/templated."))));
+                List.of(new FallbackCandidate(ActionIntent.GENERATE, "Business default: generate proposals/reports; use PLAN/PROPOSE/DECIDE for strategy and decisions.")),
+                toCanonicalMap(actions)));
     }
 
     private void registerProductivity(Map<PromptCategory, CategorySemanticProfile> target) {
@@ -321,25 +319,8 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
         target.put(PromptCategory.PRODUCTIVITY, new DefaultCategorySemanticProfile(
                 PromptCategory.PRODUCTIVITY, TaskDomain.PRACTICAL, allowed, Map.of(), roles, actions,
                 null, null, ActionIntent.PLAN,
-                List.of(new FallbackCandidate(ActionIntent.PLAN, "Productivity default: plan schedules or tasks; override with GENERATE/ANALYZE as needed."))));
-    }
-
-    private void registerAnalysis(Map<PromptCategory, CategorySemanticProfile> target) {
-        Map<ActionIntent, List<RoleTypeInterface>> roles = new HashMap<>();
-        roles.put(ActionIntent.ANALYZE, List.of(EtcRoleType.GENERAL_CONSULTANT));
-        roles.put(ActionIntent.EVALUATE, List.of(EtcRoleType.GENERAL_CONSULTANT));
-        roles.put(ActionIntent.EXTRACT, List.of(EtcRoleType.GENERAL_CONSULTANT));
-
-        Map<ActionIntent, List<ActionTypeInterface>> actions = new HashMap<>();
-        actions.put(ActionIntent.ANALYZE, List.of(AnalysisActionType.DATA_ANALYSIS, AnalysisActionType.COMPARATIVE_ANALYSIS, AnalysisActionType.ROOT_CAUSE_ANALYSIS));
-        actions.put(ActionIntent.EVALUATE, List.of(AnalysisActionType.COMPARATIVE_ANALYSIS));
-        actions.put(ActionIntent.EXTRACT, List.of(AnalysisActionType.DATA_ANALYSIS));
-
-        Set<ActionIntent> allowed = Set.of(ActionIntent.ANALYZE, ActionIntent.EVALUATE, ActionIntent.EXTRACT, ActionIntent.SUMMARIZE, ActionIntent.CLASSIFY);
-        target.put(PromptCategory.ANALYSIS, new DefaultCategorySemanticProfile(
-                PromptCategory.ANALYSIS, TaskDomain.ANALYTICAL, allowed, Map.of(), roles, actions,
-                null, null, ActionIntent.ANALYZE,
-                List.of(new FallbackCandidate(ActionIntent.ANALYZE, "Analysis default: analyze or evaluate data; use EXTRACT/CLASSIFY for structured output."))));
+                List.of(new FallbackCandidate(ActionIntent.PLAN, "Productivity default: plan schedules or tasks; override with GENERATE/ANALYZE as needed.")),
+                toCanonicalMap(actions)));
     }
 
     private void registerMarketing(Map<PromptCategory, CategorySemanticProfile> target) {
@@ -355,7 +336,65 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
         target.put(PromptCategory.MARKETING, new DefaultCategorySemanticProfile(
                 PromptCategory.MARKETING, TaskDomain.PRACTICAL, allowed, Map.of(), roles, actions,
                 null, null, ActionIntent.GENERATE,
-                List.of(new FallbackCandidate(ActionIntent.GENERATE, "Marketing default: generate content or campaigns; use PLAN/ANALYZE/REWRITE as needed."))));
+                List.of(new FallbackCandidate(ActionIntent.GENERATE, "Marketing default: generate content or campaigns; use PLAN/ANALYZE/REWRITE as needed.")),
+                toCanonicalMap(actions)));
+    }
+
+    private void registerCustomerSupport(Map<PromptCategory, CategorySemanticProfile> target) {
+        Map<ActionIntent, List<RoleTypeInterface>> roles = new HashMap<>();
+        roles.put(ActionIntent.GENERATE, List.of(CustomerSupportRoleType.CUSTOMER_SUPPORT_SPECIALIST, CustomerSupportRoleType.TECHNICAL_SUPPORT_ENGINEER));
+        roles.put(ActionIntent.EXPLAIN, List.of(CustomerSupportRoleType.TECHNICAL_SUPPORT_ENGINEER, CustomerSupportRoleType.CUSTOMER_SUCCESS_MANAGER));
+        roles.put(ActionIntent.PLAN, List.of(CustomerSupportRoleType.CUSTOMER_SUCCESS_MANAGER, CustomerSupportRoleType.SUPPORT_TRAINER));
+
+        Map<ActionIntent, List<ActionTypeInterface>> actions = new HashMap<>();
+        actions.put(ActionIntent.GENERATE, List.of(CustomerSupportActionType.FAQ_CREATION, CustomerSupportActionType.SUPPORT_DOCUMENTATION));
+        actions.put(ActionIntent.EXPLAIN, List.of(CustomerSupportActionType.SUPPORT_DOCUMENTATION, CustomerSupportActionType.KNOWLEDGE_BASE_MANAGEMENT));
+        actions.put(ActionIntent.PLAN, List.of(CustomerSupportActionType.CUSTOMER_ONBOARDING, CustomerSupportActionType.SUPPORT_TRAINING));
+
+        Set<ActionIntent> allowed = Set.of(ActionIntent.GENERATE, ActionIntent.EXPLAIN, ActionIntent.PLAN, ActionIntent.SUMMARIZE, ActionIntent.ANALYZE);
+        target.put(PromptCategory.CUSTOMER_SUPPORT, new DefaultCategorySemanticProfile(
+                PromptCategory.CUSTOMER_SUPPORT, TaskDomain.PRACTICAL, allowed, Map.of(), roles, actions,
+                null, null, ActionIntent.GENERATE,
+                List.of(new FallbackCandidate(ActionIntent.GENERATE, "Customer support default: generate FAQs or docs; use EXPLAIN/PLAN as needed.")),
+                toCanonicalMap(actions)));
+    }
+
+    private void registerDataAnalysis(Map<PromptCategory, CategorySemanticProfile> target) {
+        Map<ActionIntent, List<RoleTypeInterface>> roles = new HashMap<>();
+        roles.put(ActionIntent.ANALYZE, List.of(EtcRoleType.GENERAL_CONSULTANT));
+        roles.put(ActionIntent.EVALUATE, List.of(EtcRoleType.GENERAL_CONSULTANT));
+        roles.put(ActionIntent.EXTRACT, List.of(EtcRoleType.GENERAL_CONSULTANT));
+
+        Map<ActionIntent, List<ActionTypeInterface>> actions = new HashMap<>();
+        actions.put(ActionIntent.ANALYZE, List.of(AnalysisActionType.DATA_ANALYSIS, AnalysisActionType.COMPARATIVE_ANALYSIS, AnalysisActionType.ROOT_CAUSE_ANALYSIS));
+        actions.put(ActionIntent.EVALUATE, List.of(AnalysisActionType.COMPARATIVE_ANALYSIS));
+        actions.put(ActionIntent.EXTRACT, List.of(AnalysisActionType.DATA_ANALYSIS));
+
+        Set<ActionIntent> allowed = Set.of(ActionIntent.ANALYZE, ActionIntent.EVALUATE, ActionIntent.EXTRACT, ActionIntent.SUMMARIZE, ActionIntent.CLASSIFY);
+        target.put(PromptCategory.DATA_ANALYSIS, new DefaultCategorySemanticProfile(
+                PromptCategory.DATA_ANALYSIS, TaskDomain.ANALYTICAL, allowed, Map.of(), roles, actions,
+                null, null, ActionIntent.ANALYZE,
+                List.of(new FallbackCandidate(ActionIntent.ANALYZE, "Data analysis default: analyze or evaluate data; use EXTRACT/CLASSIFY for structured output.")),
+                toCanonicalMap(actions)));
+    }
+
+    private void registerLegal(Map<PromptCategory, CategorySemanticProfile> target) {
+        Map<ActionIntent, List<RoleTypeInterface>> roles = new HashMap<>();
+        roles.put(ActionIntent.EVALUATE, List.of(BusinessRoleType.BUSINESS_ANALYST_BUSINESS));
+        roles.put(ActionIntent.GENERATE, List.of(BusinessRoleType.BUSINESS_CONSULTANT));
+        roles.put(ActionIntent.EXPLAIN, List.of(BusinessRoleType.BUSINESS_CONSULTANT));
+
+        Map<ActionIntent, List<ActionTypeInterface>> actions = new HashMap<>();
+        actions.put(ActionIntent.EVALUATE, List.of(BusinessActionType.CONTRACT_REVIEW, BusinessActionType.RISK_ASSESSMENT));
+        actions.put(ActionIntent.GENERATE, List.of(BusinessActionType.CONTRACT_REVIEW, BusinessActionType.PROPOSAL_WRITING));
+        actions.put(ActionIntent.EXPLAIN, List.of(BusinessActionType.CONTRACT_REVIEW));
+
+        Set<ActionIntent> allowed = Set.of(ActionIntent.EVALUATE, ActionIntent.GENERATE, ActionIntent.EXPLAIN, ActionIntent.SUMMARIZE);
+        target.put(PromptCategory.LEGAL, new DefaultCategorySemanticProfile(
+                PromptCategory.LEGAL, TaskDomain.PRACTICAL, allowed, Map.of(), roles, actions,
+                null, null, ActionIntent.EVALUATE,
+                List.of(new FallbackCandidate(ActionIntent.EVALUATE, "Legal default: evaluate contracts or risks; use GENERATE/EXPLAIN as needed.")),
+                toCanonicalMap(actions)));
     }
 
     private void registerCreative(Map<PromptCategory, CategorySemanticProfile> target) {
@@ -371,25 +410,8 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
         target.put(PromptCategory.CREATIVE, new DefaultCategorySemanticProfile(
                 PromptCategory.CREATIVE, TaskDomain.CREATIVE, allowed, Map.of(), roles, actions,
                 null, null, ActionIntent.GENERATE,
-                List.of(new FallbackCandidate(ActionIntent.GENERATE, "Creative default: generate or rewrite; use EXPLAIN/PLAN as needed."))));
-    }
-
-    private void registerStudy(Map<PromptCategory, CategorySemanticProfile> target) {
-        Map<ActionIntent, List<RoleTypeInterface>> roles = new HashMap<>();
-        roles.put(ActionIntent.EXPLAIN, List.of(StudyRoleType.STUDY_COACH, StudyRoleType.TUTOR));
-        roles.put(ActionIntent.SUMMARIZE, List.of(StudyRoleType.STUDY_COACH));
-        roles.put(ActionIntent.PLAN, List.of(StudyRoleType.STUDY_COACH));
-
-        Map<ActionIntent, List<ActionTypeInterface>> actions = new HashMap<>();
-        actions.put(ActionIntent.EXPLAIN, List.of(StudyActionType.EXAM_PREPARATION, StudyActionType.KNOWLEDGE_ORGANIZATION));
-        actions.put(ActionIntent.SUMMARIZE, List.of(StudyActionType.NOTE_TAKING, StudyActionType.KNOWLEDGE_ORGANIZATION));
-        actions.put(ActionIntent.PLAN, List.of(StudyActionType.STUDY_PLANNING, StudyActionType.LEARNING_PATH_DESIGN));
-
-        Set<ActionIntent> allowed = Set.of(ActionIntent.EXPLAIN, ActionIntent.SUMMARIZE, ActionIntent.PLAN, ActionIntent.GENERATE);
-        target.put(PromptCategory.STUDY, new DefaultCategorySemanticProfile(
-                PromptCategory.STUDY, TaskDomain.EDUCATIONAL, allowed, Map.of(), roles, actions,
-                null, null, ActionIntent.EXPLAIN,
-                List.of(new FallbackCandidate(ActionIntent.EXPLAIN, "Study default: explain or summarize; use PLAN/GENERATE as needed."))));
+                List.of(new FallbackCandidate(ActionIntent.GENERATE, "Creative default: generate or rewrite; use EXPLAIN/PLAN as needed.")),
+                toCanonicalMap(actions)));
     }
 
     private void registerEducation(Map<PromptCategory, CategorySemanticProfile> target) {
@@ -407,7 +429,8 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
         target.put(PromptCategory.EDUCATION, new DefaultCategorySemanticProfile(
                 PromptCategory.EDUCATION, TaskDomain.EDUCATIONAL, allowed, Map.of(), roles, actions,
                 null, null, ActionIntent.EXPLAIN,
-                List.of(new FallbackCandidate(ActionIntent.EXPLAIN, "Education default: explain or plan; use GENERATE/SUMMARIZE as needed."))));
+                List.of(new FallbackCandidate(ActionIntent.EXPLAIN, "Education default: explain or plan; use GENERATE/SUMMARIZE as needed.")),
+                toCanonicalMap(actions)));
     }
 
     private void registerEtc(Map<PromptCategory, CategorySemanticProfile> target) {
@@ -421,6 +444,7 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
         target.put(PromptCategory.ETC, new DefaultCategorySemanticProfile(
                 PromptCategory.ETC, TaskDomain.GENERAL, allowed, Map.of(), roles, actions,
                 null, null, ActionIntent.GENERATE,
-                List.of(new FallbackCandidate(ActionIntent.GENERATE, "Etc: broad intents allowed; GENERATE is default when unspecified."))));
+                List.of(new FallbackCandidate(ActionIntent.GENERATE, "Etc: broad intents allowed; GENERATE is default when unspecified.")),
+                toCanonicalMap(actions)));
     }
 }

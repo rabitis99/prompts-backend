@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.common.enums.action.category.content;
+package org.example.sharedprompts.domain.prompt.common.enums.action.category.content_creation;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,9 +9,10 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 
 import java.util.Optional;
 
+/** PromptCategory.CONTENT_CREATION 대응 액션 타입. 직렬화 호환을 위해 key는 ACTION.CONTENT.* 유지. */
 @Getter
 @AllArgsConstructor
-public enum ContentActionType implements ActionTypeInterface, StableKeyedEnum {
+public enum ContentCreationActionType implements ActionTypeInterface, StableKeyedEnum {
     CONTENT_CREATION("콘텐츠 생성", "Content Creation", "コンテンツ作成", OutputBehaviorType.LONG_FORM_WRITING),
     CONTENT_REVISION("콘텐츠 수정", "Content Revision", "コンテンツ修正", OutputBehaviorType.LONG_FORM_WRITING),
     CONTENT_PLANNING("콘텐츠 기획", "Content Planning", "コンテンツ企画", OutputBehaviorType.LONG_FORM_WRITING),
@@ -47,4 +48,3 @@ public enum ContentActionType implements ActionTypeInterface, StableKeyedEnum {
         return outputBehavior;
     }
 }
-

@@ -18,6 +18,8 @@ import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionId;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.guideline.bundle.GuidelineBundle;
 import org.example.sharedprompts.domain.prompt.common.guideline.bundle.GuidelineBundleBuilder;
@@ -29,6 +31,7 @@ import org.example.sharedprompts.domain.prompt.domain.descriptor.RoleDescriptorP
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * 사용자 입력을 받아 {@link PromptSpec}을 생성하는 도메인 팩토리.
@@ -46,6 +49,7 @@ public class PromptSpecFactory {
     private final ObjectiveResolverPort objectiveResolver;
     private final GuidelineBundleBuilder guidelineBundleBuilder;
     private final RoleDescriptorPort roleDescriptorPort;
+    private final CanonicalActionRegistry canonicalActionRegistry;
 
     /**
      * 레거시/테스트 호환용 생성자.
@@ -55,14 +59,14 @@ public class PromptSpecFactory {
     public PromptSpecFactory(ObjectiveRegistry objectiveRegistry,
                              StrategyBundlePolicy strategyBundlePolicy,
                              ObjectiveResolverPort objectiveResolver) {
-        this(objectiveRegistry, strategyBundlePolicy, objectiveResolver, new GuidelineBundleBuilder(), null);
+        this(objectiveRegistry, strategyBundlePolicy, objectiveResolver, new GuidelineBundleBuilder(), null, null);
     }
 
     public PromptSpecFactory(ObjectiveRegistry objectiveRegistry,
                              StrategyBundlePolicy strategyBundlePolicy,
                              ObjectiveResolverPort objectiveResolver,
                              GuidelineBundleBuilder guidelineBundleBuilder) {
-        this(objectiveRegistry, strategyBundlePolicy, objectiveResolver, guidelineBundleBuilder, null);
+        this(objectiveRegistry, strategyBundlePolicy, objectiveResolver, guidelineBundleBuilder, null, null);
     }
 
     public PromptSpecFactory(ObjectiveRegistry objectiveRegistry,
@@ -70,11 +74,21 @@ public class PromptSpecFactory {
                              ObjectiveResolverPort objectiveResolver,
                              GuidelineBundleBuilder guidelineBundleBuilder,
                              RoleDescriptorPort roleDescriptorPort) {
+        this(objectiveRegistry, strategyBundlePolicy, objectiveResolver, guidelineBundleBuilder, roleDescriptorPort, null);
+    }
+
+    public PromptSpecFactory(ObjectiveRegistry objectiveRegistry,
+                             StrategyBundlePolicy strategyBundlePolicy,
+                             ObjectiveResolverPort objectiveResolver,
+                             GuidelineBundleBuilder guidelineBundleBuilder,
+                             RoleDescriptorPort roleDescriptorPort,
+                             CanonicalActionRegistry canonicalActionRegistry) {
         this.objectiveRegistry = Objects.requireNonNull(objectiveRegistry, "objectiveRegistry must not be null");
         this.strategyBundlePolicy = Objects.requireNonNull(strategyBundlePolicy, "strategyBundlePolicy must not be null");
         this.objectiveResolver = Objects.requireNonNull(objectiveResolver, "objectiveResolver must not be null");
         this.guidelineBundleBuilder = guidelineBundleBuilder != null ? guidelineBundleBuilder : new GuidelineBundleBuilder();
         this.roleDescriptorPort = roleDescriptorPort;
+        this.canonicalActionRegistry = canonicalActionRegistry;
     }
 
     /**
@@ -123,10 +137,14 @@ public class PromptSpecFactory {
         ExperienceLevel level = axes.experienceLevel() != null ? axes.experienceLevel() : ExperienceLevel.INTERMEDIATE;
         Constraints constraints = profile.constraints(level);
         OutputContract outputContract = profile.outputContract(jsonSchema, constraints.getMaxLength());
+        Optional<CanonicalActionId> canonicalActionId = canonicalActionRegistry != null
+                ? axes.canonicalActionId(canonicalActionRegistry)
+                : Optional.empty();
         RuleContext ruleContext = RuleContext.of(
                 effectiveTaskDomain,
                 profile.objective().name(),
                 axes.actionType().orElse(null),
+                canonicalActionId.orElse(null),
                 profile.supportsConstrainedDecoding(),
                 outputContract.hasJsonSchema(),
                 rawInput

@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.common.enums.action.category.content;
+package org.example.sharedprompts.domain.prompt.common.enums.action.category.content_creation;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,18 +9,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 
 import java.util.Optional;
 
-/**
- * 추천/리뷰 관련 액션 타입 enum
- *
- * <p>생성자 파라미터 순서 (모든 파라미터는 String 타입):
- * <ol>
- *   <li>stableKey - 안정 키 (직렬화/호환성용)</li>
- *   <li>displayNameKo - 표시 이름 (한국어)</li>
- *   <li>displayNameEn - 표시 이름 (영어)</li>
- *   <li>displayNameJa - 표시 이름 (일본어)</li>
- * </ol>
- * </p>
- */
+/** 추천/리뷰 관련 액션 타입 (content_creation 패키지에 배치). */
 @Getter
 @AllArgsConstructor
 public enum RecommendationActionType implements ActionTypeInterface, StableKeyedEnum {
@@ -50,4 +39,3 @@ public enum RecommendationActionType implements ActionTypeInterface, StableKeyed
         return outputBehavior;
     }
 }
-

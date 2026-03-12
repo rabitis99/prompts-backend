@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionId;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile;
 import org.example.sharedprompts.domain.prompt.domain.semantic.FallbackCandidate;
@@ -28,6 +29,7 @@ public final class DefaultCategorySemanticProfile implements CategorySemanticPro
     private final Map<ActionIntent, SemanticFitLevel> intentFitLevels;
     private final Map<ActionIntent, List<RoleTypeInterface>> recommendedRolesByIntent;
     private final Map<ActionIntent, List<ActionTypeInterface>> compatibleActionsByIntent;
+    private final Map<ActionIntent, List<CanonicalActionId>> compatibleCanonicalByIntent;
     private final Map<ActionIntent, List<ToneType>> discouragedTonesByIntent;
     private final Map<ActionIntent, List<StyleType>> discouragedStylesByIntent;
     private final ActionIntent fallbackIntent;
@@ -45,11 +47,12 @@ public final class DefaultCategorySemanticProfile implements CategorySemanticPro
             ActionIntent fallbackIntent
     ) {
         this(category, baseTaskDomain, allowedIntents, null, recommendedRolesByIntent, compatibleActionsByIntent,
-                null, null, fallbackIntent, null);
+                null, null, fallbackIntent, null, null);
     }
 
     /**
      * Full constructor with semantic strength and discouraged tone/style.
+     * {@code compatibleCanonicalByIntent} may be null; then canonical compatibility returns empty.
      */
     public DefaultCategorySemanticProfile(
             PromptCategory category,
@@ -63,16 +66,45 @@ public final class DefaultCategorySemanticProfile implements CategorySemanticPro
             ActionIntent fallbackIntent,
             List<FallbackCandidate> fallbackCandidates
     ) {
+        this(category, baseTaskDomain, allowedIntents, intentFitLevels, recommendedRolesByIntent, compatibleActionsByIntent,
+                discouragedTonesByIntent, discouragedStylesByIntent, fallbackIntent, fallbackCandidates, null);
+    }
+
+    /**
+     * Full constructor with canonical action capability map (primary internal capability layer).
+     * When {@code compatibleCanonicalByIntent} is non-null, validation/recommendation use it for matching.
+     */
+    public DefaultCategorySemanticProfile(
+            PromptCategory category,
+            TaskDomain baseTaskDomain,
+            Set<ActionIntent> allowedIntents,
+            Map<ActionIntent, SemanticFitLevel> intentFitLevels,
+            Map<ActionIntent, List<RoleTypeInterface>> recommendedRolesByIntent,
+            Map<ActionIntent, List<ActionTypeInterface>> compatibleActionsByIntent,
+            Map<ActionIntent, List<ToneType>> discouragedTonesByIntent,
+            Map<ActionIntent, List<StyleType>> discouragedStylesByIntent,
+            ActionIntent fallbackIntent,
+            List<FallbackCandidate> fallbackCandidates,
+            Map<ActionIntent, List<CanonicalActionId>> compatibleCanonicalByIntent
+    ) {
         this.category = category;
         this.baseTaskDomain = baseTaskDomain;
         this.allowedIntents = allowedIntents != null ? Set.copyOf(allowedIntents) : Set.of();
         this.intentFitLevels = intentFitLevels != null ? Map.copyOf(intentFitLevels) : Map.of();
         this.recommendedRolesByIntent = copyNestedLists(recommendedRolesByIntent);
         this.compatibleActionsByIntent = copyNestedLists(compatibleActionsByIntent);
+        this.compatibleCanonicalByIntent = copyCanonical(compatibleCanonicalByIntent);
         this.discouragedTonesByIntent = copyNestedLists(discouragedTonesByIntent);
         this.discouragedStylesByIntent = copyNestedLists(discouragedStylesByIntent);
         this.fallbackIntent = fallbackIntent;
         this.fallbackCandidates = fallbackCandidates != null ? List.copyOf(fallbackCandidates) : null;
+    }
+
+    private static Map<ActionIntent, List<CanonicalActionId>> copyCanonical(Map<ActionIntent, List<CanonicalActionId>> source) {
+        if (source == null || source.isEmpty()) return Map.of();
+        Map<ActionIntent, List<CanonicalActionId>> copy = new HashMap<>();
+        source.forEach((k, v) -> copy.put(k, v == null ? List.of() : List.copyOf(v)));
+        return Map.copyOf(copy);
     }
 
     private static <K, V> Map<K, List<V>> copyNestedLists(Map<K, List<V>> source) {
@@ -120,6 +152,13 @@ public final class DefaultCategorySemanticProfile implements CategorySemanticPro
         if (intent == null) return Collections.emptyList();
         List<ActionTypeInterface> list = compatibleActionsByIntent.get(intent);
         return list != null ? List.copyOf(list) : Collections.emptyList();
+    }
+
+    @Override
+    public List<CanonicalActionId> getCompatibleCanonicalActionsForIntent(ActionIntent intent) {
+        if (intent == null || compatibleCanonicalByIntent.isEmpty()) return List.of();
+        List<CanonicalActionId> list = compatibleCanonicalByIntent.get(intent);
+        return list != null ? List.copyOf(list) : List.of();
     }
 
     @Override

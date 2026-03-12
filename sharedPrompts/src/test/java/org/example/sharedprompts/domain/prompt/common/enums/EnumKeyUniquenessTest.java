@@ -5,9 +5,9 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.category.anal
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.business.BusinessActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.business.CareerActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.business.CustomerSupportActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.content.ContentActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.content.EmailActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.content.RecommendationActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.content_creation.ContentCreationActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.content_creation.EmailActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.content_creation.RecommendationActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.creative.CreativeActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.design.DesignActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.development.AiMlActionType;
@@ -27,12 +27,11 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.category.prod
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.ProductivityActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.ShoppingActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.research.ResearchActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.study.StudyActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.writing.WritingActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.experience.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.business.BusinessRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.business.CustomerSupportRoleType;
-import org.example.sharedprompts.domain.prompt.common.enums.role.category.content.ContentRoleType;
+import org.example.sharedprompts.domain.prompt.common.enums.role.category.content_creation.ContentCreationRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.creative.CreativeRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.design.DesignRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.development.AiMlRoleType;
@@ -40,7 +39,6 @@ import org.example.sharedprompts.domain.prompt.common.enums.role.category.develo
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.marketing.MarketingRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.productivity.ProductivityRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.etc.SocialRoleType;
-import org.example.sharedprompts.domain.prompt.common.enums.role.category.study.StudyRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.writing.WritingRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
@@ -66,7 +64,7 @@ class EnumKeyUniquenessTest {
             PromptCategory.class,
             ExperienceLevel.class,
             TaskDomain.class,
-            ContentRoleType.class,
+            ContentCreationRoleType.class,
             DesignRoleType.class,
             WritingRoleType.class,
             MarketingRoleType.class,
@@ -74,7 +72,6 @@ class EnumKeyUniquenessTest {
             AiMlRoleType.class,
             CreativeRoleType.class,
             CustomerSupportRoleType.class,
-            StudyRoleType.class,
             BusinessRoleType.class,
             SocialRoleType.class,
             ProductivityRoleType.class,
@@ -89,7 +86,6 @@ class EnumKeyUniquenessTest {
             EducationActionType.class,
             EtcActionType.class,
             CloudServicesActionType.class,
-            StudyActionType.class,
             BusinessActionType.class,
             ProgrammingActionType.class,
             HealthFitnessActionType.class,
@@ -103,7 +99,7 @@ class EnumKeyUniquenessTest {
             LifestyleActionType.class,
             CodingActionType.class,
             CustomerSupportActionType.class,
-            ContentActionType.class,
+            ContentCreationActionType.class,
             DevOpsActionType.class,
             AiMlActionType.class
     );

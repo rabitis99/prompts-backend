@@ -15,6 +15,7 @@ import org.example.sharedprompts.domain.prompt.domain.service.spec.PromptSpecVal
 import org.example.sharedprompts.domain.prompt.domain.service.recommendation.RecommendationRegistry;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolverPort;
 import org.example.sharedprompts.domain.prompt.domain.descriptor.RoleDescriptorPort;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 import org.example.sharedprompts.domain.prompt.common.guideline.bundle.GuidelineBundleBuilder;
 import org.example.sharedprompts.domain.prompt.domain.verification.guideline.DefaultGuidelineRuleChecker;
 import org.example.sharedprompts.domain.prompt.domain.verification.guideline.GuidelineVerifier;
@@ -63,8 +64,9 @@ public class PromptDomainConfig {
                                                StrategyBundlePolicy strategyBundlePolicy,
                                                ObjectiveResolverPort objectiveResolver,
                                                GuidelineBundleBuilder guidelineBundleBuilder,
-                                               RoleDescriptorPort roleDescriptorPort) {
-        return new PromptSpecFactory(objectiveRegistry, strategyBundlePolicy, objectiveResolver, guidelineBundleBuilder, roleDescriptorPort);
+                                               RoleDescriptorPort roleDescriptorPort,
+                                               CanonicalActionRegistry canonicalActionRegistry) {
+        return new PromptSpecFactory(objectiveRegistry, strategyBundlePolicy, objectiveResolver, guidelineBundleBuilder, roleDescriptorPort, canonicalActionRegistry);
     }
 
     @Bean

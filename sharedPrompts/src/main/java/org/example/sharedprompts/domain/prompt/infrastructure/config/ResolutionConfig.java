@@ -6,6 +6,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.category.deve
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.etc.EtcActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.ProductivityActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.writing.WritingActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolver;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolverPort;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistry;
@@ -53,8 +54,8 @@ public class ResolutionConfig {
     }
 
     @Bean
-    public ObjectiveMappingRegistryPort objectiveMappingRegistry() {
-        ObjectiveMappingRegistry registry = new ObjectiveMappingRegistry();
+    public ObjectiveMappingRegistryPort objectiveMappingRegistry(CanonicalActionRegistry canonicalActionRegistry) {
+        ObjectiveMappingRegistry registry = new ObjectiveMappingRegistry(canonicalActionRegistry);
         EXPLICIT_MAPPINGS.forEach(registry::put);
         return registry;
     }

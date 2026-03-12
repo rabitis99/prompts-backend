@@ -7,6 +7,8 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionInten
 import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
 import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionId;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile;
 import org.example.sharedprompts.domain.prompt.domain.semantic.SemanticFitLevel;
@@ -17,17 +19,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-/** 카테고리·Intent 기반 시맨틱 검증 */
+/** 카테고리·Intent 기반 시맨틱 검증. Action 호환성은 canonical 기준으로 비교. */
 @Service
 public class SemanticValidationService {
+
+    private final CanonicalActionRegistry canonicalActionRegistry;
+
+    public SemanticValidationService(CanonicalActionRegistry canonicalActionRegistry) {
+        this.canonicalActionRegistry = canonicalActionRegistry;
+    }
 
     private static final Set<String> INVALID_CODES = Set.of(
             "MISSING_PROFILE", "INVALID_INTENT_FOR_CATEGORY",
             "INTENT_FORBIDDEN_FOR_CATEGORY", "FORBIDDEN_COMBINATION"
     );
-
-    public SemanticValidationService() {
-    }
 
     public record ValidationInput(
             org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory category,
@@ -180,10 +185,10 @@ public class SemanticValidationService {
         }
 
         if (input.actionType() != null && input.resolvedIntent() != null) {
-            List<ActionTypeInterface> compatible =
-                    input.profile().getCompatibleActionsForIntent(input.resolvedIntent());
-            if (!compatible.isEmpty()) {
-                boolean match = compatible.stream().anyMatch(a -> sameAction(a, input.actionType()));
+            List<CanonicalActionId> compatibleCanonical = input.profile().getCompatibleCanonicalActionsForIntent(input.resolvedIntent());
+            if (!compatibleCanonical.isEmpty()) {
+                var inputCanonical = canonicalActionRegistry.toCanonical(input.actionType());
+                boolean match = inputCanonical.isPresent() && compatibleCanonical.contains(inputCanonical.get());
                 if (!match) {
                     items.add(new SemanticValidationResult.SemanticValidationItem(
                             "ACTION_MAY_NOT_MATCH_INTENT",
@@ -191,6 +196,19 @@ public class SemanticValidationService {
                             "action_type",
                             null
                     ));
+                }
+            } else {
+                List<ActionTypeInterface> compatible = input.profile().getCompatibleActionsForIntent(input.resolvedIntent());
+                if (!compatible.isEmpty()) {
+                    boolean match = compatible.stream().anyMatch(a -> canonicalActionRegistry.sameCanonicalCapability(a, input.actionType()));
+                    if (!match) {
+                        items.add(new SemanticValidationResult.SemanticValidationItem(
+                                "ACTION_MAY_NOT_MATCH_INTENT",
+                                "Selected action may not match intent " + input.resolvedIntent() + " for category " + input.profile().getCategory() + "; profile recommends actions for this branch.",
+                                "action_type",
+                                null
+                        ));
+                    }
                 }
             }
         }
@@ -217,10 +235,6 @@ public class SemanticValidationService {
     }
 
     private static boolean sameRole(RoleTypeInterface a, RoleTypeInterface b) {
-        return a != null && b != null && a.key().equals(b.key());
-    }
-
-    private static boolean sameAction(ActionTypeInterface a, ActionTypeInterface b) {
         return a != null && b != null && a.key().equals(b.key());
     }
 }
