@@ -4,24 +4,24 @@
 
 ## 1. 전체 평가 요약
 
-이 패키지는 **역할/액션/카테고리/출력/시맨틱**을 일관된 계약(StableKeyedEnum, RoleTypeInterface, ActionTypeInterface)과 레지스트리·역직렬화기로 묶어 도메인 정체성을 명확히 하려 한 설계다. EnumCompatParser로 legacy name과 stable key를 동시에 수용하는 점, output을 action에서 분리한 점, role/action을 카테고리별 enum으로 쪼갠 점은 의도가 읽힌다. **세 곳(Deserializer 목록, ActionTypeBehaviorRegistry instanceof, 실제 enum 클래스)을 반드시 동기화해야 하는 구조**이며, 과거에 `MarketingActionType`이 Registry 분기에 누락되어 `getOutputBehavior()` 호출 시 예외가 나던 사례가 있었으나 **현재는 ActionTypeBehaviorRegistry에 상수별 분기로 반영되어 해결된 상태**다. **과설계 여부**: “완전한 과설계”라기보다 **동기화 책임이 분산된 준(準)과설계**에 가깝다. 복잡도 자체보다 “enum 추가 시 반드시 수정해야 할 지점이 3곳 이상”인 것이 가장 위험하다. 결론부터 말하면, **동일한 누락 패턴이 재발하지 않도록 테스트·문서로 강제할 필요가 있으며**, 70개에 가까운 enum 클래스 규모에서 리스트/instanceof 기반 설계는 한계에 도달했다.
+이 패키지는 **역할/액션/카테고리/출력/시맨틱**을 일관된 계약(StableKeyedEnum, RoleTypeInterface, ActionTypeInterface)과 역직렬화기로 묶어 도메인 정체성을 명확히 하려 한 설계다. EnumCompatParser로 legacy name과 stable key를 동시에 수용하는 점, output을 action에서 분리한 점, role/action을 카테고리별 enum으로 쪼갠 점은 의도가 읽힌다. **현재는 각 ActionType enum이 자체 OutputBehaviorType을 보유**하며, **동기화가 필요한 곳은 Deserializer 목록과 실제 enum 클래스 두 곳**이다. 과거에는 ActionTypeBehaviorRegistry의 instanceof 분기 누락(예: MarketingActionType)으로 `getOutputBehavior()` 호출 시 예외가 나던 사례가 있었으나 **Registry를 제거하고 ActionType별 출력 동작 보유 구조로 전환하여 해결된 상태**다. **과설계 여부**: “완전한 과설계”라기보다 **과거에는 동기화 책임이 분산된 준(準)과설계**에 가까웠고, Registry 제거 후에는 “enum 추가 시 Deserializer + enum 클래스 두 곳 수정”으로 완화되었다. 70개에 가까운 enum 규모에서 **Deserializer 하드코딩 목록**만은 여전히 누락 위험이 있으므로 테스트·문서로 강제할 필요가 있다.
 
 ---
 
 ## 2. 가장 위험한 구조적 문제 3가지
 
-### 2.1 Deserializer · Registry · Enum 클래스의 3중 목록 불일치
+### 2.1 Deserializer · Enum 클래스의 이중 목록 불일치
 
 **문제가 되는 구조**
 
-- `ActionTypeDeserializer.ACTION_TYPE_ENUMS`: 27개 ActionType enum 클래스 하드코딩.
-- `ActionTypeBehaviorRegistry.resolveBehavior()`: Deserializer에 등록된 각 ActionType enum에 대해 `instanceof`(및 필요 시 상수별 switch) 분기가 있어야 한다. **과거 사례(해결됨):** `MarketingActionType`에 대한 분기가 없어 `getOutputBehavior()` 호출 시 예외가 났으나, 현재는 Registry에 상수별 분기로 반영되어 있음.
-- 새 ActionType enum을 추가하면 (1) 새 enum 클래스, (2) Deserializer 리스트, (3) Registry의 `instanceof` + 반환값 — 세 곳을 모두 수정해야 한다.
+- `ActionTypeDeserializer.ACTION_TYPE_ENUMS`: ActionType enum 클래스 하드코딩. 새 enum을 추가하면 이 목록에 반드시 추가해야 역직렬화된다.
+- **현재**: 각 ActionType enum이 `ActionTypeInterface.getOutputBehavior()`를 구현하며, 상수별로 OutputBehaviorType을 보유한다. ActionTypeBehaviorRegistry는 **제거된 상태**이며, "행동" 매핑은 enum 메타데이터로만 관리된다.
+- 새 ActionType enum을 추가하면 (1) 새 enum 클래스(생성자에 outputBehavior 포함), (2) Deserializer 리스트 — 두 곳을 수정해야 한다.
 
 **왜 위험한지**
 
-- 한 곳이라도 빠지면 **런타임 실패**가 난다. Deserializer에만 넣고 Registry를 잊으면 JSON은 파싱되지만 `actionType.getOutputBehavior()` 호출 시 `IllegalArgumentException("Unmapped ActionTypeInterface: ...")` 발생.
-- **과거 발생 사례(해결됨):** `MarketingActionType`은 Deserializer에는 포함되어 있었으나 Registry에 분기가 없어, 마케팅 액션 요청 시 역직렬화 후 `getOutputBehavior()` 호출 시점에 예외가 났다. 현재는 ActionTypeBehaviorRegistry에 `MarketingActionType` 상수별 분기(MARKET_RESEARCH/CUSTOMER_ANALYSIS → ANALYTICAL_REPORT, AD_CAMPAIGN/CONTENT_MARKETING/INFLUENCER_MARKETING → LONG_FORM_WRITING, 그 외 → STRATEGIC_PLAN)가 추가되어 해결된 상태다.
+- Deserializer 목록에만 넣지 않으면 JSON이 해당 타입으로 역직렬화되지 않아 400/500 또는 런타임 예외가 난다. 반대로 enum은 추가했는데 Deserializer에 등록을 잊는 누락이 발생할 수 있다.
+- **과거 사례(해결됨):** Registry 시절에는 `MarketingActionType`이 Deserializer에는 있었으나 Registry 분기가 없어 `getOutputBehavior()` 호출 시 예외가 났다. Registry 제거 후에는 해당 문제는 재발하지 않는다.
 
 **나중에 왜 터지는지**
 
@@ -31,7 +31,7 @@
 
 - 신규 ActionType 카테고리 추가 시. (과거에는 사용 빈도가 낮았던 `MarketingActionType`에서 동일한 누락이 발생했으나, 현재는 해결됨.)
 
-**심각도**: **높음** (과거 사례는 해결됨; 동일 패턴 재발 방지를 위해 Deserializer–Registry 동기화를 테스트로 강제할 필요 있음)
+**심각도**: **중간** (Registry 제거로 "3중 동기화"는 "2중"으로 줄었음; Deserializer 목록 누락만 방지하면 됨)
 
 ---
 
@@ -41,7 +41,7 @@
 
 - **CoreRoleType**: `StableKeyedEnum`만 구현. 엔진용 “코어 역할”.
 - **DomainRoleType** (metadata): `RoleTypeInterface`·`StableKeyedEnum` 모두 미구현. 상수만 있는 단순 enum. **`RoleTypeDeserializer.ROLE_TYPE_ENUMS`에 포함되지 않음.**
-- **category 하위 *RoleType** (18개 클래스): `RoleTypeInterface` 구현, 대부분 `StableKeyedEnum`도 구현(일부는 인터페이스 상속으로만 key 제공).
+- **category 하위 *RoleType** (18개 클래스): `RoleTypeInterface`만 구현. key는 `RoleTypeInterface`가 `StableKeyedEnum`을 상속하여 제공하므로, 별도 `StableKeyedEnum` 구현은 하지 않음.
 
 즉, “역할”이라는 한 개념이 **엔진용 코어 / 메타데이터용 도메인 / API·역직렬화용 카테고리** 세 갈래로 나뉘어 있고, DomainRoleType은 역직렬화 경로에조차 없다.
 
@@ -98,8 +98,8 @@
 
 1. **역할/액션 identity에 display·i18n을 직접 묶은 것**  
    `RoleTypeInterface`에 getRoleNameKo/En/Ja, getDescriptionKo/En/Ja가 있고, 각 enum이 6개 문자열을 생성자로 받는다. 언어가 하나 늘어나면 모든 RoleType enum 생성자와 호출부를 건드린다. “식별자”와 “표시용 메타데이터”를 한 인터페이스에 넣어서 확장 비용이 커진다.
-2. **ActionTypeBehaviorRegistry의 24개 instanceof**  
-   새 ActionType 추가 시 반드시 여기 분기 추가가 필요하고, 이미 MarketingActionType 누락으로 런타임 오류가 나는 상태. “행동”을 enum 타입 이름에 따라 나열하는 방식은 enum 개수가 70개에 가까워진 시점에서 유지보수 한계가 드러난다.
+2. **ActionTypeBehaviorRegistry의 24개 instanceof (해결됨)**  
+   과거에는 새 ActionType 추가 시 Registry에 분기 추가가 필요했고, MarketingActionType 분기 누락으로 런타임 오류가 났다. **현재는 ActionTypeBehaviorRegistry를 제거하고, 각 ActionType enum이 상수별로 OutputBehaviorType을 보유하는 구조**로 변경되어, “행동”을 "행동" 매핑은 enum 메타데이터로만 관리되며 해당 유지보수 한계는 해소된 상태다.
 3. **Deserializer의 하드코딩된 enum 클래스 리스트**  
    새 enum 클래스를 만들면 Deserializer 리스트에 추가하는 것을 사람이 기억해야 한다. 컴파일 타임에 “이 인터페이스를 구현한 모든 enum”을 쓰는 구조가 아니라, “이 목록에 있는 것만 역직렬화”라서 누락이 발생한다.
 
@@ -115,7 +115,7 @@
 **결론**
 
 - **“부분 단순화” + “동기화 지점 일원화”가 필요하다.**  
-  “지금 당장 전면 재설계”까지는 아니지만, **Deserializer/Registry/실제 enum의 3중 목록을 유지하는 현재 방식은 유지하면 안 되고**, ActionTypeBehaviorRegistry는 instanceof 목록이 아니라 enum 메타데이터 또는 명시적 등록 구조로 바꾸는 방향이 맞다.  
+  “지금 당장 전면 재설계”까지는 아니지만, **Deserializer와 실제 enum의 이중 목록**만 유지하면 된다. ActionTypeBehaviorRegistry는 이미 제거되었고, "행동"은 각 ActionType enum이 OutputBehaviorType을 보유하는 방식으로 이전된 상태다.  
   정리하면: **과설계라기보다 “동기화가 분산된 설계”가 문제**이고, 그 동기화 비용을 줄이는 방향으로의 단순화가 필요하다.
 
 ---
@@ -125,29 +125,29 @@
 ### 대규모 enum 체계에서 흔한 붕괴 패턴
 
 - **역직렬화/직렬화와 실제 enum 집합 불일치**: “새 enum은 추가했는데 역직렬화 목록에 안 넣었다” → 특정 값만 400/500 또는 런타임 예외.
-- **행동 매핑 레지스트리 누락**: “이 enum은 어떤 OutputBehaviorType으로?”를 사람이 매번 추가해야 해서, 한 곳이라도 빠지면 위와 같이 `getOutputBehavior()` 등에서 예외.
-- **문서/스펙과 코드 드리프트**: API 스펙에는 “지원하는 role/action 목록”이 있는데, 실제 Deserializer/Registry 목록과 달라짐.
+- **행동 매핑 레지스트리 누락 (해결됨)**: “이 enum은 어떤 OutputBehaviorType으로?”를 사람이 매번 추가해야 해서, 과거에는 Registry 분기 누락 시 `getOutputBehavior()`에서 예외가 났으나, 현재는 각 ActionType enum이 OutputBehaviorType을 보유하여 해당 문제는 제거된 상태.
+- **문서/스펙과 코드 드리프트**: API 스펙에는 “지원하는 role/action 목록”이 있는데, 실제 Deserializer 목록과 달라짐.
 - **key vs name() 혼용**: 클라이언트는 key로 보내는데 서버는 name()으로만 비교하거나, 그 반대. EnumCompatParser가 있더라도 “어떤 필드가 key고 어떤 필드가 name인지” 스펙이 흐리면 불일치 발생.
 
 ### 이 코드베이스에서 이미 보이는 초기 징후
 
-- **ActionTypeBehaviorRegistry에 MarketingActionType 분기 없음** → 역직렬화는 되지만 `getOutputBehavior()`에서 `IllegalArgumentException`. “레지스트리와 역직렬화 목록 동기화”가 이미 깨진 사례.
+- **과거 사례(해결됨):** ActionTypeBehaviorRegistry에 MarketingActionType 분기가 없어 역직렬화는 되지만 `getOutputBehavior()`에서 `IllegalArgumentException`. “레지스트리와 역직렬화 목록 동기화”가 이미 깨진 사례.
 - **RoleTypeDeserializer.ROLE_TYPE_ENUMS**에 17개 클래스가 하드코딩. 여기에 없는 RoleType을 JSON에 넣으면 `EnumResolver.resolve`에서 `IllegalArgumentException("Unknown enum value: ...")`. 새 RoleType 추가 시 이 리스트를 수동으로 갱신해야 함.
 
 ### 아직은 괜찮지만 위험 신호인 부분
 
 - **ActionType key() 구현 방식 불일치**: `ActionTypeInterface`는 `StableKeyedEnum`을 상속하지 않고, 각 enum이 `key()`를 직접 구현. WritingActionType은 `stableKey` 필드를 두고, MarketingActionType은 `"ACTION.MARKETING." + name()`로 조합. 패턴이 통일되지 않아, 나중에 key 규칙을 바꿀 때 모든 ActionType을 검토해야 함.
-- **RoleType**: 일부는 `implements RoleTypeInterface, StableKeyedEnum`, 일부는 `implements RoleTypeInterface`만. 동작은 RoleTypeInterface default key()로 통일되지만, 선언이 혼재해 “어떤 것이 계약인가”가 한눈에 안 들어옴.
+- **RoleType**: category 하위 *RoleType은 모두 `RoleTypeInterface`만 구현하며, key는 인터페이스 상속(RoleTypeInterface extends StableKeyedEnum)으로 제공. 확장 규칙이 정리된 상태.
 
 ### 문서/레지스트리/직렬화/매핑 불일치가 장기적으로 생기는 경로
 
-- 새 카테고리/역할/액션 추가 시: (1) enum 클래스, (2) Deserializer 리스트, (3) ActionTypeBehaviorRegistry 분기, (4) 필요 시 DefaultCategorySemanticProfileRegistry 등록, (5) API 문서. 다섯 곳 중 하나라도 빠지면 “지원한다고 문서에 썼는데 동작 안 함” 또는 “동작은 하는데 문서에 없음”이 됨.
+- 새 카테고리/역할/액션 추가 시: (1) enum 클래스, (2) Deserializer 리스트, (3) 필요 시 DefaultCategorySemanticProfileRegistry 등록, (4) API 문서. 네 곳 중 하나라도 빠지면 “지원한다고 문서에 썼는데 동작 안 함” 또는 “동작은 하는데 문서에 없음”이 됨.
 - EXTRACTION처럼 “프로필 없이 resolver 분기로만 처리”하는 케이스가 늘면, “어떤 카테고리가 레지스트리 기반이고 어떤 것이 분기 기반인지”가 코드만으로는 파악하기 어려워짐.
 
 ### 신규 개발자가 가장 헷갈릴 지점
 
 - **역할을 넣을 곳**: CoreRoleType / DomainRoleType / category 하위 *RoleType 중 어디에 넣어야 하는지, 그리고 DomainRoleType은 역직렬화에 안 타는지.
-- **액션 추가 절차**: enum만 만들면 안 되고, Deserializer + ActionTypeBehaviorRegistry를 반드시 같이 수정해야 한다는 것을 코드 구조만 보고는 놓치기 쉬움.
+- **액션 추가 절차**: enum만 만들면 안 되고, Deserializer 리스트에 반드시 추가해야 한다는 것을 코드 구조만 보고는 놓치기 쉬움.
 - **EXTRACTION**: PromptCategory에는 있는데, CategorySemanticProfile 레지스트리에는 없고, 별도 `resolveExtraction()`으로만 처리된다는 사실.
 
 ---
@@ -164,24 +164,22 @@
 ### RoleTypeInterface / ActionTypeInterface
 
 - **RoleTypeInterface**: StableKeyedEnum 상속, keyPrefix() + default key(), getRoleName*/getDescription* (Ko/En/Ja) 6개 + getRoleNameByLang/getDescriptionByLang. display/설명이 인터페이스에 직접 포함.
-- **ActionTypeInterface**: StableKeyedEnum 미상속. key(), getDisplayName*(Ko/En/Ja), getTaskDomain(), getDefaultObjective()(deprecated), getOutputBehavior()(기본 구현이 Registry 호출).
-- **장점**: RoleType은 key 규칙을 keyPrefix()로 통일했고, ActionType은 행동을 Registry에 위임한 점은 책임 분리 측면에서 나쁘지 않음.
+- **ActionTypeInterface**: StableKeyedEnum 미상속. key(), getDisplayName*(Ko/En/Ja), getTaskDomain(), getDefaultObjective()(deprecated), getOutputBehavior()(각 enum이 OutputBehaviorType 보유).
+- **장점**: RoleType은 key 규칙을 keyPrefix()로 통일했고, ActionType은 행동을 enum 메타데이터로 보유하는 점은 응집도 측면에서 나쁘지 않음.
 - **문제점**: (1) RoleType의 6개 display 메서드는 언어 추가 시 모든 구현체 수정. (2) ActionType은 key()를 구현체마다 다르게 구현(필드 vs 문자열 조합). (3) ActionTypeInterface가 StableKeyedEnum을 extends 하지 않아, “key를 쓰는 모든 것”을 한 계약으로 다루기 어렵다.
 - **방치 시 리스크**: 언어/로케일 확장 시 RoleType 수정 비용이 크고, ActionType key 규칙이 더 불일치해질 수 있음.
 
 ### DomainRoleType / CoreRoleType / category RoleType
 
-- **현재 상태**: CoreRoleType = 엔진용, StableKeyedEnum만. DomainRoleType = 메타/페르소나용, key·인터페이스 없음. category *RoleType = API/역직렬화용, RoleTypeInterface 구현.
+- **현재 상태**: CoreRoleType = 엔진용, StableKeyedEnum만. DomainRoleType = 메타/페르소나용, key·인터페이스 없음. category *RoleType = API/역직렬화용, RoleTypeInterface만 구현(key는 인터페이스가 StableKeyedEnum 상속으로 제공).
 - **장점**: 용도별로 역할을 나눈 의도는 읽힘.
 - **문제점**: 세 가지가 “역할”이라는 같은 이름을 쓰지만 역직렬화·계약·사용처가 다르고, 한곳에 “역할 계층/용도”가 정리되어 있지 않음. DomainRoleType이 Deserializer에 없어서, API에서 “role” 필드로 DomainRoleType 값을 받는 경로가 있다면 별도 처리 필요.
 - **방치 시 리스크**: 새 역할 타입 추가 시 Core/Domain/category 중 어디에 넣을지 혼란, 또는 중복 정의.
 
-### ActionTypeBehaviorRegistry
+### ActionTypeBehaviorRegistry (제거됨)
 
-- **현재 상태**: 정적 메서드 `resolveBehavior(ActionTypeInterface)` 하나. Deserializer에 등록된 각 ActionType에 대해 `instanceof`(및 일부는 상수별 switch, 예: MarketingActionType) 분기로 OutputBehaviorType 반환. MarketingActionType은 상수별 분기로 반영됨(해결됨).
-- **장점**: ActionType 수백 개 상수를 타입 단위로 묶어서 코어 행동으로 줄인 것은 이해 가능.
-- **문제점**: (1) 새 ActionType enum 추가 시 반드시 여기 분기 추가 필요. (2) Deserializer 목록과 완전히 별도로 관리되어 동기화가 사람 몫. (3) 과거에는 누락으로 런타임 오류가 있었으나 현재는 해결됨; 동일 패턴 재발 방지를 위해 커버리지 테스트 등으로 강제할 필요 있음.
-- **방치 시 리스크**: 액션 추가할 때마다 Registry 누락 가능, 테스트가 모든 액션을 커버하지 않으면 프로덕션에서만 터짐.
+- **과거 상태**: 정적 메서드 `resolveBehavior(ActionTypeInterface)`로 Deserializer에 등록된 각 ActionType에 대해 `instanceof`·상수별 switch 분기로 OutputBehaviorType을 반환했음. 새 ActionType 추가 시마다 분기 추가가 필요했고, MarketingActionType 누락 등으로 런타임 오류가 발생한 사례가 있었음.
+- **현재**: ActionTypeBehaviorRegistry는 **제거되었고**, 각 ActionType enum이 상수별로 OutputBehaviorType을 보유한다. "행동" 매핑은 enum 메타데이터로만 관리되며, Deserializer 목록과 enum 클래스 두 곳만 동기화하면 된다.
 
 ### serializer/* (EnumResolver, EnumCompatParser, RoleTypeDeserializer, ActionTypeDeserializer)
 
@@ -219,11 +217,11 @@
 
 ### 반드시 손봐야 하는 것
 
-1. **ActionTypeBehaviorRegistry–MarketingActionType (완료)**  
-   마케팅 액션 요청 시 getOutputBehavior()에서 예외가 나던 문제는 상수별 분기(MARKET_RESEARCH/CUSTOMER_ANALYSIS → ANALYTICAL_REPORT, AD_CAMPAIGN/CONTENT_MARKETING/INFLUENCER_MARKETING → LONG_FORM_WRITING, 그 외 → STRATEGIC_PLAN) 추가로 해결됨.
+1. **ActionTypeBehaviorRegistry (완료)**  
+   Registry를 제거하고 각 ActionType enum이 상수별 OutputBehaviorType을 보유하는 구조로 전환하여, getOutputBehavior() 누락 예외 문제를 해소함.
 
-2. **Deserializer/Registry/실제 enum 동기화를 한 곳으로 끌어오기**  
-   “새 ActionType 추가 시 수정할 곳”을 최대한 한 곳으로. 예: ActionType enum에 @OutputBehavior 같은 메타데이터를 두고 Registry는 리플렉션/등록 리스트로 자동 수집하거나, “등록 리스트 하나”를 만들어서 Deserializer와 Registry가 같은 소스를 참조하도록 변경. 최소한 “Registry 분기 누락”을 컴파일/테스트로 잡을 수 있게(예: 모든 ACTION_TYPE_ENUMS에 대해 resolveBehavior가 예외를 던지지 않음을 검증하는 테스트) 해야 함.
+2. **Deserializer/실제 enum 동기화**  
+   새 ActionType 추가 시 enum 클래스와 Deserializer 리스트 두 곳을 수정하면 됨. Deserializer 목록 누락을 테스트로 검증하는 것이 권장됨.
 
 3. **EXTRACTION 동작 문서화**  
    DefaultCategorySemanticProfileRegistry 또는 GenerationSemanticResolver에 “EXTRACTION은 CategorySemanticProfile 없이 resolveExtraction() 분기로만 처리된다”는 주석/문서 추가. EXTRACTION을 “프로필 없는 특수 카테고리”로 명시해, 나중에 비슷한 케이스 추가 시 정책을 재사용할 수 있게 함.
@@ -236,7 +234,7 @@
 
 ### 지금은 두어도 되는 것
 
-- **RoleType의 “implements RoleTypeInterface, StableKeyedEnum” vs “RoleTypeInterface”만**: 동작은 동일하므로 리팩터는 나중에 일괄 정리해도 됨. 다만 새로 만드는 RoleType은 RoleTypeInterface만 구현하도록 팀 규칙으로 두면 됨.
+- **RoleType**: category *RoleType은 이미 RoleTypeInterface만 구현하는 것으로 정리됨. 새 역할 추가 시에도 RoleTypeInterface만 구현하면 됨.
 - **ActionType key() 구현 방식 통일**(stableKey 필드 vs "ACTION.XXX." + name()): 당장 버그를 유발하지는 않으므로, 새 ActionType 추가 시 keyPrefix() 스타일로 통일하는 방향만 정해 두고 점진적으로 맞춰도 됨.
 - **guideline/i18n 구조**: 현재 수준이면 유지 가능. 다만 RoleType의 6개 display 메서드가 언어 추가 시 비용이 크다는 점만 인지하고, “언어 추가” 요구가 들어오면 그때 descriptor/i18n 키 기반으로 빼는 걸 검토하면 됨.
 - **패키지 재구성(예: role/action 카테고리 병합)**: 카테고리 수가 크게 늘지 않는 한, 현재 패키지 이름만으로도 위치 파악은 가능. “수정 지점 일원화”가 먼저이고, 패키지 구조 자체의 대대적 변경은 그 다음 검토해도 됨.
@@ -244,14 +242,14 @@
 **다시 손봐야 하는 조건**
 
 - 언어/로케일이 추가되면 RoleType display 메서드 확장 비용을 재평가하고, 필요 시 descriptor·i18n 키로 이전.
-- ActionType/역할 카테고리가 크게 늘어나면(예: 20개 이상 추가) Registry를 메타데이터·자동 등록 방식으로 전환하는 것을 반드시 검토.
+- ActionType/역할 카테고리가 크게 늘어나면(예: 20개 이상 추가) Deserializer 목록 자동 수집(리플렉션 등) 검토.
 - “프로필 없는 카테고리”가 EXTRACTION 외에 하나 더 생기면, “프로필 없음”을 명시적으로 표현하는 공통 패턴(예: Optional profile, resolver 분기 정책)을 도입하는 것이 좋음.
 
 ---
 
 ## 7. 최종 결론
 
-이 구조는 **“의도와 계약은 읽히지만, enum 추가·변경 시 동기화해야 할 지점이 여러 곳으로 흩어져 있는 구조”**다. **ActionTypeBehaviorRegistry–MarketingActionType 누락으로 런타임 오류가 나던 문제는 상수별 분기 추가로 해결된 상태**다.  
+이 구조는 **“의도와 계약은 읽히지만, enum 추가·변경 시 동기화해야 할 지점이 여러 곳으로 흩어져 있는 구조”**다. **ActionTypeBehaviorRegistry는 제거되었고, 각 ActionType이 OutputBehaviorType을 보유하는 방식으로 전환된 상태**다.  
 따라서 **“이미 복잡도가 과한 구조”**라기보다 **“복잡도는 감당 가능한데, 유지보수 지점이 분산되어 있어 팀 규모가 커지거나 enum이 더 늘어나면 위험한 구조”**에 가깝다.  
-즉, **지금은 버틸 수 있지만, Deserializer·Registry·enum 목록의 3중 동기화를 그대로 두고 계속 가면 팀이 커질수록 누락과 런타임 실패가 재발할 가능성이 높다.**  
-**“새 ActionType 추가 시 반드시 수정할 곳”을 한 곳으로 모으거나 테스트(커버리지)로 강제**하는 것을 진행하고, 그 다음 StableKeyedEnum 정책·EXTRACTION 문서화·역할 3분화 설명을 정리하는 순서를 권장한다.
+즉, **지금은 버틸 수 있지만, Registry 제거로 동기화는 Deserializer·enum 두 곳으로 완화됨.**  
+**새 ActionType 추가 시** enum 클래스와 Deserializer 리스트 두 곳만 수정하면 되며, Deserializer 목록 누락을 테스트로 강제하는 것을 권장한다. 그 다음 StableKeyedEnum 정책·EXTRACTION 문서화·역할 3분화 설명을 정리하는 순서를 권장한다.

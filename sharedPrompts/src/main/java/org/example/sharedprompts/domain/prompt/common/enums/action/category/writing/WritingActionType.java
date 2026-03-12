@@ -1,15 +1,14 @@
 package org.example.sharedprompts.domain.prompt.common.enums.action.category.writing;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.output.OutputBehaviorType;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 
 import java.util.Optional;
 
 @Getter
-@AllArgsConstructor
 public enum WritingActionType implements ActionTypeInterface, StableKeyedEnum {
     ARTICLE_WRITING("ACTION.WRITING.ARTICLE_WRITING", "기사 작성", "Article Writing", "記事執筆"),
     ESSAY_WRITING("ACTION.WRITING.ESSAY_WRITING", "에세이 작성", "Essay Writing", "エッセイ執筆"),
@@ -24,18 +23,42 @@ public enum WritingActionType implements ActionTypeInterface, StableKeyedEnum {
     LETTER_WRITING("ACTION.WRITING.LETTER_WRITING", "편지 작성", "Letter Writing", "手紙作成"),
     PERSONAL_LETTER("ACTION.WRITING.PERSONAL_LETTER", "개인 편지", "Personal Letter", "個人手紙"),
     BUSINESS_LETTER("ACTION.WRITING.BUSINESS_LETTER", "공식 편지", "Business Letter", "ビジネスレター"),
-    INVITATION_CARD("ACTION.WRITING.INVITATION_CARD", "초대장 작성", "Invitation Card", "招待状作成"),
-    THANK_YOU_CARD("ACTION.WRITING.THANK_YOU_CARD", "감사 카드", "Thank You Card", "お礼カード"),
-    CONGRATULATORY_MESSAGE("ACTION.WRITING.CONGRATULATORY_MESSAGE", "축하 메시지", "Congratulatory Message", "お祝いメッセージ"),
-    CONDOLENCE_MESSAGE("ACTION.WRITING.CONDOLENCE_MESSAGE", "조의 메시지", "Condolence Message", "お悔やみメッセージ"),
-    MESSAGE_WRITING("ACTION.WRITING.MESSAGE_WRITING", "메시지 작성", "Message Writing", "メッセージ作成"),
-    TEXT_MESSAGE("ACTION.WRITING.TEXT_MESSAGE", "문자 메시지", "Text Message", "テキストメッセージ"),
-    WHATSAPP_MESSAGE("ACTION.WRITING.WHATSAPP_MESSAGE", "왓츠앱 메시지", "WhatsApp Message", "WhatsAppメッセージ");
+    INVITATION_CARD("ACTION.WRITING.INVITATION_CARD", "초대장 작성", "Invitation Card", "招待状作成", OutputBehaviorType.SHORT_COPY),
+    THANK_YOU_CARD("ACTION.WRITING.THANK_YOU_CARD", "감사 카드", "Thank You Card", "お礼カード", OutputBehaviorType.SHORT_COPY),
+    CONGRATULATORY_MESSAGE("ACTION.WRITING.CONGRATULATORY_MESSAGE", "축하 메시지", "Congratulatory Message", "お祝いメッセージ", OutputBehaviorType.MESSAGE_COMPOSITION),
+    CONDOLENCE_MESSAGE("ACTION.WRITING.CONDOLENCE_MESSAGE", "조의 메시지", "Condolence Message", "お悔やみメッセージ", OutputBehaviorType.MESSAGE_COMPOSITION),
+    MESSAGE_WRITING("ACTION.WRITING.MESSAGE_WRITING", "메시지 작성", "Message Writing", "メッセージ作成", OutputBehaviorType.MESSAGE_COMPOSITION),
+    TEXT_MESSAGE("ACTION.WRITING.TEXT_MESSAGE", "문자 메시지", "Text Message", "テキストメッセージ", OutputBehaviorType.MESSAGE_COMPOSITION),
+    WHATSAPP_MESSAGE("ACTION.WRITING.WHATSAPP_MESSAGE", "왓츠앱 메시지", "WhatsApp Message", "WhatsAppメッセージ", OutputBehaviorType.MESSAGE_COMPOSITION);
 
     private final String stableKey;
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
+    private final OutputBehaviorType outputBehavior;
+
+    WritingActionType(
+            String stableKey,
+            String displayNameKo,
+            String displayNameEn,
+            String displayNameJa
+    ) {
+        this(stableKey, displayNameKo, displayNameEn, displayNameJa, OutputBehaviorType.LONG_FORM_WRITING);
+    }
+
+    WritingActionType(
+            String stableKey,
+            String displayNameKo,
+            String displayNameEn,
+            String displayNameJa,
+            OutputBehaviorType outputBehavior
+    ) {
+        this.stableKey = stableKey;
+        this.displayNameKo = displayNameKo;
+        this.displayNameEn = displayNameEn;
+        this.displayNameJa = displayNameJa;
+        this.outputBehavior = outputBehavior;
+    }
 
     @Override
     public String key() {
@@ -45,6 +68,11 @@ public enum WritingActionType implements ActionTypeInterface, StableKeyedEnum {
     @Override
     public Optional<TaskDomain> getTaskDomain() {
         return Optional.of(TaskDomain.CREATIVE);
+    }
+
+    @Override
+    public OutputBehaviorType getOutputBehavior() {
+        return outputBehavior;
     }
 }
 

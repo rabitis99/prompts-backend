@@ -14,8 +14,8 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
  *   <li>기본 출력 포맷(OutputFormat)</li>
  * </ul>
  *
- * <p>세부 ActionType enum들은 {@link org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface}
- * 의 {@code getOutputBehavior()}를 통해 이 타입으로 매핑된다.</p>
+ * <p>세부 ActionType enum들은 각 상수에 OutputBehaviorType을 보유하고
+ * {@link org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface#getOutputBehavior()}로 노출한다.</p>
  */
 @Getter
 @RequiredArgsConstructor

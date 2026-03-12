@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.prompt.common.enums.action;
 import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
 import org.example.sharedprompts.domain.prompt.common.enums.output.OutputBehaviorType;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolver;
 import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 
 import java.util.Optional;
@@ -11,9 +12,8 @@ import java.util.Optional;
  * ActionType 공통 인터페이스
  * 모든 ActionType enum이 구현해야 하는 공통 메서드 정의.
  *
- * <p><b>책임 분리:</b> Enums identify; registries define compatibility and defaults.
- * Display names are UI metadata (consider i18n/descriptor for future). TaskDomain is stable classification;
- * default objective and output behavior are resolved via {@link ActionTypeBehaviorRegistry} and
+ * <p><b>책임 분리:</b> Each ActionType enum owns its {@link #getOutputBehavior()}; display names are UI metadata;
+ * TaskDomain is stable classification. Default objective is resolved via
  * {@link org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistryPort}.</p>
  */
 public interface ActionTypeInterface {
@@ -52,16 +52,11 @@ public interface ActionTypeInterface {
 
     /**
      * 이 ActionType이 궁극적으로 요구하는 출력 행동(OutputBehaviorType)을 반환한다.
-     * <p>
-     * 기본 구현은 {@link ActionTypeBehaviorRegistry}를 통해
-     * enum 타입 기준의 거친 매핑을 수행한다.
-     * </p>
+     * Each ActionType enum defines this per constant; no external registry is used.
      *
      * @return 코어 출력 행동 타입
      */
-    default OutputBehaviorType getOutputBehavior() {
-        return ActionTypeBehaviorRegistry.resolveBehavior(this);
-    }
+    OutputBehaviorType getOutputBehavior();
 
     /**
      * 언어 타입에 따라 적절한 표시 이름을 반환하는 디폴트 메서드
