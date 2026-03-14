@@ -139,6 +139,7 @@ public class PromptSpecFactory {
         OutputContract outputContract = profile.outputContract(jsonSchema, constraints.getMaxLength());
         Optional<ActionGroup> actionGroup = canonicalActionRegistry != null
                 ? axes.actionGroup(canonicalActionRegistry)
+                        .or(() -> axes.actionType().flatMap(at -> Optional.ofNullable(at.getActionGroup())))
                 : axes.actionType().flatMap(at -> Optional.ofNullable(at.getActionGroup()));
         RuleContext ruleContext = RuleContext.of(
                 effectiveTaskDomain,

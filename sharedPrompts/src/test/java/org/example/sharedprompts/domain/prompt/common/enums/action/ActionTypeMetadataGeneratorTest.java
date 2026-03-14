@@ -30,6 +30,9 @@ class ActionTypeMetadataGeneratorTest {
         Map<String, String> keyToDomain = new TreeMap<>();
         ActionTypeMetadataLoader.loadKeyToDomain().forEach((k, v) -> keyToDomain.put(k, v.name()));
 
+        assertThat(keyToBehavior).isNotEmpty();
+        assertThat(keyToDomain).isNotEmpty();
+
         Path resourcesDir = Paths.get("src/main/resources");
         if (!Files.isDirectory(resourcesDir)) {
             resourcesDir = Paths.get("sharedPrompts/src/main/resources");
@@ -51,8 +54,5 @@ class ActionTypeMetadataGeneratorTest {
 
         Files.write(behaviorFile, behaviorLines);
         Files.write(domainFile, domainLines);
-
-        assertThat(keyToBehavior).isNotEmpty();
-        assertThat(keyToDomain).isNotEmpty();
     }
 }

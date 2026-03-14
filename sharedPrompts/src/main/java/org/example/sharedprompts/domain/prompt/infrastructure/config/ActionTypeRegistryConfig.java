@@ -23,10 +23,12 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ActionTypeRegistryConfig {
 
-    /** Clears the static holder on context shutdown so a second context in the same JVM can re-initialize. */
+    /** Clears the static holder on context shutdown only if it still holds this context's instances (safe for concurrent contexts). */
     @Bean
-    public DisposableBean actionTypeRegistryHolderLifecycle() {
-        return () -> ActionTypeRegistryHolder.clearForTest();
+    public DisposableBean actionTypeRegistryHolderLifecycle(
+            ActionTypeRegistry actionTypeRegistry,
+            ActionTypeResolver actionTypeResolver) {
+        return () -> ActionTypeRegistryHolder.clearIfMatching(actionTypeRegistry, actionTypeResolver);
     }
 
     @Bean
@@ -36,9 +38,7 @@ public class ActionTypeRegistryConfig {
 
     @Bean
     public ActionTypeRegistry actionTypeRegistry(ActionTypeCatalog catalog) {
-        ActionTypeRegistry registry = new ActionTypeRegistry(catalog.getActionTypeEnumClasses());
-        ActionTypeRegistryHolder.setRegistry(registry);
-        return registry;
+        return new ActionTypeRegistry(catalog.getActionTypeEnumClasses());
     }
 
     @Bean
@@ -50,10 +50,16 @@ public class ActionTypeRegistryConfig {
     public ActionTypeResolver actionTypeResolver(
             ActionTypeRegistry actionTypeRegistry,
             ActionTypeCompatibilityResolver actionTypeCompatibilityResolver) {
-        ActionTypeResolver resolver =
-                new DefaultActionTypeResolver(actionTypeRegistry, actionTypeCompatibilityResolver);
-        ActionTypeRegistryHolder.setResolver(resolver);
-        return resolver;
+        return new DefaultActionTypeResolver(actionTypeRegistry, actionTypeCompatibilityResolver);
+    }
+
+    /** Atomically initializes the Jackson deserialization holder after registry and resolver are available. */
+    @Bean
+    public Object actionTypeRegistryHolderInitializer(
+            ActionTypeRegistry actionTypeRegistry,
+            ActionTypeResolver actionTypeResolver) {
+        ActionTypeRegistryHolder.initialize(actionTypeRegistry, actionTypeResolver);
+        return Boolean.TRUE;
     }
 
     @Bean

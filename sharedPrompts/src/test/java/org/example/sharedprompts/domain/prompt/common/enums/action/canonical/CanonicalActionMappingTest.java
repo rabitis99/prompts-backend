@@ -30,13 +30,17 @@ class CanonicalActionMappingTest {
             new ActionTypeCompatibilityResolver(CATALOG_ENUMS));
     private final CanonicalActionRegistry registry = new DefaultCanonicalActionRegistry(ACTION_TYPE_REGISTRY);
 
+    private static void assertActionTypeEnumClass(Class<? extends Enum<?>> enumClass) {
+        assertThat(ActionTypeInterface.class.isAssignableFrom(enumClass))
+                .as("ACTION_ENUMS must contain only ActionTypeInterface enums: " + enumClass.getName())
+                .isTrue();
+    }
+
     @Test
     @DisplayName("every ActionType constant maps to a non-null action group")
     void everyActionTypeMapsToActionGroup() {
         for (Class<? extends Enum<?>> enumClass : CATALOG_ENUMS) {
-            assertThat(ActionTypeInterface.class.isAssignableFrom(enumClass))
-                    .as("ACTION_ENUMS must contain only ActionTypeInterface enums: " + enumClass.getName())
-                    .isTrue();
+            assertActionTypeEnumClass(enumClass);
             Enum<?>[] constants = enumClass.getEnumConstants();
             if (constants == null) continue;
             for (Enum<?> constant : constants) {
@@ -54,9 +58,7 @@ class CanonicalActionMappingTest {
     @DisplayName("findByKey returns same action group as toCanonical for every catalog key")
     void findByKeyMatchesToCanonical() {
         for (Class<? extends Enum<?>> enumClass : CATALOG_ENUMS) {
-            assertThat(ActionTypeInterface.class.isAssignableFrom(enumClass))
-                    .as("ACTION_ENUMS must contain only ActionTypeInterface enums: " + enumClass.getName())
-                    .isTrue();
+            assertActionTypeEnumClass(enumClass);
             for (Enum<?> constant : enumClass.getEnumConstants()) {
                 ActionTypeInterface action = (ActionTypeInterface) constant;
                 String key = action.key();
@@ -71,8 +73,8 @@ class CanonicalActionMappingTest {
     @DisplayName("sameCanonicalCapability is true for actions that map to same action group")
     void sameCanonicalCapability() {
         // EDITING and PROOFREADING both map to TEXT_REVISION
-        ActionTypeInterface a = ACTION_TYPE_RESOLVER.resolve("ACTION.WRITING.EDITING");
-        ActionTypeInterface b = ACTION_TYPE_RESOLVER.resolve("ACTION.WRITING.PROOFREADING");
+        ActionTypeInterface a = ACTION_TYPE_RESOLVER.resolve("ACTION.WRITING.EDITING").orElseThrow();
+        ActionTypeInterface b = ACTION_TYPE_RESOLVER.resolve("ACTION.WRITING.PROOFREADING").orElseThrow();
         assertThat(registry.sameCanonicalCapability(a, b)).isTrue();
         assertThat(registry.toCanonical(a)).contains(ActionGroup.TEXT_REVISION);
         assertThat(registry.toCanonical(b)).contains(ActionGroup.TEXT_REVISION);
@@ -83,9 +85,7 @@ class CanonicalActionMappingTest {
     void noDuplicateKeys() {
         Set<String> keys = new HashSet<>();
         for (Class<? extends Enum<?>> enumClass : CATALOG_ENUMS) {
-            assertThat(ActionTypeInterface.class.isAssignableFrom(enumClass))
-                    .as("ACTION_ENUMS must contain only ActionTypeInterface enums: " + enumClass.getName())
-                    .isTrue();
+            assertActionTypeEnumClass(enumClass);
             for (Enum<?> constant : enumClass.getEnumConstants()) {
                 String key = ((ActionTypeInterface) constant).key();
                 assertThat(keys.add(key)).as("Duplicate key: " + key).isTrue();

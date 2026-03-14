@@ -33,7 +33,7 @@ public final class ActionTypeMetadataLoader {
     private static <E extends Enum<E>> Map<String, E> loadKeyToEnum(String resource, Class<E> enumClass) {
         try (InputStream in = ActionTypeMetadataLoader.class.getClassLoader().getResourceAsStream(resource)) {
             if (in == null) {
-                return Collections.emptyMap();
+                throw new IllegalStateException("Missing action metadata resource: " + resource);
             }
             Properties props = new Properties();
             props.load(in);

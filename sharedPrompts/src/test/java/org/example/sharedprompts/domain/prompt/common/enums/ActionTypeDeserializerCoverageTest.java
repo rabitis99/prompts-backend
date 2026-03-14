@@ -5,8 +5,6 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.registry.Acti
 import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.ActionTypeCompatibilityResolver;
 import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.ActionTypeResolver;
 import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.DefaultActionTypeResolver;
-import org.example.sharedprompts.domain.prompt.infrastructure.serialization.ActionTypeRegistryHolder;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,7 +15,6 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 /**
  * Safety test: every ActionType enum must implement ActionTypeInterface, have valid keys,
@@ -35,11 +32,6 @@ class ActionTypeDeserializerCoverageTest {
         registry = new ActionTypeRegistry(catalog.getActionTypeEnumClasses());
         ActionTypeCompatibilityResolver compatibility = new ActionTypeCompatibilityResolver(catalog.getActionTypeEnumClasses());
         resolver = new DefaultActionTypeResolver(registry, compatibility);
-    }
-
-    @AfterEach
-    void tearDown() {
-        ActionTypeRegistryHolder.clearForTest();
     }
 
     @Test
@@ -95,25 +87,19 @@ class ActionTypeDeserializerCoverageTest {
             for (Enum<?> constant : constants) {
                 ActionTypeInterface actionType = (ActionTypeInterface) constant;
                 String key = actionType.key();
-                ActionTypeInterface resolved = assertDoesNotThrow(
-                        () -> resolver.resolve(key),
-                        "Resolving key " + key + " for " + enumClass.getSimpleName() + " must not throw"
-                );
+                ActionTypeInterface resolved = resolver.resolve(key)
+                        .orElseThrow(() -> new AssertionError("Resolving key " + key + " for " + enumClass.getSimpleName() + " must not be empty"));
                 assertThat(resolved)
                         .as("Key " + key + " should resolve back to " + enumClass.getSimpleName() + "." + constant.name())
                         .isSameAs(actionType);
 
-                ActionTypeInterface resolvedByLegacyName = assertDoesNotThrow(
-                        () -> resolver.resolve(constant.name()),
-                        "Resolving legacy name " + constant.name() + " for " + enumClass.getSimpleName() + " must not throw"
-                );
+                ActionTypeInterface resolvedByLegacyName = resolver.resolve(constant.name())
+                        .orElseThrow(() -> new AssertionError("Resolving legacy name " + constant.name() + " for " + enumClass.getSimpleName() + " must not be empty"));
                 assertThat(resolvedByLegacyName).isSameAs(actionType);
 
                 String qualifiedLegacyName = enumClass.getSimpleName() + "." + constant.name();
-                ActionTypeInterface resolvedByQualifiedLegacyName = assertDoesNotThrow(
-                        () -> resolver.resolve(qualifiedLegacyName),
-                        "Resolving legacy qualified name " + qualifiedLegacyName + " must not throw"
-                );
+                ActionTypeInterface resolvedByQualifiedLegacyName = resolver.resolve(qualifiedLegacyName)
+                        .orElseThrow(() -> new AssertionError("Resolving legacy qualified name " + qualifiedLegacyName + " must not be empty"));
                 assertThat(resolvedByQualifiedLegacyName).isSameAs(actionType);
             }
         }

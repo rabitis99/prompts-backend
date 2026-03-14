@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.prompt.common.enums.action.resolver;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -87,6 +88,11 @@ public final class ActionTypeCompatibilityResolver {
                     );
                 }
             }
+            // prefix matched but constant not found - likely a typo
+            throw new IllegalArgumentException(
+                    "Unknown constant '" + constantName + "' in enum " + enumSimpleName
+                            + ". Available: " + Arrays.toString(Arrays.stream(constants).map(Enum::name).toArray(String[]::new))
+            );
         }
         return null;
     }

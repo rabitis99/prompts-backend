@@ -31,7 +31,10 @@ public record RuleContext(
         );
     }
 
-    /** Action-group-first: use when capability drives rule selection or prompt assembly. */
+    /**
+     * Action-group-first: use when capability drives rule selection or prompt assembly.
+     * Precedence: explicit actionGroup, then actionType.getActionGroup() as fallback.
+     */
     public static RuleContext of(TaskDomain domain, String objectiveName, ActionTypeInterface actionType,
                                   ActionGroup actionGroup,
                                   boolean requiresStructuredOutput, boolean hasJsonSchema, String userInput) {

@@ -4,6 +4,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInt
 import org.example.sharedprompts.domain.prompt.common.enums.action.registry.ActionTypeRegistry;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /** ActionType 공식 해석: stable key 우선 → 실패 시 레거시 위임. 정책/메타/그룹 판단 없음. */
 public final class DefaultActionTypeResolver implements ActionTypeResolver {
@@ -17,19 +18,19 @@ public final class DefaultActionTypeResolver implements ActionTypeResolver {
     }
 
     @Override
-    public ActionTypeInterface resolve(String value) {
+    public Optional<ActionTypeInterface> resolve(String value) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("value must not be null or blank");
         }
         String trimmed = value.trim();
         ActionTypeInterface byStableKey = registry.getByStableKey(trimmed);
         if (byStableKey != null) {
-            return byStableKey;
+            return Optional.of(byStableKey);
         }
         try {
-            return compatibility.resolve(trimmed);
+            return Optional.of(compatibility.resolve(trimmed));
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Unknown action type value: " + value, e);
+            return Optional.empty();
         }
     }
 }

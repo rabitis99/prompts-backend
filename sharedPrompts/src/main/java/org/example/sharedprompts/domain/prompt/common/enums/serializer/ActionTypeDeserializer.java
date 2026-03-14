@@ -17,6 +17,7 @@ public class ActionTypeDeserializer extends JsonDeserializer<ActionTypeInterface
         if (value == null || value.isBlank()) {
             return EtcActionType.GENERAL_CONSULTATION;
         }
-        return ActionTypeRegistryHolder.getResolver().resolve(value);
+        return ActionTypeRegistryHolder.getResolver().resolve(value)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown action type: " + value));
     }
 }

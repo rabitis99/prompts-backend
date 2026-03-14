@@ -116,7 +116,7 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
 
     /** Builds action group capability map from concrete actions; primary internal capability layer. */
     private Map<ActionIntent, List<ActionGroup>> toActionGroupMap(Map<ActionIntent, List<ActionTypeInterface>> actions) {
-        if (canonicalActionRegistry == null || actions == null || actions.isEmpty()) return Map.of();
+        if (actions == null || actions.isEmpty()) return Map.of();
         Map<ActionIntent, List<ActionGroup>> out = new HashMap<>();
         for (Map.Entry<ActionIntent, List<ActionTypeInterface>> e : actions.entrySet()) {
             List<ActionGroup> groups = e.getValue().stream()

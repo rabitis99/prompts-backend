@@ -31,28 +31,36 @@ public final class ActionTypeRegistryHolder {
         return current;
     }
 
-    public static synchronized void setRegistry(ActionTypeRegistry registry) {
+    /**
+     * Initializes the holder atomically with both registry and resolver.
+     * Must not be called when already initialized.
+     */
+    public static synchronized void initialize(ActionTypeRegistry registry, ActionTypeResolver resolver) {
         Objects.requireNonNull(registry, "registry");
-        if (ActionTypeRegistryHolder.registry != null) {
-            throw new IllegalStateException("ActionTypeRegistry already initialized");
+        Objects.requireNonNull(resolver, "resolver");
+        if (ActionTypeRegistryHolder.registry != null || ActionTypeRegistryHolder.resolver != null) {
+            throw new IllegalStateException("ActionTypeRegistryHolder already initialized");
         }
         ActionTypeRegistryHolder.registry = registry;
-    }
-
-    public static synchronized void setResolver(ActionTypeResolver resolver) {
-        Objects.requireNonNull(resolver, "resolver");
-        if (ActionTypeRegistryHolder.resolver != null) {
-            throw new IllegalStateException("ActionTypeResolver already initialized");
-        }
         ActionTypeRegistryHolder.resolver = resolver;
     }
 
     /**
-     * Clears static state so the holder can be re-initialized (e.g. second Spring context in same JVM).
-     * Use in tests (@AfterEach) for isolation, and from context shutdown so a new context can set registry/resolver.
+     * Clears static state so the holder can be re-initialized (e.g. context shutdown, second Spring context in same JVM).
      */
-    public static synchronized void clearForTest() {
+    public static synchronized void clear() {
         registry = null;
         resolver = null;
+    }
+
+    /**
+     * Clears only if the holder still holds the given instances (safe for multiple ApplicationContexts in same JVM).
+     * Use from context shutdown so only the context that owns the current registry/resolver clears.
+     */
+    public static synchronized void clearIfMatching(ActionTypeRegistry registry, ActionTypeResolver resolver) {
+        if (ActionTypeRegistryHolder.registry == registry && ActionTypeRegistryHolder.resolver == resolver) {
+            ActionTypeRegistryHolder.registry = null;
+            ActionTypeRegistryHolder.resolver = null;
+        }
     }
 }
