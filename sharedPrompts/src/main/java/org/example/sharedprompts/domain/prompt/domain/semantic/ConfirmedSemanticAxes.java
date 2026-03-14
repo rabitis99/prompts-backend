@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.prompt.domain.semantic;
 
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionId;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.ActionGroup;
 import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
 import org.example.sharedprompts.domain.prompt.common.enums.experience.ExperienceLevel;
@@ -56,9 +56,9 @@ public record ConfirmedSemanticAxes(
         recommendationHints = recommendationHints != null ? List.copyOf(recommendationHints) : List.of();
     }
 
-    /** Resolve canonical action for prompt assembly / resolution. Use registry when building prompts. */
-    public Optional<CanonicalActionId> canonicalActionId(CanonicalActionRegistry registry) {
-        if (registry == null) return Optional.empty();
+    /** Resolve action group for prompt assembly / resolution. Use registry when building prompts. */
+    public Optional<ActionGroup> actionGroup(CanonicalActionRegistry registry) {
+        Objects.requireNonNull(registry, "registry");
         return actionType.flatMap(registry::toCanonical);
     }
 

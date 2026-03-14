@@ -1,74 +1,22 @@
 package org.example.sharedprompts.domain.prompt.common.enums.action;
 
-import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
-import org.example.sharedprompts.domain.prompt.common.enums.output.OutputBehaviorType;
-import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
-import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolver;
-import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.ActionGroup;
 
-import java.util.Optional;
-
-/**
- * ActionType 공통 인터페이스
- * 모든 ActionType enum이 구현해야 하는 공통 메서드 정의.
- *
- * <p><b>책임 분리:</b> Each ActionType enum owns its {@link #getOutputBehavior()}; display names are UI metadata;
- * TaskDomain is stable classification. Default objective is resolved via
- * {@link org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistryPort}.</p>
- */
+/** ActionType 공통 계약. stable key, 표시명, ActionGroup만 보유. 출력/도메인 정책은 별도 registry. */
 public interface ActionTypeInterface {
-    /**
-     * Stable identifier for serialization and equality.
-     */
+
+    /** 외부 계약용 안정 식별자 */
     String key();
 
+    /** 한국어 표시명 */
     String getDisplayNameKo();
+
+    /** 영어 표시명 */
     String getDisplayNameEn();
+
+    /** 일본어 표시명 */
     String getDisplayNameJa();
 
-    /**
-     * 이 ActionType이 속하는 TaskDomain을 반환한다.
-     * <ul>
-     *   <li>{@code Optional.of(X)} — 명시적으로 지정된 도메인</li>
-     *   <li>{@code Optional.empty()} — 매핑 누락 (빌드 타임 테스트가 강제)</li>
-     * </ul>
-     */
-    default Optional<TaskDomain> getTaskDomain() {
-        return Optional.empty();
-    }
-
-    /**
-     * 이 ActionType에 정책적으로 고정된 Objective가 있을 경우 반환한다.
-     * <p><b>Active resolution must not use this.</b> {@link ObjectiveResolver} uses
-     * {@link org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistryPort} only.
-     * Retained for compatibility; may be removed once all callers are removed.</p>
-     *
-     * @deprecated Policy belongs in registry. Use {@link org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistryPort#findByActionType(ActionTypeInterface)} for resolution.
-     */
-    @Deprecated(since = "enum-cleanup", forRemoval = true)
-    default PromptObjective getDefaultObjective() {
-        return null;
-    }
-
-    /**
-     * 이 ActionType이 궁극적으로 요구하는 출력 행동(OutputBehaviorType)을 반환한다.
-     * Each ActionType enum defines this per constant; no external registry is used.
-     *
-     * @return 코어 출력 행동 타입
-     */
-    OutputBehaviorType getOutputBehavior();
-
-    /**
-     * 언어 타입에 따라 적절한 표시 이름을 반환하는 디폴트 메서드
-     */
-    default String getDisplayNameByLang(LanguageType lang) {
-        if (lang == null) {
-            return getDisplayNameKo();
-        }
-        return switch (lang) {
-            case KOREAN -> getDisplayNameKo();
-            case ENGLISH -> getDisplayNameEn();
-            case JAPANESE -> getDisplayNameJa();
-        };
-    }
+    /** 상위 capability 그룹 */
+    ActionGroup getActionGroup();
 }

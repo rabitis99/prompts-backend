@@ -1,35 +1,11 @@
 package org.example.sharedprompts.domain.prompt.common.enums;
 
-import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeCatalog;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.analysis.AnalysisActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.business.BusinessActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.business.CareerActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.business.CustomerSupportActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.content_creation.ContentCreationActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.content_creation.EmailActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.content_creation.RecommendationActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.creative.CreativeActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.design.DesignActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.development.AiMlActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.development.CloudServicesActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.development.CodingActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.development.CybersecurityActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.development.DevOpsActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.development.DevelopmentActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.development.ProgrammingActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.education.EducationActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.etc.EtcActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.etc.HealthFitnessActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.etc.LifestyleActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.etc.SocialActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.marketing.MarketingActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.PersonalDevelopmentActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.ProductivityActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.ShoppingActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.research.ResearchActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.writing.WritingActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.serializer.EnumResolver;
+import org.example.sharedprompts.domain.prompt.common.enums.action.registry.ActionTypeRegistry;
+import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.ActionTypeCompatibilityResolver;
+import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.ActionTypeResolver;
+import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.DefaultActionTypeResolver;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -39,61 +15,43 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 /**
- * Safety test: every enum class in ActionTypeDeserializer.ACTION_TYPE_ENUMS must implement
- * ActionTypeInterface, have valid keys, work with EnumResolver, and have no duplicate keys
- * across enums (to avoid ambiguous resolution).
+ * Safety test: every ActionType enum must implement ActionTypeInterface, have valid keys,
+ * work with ActionTypeResolver (stable key + compatibility), and have no duplicate keys across enums.
  */
 @DisplayName("ActionTypeDeserializer coverage and contract")
 class ActionTypeDeserializerCoverageTest {
 
-    /**
-     * Independent allowlist of all ActionType enum classes that must be registered in ActionTypeCatalog.
-     * Keep in sync with {@link ActionTypeCatalog#ACTION_ENUMS}. If you add a new ActionType enum,
-     * add it here and to the catalog; if you add only to one, this test fails.
-     */
-    private static final List<Class<? extends Enum<?>>> EXPECTED_ACTION_TYPE_ENUMS = List.of(
-            ProductivityActionType.class,
-            DevelopmentActionType.class,
-            CloudServicesActionType.class,
-            DevOpsActionType.class,
-            CybersecurityActionType.class,
-            CodingActionType.class,
-            ProgrammingActionType.class,
-            AiMlActionType.class,
-            AnalysisActionType.class,
-            MarketingActionType.class,
-            ContentCreationActionType.class,
-            CreativeActionType.class,
-            EducationActionType.class,
-            ResearchActionType.class,
-            BusinessActionType.class,
-            CustomerSupportActionType.class,
-            EmailActionType.class,
-            DesignActionType.class,
-            WritingActionType.class,
-            EtcActionType.class,
-            HealthFitnessActionType.class,
-            SocialActionType.class,
-            CareerActionType.class,
-            LifestyleActionType.class,
-            PersonalDevelopmentActionType.class,
-            RecommendationActionType.class,
-            ShoppingActionType.class
-    );
+    private ActionTypeRegistry registry;
+    private ActionTypeResolver resolver;
 
-    @Test
-    @DisplayName("ActionTypeCatalog contains exactly the expected ActionType enums (independent of deserializer)")
-    void catalogMatchesExpectedActionTypeEnums() {
-        assertThat(ActionTypeCatalog.ACTION_ENUMS)
-                .as("ActionTypeCatalog.ACTION_ENUMS must match EXPECTED_ACTION_TYPE_ENUMS; add new enums to both")
-                .containsExactlyInAnyOrderElementsOf(EXPECTED_ACTION_TYPE_ENUMS);
+    @BeforeEach
+    void setUp() {
+        org.example.sharedprompts.domain.prompt.common.enums.action.catalog.ActionTypeCatalog catalog = DeserializerEnumTestUtils.getActionTypeCatalog();
+        registry = new ActionTypeRegistry(catalog.getActionTypeEnumClasses());
+        ActionTypeCompatibilityResolver compatibility = new ActionTypeCompatibilityResolver(catalog.getActionTypeEnumClasses());
+        resolver = new DefaultActionTypeResolver(registry, compatibility);
     }
 
     @Test
-    @DisplayName("every enum in ActionTypeCatalog implements ActionTypeInterface and has valid key()")
+    @DisplayName("registry size equals total ActionType constants from catalog (single source)")
+    void registrySizeMatchesCatalog() {
+        List<Class<? extends Enum<?>>> enumClasses = DeserializerEnumTestUtils.getActionTypeEnums();
+        int totalConstants = 0;
+        for (Class<? extends Enum<?>> c : enumClasses) {
+            if (ActionTypeInterface.class.isAssignableFrom(c)) {
+                Enum<?>[] constants = c.getEnumConstants();
+                if (constants != null) totalConstants += constants.length;
+            }
+        }
+        assertThat(registry.getAll())
+                .as("Registry must contain every action from catalog")
+                .hasSize(totalConstants);
+    }
+
+    @Test
+    @DisplayName("every enum implements ActionTypeInterface and has valid key()")
     void everyEnumImplementsActionTypeInterfaceAndHasValidKey() {
         List<Class<? extends Enum<?>>> enumClasses = DeserializerEnumTestUtils.getActionTypeEnums();
         for (Class<? extends Enum<?>> enumClass : enumClasses) {
@@ -115,8 +73,8 @@ class ActionTypeDeserializerCoverageTest {
     }
 
     @Test
-    @DisplayName("each constant key() round-trips via EnumResolver without throwing")
-    void eachConstantKeyRoundTripsViaEnumResolver() {
+    @DisplayName("each constant key() round-trips via ActionTypeResolver.resolve without throwing")
+    void eachConstantKeyRoundTripsViaRegistry() {
         List<Class<? extends Enum<?>>> enumClasses = DeserializerEnumTestUtils.getActionTypeEnums();
         for (Class<? extends Enum<?>> enumClass : enumClasses) {
             if (!ActionTypeInterface.class.isAssignableFrom(enumClass)) {
@@ -129,13 +87,20 @@ class ActionTypeDeserializerCoverageTest {
             for (Enum<?> constant : constants) {
                 ActionTypeInterface actionType = (ActionTypeInterface) constant;
                 String key = actionType.key();
-                ActionTypeInterface resolved = assertDoesNotThrow(
-                        () -> EnumResolver.resolve(key, enumClasses),
-                        "Resolving key " + key + " for " + enumClass.getSimpleName() + " must not throw"
-                );
+                ActionTypeInterface resolved = resolver.resolve(key)
+                        .orElseThrow(() -> new AssertionError("Resolving key " + key + " for " + enumClass.getSimpleName() + " must not be empty"));
                 assertThat(resolved)
                         .as("Key " + key + " should resolve back to " + enumClass.getSimpleName() + "." + constant.name())
                         .isSameAs(actionType);
+
+                ActionTypeInterface resolvedByLegacyName = resolver.resolve(constant.name())
+                        .orElseThrow(() -> new AssertionError("Resolving legacy name " + constant.name() + " for " + enumClass.getSimpleName() + " must not be empty"));
+                assertThat(resolvedByLegacyName).isSameAs(actionType);
+
+                String qualifiedLegacyName = enumClass.getSimpleName() + "." + constant.name();
+                ActionTypeInterface resolvedByQualifiedLegacyName = resolver.resolve(qualifiedLegacyName)
+                        .orElseThrow(() -> new AssertionError("Resolving legacy qualified name " + qualifiedLegacyName + " must not be empty"));
+                assertThat(resolvedByQualifiedLegacyName).isSameAs(actionType);
             }
         }
     }

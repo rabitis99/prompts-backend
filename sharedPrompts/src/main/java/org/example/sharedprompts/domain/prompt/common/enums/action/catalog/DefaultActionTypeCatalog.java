@@ -1,4 +1,4 @@
-package org.example.sharedprompts.domain.prompt.common.enums.action;
+package org.example.sharedprompts.domain.prompt.common.enums.action.catalog;
 
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.analysis.AnalysisActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.business.BusinessActionType;
@@ -30,22 +30,11 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.category.writ
 
 import java.util.List;
 
-/**
- * Central catalog of supported ActionType enum classes.
- * Single source of truth for deserializers and tests; adding a new ActionType
- * requires only (1) the enum class with its behavior and (2) registering it here.
- */
-public final class ActionTypeCatalog {
+/** 기본 ActionType 카탈로그. 등록·순서 명시. 순서 = registry/레거시 해석 순서(계약). */
+public final class DefaultActionTypeCatalog implements ActionTypeCatalog {
 
-    private ActionTypeCatalog() {
-    }
-
-    /**
-     * All ActionType enum classes used for JSON deserialization and coverage tests.
-     * Order may affect resolution when multiple enums could match; keep consistent with
-     * existing stable keys to preserve backward compatibility.
-     */
-    public static final List<Class<? extends Enum<?>>> ACTION_ENUMS = List.of(
+    /** 등록 enum 목록. 순서 변경 시 registry·compatibility 해석에 영향. */
+    private static final List<Class<? extends Enum<?>>> ENUM_CLASSES = List.of(
             ProductivityActionType.class,
             DevelopmentActionType.class,
             CloudServicesActionType.class,
@@ -74,4 +63,9 @@ public final class ActionTypeCatalog {
             RecommendationActionType.class,
             ShoppingActionType.class
     );
+
+    @Override
+    public List<Class<? extends Enum<?>>> getActionTypeEnumClasses() {
+        return ENUM_CLASSES;
+    }
 }

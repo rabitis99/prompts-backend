@@ -4,29 +4,26 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.common.enums.output.OutputBehaviorType;
-import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
-
-import java.util.Optional;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.ActionGroup;
 
 @Getter
 @AllArgsConstructor
 public enum DesignActionType implements ActionTypeInterface, StableKeyedEnum {
-    UI_DESIGN("UI 디자인", "UI Design", "UIデザイン", OutputBehaviorType.LONG_FORM_WRITING),
-    UX_DESIGN("UX 디자인", "UX Design", "UXデザイン", OutputBehaviorType.LONG_FORM_WRITING),
-    GRAPHIC_DESIGN("그래픽 디자인", "Graphic Design", "グラフィックデザイン", OutputBehaviorType.LONG_FORM_WRITING),
-    PRODUCT_DESIGN("제품 디자인", "Product Design", "製品デザイン", OutputBehaviorType.LONG_FORM_WRITING),
-    DESIGN_DOC("설계 문서", "Design Document", "設計文書", OutputBehaviorType.LONG_FORM_WRITING),
-    WIREFRAMING("와이어프레임", "Wireframing", "ワイヤーフレーム", OutputBehaviorType.LONG_FORM_WRITING),
-    PROTOTYPING("프로토타이핑", "Prototyping", "プロトタイピング", OutputBehaviorType.LONG_FORM_WRITING),
-    VISUAL_IDENTITY("비주얼 아이덴티티", "Visual Identity", "ビジュアルアイデンティティ", OutputBehaviorType.LONG_FORM_WRITING),
-    INTERACTION_DESIGN("인터랙션 디자인", "Interaction Design", "インタラクションデザイン", OutputBehaviorType.LONG_FORM_WRITING),
-    RESPONSIVE_DESIGN("반응형 디자인", "Responsive Design", "レスポンシブデザイン", OutputBehaviorType.LONG_FORM_WRITING);
+    UI_DESIGN("UI 디자인", "UI Design", "UIデザイン", ActionGroup.GENERAL_DESIGN),
+    UX_DESIGN("UX 디자인", "UX Design", "UXデザイン", ActionGroup.GENERAL_DESIGN),
+    GRAPHIC_DESIGN("그래픽 디자인", "Graphic Design", "グラフィックデザイン", ActionGroup.GENERAL_DESIGN),
+    PRODUCT_DESIGN("제품 디자인", "Product Design", "製品デザイン", ActionGroup.GENERAL_DESIGN),
+    DESIGN_DOC("설계 문서", "Design Document", "設計文書", ActionGroup.GENERAL_DESIGN),
+    WIREFRAMING("와이어프레임", "Wireframing", "ワイヤーフレーム", ActionGroup.GENERAL_DESIGN),
+    PROTOTYPING("프로토타이핑", "Prototyping", "プロトタイピング", ActionGroup.GENERAL_DESIGN),
+    VISUAL_IDENTITY("비주얼 아이덴티티", "Visual Identity", "ビジュアルアイデンティティ", ActionGroup.GENERAL_DESIGN),
+    INTERACTION_DESIGN("인터랙션 디자인", "Interaction Design", "インタラクションデザイン", ActionGroup.GENERAL_DESIGN),
+    RESPONSIVE_DESIGN("반응형 디자인", "Responsive Design", "レスポンシブデザイン", ActionGroup.GENERAL_DESIGN);
 
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
-    private final OutputBehaviorType outputBehavior;
+    private final ActionGroup actionGroup;
 
     @Override
     public String key() {
@@ -34,13 +31,8 @@ public enum DesignActionType implements ActionTypeInterface, StableKeyedEnum {
     }
 
     @Override
-    public Optional<TaskDomain> getTaskDomain() {
-        return Optional.of(TaskDomain.CREATIVE);
-    }
-
-    @Override
-    public OutputBehaviorType getOutputBehavior() {
-        return outputBehavior;
+    public ActionGroup getActionGroup() {
+        return actionGroup;
     }
 }
 

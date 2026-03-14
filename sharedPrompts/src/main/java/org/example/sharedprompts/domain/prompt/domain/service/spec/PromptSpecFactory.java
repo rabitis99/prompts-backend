@@ -18,7 +18,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionId;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.ActionGroup;
 import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.guideline.bundle.GuidelineBundle;
@@ -137,14 +137,15 @@ public class PromptSpecFactory {
         ExperienceLevel level = axes.experienceLevel() != null ? axes.experienceLevel() : ExperienceLevel.INTERMEDIATE;
         Constraints constraints = profile.constraints(level);
         OutputContract outputContract = profile.outputContract(jsonSchema, constraints.getMaxLength());
-        Optional<CanonicalActionId> canonicalActionId = canonicalActionRegistry != null
-                ? axes.canonicalActionId(canonicalActionRegistry)
-                : Optional.empty();
+        Optional<ActionGroup> actionGroup = canonicalActionRegistry != null
+                ? axes.actionGroup(canonicalActionRegistry)
+                        .or(() -> axes.actionType().flatMap(at -> Optional.ofNullable(at.getActionGroup())))
+                : axes.actionType().flatMap(at -> Optional.ofNullable(at.getActionGroup()));
         RuleContext ruleContext = RuleContext.of(
                 effectiveTaskDomain,
                 profile.objective().name(),
                 axes.actionType().orElse(null),
-                canonicalActionId.orElse(null),
+                actionGroup.orElse(null),
                 profile.supportsConstrainedDecoding(),
                 outputContract.hasJsonSchema(),
                 rawInput

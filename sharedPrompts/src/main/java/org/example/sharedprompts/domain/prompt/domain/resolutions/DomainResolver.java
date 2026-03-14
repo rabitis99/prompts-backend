@@ -1,8 +1,9 @@
 package org.example.sharedprompts.domain.prompt.domain.resolutions;
 
+import org.example.sharedprompts.domain.prompt.common.enums.action.registry.ActionDomainRegistry;
+import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
-import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 
 import java.util.Optional;
 
@@ -10,9 +11,18 @@ import java.util.Optional;
  * TaskDomain 결정 전용 도메인 서비스.
  *
  * <p>단일 책임: ActionType + PromptCategory → TaskDomain (및 폴백 여부).
+ * Domain classification is resolved via {@link ActionDomainRegistry}, not from ActionType enum.
  * Spring/로깅 의존 없음. 인스턴스는 {@link org.example.sharedprompts.domain.prompt.infrastructure.config.ResolutionConfig}에서 생성.
  */
 public class DomainResolver implements DomainResolverPort {
+
+    private final ActionDomainRegistry actionDomainRegistry;
+
+    public DomainResolver(ActionDomainRegistry actionDomainRegistry) {
+        this.actionDomainRegistry = java.util.Objects.requireNonNull(
+                actionDomainRegistry, "actionDomainRegistry"
+        );
+    }
 
     @Override
     public ResolvedDomain resolveDomain(ActionTypeInterface actionType, PromptCategory promptCategory) {
@@ -28,7 +38,7 @@ public class DomainResolver implements DomainResolverPort {
         if (actionType == null) {
             return new ResolvedDomain(TaskDomain.GENERAL, true, ResolutionSource.FALLBACK);
         }
-        Optional<TaskDomain> fromAction = actionType.getTaskDomain();
+        Optional<TaskDomain> fromAction = actionDomainRegistry.getTaskDomain(actionType);
         if (fromAction.isPresent() && fromAction.get() != TaskDomain.GENERAL) {
             return new ResolvedDomain(fromAction.get(), false, ResolutionSource.ACTION_TYPE);
         }

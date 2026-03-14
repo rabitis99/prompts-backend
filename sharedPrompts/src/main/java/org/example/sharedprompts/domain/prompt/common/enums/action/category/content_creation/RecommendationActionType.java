@@ -4,25 +4,22 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.common.enums.output.OutputBehaviorType;
-import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
-
-import java.util.Optional;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.ActionGroup;
 
 /** 추천/리뷰 관련 액션 타입 (content_creation 패키지에 배치). */
 @Getter
 @AllArgsConstructor
 public enum RecommendationActionType implements ActionTypeInterface, StableKeyedEnum {
-    BOOK_RECOMMENDATION("ACTION.RECOMMENDATION.BOOK_RECOMMENDATION", "도서 추천", "Book Recommendation", "本の推薦", OutputBehaviorType.LONG_FORM_WRITING),
-    MOVIE_RECOMMENDATION("ACTION.RECOMMENDATION.MOVIE_RECOMMENDATION", "영화 추천", "Movie Recommendation", "映画の推薦", OutputBehaviorType.LONG_FORM_WRITING),
-    RESTAURANT_RECOMMENDATION("ACTION.RECOMMENDATION.RESTAURANT_RECOMMENDATION", "맛집 추천", "Restaurant Recommendation", "レストラン推薦", OutputBehaviorType.LONG_FORM_WRITING),
-    PRODUCT_REVIEW("ACTION.RECOMMENDATION.PRODUCT_REVIEW", "제품 리뷰", "Product Review", "製品レビュー", OutputBehaviorType.LONG_FORM_WRITING);
+    BOOK_RECOMMENDATION("ACTION.RECOMMENDATION.BOOK_RECOMMENDATION", "도서 추천", "Book Recommendation", "本の推薦", ActionGroup.RECOMMENDATION),
+    MOVIE_RECOMMENDATION("ACTION.RECOMMENDATION.MOVIE_RECOMMENDATION", "영화 추천", "Movie Recommendation", "映画の推薦", ActionGroup.RECOMMENDATION),
+    RESTAURANT_RECOMMENDATION("ACTION.RECOMMENDATION.RESTAURANT_RECOMMENDATION", "맛집 추천", "Restaurant Recommendation", "レストラン推薦", ActionGroup.RECOMMENDATION),
+    PRODUCT_REVIEW("ACTION.RECOMMENDATION.PRODUCT_REVIEW", "제품 리뷰", "Product Review", "製品レビュー", ActionGroup.RECOMMENDATION);
 
     private final String stableKey;
     private final String displayNameKo;
     private final String displayNameEn;
     private final String displayNameJa;
-    private final OutputBehaviorType outputBehavior;
+    private final ActionGroup actionGroup;
 
     @Override
     public String key() {
@@ -30,12 +27,7 @@ public enum RecommendationActionType implements ActionTypeInterface, StableKeyed
     }
 
     @Override
-    public Optional<TaskDomain> getTaskDomain() {
-        return Optional.of(TaskDomain.GENERAL);
-    }
-
-    @Override
-    public OutputBehaviorType getOutputBehavior() {
-        return outputBehavior;
+    public ActionGroup getActionGroup() {
+        return actionGroup;
     }
 }

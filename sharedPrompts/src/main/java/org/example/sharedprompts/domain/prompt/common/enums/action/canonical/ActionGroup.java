@@ -1,0 +1,106 @@
+package org.example.sharedprompts.domain.prompt.common.enums.action.canonical;
+
+/**
+ * ActionType 상위 Capability 그룹. 구조: Category → Intent → ActionGroup → ActionType
+ *
+ * 가드레일: ActionGroup은 "수행 능력(capability)"만 의미한다.
+ * 금지: 출력 형식, 채널, 문서 유형, 도메인 버킷, 목적/지표.
+ * 예: CODE_GENERATION, TEXT_REVISION, MESSAGE_COMPOSITION (O) / BLOG_WRITING, EMAIL_WRITING (X)
+ * 상세: docs/action-taxonomy-architecture.md
+ */
+public enum ActionGroup {
+
+    // Writing & communication
+    LONG_FORM_WRITING,
+    SHORT_COPY,
+    SCRIPT_OR_MEDIA_WRITING,
+    MESSAGE_COMPOSITION,
+    TEXT_REVISION,
+    TECHNICAL_WRITING,
+
+    /** 단일 ActionType: TRANSLATION만 사용 */
+    TRANSLATION,
+
+    CREATIVE_WRITING,
+    LETTER_WRITING,
+    CAREER_DOCUMENT_WRITING,
+    REVIEW_OR_FEEDBACK_WRITING,
+
+    // 추천 / 설명 / 가이드
+    RECOMMENDATION,
+    EXPLANATION,
+    GUIDANCE,
+
+    // 기획·전략
+    GENERAL_PLANNING,
+    STRATEGY,
+    PROJECT_OR_BUSINESS_PLANNING,
+
+    // 분석·평가
+    DATA_ANALYSIS,
+    CODE_ANALYSIS,
+    RISK_ASSESSMENT,
+    EVALUATION_OR_AUDIT,
+
+    // 소프트웨어 엔지니어링·배포
+    CODE_GENERATION,
+    CODE_MODIFICATION,
+
+    /** 단일 ActionType: DEBUGGING만 사용 */
+    DEBUGGING,
+
+    SECURITY_IMPLEMENTATION,
+    THREAT_OR_INCIDENT_RESPONSE,
+    DELIVERY_AUTOMATION,
+    INFRASTRUCTURE_AS_CODE,
+    OBSERVABILITY,
+    PERFORMANCE_OPTIMIZATION,
+
+    // 리서치·교육·디자인·비즈니스
+    RESEARCH_METHODOLOGY,
+    EDUCATION_DESIGN,
+    GENERAL_DESIGN,
+    CREATIVE_CONCEPT,
+    PRESENTATION_OR_REPORT,
+    FINANCIAL_ANALYSIS,
+
+    // 고객 지원
+    FAQ_AND_KNOWLEDGE_BASE,
+    TICKET_HANDLING,
+    CUSTOMER_ONBOARDING,
+    COMPLAINT_RESPONSE,
+
+    // 마케팅
+    MARKETING_STRATEGY,
+    MARKETING_EXECUTION,
+
+    // 건강·웰니스
+    WORKOUT_PLANNING,
+    NUTRITION_GUIDANCE,
+    MENTAL_WELLNESS,
+    HEALTH_TRACKING,
+
+    // 라이프스타일·소셜
+    SOCIAL_OR_COMMUNITY,
+    PERSONAL_PRODUCTIVITY,
+
+    /** 단일 ActionType: INTERVIEW_PREPARATION만 사용 */
+    INTERVIEW_PREPARATION,
+
+    SHOPPING,
+
+    // 클라우드·플랫폼
+    CLOUD_DEPLOYMENT,
+    CLOUD_PLATFORM_ARCHITECTURE,
+    CLOUD_SECURITY,
+    CLOUD_NETWORKING,
+    CLOUD_COST_OPTIMIZATION,
+    DISASTER_RECOVERY,
+    CAPACITY_SCALING,
+
+    // AI·ML
+    MODEL_TRAINING,
+    MODEL_EVALUATION,
+    MODEL_DEPLOYMENT,
+    DATA_PREPARATION_FOR_ML
+}
