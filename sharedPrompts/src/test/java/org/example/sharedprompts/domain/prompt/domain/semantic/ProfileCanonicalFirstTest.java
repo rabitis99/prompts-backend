@@ -1,7 +1,9 @@
 package org.example.sharedprompts.domain.prompt.domain.semantic;
 
+import org.example.sharedprompts.domain.prompt.common.enums.DeserializerEnumTestUtils;
+import org.example.sharedprompts.domain.prompt.common.enums.action.registry.ActionTypeRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.writing.WritingActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionId;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.ActionGroup;
 import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.DefaultCanonicalActionRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
@@ -15,36 +17,37 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Verifies that profile registry and compatibility are canonical-first:
- * profiles expose compatible canonical actions per intent, and concrete actions
- * that share a canonical are treated as the same capability.
+ * Verifies that profile registry and compatibility are action-group-first:
+ * profiles expose compatible action groups per intent, and concrete actions
+ * that share an action group are treated as the same capability.
  */
-@DisplayName("Profile canonical-first behavior")
+@DisplayName("Profile action-group-first behavior")
 class ProfileCanonicalFirstTest {
 
-    private final CanonicalActionRegistry registry = new DefaultCanonicalActionRegistry();
+    private final ActionTypeRegistry actionTypeRegistry = new ActionTypeRegistry(DeserializerEnumTestUtils.getActionTypeEnums());
+    private final CanonicalActionRegistry registry = new DefaultCanonicalActionRegistry(actionTypeRegistry);
     private final DefaultCategorySemanticProfileRegistry profileRegistry =
-            new DefaultCategorySemanticProfileRegistry(registry);
+            new DefaultCategorySemanticProfileRegistry(registry, actionTypeRegistry);
 
     @Test
-    @DisplayName("profile returns non-empty canonical actions for intent when category has actions")
-    void profileExposesCanonicalActionsForIntent() {
+    @DisplayName("profile returns non-empty action groups for intent when category has actions")
+    void profileExposesActionGroupsForIntent() {
         var profile = profileRegistry.getProfile(PromptCategory.WRITING).orElseThrow();
-        List<CanonicalActionId> forGenerate = profile.getCompatibleCanonicalActionsForIntent(ActionIntent.GENERATE);
+        List<ActionGroup> forGenerate = profile.getCompatibleActionGroupsForIntent(ActionIntent.GENERATE);
         assertThat(forGenerate).isNotEmpty();
         assertThat(forGenerate).containsAnyOf(
-                CanonicalActionId.LONG_FORM_WRITING,
-                CanonicalActionId.CREATIVE_WRITING
+                ActionGroup.LONG_FORM_WRITING,
+                ActionGroup.CREATIVE_WRITING
         );
     }
 
     @Test
-    @DisplayName("concrete actions mapping to same canonical are both compatible for same intent")
-    void sameCanonicalTreatedAsCompatible() {
+    @DisplayName("concrete actions mapping to same action group are both compatible for same intent")
+    void sameActionGroupTreatedAsCompatible() {
         var profile = profileRegistry.getProfile(PromptCategory.WRITING).orElseThrow();
-        List<CanonicalActionId> forRewrite = profile.getCompatibleCanonicalActionsForIntent(ActionIntent.REWRITE);
+        List<ActionGroup> forRewrite = profile.getCompatibleActionGroupsForIntent(ActionIntent.REWRITE);
         assertThat(forRewrite).isNotEmpty();
-        CanonicalActionId textRevision = CanonicalActionId.TEXT_REVISION;
+        ActionGroup textRevision = ActionGroup.TEXT_REVISION;
         assertThat(forRewrite).contains(textRevision);
         assertThat(registry.toCanonical(WritingActionType.EDITING)).contains(textRevision);
         assertThat(registry.toCanonical(WritingActionType.PROOFREADING)).contains(textRevision);

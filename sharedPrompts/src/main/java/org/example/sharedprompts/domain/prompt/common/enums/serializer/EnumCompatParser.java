@@ -1,6 +1,7 @@
 package org.example.sharedprompts.domain.prompt.common.enums.serializer;
 
 import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
+import org.example.sharedprompts.global.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,18 +12,23 @@ import java.util.concurrent.ConcurrentMap;
  * Compatibility parser for enums that supports both legacy {@link Enum#name()}
  * values and new stable {@link StableKeyedEnum#key()} identifiers.
  *
- * <p>This allows us to:
+ * <p>This is <b>deserialization/compatibility infrastructure only</b>. It allows:
  * <ul>
- *   <li>continue accepting existing serialized enum names (backward compatible)</li>
- *   <li>start accepting stable keys as an alternative input format</li>
- *   <li>gradually migrate external systems to use stable keys without breaking APIs</li>
+ *   <li>continuing to accept existing serialized enum names (backward compatible)</li>
+ *   <li>accepting stable keys as an alternative input format</li>
+ *   <li>gradual migration of external systems to stable keys without breaking APIs</li>
  * </ul>
+ *
+ * <p>Parsing order is deterministic: legacy {@link Enum#name()} first, then
+ * {@link StableKeyedEnum#key()}. Input is trimmed before lookup; blank/null
+ * is rejected in STRICT mode and yields null in LENIENT mode.
  */
 public final class EnumCompatParser {
 
     /**
      * Per-enum-class index from stable key to enum constant.
-     * Built lazily and treated as immutable snapshots for each class.
+     * Built lazily; each snapshot is immutable. Duplicate stable keys
+     * within an enum class cause immediate failure at index build time.
      */
     private static final ConcurrentMap<Class<?>, Map<String, ? extends Enum<?>>> KEY_INDEX =
             new ConcurrentHashMap<>();
@@ -33,13 +39,13 @@ public final class EnumCompatParser {
     public enum Mode {
         /**
          * Accept both legacy enum names and stable keys.
-         * Unknown values result in {@code null}.
+         * Unknown or blank/null values result in {@code null}.
          */
         LENIENT,
 
         /**
          * Accept both legacy enum names and stable keys.
-         * Unknown values result in {@link IllegalArgumentException}.
+         * Unknown or blank/null values result in {@link IllegalArgumentException}.
          */
         STRICT
     }
@@ -54,47 +60,35 @@ public final class EnumCompatParser {
     /**
      * Parse an enum from either its legacy {@link Enum#name()} or its stable key.
      *
-     * @param value     serialized enum representation (name or key)
-     * @param enumClass enum type
-     * @param mode      strictness mode for unknown values
-     * @return resolved enum constant, or null in lenient mode when not found
+     * <p>Order: (1) legacy name lookup, (2) stable key lookup if the enum
+     * implements {@link StableKeyedEnum}. Unknown value: null in LENIENT,
+     * exception in STRICT.
+     *
+     * @param value     serialized enum representation (name or key); trimmed before lookup
+     * @param enumClass enum type (must be a real enum class)
+     * @param mode      strictness for unknown/blank values
+     * @return resolved enum constant, or null in LENIENT when not found or blank/null
      */
     public static <E extends Enum<E>> E parse(String value, Class<E> enumClass, Mode mode) {
-        if (enumClass == null) {
-            throw new IllegalArgumentException("enumClass must not be null");
-        }
-        if (mode == null) {
-            throw new IllegalArgumentException("mode must not be null");
-        }
-        if (value == null || value.isBlank()) {
-            if (mode == Mode.LENIENT) {
-                return null;
-            }
-            throw new IllegalArgumentException("value must not be null/blank");
+        validateEnumClass(enumClass);
+        validateMode(mode);
+
+        String normalized = normalizeValue(value);
+        if (normalized == null) {
+            return handleBlankOrNull(enumClass, mode);
         }
 
-        // 1) Try legacy Enum.name() first for backward compatibility
+        // 1) Legacy Enum.name() first — deterministic backward compatibility
         try {
-            return Enum.valueOf(enumClass, value);
+            return Enum.valueOf(enumClass, normalized);
         } catch (IllegalArgumentException ignored) {
+            // Not a legacy name; proceed to stable key lookup
         }
 
-        // 2) If enum implements StableKeyedEnum, try matching by key
+        // 2) Stable key lookup second — only for StableKeyedEnum types
         if (StableKeyedEnum.class.isAssignableFrom(enumClass)) {
-            @SuppressWarnings("unchecked")
-            Map<String, E> index = (Map<String, E>) KEY_INDEX.computeIfAbsent(enumClass, cls -> {
-                Map<String, E> map = new HashMap<>();
-                for (E constant : enumClass.getEnumConstants()) {
-                    StableKeyedEnum keyed = (StableKeyedEnum) constant;
-                    String key = keyed.key();
-                    if (key != null) {
-                        map.putIfAbsent(key, constant);
-                    }
-                }
-                return Map.copyOf(map);
-            });
-
-            E matched = index.get(value);
+            Map<String, E> index = getOrBuildStableKeyIndex(enumClass);
+            E matched = index.get(normalized);
             if (matched != null) {
                 return matched;
             }
@@ -103,8 +97,83 @@ public final class EnumCompatParser {
         if (mode == Mode.LENIENT) {
             return null;
         }
+        throw unknownValueException(normalized, enumClass, mode);
+    }
+
+    private static void validateEnumClass(Class<?> enumClass) {
+        if (enumClass == null) {
+            throw new IllegalArgumentException("enumClass must not be null");
+        }
+        if (!enumClass.isEnum()) {
+            throw new IllegalArgumentException(
+                    "enumClass must be an enum type: " + enumClass.getName());
+        }
+    }
+
+    private static void validateMode(Mode mode) {
+        if (mode == null) {
+            throw new IllegalArgumentException("mode must not be null");
+        }
+    }
+
+    /**
+     * Returns trimmed value, or null if input is null or blank after trim.
+     * Same normalization is used for blank check and for lookup.
+     */
+    private static String normalizeValue(String value) {
+        return StringUtils.trimToNull(value);
+    }
+
+    private static <E extends Enum<E>> E handleBlankOrNull(Class<E> enumClass, Mode mode) {
+        if (mode == Mode.LENIENT) {
+            return null;
+        }
         throw new IllegalArgumentException(
-                "Unknown enum value '" + value + "' for type " + enumClass.getName());
+                "value must not be null or blank for type " + enumClass.getName());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <E extends Enum<E>> Map<String, E> getOrBuildStableKeyIndex(Class<E> enumClass) {
+        return (Map<String, E>) KEY_INDEX.computeIfAbsent(enumClass, EnumCompatParser::buildStableKeyIndex);
+    }
+
+    /**
+     * Builds immutable stable-key → constant map. Constants with null key are
+     * skipped (resolvable only by legacy name). Duplicate non-null keys
+     * cause an immediate exception with enum class and conflicting constant names.
+     */
+    private static Map<String, ? extends Enum<?>> buildStableKeyIndex(Class<?> rawEnumClass) {
+        @SuppressWarnings("unchecked")
+        Class<? extends Enum<?>> enumClass = (Class<? extends Enum<?>>) rawEnumClass;
+        Map<String, Enum<?>> map = new HashMap<>();
+        Enum<?>[] constants = enumClass.getEnumConstants();
+        if (constants == null) {
+            return Map.of();
+        }
+        for (Enum<?> constant : constants) {
+            if (!(constant instanceof StableKeyedEnum keyed)) {
+                continue;
+            }
+            String key = keyed.key();
+            if (key == null) {
+                // Intentionally skip: constant is only matchable by legacy name
+                continue;
+            }
+            Enum<?> existing = map.put(key, constant);
+            if (existing != null) {
+                throw new IllegalStateException(
+                        "Duplicate stable key in enum " + enumClass.getName()
+                                + ": key='" + key + "'"
+                                + " for constants " + existing.name() + " and " + constant.name());
+            }
+        }
+        return Map.copyOf(map);
+    }
+
+    private static <E extends Enum<E>> IllegalArgumentException unknownValueException(
+            String normalizedValue, Class<E> enumClass, Mode mode) {
+        return new IllegalArgumentException(
+                "Unknown enum value '" + normalizedValue + "' for type " + enumClass.getName()
+                        + " (mode=" + mode + ")");
     }
 }
-

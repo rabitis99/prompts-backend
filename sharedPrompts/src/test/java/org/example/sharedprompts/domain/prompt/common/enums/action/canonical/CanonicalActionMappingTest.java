@@ -1,8 +1,11 @@
 package org.example.sharedprompts.domain.prompt.common.enums.action.canonical;
 
-import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeCatalog;
+import org.example.sharedprompts.domain.prompt.common.enums.DeserializerEnumTestUtils;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.common.enums.serializer.EnumResolver;
+import org.example.sharedprompts.domain.prompt.common.enums.action.registry.ActionTypeRegistry;
+import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.ActionTypeCompatibilityResolver;
+import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.ActionTypeResolver;
+import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.DefaultActionTypeResolver;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -13,38 +16,46 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Ensures every ActionType maps to a canonical action; deserialization and key stability unchanged.
+ * Ensures every ActionType maps to an action group; deserialization and key stability unchanged.
  */
-@DisplayName("Canonical action mapping coverage and consistency")
+@DisplayName("Action group mapping coverage and consistency")
 class CanonicalActionMappingTest {
 
-    private final CanonicalActionRegistry registry = new DefaultCanonicalActionRegistry();
+    private static final ActionTypeRegistry ACTION_TYPE_REGISTRY = new ActionTypeRegistry(DeserializerEnumTestUtils.getActionTypeEnums());
+    private static final ActionTypeResolver ACTION_TYPE_RESOLVER = new DefaultActionTypeResolver(
+            ACTION_TYPE_REGISTRY,
+            new ActionTypeCompatibilityResolver(DeserializerEnumTestUtils.getActionTypeEnums()));
+    private final CanonicalActionRegistry registry = new DefaultCanonicalActionRegistry(ACTION_TYPE_REGISTRY);
 
     @Test
-    @DisplayName("every ActionType constant maps to a non-null canonical action")
-    void everyActionTypeMapsToCanonical() {
-        List<Class<? extends Enum<?>>> enumClasses = ActionTypeCatalog.ACTION_ENUMS;
+    @DisplayName("every ActionType constant maps to a non-null action group")
+    void everyActionTypeMapsToActionGroup() {
+        List<Class<? extends Enum<?>>> enumClasses = DeserializerEnumTestUtils.getActionTypeEnums();
         for (Class<? extends Enum<?>> enumClass : enumClasses) {
-            if (!ActionTypeInterface.class.isAssignableFrom(enumClass)) continue;
+            assertThat(ActionTypeInterface.class.isAssignableFrom(enumClass))
+                    .as("ACTION_ENUMS must contain only ActionTypeInterface enums: " + enumClass.getName())
+                    .isTrue();
             Enum<?>[] constants = enumClass.getEnumConstants();
             if (constants == null) continue;
             for (Enum<?> constant : constants) {
                 ActionTypeInterface action = (ActionTypeInterface) constant;
-                var canonical = registry.toCanonical(action);
-                assertThat(canonical)
-                        .as("Every action must map to a canonical: " + enumClass.getSimpleName() + "." + constant.name() + " (key=" + action.key() + ")")
+                var actionGroup = registry.toCanonical(action);
+                assertThat(actionGroup)
+                        .as("Every action must map to an action group: " + enumClass.getSimpleName() + "." + constant.name() + " (key=" + action.key() + ")")
                         .isPresent();
-                assertThat(canonical.get()).isNotNull();
+                assertThat(actionGroup.get()).isNotNull();
             }
         }
     }
 
     @Test
-    @DisplayName("findByKey returns same canonical as toCanonical for every catalog key")
+    @DisplayName("findByKey returns same action group as toCanonical for every catalog key")
     void findByKeyMatchesToCanonical() {
-        List<Class<? extends Enum<?>>> enumClasses = ActionTypeCatalog.ACTION_ENUMS;
+        List<Class<? extends Enum<?>>> enumClasses = DeserializerEnumTestUtils.getActionTypeEnums();
         for (Class<? extends Enum<?>> enumClass : enumClasses) {
-            if (!ActionTypeInterface.class.isAssignableFrom(enumClass)) continue;
+            assertThat(ActionTypeInterface.class.isAssignableFrom(enumClass))
+                    .as("ACTION_ENUMS must contain only ActionTypeInterface enums: " + enumClass.getName())
+                    .isTrue();
             for (Enum<?> constant : enumClass.getEnumConstants()) {
                 ActionTypeInterface action = (ActionTypeInterface) constant;
                 String key = action.key();
@@ -56,22 +67,24 @@ class CanonicalActionMappingTest {
     }
 
     @Test
-    @DisplayName("sameCanonicalCapability is true for actions that map to same canonical")
+    @DisplayName("sameCanonicalCapability is true for actions that map to same action group")
     void sameCanonicalCapability() {
         // EDITING and PROOFREADING both map to TEXT_REVISION
-        ActionTypeInterface a = EnumResolver.resolve("ACTION.WRITING.EDITING", ActionTypeCatalog.ACTION_ENUMS);
-        ActionTypeInterface b = EnumResolver.resolve("ACTION.WRITING.PROOFREADING", ActionTypeCatalog.ACTION_ENUMS);
+        ActionTypeInterface a = ACTION_TYPE_RESOLVER.resolve("ACTION.WRITING.EDITING");
+        ActionTypeInterface b = ACTION_TYPE_RESOLVER.resolve("ACTION.WRITING.PROOFREADING");
         assertThat(registry.sameCanonicalCapability(a, b)).isTrue();
-        assertThat(registry.toCanonical(a)).contains(CanonicalActionId.TEXT_REVISION);
-        assertThat(registry.toCanonical(b)).contains(CanonicalActionId.TEXT_REVISION);
+        assertThat(registry.toCanonical(a)).contains(ActionGroup.TEXT_REVISION);
+        assertThat(registry.toCanonical(b)).contains(ActionGroup.TEXT_REVISION);
     }
 
     @Test
     @DisplayName("no duplicate keys in catalog (sanity for registry build)")
     void noDuplicateKeys() {
         Set<String> keys = new HashSet<>();
-        for (Class<? extends Enum<?>> enumClass : ActionTypeCatalog.ACTION_ENUMS) {
-            if (!ActionTypeInterface.class.isAssignableFrom(enumClass)) continue;
+        for (Class<? extends Enum<?>> enumClass : DeserializerEnumTestUtils.getActionTypeEnums()) {
+            assertThat(ActionTypeInterface.class.isAssignableFrom(enumClass))
+                    .as("ACTION_ENUMS must contain only ActionTypeInterface enums: " + enumClass.getName())
+                    .isTrue();
             for (Enum<?> constant : enumClass.getEnumConstants()) {
                 String key = ((ActionTypeInterface) constant).key();
                 assertThat(keys.add(key)).as("Duplicate key: " + key).isTrue();

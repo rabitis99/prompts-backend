@@ -2,18 +2,18 @@ package org.example.sharedprompts.domain.prompt.common.guideline.context;
 
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionId;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.ActionGroup;
 
 /**
  * Context for guideline rule applicability and prompt assembly.
- * Prefer {@link #canonicalActionId()} for capability-based decisions; {@link #actionType()} is the
+ * Prefer {@link #actionGroup()} for capability-based decisions; {@link #actionType()} is the
  * concrete (external) value for compatibility and metadata.
  */
 public record RuleContext(
         TaskDomain taskDomain,
         String promptObjectiveName,
         ActionTypeInterface actionType,
-        CanonicalActionId canonicalActionId,
+        ActionGroup actionGroup,
         boolean requiresStructuredOutput,
         boolean hasJsonSchema,
         String userInput
@@ -23,15 +23,15 @@ public record RuleContext(
         return of(domain, objectiveName, actionType, null, requiresStructuredOutput, hasJsonSchema, userInput);
     }
 
-    /** Canonical-first: use when capability drives rule selection or prompt assembly. */
+    /** Action-group-first: use when capability drives rule selection or prompt assembly. */
     public static RuleContext of(TaskDomain domain, String objectiveName, ActionTypeInterface actionType,
-                                  CanonicalActionId canonicalActionId,
+                                  ActionGroup actionGroup,
                                   boolean requiresStructuredOutput, boolean hasJsonSchema, String userInput) {
         return new RuleContext(
                 domain,
                 objectiveName != null ? objectiveName : "",
                 actionType,
-                canonicalActionId,
+                actionGroup,
                 requiresStructuredOutput,
                 hasJsonSchema,
                 userInput != null ? userInput : ""

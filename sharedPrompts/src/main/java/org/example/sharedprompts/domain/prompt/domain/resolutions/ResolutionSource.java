@@ -4,7 +4,7 @@ package org.example.sharedprompts.domain.prompt.domain.resolutions;
  * TaskDomain이 선택된 근거(해석 소스).
  */
 public enum ResolutionSource {
-    /** ActionType.getTaskDomain()으로 결정 */
+    /** ActionDomainRegistry (action type → task domain) 로 결정 */
     ACTION_TYPE,
 
     /** PromptCategory.getDefaultDomain()으로 결정 */

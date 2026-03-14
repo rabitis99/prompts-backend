@@ -7,7 +7,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionInten
 import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
 import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionId;
+import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.ActionGroup;
 import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile;
@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-/** 카테고리·Intent 기반 시맨틱 검증. Action 호환성은 canonical 기준으로 비교. */
+/** 카테고리·Intent 기반 시맨틱 검증. Action 호환성은 action group 기준으로 비교. */
 @Service
 public class SemanticValidationService {
 
@@ -185,10 +185,10 @@ public class SemanticValidationService {
         }
 
         if (input.actionType() != null && input.resolvedIntent() != null) {
-            List<CanonicalActionId> compatibleCanonical = input.profile().getCompatibleCanonicalActionsForIntent(input.resolvedIntent());
-            if (!compatibleCanonical.isEmpty()) {
-                var inputCanonical = canonicalActionRegistry.toCanonical(input.actionType());
-                boolean match = inputCanonical.isPresent() && compatibleCanonical.contains(inputCanonical.get());
+            List<ActionGroup> compatibleGroups = input.profile().getCompatibleActionGroupsForIntent(input.resolvedIntent());
+            if (!compatibleGroups.isEmpty()) {
+                var inputActionGroup = canonicalActionRegistry.toCanonical(input.actionType());
+                boolean match = inputActionGroup.isPresent() && compatibleGroups.contains(inputActionGroup.get());
                 if (!match) {
                     items.add(new SemanticValidationResult.SemanticValidationItem(
                             "ACTION_MAY_NOT_MATCH_INTENT",

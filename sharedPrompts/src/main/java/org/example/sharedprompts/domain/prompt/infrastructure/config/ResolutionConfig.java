@@ -6,8 +6,12 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.category.deve
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.etc.EtcActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.ProductivityActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.writing.WritingActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.registry.ActionDomainRegistry;
+import org.example.sharedprompts.domain.prompt.common.enums.action.registry.ActionTypeRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolver;
+import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileRegistry;
+import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileRegistry;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolverPort;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistry;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistryPort;
@@ -49,8 +53,8 @@ public class ResolutionConfig {
     );
 
     @Bean
-    public DomainResolverPort domainResolver() {
-        return new DomainResolver();
+    public DomainResolverPort domainResolver(ActionDomainRegistry actionDomainRegistry) {
+        return new DomainResolver(actionDomainRegistry);
     }
 
     @Bean
@@ -63,5 +67,16 @@ public class ResolutionConfig {
     @Bean
     public ObjectiveResolverPort objectiveResolver(ObjectiveMappingRegistryPort mappingRegistry) {
         return new ObjectiveResolver(mappingRegistry);
+    }
+
+    /**
+     * Profile registry with group-first derivation: compatible actions are derived from
+     * compatible ActionGroups via {@link ActionTypeRegistry}. Requires both registries.
+     */
+    @Bean
+    public CategorySemanticProfileRegistry categorySemanticProfileRegistry(
+            CanonicalActionRegistry canonicalActionRegistry,
+            ActionTypeRegistry actionTypeRegistry) {
+        return new DefaultCategorySemanticProfileRegistry(canonicalActionRegistry, actionTypeRegistry);
     }
 }
