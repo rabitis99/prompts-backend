@@ -35,14 +35,11 @@ class ActionTypeDeserializerCoverageTest {
         registry = new ActionTypeRegistry(catalog.getActionTypeEnumClasses());
         ActionTypeCompatibilityResolver compatibility = new ActionTypeCompatibilityResolver(catalog.getActionTypeEnumClasses());
         resolver = new DefaultActionTypeResolver(registry, compatibility);
-        ActionTypeRegistryHolder.setRegistry(registry);
-        ActionTypeRegistryHolder.setResolver(resolver);
     }
 
     @AfterEach
     void tearDown() {
-        ActionTypeRegistryHolder.setRegistry(null);
-        ActionTypeRegistryHolder.setResolver(null);
+        ActionTypeRegistryHolder.clearForTest();
     }
 
     @Test
@@ -105,6 +102,19 @@ class ActionTypeDeserializerCoverageTest {
                 assertThat(resolved)
                         .as("Key " + key + " should resolve back to " + enumClass.getSimpleName() + "." + constant.name())
                         .isSameAs(actionType);
+
+                ActionTypeInterface resolvedByLegacyName = assertDoesNotThrow(
+                        () -> resolver.resolve(constant.name()),
+                        "Resolving legacy name " + constant.name() + " for " + enumClass.getSimpleName() + " must not throw"
+                );
+                assertThat(resolvedByLegacyName).isSameAs(actionType);
+
+                String qualifiedLegacyName = enumClass.getSimpleName() + "." + constant.name();
+                ActionTypeInterface resolvedByQualifiedLegacyName = assertDoesNotThrow(
+                        () -> resolver.resolve(qualifiedLegacyName),
+                        "Resolving legacy qualified name " + qualifiedLegacyName + " must not throw"
+                );
+                assertThat(resolvedByQualifiedLegacyName).isSameAs(actionType);
             }
         }
     }

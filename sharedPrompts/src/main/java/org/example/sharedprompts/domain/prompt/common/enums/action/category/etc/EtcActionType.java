@@ -30,7 +30,6 @@ public enum EtcActionType implements ActionTypeInterface, StableKeyedEnum {
     RECIPE_CREATION("ACTION.ETC.RECIPE_CREATION", "레시피 작성", "Recipe Creation", "レシピ作成", ActionGroup.GUIDANCE),
     COOKING_TIPS("ACTION.ETC.COOKING_TIPS", "요리 팁", "Cooking Tips", "料理のコツ", ActionGroup.GUIDANCE),
     HEALTH_MANAGEMENT("ACTION.ETC.HEALTH_MANAGEMENT", "건강 관리", "Health Management", "健康管理", ActionGroup.HEALTH_TRACKING);
-
     private final String stableKey;
     private final String displayNameKo;
     private final String displayNameEn;

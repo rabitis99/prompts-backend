@@ -1,7 +1,7 @@
 package org.example.sharedprompts.domain.prompt.common.enums.action.canonical;
 
-import org.example.sharedprompts.domain.prompt.common.enums.DeserializerEnumTestUtils;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.action.catalog.DefaultActionTypeCatalog;
 import org.example.sharedprompts.domain.prompt.common.enums.action.registry.ActionTypeRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.ActionTypeCompatibilityResolver;
 import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.ActionTypeResolver;
@@ -17,21 +17,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Ensures every ActionType maps to an action group; deserialization and key stability unchanged.
+ * Uses production catalog (DefaultActionTypeCatalog) as single source so taxonomy guardrails
+ * validate the same enum list as runtime.
  */
 @DisplayName("Action group mapping coverage and consistency")
 class CanonicalActionMappingTest {
 
-    private static final ActionTypeRegistry ACTION_TYPE_REGISTRY = new ActionTypeRegistry(DeserializerEnumTestUtils.getActionTypeEnums());
+    private static final List<Class<? extends Enum<?>>> CATALOG_ENUMS = new DefaultActionTypeCatalog().getActionTypeEnumClasses();
+    private static final ActionTypeRegistry ACTION_TYPE_REGISTRY = new ActionTypeRegistry(CATALOG_ENUMS);
     private static final ActionTypeResolver ACTION_TYPE_RESOLVER = new DefaultActionTypeResolver(
             ACTION_TYPE_REGISTRY,
-            new ActionTypeCompatibilityResolver(DeserializerEnumTestUtils.getActionTypeEnums()));
+            new ActionTypeCompatibilityResolver(CATALOG_ENUMS));
     private final CanonicalActionRegistry registry = new DefaultCanonicalActionRegistry(ACTION_TYPE_REGISTRY);
 
     @Test
     @DisplayName("every ActionType constant maps to a non-null action group")
     void everyActionTypeMapsToActionGroup() {
-        List<Class<? extends Enum<?>>> enumClasses = DeserializerEnumTestUtils.getActionTypeEnums();
-        for (Class<? extends Enum<?>> enumClass : enumClasses) {
+        for (Class<? extends Enum<?>> enumClass : CATALOG_ENUMS) {
             assertThat(ActionTypeInterface.class.isAssignableFrom(enumClass))
                     .as("ACTION_ENUMS must contain only ActionTypeInterface enums: " + enumClass.getName())
                     .isTrue();
@@ -51,8 +53,7 @@ class CanonicalActionMappingTest {
     @Test
     @DisplayName("findByKey returns same action group as toCanonical for every catalog key")
     void findByKeyMatchesToCanonical() {
-        List<Class<? extends Enum<?>>> enumClasses = DeserializerEnumTestUtils.getActionTypeEnums();
-        for (Class<? extends Enum<?>> enumClass : enumClasses) {
+        for (Class<? extends Enum<?>> enumClass : CATALOG_ENUMS) {
             assertThat(ActionTypeInterface.class.isAssignableFrom(enumClass))
                     .as("ACTION_ENUMS must contain only ActionTypeInterface enums: " + enumClass.getName())
                     .isTrue();
@@ -81,7 +82,7 @@ class CanonicalActionMappingTest {
     @DisplayName("no duplicate keys in catalog (sanity for registry build)")
     void noDuplicateKeys() {
         Set<String> keys = new HashSet<>();
-        for (Class<? extends Enum<?>> enumClass : DeserializerEnumTestUtils.getActionTypeEnums()) {
+        for (Class<? extends Enum<?>> enumClass : CATALOG_ENUMS) {
             assertThat(ActionTypeInterface.class.isAssignableFrom(enumClass))
                     .as("ACTION_ENUMS must contain only ActionTypeInterface enums: " + enumClass.getName())
                     .isTrue();

@@ -15,8 +15,8 @@ public final class ActionTypeRegistry {
     private final Map<String, ActionTypeInterface> byStableKey;
     private final List<ActionTypeInterface> allInCatalogOrder;
 
-    /** catalog 순서대로 구성. */
-    public ActionTypeRegistry(Iterable<Class<? extends Enum<?>>> enumClasses) {
+    /** catalog 순서대로 구성. 순서 계약을 보장하려면 {@link List} 등 순서형 컬렉션을 전달. */
+    public ActionTypeRegistry(List<Class<? extends Enum<?>>> enumClasses) {
         Objects.requireNonNull(enumClasses, "enumClasses");
 
         Map<String, ActionTypeInterface> keyMap = new HashMap<>();

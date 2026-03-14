@@ -20,18 +20,28 @@ public record RuleContext(
 ) {
     public static RuleContext of(TaskDomain domain, String objectiveName, ActionTypeInterface actionType,
                                   boolean requiresStructuredOutput, boolean hasJsonSchema, String userInput) {
-        return of(domain, objectiveName, actionType, null, requiresStructuredOutput, hasJsonSchema, userInput);
+        return of(
+                domain,
+                objectiveName,
+                actionType,
+                actionType != null ? actionType.getActionGroup() : null,
+                requiresStructuredOutput,
+                hasJsonSchema,
+                userInput
+        );
     }
 
     /** Action-group-first: use when capability drives rule selection or prompt assembly. */
     public static RuleContext of(TaskDomain domain, String objectiveName, ActionTypeInterface actionType,
                                   ActionGroup actionGroup,
                                   boolean requiresStructuredOutput, boolean hasJsonSchema, String userInput) {
+        ActionGroup resolvedActionGroup =
+                actionGroup != null ? actionGroup : (actionType != null ? actionType.getActionGroup() : null);
         return new RuleContext(
                 domain,
                 objectiveName != null ? objectiveName : "",
                 actionType,
-                actionGroup,
+                resolvedActionGroup,
                 requiresStructuredOutput,
                 hasJsonSchema,
                 userInput != null ? userInput : ""

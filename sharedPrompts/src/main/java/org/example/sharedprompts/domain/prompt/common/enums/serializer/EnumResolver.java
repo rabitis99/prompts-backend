@@ -97,17 +97,15 @@ public final class EnumResolver {
             String value,
             Class<? extends T> expectedType
     ) {
-        try {
-            return (T) parsed;
-        } catch (ClassCastException ex) {
+        if (!expectedType.isInstance(parsed)) {
             throw new IllegalStateException(
                     "Resolved value '" + value + "' to type "
                             + parsed.getClass().getName()
                             + ", but expected assignable to "
-                            + expectedType.getName(),
-                    ex
+                            + expectedType.getName()
             );
         }
+        return (T) parsed;
     }
 
     @SuppressWarnings("unchecked")

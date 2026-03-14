@@ -1,13 +1,17 @@
 package org.example.sharedprompts.domain.prompt.common.enums.action.resolver;
 
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.common.enums.serializer.EnumResolver;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
-/** 레거시 전용: enum 이름·EnumName.CONSTANT 형식만 해석. 신규는 stable key 사용. */
+/**
+ * Legacy-only resolution: enum name and EnumName.CONSTANT format.
+ * Does not resolve stable keys (those go through registry / DefaultActionTypeResolver).
+ * Fallback uses Enum.valueOf per enum class, so only legacy names are accepted here.
+ */
 public final class ActionTypeCompatibilityResolver {
 
     /** ActionTypeInterface 구현 enum만 보관. 생성 시 검증 후 방어적 복사. */
@@ -27,7 +31,7 @@ public final class ActionTypeCompatibilityResolver {
         this.enumClasses = List.copyOf(copy);
     }
 
-    /** 레거시 형식(enum name 또는 EnumName.CONSTANT)으로 해석. */
+    /** Resolves legacy format only: (1) EnumSimpleName.CONSTANT, (2) legacy enum {@link Enum#name()}. No stable-key lookup. */
     public ActionTypeInterface resolve(String value) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("value must not be null or blank");
@@ -37,7 +41,26 @@ public final class ActionTypeCompatibilityResolver {
         if (byDot != null) {
             return byDot;
         }
-        return EnumResolver.resolve(trimmed, enumClasses);
+        return resolveByLegacyNameOnly(trimmed);
+    }
+
+    /** Legacy enum name only (Enum.valueOf). Stable key는 사용하지 않아 registry-first 계약과 중복되지 않음. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private ActionTypeInterface resolveByLegacyNameOnly(String trimmed) {
+        for (Class<? extends Enum<?>> enumClass : enumClasses) {
+            try {
+                Enum<?> constant = Enum.valueOf((Class) enumClass, trimmed);
+                if (constant instanceof ActionTypeInterface action) {
+                    return action;
+                }
+            } catch (IllegalArgumentException ignored) {
+                // not this enum's name; try next
+            }
+        }
+        String candidates = enumClasses.stream().map(Class::getSimpleName).collect(Collectors.joining(", "));
+        throw new IllegalArgumentException(
+                "Unknown enum value: '" + trimmed + "'. Tried legacy names in order: [" + candidates + "]"
+        );
     }
 
     /** EnumSimpleName.CONSTANT 형식 우선 해석. 없으면 null. (enum 순서/simple name에 의존) */

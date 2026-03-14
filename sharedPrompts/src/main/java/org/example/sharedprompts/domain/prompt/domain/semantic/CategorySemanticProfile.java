@@ -12,6 +12,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterfa
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Category-aware semantic profile.
@@ -64,7 +65,15 @@ public interface CategorySemanticProfile {
      * so profiles without action group data remain valid.
      */
     default List<ActionGroup> getCompatibleActionGroupsForIntent(ActionIntent intent) {
-        return Collections.emptyList();
+        List<ActionTypeInterface> actions = getCompatibleActionsForIntent(intent);
+        if (actions == null || actions.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return actions.stream()
+                .map(ActionTypeInterface::getActionGroup)
+                .filter(g -> g != null)
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     /**

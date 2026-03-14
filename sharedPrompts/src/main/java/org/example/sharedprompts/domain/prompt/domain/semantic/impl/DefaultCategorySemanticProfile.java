@@ -156,7 +156,9 @@ public final class DefaultCategorySemanticProfile implements CategorySemanticPro
 
     @Override
     public List<ActionGroup> getCompatibleActionGroupsForIntent(ActionIntent intent) {
-        if (intent == null || compatibleActionGroupsByIntent.isEmpty()) return List.of();
+        if (intent == null || !allowedIntents.contains(intent) || compatibleActionGroupsByIntent.isEmpty()) {
+            return List.of();
+        }
         List<ActionGroup> list = compatibleActionGroupsByIntent.get(intent);
         return list != null ? List.copyOf(list) : List.of();
     }

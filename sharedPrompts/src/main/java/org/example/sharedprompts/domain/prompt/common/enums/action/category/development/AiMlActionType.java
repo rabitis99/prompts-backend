@@ -5,6 +5,10 @@ import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.ActionGroup;
 
+/**
+ * AI/ML-related actions. Maps training methodologies to MODEL_TRAINING,
+ * inference/prediction tasks to MODEL_EVALUATION, and deployment tasks to MODEL_DEPLOYMENT.
+ */
 @Getter
 public enum AiMlActionType implements ActionTypeInterface, StableKeyedEnum {
     MODEL_TRAINING("ACTION.AIML.MODEL_TRAINING", "모델 훈련", "Model Training", "モデル訓練", ActionGroup.MODEL_TRAINING),

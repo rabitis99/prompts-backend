@@ -41,15 +41,21 @@ public final class ActionTypeMetadataLoader {
             for (String key : props.stringPropertyNames()) {
                 String value = props.getProperty(key);
                 if (value == null || value.isBlank()) continue;
+                String trimmedKey = key.trim();
+                String trimmedValue = value.trim();
+                if (trimmedKey.isEmpty()) continue;
                 try {
-                    result.put(key.trim(), (E) Enum.valueOf(enumClass, value.trim()));
-                } catch (IllegalArgumentException ignored) {
-                    // 잘못된 enum 이름은 스킵
+                    result.put(trimmedKey, (E) Enum.valueOf(enumClass, trimmedValue));
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalStateException(
+                            "Invalid " + enumClass.getSimpleName() + " mapping for key '" + trimmedKey + "' in " + resource,
+                            e
+                    );
                 }
             }
             return Collections.unmodifiableMap(result);
         } catch (Exception e) {
-            return Collections.emptyMap();
+            throw new IllegalStateException("Failed to load action metadata resource: " + resource, e);
         }
     }
 }

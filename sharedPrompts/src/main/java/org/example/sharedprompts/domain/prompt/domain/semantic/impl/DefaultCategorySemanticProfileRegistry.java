@@ -38,12 +38,14 @@ import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticP
 import org.example.sharedprompts.domain.prompt.domain.semantic.FallbackCandidate;
 import org.example.sharedprompts.domain.prompt.domain.semantic.SemanticFitLevel;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 /**
@@ -84,8 +86,8 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
      */
     public DefaultCategorySemanticProfileRegistry(CanonicalActionRegistry canonicalActionRegistry,
                                                    ActionTypeRegistry actionTypeRegistry) {
-        this.canonicalActionRegistry = canonicalActionRegistry;
-        this.actionTypeRegistry = actionTypeRegistry;
+        this.canonicalActionRegistry = Objects.requireNonNull(canonicalActionRegistry, "canonicalActionRegistry");
+        this.actionTypeRegistry = Objects.requireNonNull(actionTypeRegistry, "actionTypeRegistry");
         Map<PromptCategory, CategorySemanticProfile> map = new HashMap<>();
         registerDesign(map);
         registerDevelopment(map);
@@ -135,7 +137,7 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
     private GroupMapAndActions prepare(Map<ActionIntent, List<ActionTypeInterface>> actions) {
         Map<ActionIntent, List<ActionGroup>> groupMap = toActionGroupMap(actions);
         Map<ActionIntent, List<ActionTypeInterface>> toUse = actionTypeRegistry != null
-                ? deriveActionsFromGroups(groupMap, actionTypeRegistry.getAll())
+                ? deriveActionsFromGroups(groupMap, actions, actionTypeRegistry.getAll())
                 : actions;
         return new GroupMapAndActions(groupMap, toUse);
     }
@@ -144,19 +146,31 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
                                       Map<ActionIntent, List<ActionTypeInterface>> actions) {}
 
     /**
-     * Derives compatible action list from registry by group membership.
+     * Derives compatible action list: seed actions in original order first, then same-group
+     * expansion from registry. Preserves recommendation contract (order = preference).
      */
     private Map<ActionIntent, List<ActionTypeInterface>> deriveActionsFromGroups(
             Map<ActionIntent, List<ActionGroup>> groupMap,
+            Map<ActionIntent, List<ActionTypeInterface>> seedActions,
             Collection<ActionTypeInterface> allActions) {
         if (groupMap == null || groupMap.isEmpty() || allActions == null) return Map.of();
         Map<ActionIntent, List<ActionTypeInterface>> out = new HashMap<>();
         for (Map.Entry<ActionIntent, List<ActionGroup>> e : groupMap.entrySet()) {
             Set<ActionGroup> allowedSet = new HashSet<>(e.getValue());
-            List<ActionTypeInterface> matching = allActions.stream()
-                    .filter(a -> a.getActionGroup() != null && allowedSet.contains(a.getActionGroup()))
-                    .toList();
-            if (!matching.isEmpty()) out.put(e.getKey(), matching);
+            List<ActionTypeInterface> seedList = seedActions != null ? seedActions.getOrDefault(e.getKey(), List.of()) : List.of();
+            List<ActionTypeInterface> result = new ArrayList<>();
+            Set<ActionTypeInterface> added = new HashSet<>();
+            for (ActionTypeInterface a : seedList) {
+                if (a != null && a.getActionGroup() != null && allowedSet.contains(a.getActionGroup()) && added.add(a)) {
+                    result.add(a);
+                }
+            }
+            for (ActionTypeInterface a : allActions) {
+                if (a.getActionGroup() != null && allowedSet.contains(a.getActionGroup()) && added.add(a)) {
+                    result.add(a);
+                }
+            }
+            if (!result.isEmpty()) out.put(e.getKey(), result);
         }
         return out;
     }

@@ -47,7 +47,11 @@ public final class ActionTypeRegistryHolder {
         ActionTypeRegistryHolder.resolver = resolver;
     }
 
-    static synchronized void clearForTest() {
+    /**
+     * Clears static state so the holder can be re-initialized (e.g. second Spring context in same JVM).
+     * Use in tests (@AfterEach) for isolation, and from context shutdown so a new context can set registry/resolver.
+     */
+    public static synchronized void clearForTest() {
         registry = null;
         resolver = null;
     }

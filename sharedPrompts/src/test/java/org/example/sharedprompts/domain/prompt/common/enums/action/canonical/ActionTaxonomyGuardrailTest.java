@@ -62,10 +62,15 @@ class ActionTaxonomyGuardrailTest {
                 .map(Map.Entry::getKey)
                 .sorted(Enum::compareTo)
                 .toList();
-        // Documented single-leaf groups per taxonomy doc (intentional)
-        assertThat(singleLeaf).contains(ActionGroup.DEBUGGING, ActionGroup.TRANSLATION, ActionGroup.INTERVIEW_PREPARATION);
-        // Ensure we don't silently grow single-leaf groups; fail if new ones appear without being added here
-        assertThat(singleLeaf).hasSizeLessThanOrEqualTo(5);
+        Set<ActionGroup> documentedSingleLeafGroups = Set.of(
+                ActionGroup.DEBUGGING,
+                ActionGroup.TRANSLATION,
+                ActionGroup.INTERVIEW_PREPARATION
+                // add every other intentional single-leaf group here
+        );
+        assertThat(new HashSet<>(singleLeaf))
+                .as("Single-leaf groups must exactly match the documented intentional set")
+                .isEqualTo(documentedSingleLeafGroups);
     }
 
     @Test
@@ -118,8 +123,11 @@ class ActionTaxonomyGuardrailTest {
                 PromptCategory.CUSTOMER_SUPPORT, PromptCategory.DATA_ANALYSIS, PromptCategory.PRODUCTIVITY
         );
         for (PromptCategory category : categoriesWithProfiles) {
-            var profile = profileRegistry.getProfile(category).orElse(null);
-            if (profile == null) continue;
+            var profileOpt = profileRegistry.getProfile(category);
+            assertThat(profileOpt)
+                    .as(category + " must have a semantic profile")
+                    .isPresent();
+            var profile = profileOpt.orElseThrow();
             for (ActionIntent intent : profile.getAllowedIntents()) {
                 List<ActionTypeInterface> actions = profile.getCompatibleActionsForIntent(intent);
                 if (!actions.isEmpty()) {

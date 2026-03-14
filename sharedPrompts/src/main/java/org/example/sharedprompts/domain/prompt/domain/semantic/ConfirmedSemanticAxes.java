@@ -58,7 +58,7 @@ public record ConfirmedSemanticAxes(
 
     /** Resolve action group for prompt assembly / resolution. Use registry when building prompts. */
     public Optional<ActionGroup> actionGroup(CanonicalActionRegistry registry) {
-        if (registry == null) return Optional.empty();
+        Objects.requireNonNull(registry, "registry");
         return actionType.flatMap(registry::toCanonical);
     }
 

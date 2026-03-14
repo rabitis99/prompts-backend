@@ -22,7 +22,8 @@ public class DefaultCanonicalActionRegistry implements CanonicalActionRegistry {
         if (actionType == null) {
             return Optional.empty();
         }
-        return Optional.ofNullable(actionType.getActionGroup());
+        return Optional.ofNullable(actionTypeRegistry.getByStableKey(actionType.key()))
+                .map(ActionTypeInterface::getActionGroup);
     }
 
     @Override

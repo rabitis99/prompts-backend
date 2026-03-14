@@ -19,7 +19,9 @@ public class DomainResolver implements DomainResolverPort {
     private final ActionDomainRegistry actionDomainRegistry;
 
     public DomainResolver(ActionDomainRegistry actionDomainRegistry) {
-        this.actionDomainRegistry = actionDomainRegistry;
+        this.actionDomainRegistry = java.util.Objects.requireNonNull(
+                actionDomainRegistry, "actionDomainRegistry"
+        );
     }
 
     @Override

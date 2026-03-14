@@ -159,6 +159,11 @@ public final class EnumCompatParser {
                 // Intentionally skip: constant is only matchable by legacy name
                 continue;
             }
+            if (key.isBlank() || !key.equals(key.trim())) {
+                throw new IllegalStateException(
+                        "Stable key must be non-blank and trimmed in enum " + enumClass.getName()
+                                + ": constant " + constant.name());
+            }
             Enum<?> existing = map.put(key, constant);
             if (existing != null) {
                 throw new IllegalStateException(
