@@ -27,11 +27,26 @@ public final class ActionTypeCompatibilityResolver {
         }
         String trimmed = value.trim();
         List<Class<? extends Enum<?>>> order = resolutionOrder.getResolutionOrder();
+        validateResolutionOrder(order);
         ActionTypeInterface byDot = resolveByEnumDotConstant(trimmed, order);
         if (byDot != null) {
             return byDot;
         }
         return resolveByLegacyNameOnly(trimmed, order);
+    }
+
+    private static void validateResolutionOrder(List<Class<? extends Enum<?>>> order) {
+        if (order == null) {
+            throw new IllegalStateException("resolutionOrder.getResolutionOrder() must not return null");
+        }
+        if (order.isEmpty()) {
+            throw new IllegalStateException("resolutionOrder.getResolutionOrder() must not return an empty list");
+        }
+        for (Class<? extends Enum<?>> enumClass : order) {
+            if (enumClass == null) {
+                throw new IllegalStateException("resolutionOrder.getResolutionOrder() must not contain null elements");
+            }
+        }
     }
 
     /** Legacy enum name only (Enum.valueOf). Stable key는 사용하지 않아 registry-first 계약과 중복되지 않음. */
