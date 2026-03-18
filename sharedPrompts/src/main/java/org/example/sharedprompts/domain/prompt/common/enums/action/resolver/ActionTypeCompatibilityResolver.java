@@ -26,17 +26,17 @@ public final class ActionTypeCompatibilityResolver {
             throw new IllegalArgumentException("value must not be null or blank");
         }
         String trimmed = value.trim();
-        ActionTypeInterface byDot = resolveByEnumDotConstant(trimmed);
+        List<Class<? extends Enum<?>>> order = resolutionOrder.getResolutionOrder();
+        ActionTypeInterface byDot = resolveByEnumDotConstant(trimmed, order);
         if (byDot != null) {
             return byDot;
         }
-        return resolveByLegacyNameOnly(trimmed);
+        return resolveByLegacyNameOnly(trimmed, order);
     }
 
     /** Legacy enum name only (Enum.valueOf). Stable key는 사용하지 않아 registry-first 계약과 중복되지 않음. */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private ActionTypeInterface resolveByLegacyNameOnly(String trimmed) {
-        List<Class<? extends Enum<?>>> enumClasses = resolutionOrder.getResolutionOrder();
+    private ActionTypeInterface resolveByLegacyNameOnly(String trimmed, List<Class<? extends Enum<?>>> enumClasses) {
         for (Class<? extends Enum<?>> enumClass : enumClasses) {
             try {
                 Enum<?> constant = Enum.valueOf((Class) enumClass, trimmed);
@@ -54,8 +54,8 @@ public final class ActionTypeCompatibilityResolver {
     }
 
     /** EnumSimpleName.CONSTANT 형식 우선 해석. 없으면 null. (enum 순서/simple name에 의존) */
-    private ActionTypeInterface resolveByEnumDotConstant(String value) {
-        for (Class<? extends Enum<?>> enumClass : resolutionOrder.getResolutionOrder()) {
+    private ActionTypeInterface resolveByEnumDotConstant(String value, List<Class<? extends Enum<?>>> enumClasses) {
+        for (Class<? extends Enum<?>> enumClass : enumClasses) {
             String enumSimpleName = enumClass.getSimpleName();
             String prefix = enumSimpleName + ".";
             if (!value.startsWith(prefix)) {

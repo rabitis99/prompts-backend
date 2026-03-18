@@ -72,10 +72,16 @@ public final class ClasspathActionTypeMetadataProvider implements ActionTypeMeta
             Map<String, E> result = new HashMap<>();
             for (String key : props.stringPropertyNames()) {
                 String value = props.getProperty(key);
-                if (value == null || value.isBlank()) continue;
+                if (value == null || value.isBlank()) {
+                    throw new IllegalStateException(
+                            "Blank or missing value for key '" + key + "' in " + resource + " (fail-fast)");
+                }
                 String trimmedKey = key.trim();
                 String trimmedValue = value.trim();
-                if (trimmedKey.isEmpty()) continue;
+                if (trimmedKey.isEmpty()) {
+                    throw new IllegalStateException(
+                            "Empty key in " + resource + " (fail-fast)");
+                }
                 try {
                     result.put(trimmedKey, (E) Enum.valueOf(enumClass, trimmedValue));
                 } catch (IllegalArgumentException e) {

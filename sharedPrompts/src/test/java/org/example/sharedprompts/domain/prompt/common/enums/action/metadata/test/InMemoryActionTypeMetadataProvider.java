@@ -19,22 +19,36 @@ public final class InMemoryActionTypeMetadataProvider implements ActionTypeMetad
     private final Map<String, TaskDomain> keyToTaskDomain = new HashMap<>();
 
     public InMemoryActionTypeMetadataProvider putOutputBehavior(String key, OutputBehaviorType value) {
-        keyToOutputBehavior.put(key, value);
+        String normalized = key == null ? null : key.trim();
+        if (normalized == null || normalized.isEmpty()) {
+            throw new IllegalArgumentException("key must not be null or blank");
+        }
+        keyToOutputBehavior.put(normalized, value);
         return this;
     }
 
     public InMemoryActionTypeMetadataProvider putTaskDomain(String key, TaskDomain value) {
-        keyToTaskDomain.put(key, value);
+        String normalized = key == null ? null : key.trim();
+        if (normalized == null || normalized.isEmpty()) {
+            throw new IllegalArgumentException("key must not be null or blank");
+        }
+        keyToTaskDomain.put(normalized, value);
         return this;
     }
 
     @Override
     public Optional<OutputBehaviorType> getOutputBehavior(String key) {
-        return Optional.ofNullable(keyToOutputBehavior.get(key));
+        if (key == null || key.isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(keyToOutputBehavior.get(key.trim()));
     }
 
     @Override
     public Optional<TaskDomain> getTaskDomain(String key) {
-        return Optional.ofNullable(keyToTaskDomain.get(key));
+        if (key == null || key.isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(keyToTaskDomain.get(key.trim()));
     }
 }
