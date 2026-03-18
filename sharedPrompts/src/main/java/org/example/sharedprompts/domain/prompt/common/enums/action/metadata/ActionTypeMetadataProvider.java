@@ -3,6 +3,7 @@ package org.example.sharedprompts.domain.prompt.common.enums.action.metadata;
 import org.example.sharedprompts.domain.prompt.common.enums.output.OutputBehaviorType;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -26,4 +27,20 @@ public interface ActionTypeMetadataProvider {
      * @return present if metadata exists for the key
      */
     Optional<TaskDomain> getTaskDomain(String key);
+
+    /**
+     * Optional bulk access for callers that need full coverage (typically tests or bootstrap utilities).
+     * Implementations may override to provide a complete mapping; default is empty.
+     */
+    default Map<String, OutputBehaviorType> getKeyToOutputBehaviorMap() {
+        return Map.of();
+    }
+
+    /**
+     * Optional bulk access for callers that need full coverage (typically tests or bootstrap utilities).
+     * Implementations may override to provide a complete mapping; default is empty.
+     */
+    default Map<String, TaskDomain> getKeyToTaskDomainMap() {
+        return Map.of();
+    }
 }

@@ -51,16 +51,17 @@ public final class ClasspathActionTypeMetadataProvider implements ActionTypeMeta
     }
 
     /** Exposes full map for bootstrap or tests that need a Map-based registry. */
+    @Override
     public Map<String, OutputBehaviorType> getKeyToOutputBehaviorMap() {
         return keyToOutputBehavior;
     }
 
     /** Exposes full map for bootstrap or tests that need a Map-based registry. */
+    @Override
     public Map<String, TaskDomain> getKeyToTaskDomainMap() {
         return keyToTaskDomain;
     }
 
-    @SuppressWarnings("unchecked")
     private static <E extends Enum<E>> Map<String, E> loadKeyToEnum(String resource, Class<E> enumClass) {
         ClassLoader cl = ClasspathActionTypeMetadataProvider.class.getClassLoader();
         try (InputStream in = cl.getResourceAsStream(resource)) {
