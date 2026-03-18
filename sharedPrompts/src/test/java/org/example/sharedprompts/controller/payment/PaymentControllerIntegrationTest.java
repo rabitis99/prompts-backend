@@ -3,14 +3,17 @@ package org.example.sharedprompts.controller.payment;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentMethod;
 import org.example.sharedprompts.domain.payment.domain.enums.PaymentUserType;
+import org.example.sharedprompts.domain.prompt.infrastructure.config.TestActionTypeMetadataConfig;
 import org.example.sharedprompts.dto.payment.request.PaymentRequestDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +27,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 결제 컨트롤러 통합 테스트
  */
 @SpringBootTest
+@Import(TestActionTypeMetadataConfig.class)
+@TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
 @AutoConfigureMockMvc
 @Transactional
 @ActiveProfiles("test")

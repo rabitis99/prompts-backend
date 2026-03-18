@@ -1,7 +1,6 @@
 package org.example.sharedprompts.domain.prompt.common.enums.serializer;
 
 import org.example.sharedprompts.domain.prompt.common.contract.StableKeyedEnum;
-import org.example.sharedprompts.global.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,6 +21,9 @@ import java.util.concurrent.ConcurrentMap;
  * <p>Parsing order is deterministic: legacy {@link Enum#name()} first, then
  * {@link StableKeyedEnum#key()}. Input is trimmed before lookup; blank/null
  * is rejected in STRICT mode and yields null in LENIENT mode.
+ *
+ * <p>ActionType 전용 해석(stable key → compatibility 순서)은
+ * ActionTypeResolver / ActionTypeCompatibilityResolver 계층을 사용한다.
  */
 public final class EnumCompatParser {
 
@@ -119,9 +121,16 @@ public final class EnumCompatParser {
     /**
      * Returns trimmed value, or null if input is null or blank after trim.
      * Same normalization is used for blank check and for lookup.
+     * Inline to avoid core module depending on global.util.
      */
+    private static String trimToNull(String str) {
+        if (str == null) return null;
+        String t = str.trim();
+        return t.isEmpty() ? null : t;
+    }
+
     private static String normalizeValue(String value) {
-        return StringUtils.trimToNull(value);
+        return trimToNull(value);
     }
 
     private static <E extends Enum<E>> E handleBlankOrNull(Class<E> enumClass, Mode mode) {

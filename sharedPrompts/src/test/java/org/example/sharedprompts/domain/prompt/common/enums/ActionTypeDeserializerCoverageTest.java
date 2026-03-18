@@ -1,10 +1,13 @@
 package org.example.sharedprompts.domain.prompt.common.enums;
 
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.action.catalog.ActionTypeCatalog;
 import org.example.sharedprompts.domain.prompt.common.enums.action.registry.ActionTypeRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.ActionTypeCompatibilityResolver;
 import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.ActionTypeResolver;
 import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.DefaultActionTypeResolver;
+import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.DefaultOrderedActionTypeResolutionSource;
+import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.OrderedActionTypeResolutionSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Safety test: every ActionType enum must implement ActionTypeInterface, have valid keys,
  * work with ActionTypeResolver (stable key + compatibility), and have no duplicate keys across enums.
+ * Resolver is built without static holder (injectable).
  */
 @DisplayName("ActionTypeDeserializer coverage and contract")
 class ActionTypeDeserializerCoverageTest {
@@ -28,9 +32,10 @@ class ActionTypeDeserializerCoverageTest {
 
     @BeforeEach
     void setUp() {
-        org.example.sharedprompts.domain.prompt.common.enums.action.catalog.ActionTypeCatalog catalog = DeserializerEnumTestUtils.getActionTypeCatalog();
+        ActionTypeCatalog catalog = DeserializerEnumTestUtils.getActionTypeCatalog();
+        OrderedActionTypeResolutionSource resolutionOrder = new DefaultOrderedActionTypeResolutionSource(catalog.getActionTypeEnumClasses());
         registry = new ActionTypeRegistry(catalog.getActionTypeEnumClasses());
-        ActionTypeCompatibilityResolver compatibility = new ActionTypeCompatibilityResolver(catalog.getActionTypeEnumClasses());
+        ActionTypeCompatibilityResolver compatibility = new ActionTypeCompatibilityResolver(resolutionOrder);
         resolver = new DefaultActionTypeResolver(registry, compatibility);
     }
 

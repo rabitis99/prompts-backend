@@ -17,13 +17,19 @@ public class DefaultCanonicalActionRegistry implements CanonicalActionRegistry {
         this.actionTypeRegistry = Objects.requireNonNull(actionTypeRegistry, "actionTypeRegistry");
     }
 
+    /**
+     * Definition-first: canonical meaning comes from the ActionType's own {@link ActionTypeInterface#getActionGroup()}.
+     * No registry re-query — registry is used only for {@link #findByKey(String)} when resolving by stable key.
+     */
     @Override
     public Optional<ActionGroup> toCanonical(ActionTypeInterface actionType) {
         if (actionType == null) {
             return Optional.empty();
         }
-        return Optional.ofNullable(actionTypeRegistry.getByStableKey(actionType.key()))
-                .map(ActionTypeInterface::getActionGroup);
+        if (actionType.getActionGroup() != null) {
+            return Optional.of(actionType.getActionGroup());
+        }
+        return findByKey(actionType.key());
     }
 
     @Override

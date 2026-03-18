@@ -30,10 +30,10 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.category.writ
 
 import java.util.List;
 
-/** 기본 ActionType 카탈로그. 등록·순서 명시. 순서 = registry/레거시 해석 순서(계약). */
+/** 기본 ActionType 카탈로그. 정의 집합만 제공. Compatibility 해석 순서는 OrderedActionTypeResolutionSource에서 별도 구성. */
 public final class DefaultActionTypeCatalog implements ActionTypeCatalog {
 
-    /** 등록 enum 목록. 순서 변경 시 registry·compatibility 해석에 영향. */
+    /** 정의된 enum 목록. Registry 구성 등에 사용. Compatibility 해석 순서는 OrderedActionTypeResolutionSource 사용. */
     private static final List<Class<? extends Enum<?>>> ENUM_CLASSES = List.of(
             ProductivityActionType.class,
             DevelopmentActionType.class,

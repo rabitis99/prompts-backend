@@ -10,11 +10,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.deser.InstantDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.InstantSerializer;
+import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
+import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.ActionTypeResolver;
+import org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTypeDeserializer;
+import org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTypeSerializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -32,8 +37,13 @@ public class JacksonConfig {
      * 설정 드리프트를 방지하기 위해 일관된 설정을 적용합니다.
      */
     @Bean
-    public ObjectMapper objectMapper() {
+    public ObjectMapper objectMapper(ActionTypeResolver actionTypeResolver) {
         ObjectMapper mapper = new ObjectMapper();
+
+        SimpleModule actionTypeModule = new SimpleModule();
+        actionTypeModule.addDeserializer(ActionTypeInterface.class, new ActionTypeDeserializer(actionTypeResolver));
+        actionTypeModule.addSerializer(ActionTypeInterface.class, new ActionTypeSerializer());
+        mapper.registerModule(actionTypeModule);
 
         JavaTimeModule javaTimeModule = new JavaTimeModule();
         // LocalDateTime: 앱 전역에서 UTC로 다루므로(JpaAuditingConfig, Hibernate time_zone) 직렬화·역직렬화 모두 ISO-8601+Z로 맞춰 API 왕복 시 파싱 일관성 보장
