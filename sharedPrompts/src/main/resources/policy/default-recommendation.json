@@ -1,0 +1,9 @@
+{
+  "policyVersion": "2026-03-recommendation-v1",
+  "policyType": "RecommendationPreference",
+  "metadata": {
+    "description": "Default recommendation preferences (production)",
+    "sourceType": "classpath-json"
+  },
+  "preferences": {}
+}

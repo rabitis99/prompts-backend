@@ -10,17 +10,14 @@ import java.util.stream.Collectors;
 /**
  * Legacy-only resolution: enum name and EnumName.CONSTANT format.
  * Does not resolve stable keys (those go through registry / DefaultActionTypeResolver).
- * Resolution order is snapshotted from {@link OrderedActionTypeResolutionSource} at construction time; first match wins.
+ * Resolution order is taken from {@link OrderedActionTypeResolutionSource}; first match wins.
  */
 public final class ActionTypeCompatibilityResolver {
 
-    private final List<Class<? extends Enum<?>>> cachedOrder;
+    private final OrderedActionTypeResolutionSource resolutionOrder;
 
     public ActionTypeCompatibilityResolver(OrderedActionTypeResolutionSource resolutionOrder) {
-        OrderedActionTypeResolutionSource nonNull = Objects.requireNonNull(resolutionOrder, "resolutionOrder");
-        List<Class<? extends Enum<?>>> order = nonNull.getResolutionOrder();
-        validateResolutionOrder(order);
-        this.cachedOrder = List.copyOf(order);
+        this.resolutionOrder = Objects.requireNonNull(resolutionOrder, "resolutionOrder");
     }
 
     /** Resolves legacy format only: (1) EnumSimpleName.CONSTANT, (2) legacy enum {@link Enum#name()}. No stable-key lookup. */
@@ -29,25 +26,12 @@ public final class ActionTypeCompatibilityResolver {
             throw new IllegalArgumentException("value must not be null or blank");
         }
         String trimmed = value.trim();
-        ActionTypeInterface byDot = resolveByEnumDotConstant(trimmed, cachedOrder);
+        List<Class<? extends Enum<?>>> order = resolutionOrder.getResolutionOrder();
+        ActionTypeInterface byDot = resolveByEnumDotConstant(trimmed, order);
         if (byDot != null) {
             return byDot;
         }
-        return resolveByLegacyNameOnly(trimmed, cachedOrder);
-    }
-
-    private static void validateResolutionOrder(List<Class<? extends Enum<?>>> order) {
-        if (order == null) {
-            throw new IllegalStateException("resolutionOrder.getResolutionOrder() must not return null");
-        }
-        if (order.isEmpty()) {
-            throw new IllegalStateException("resolutionOrder.getResolutionOrder() must not return an empty list");
-        }
-        for (Class<? extends Enum<?>> enumClass : order) {
-            if (enumClass == null) {
-                throw new IllegalStateException("resolutionOrder.getResolutionOrder() must not contain null elements");
-            }
-        }
+        return resolveByLegacyNameOnly(trimmed, order);
     }
 
     /** Legacy enum name only (Enum.valueOf). Stable key는 사용하지 않아 registry-first 계약과 중복되지 않음. */

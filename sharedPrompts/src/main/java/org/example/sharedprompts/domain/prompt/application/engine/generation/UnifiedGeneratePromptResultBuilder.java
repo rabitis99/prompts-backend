@@ -2,15 +2,18 @@ package org.example.sharedprompts.domain.prompt.application.engine.generation;
 
 import org.example.sharedprompts.domain.prompt.application.engine.contract.SchemaContractEvaluator;
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.GeneratePromptResult;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.QualityBadgeItem;
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.UnifiedGeneratePromptResult;
 import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineMode;
 import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineProfile;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptObjective;
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
+import org.example.sharedprompts.domain.prompt.domain.value.quality.QualityBadge;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /** UnifiedGeneratePromptResult 조립 담당 */
 @Component
@@ -43,7 +46,7 @@ public class UnifiedGeneratePromptResultBuilder {
                 variant,
                 axes.role().orElse(null),
                 axes.actionType().orElse(null),
-                v2Result.badges(),
+                toQualityBadgeItems(v2Result.badges()),
                 v2Result.firstPassSuccess(),
                 v2Result.repairCount(),
                 v2Result.finallyPassed(),
@@ -56,5 +59,12 @@ public class UnifiedGeneratePromptResultBuilder {
                 semanticResolutionSummary != null ? semanticResolutionSummary : "",
                 normalizedAxisSources
         );
+    }
+
+    private static List<QualityBadgeItem> toQualityBadgeItems(List<QualityBadge> badges) {
+        if (badges == null || badges.isEmpty()) return List.of();
+        return badges.stream()
+                .map(b -> new QualityBadgeItem(b.name(), b.getDisplayName()))
+                .collect(Collectors.toList());
     }
 }

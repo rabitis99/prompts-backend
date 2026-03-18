@@ -24,10 +24,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Profile action-group-first behavior")
 class ProfileCanonicalFirstTest {
 
-    private final ActionTypeRegistry actionTypeRegistry = new ActionTypeRegistry(DeserializerEnumTestUtils.getActionTypeEnums());
-    private final CanonicalActionRegistry registry = new DefaultCanonicalActionRegistry(actionTypeRegistry);
+    private final CanonicalActionRegistry registry = new DefaultCanonicalActionRegistry(
+            new ActionTypeRegistry(DeserializerEnumTestUtils.getActionTypeEnums()));
     private final DefaultCategorySemanticProfileRegistry profileRegistry =
-            new DefaultCategorySemanticProfileRegistry(registry, actionTypeRegistry);
+            new DefaultCategorySemanticProfileRegistry(registry);
 
     @Test
     @DisplayName("profile returns non-empty action groups for intent when category has actions")

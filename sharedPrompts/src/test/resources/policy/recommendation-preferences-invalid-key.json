@@ -1,0 +1,7 @@
+{
+  "policyVersion": "test-v1",
+  "policyType": "RecommendationPreference",
+  "preferences": {
+    "WRITING+GENERATE": ["ACTION.UNKNOWN.NOT_EXIST", "ACTION.WRITING.LONG_FORM_WRITING"]
+  }
+}

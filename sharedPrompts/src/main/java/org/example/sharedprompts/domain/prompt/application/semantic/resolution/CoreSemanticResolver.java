@@ -1,5 +1,6 @@
 package org.example.sharedprompts.domain.prompt.application.semantic.resolution;
 
+import org.example.sharedprompts.domain.prompt.application.semantic.experiment.ExperimentContext;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.request.RequestMode;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
-/** 시맨틱 해석 공통 코디네이터. 프로필·Intent·검증·추천 위임 */
+/** 시맨틱 해석 공통 코디네이터. 프로필·Intent·검증·추천 위임. Optional experiment context for policy selection. */
 @Component
 public class CoreSemanticResolver {
 
@@ -43,6 +44,18 @@ public class CoreSemanticResolver {
             org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface roleType,
             org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface actionType,
             BiFunction<CategorySemanticProfile, ActionIntent, SemanticValidationResult> validator
+    ) {
+        return performCoreResolution(requestMode, category, initialIntent, roleType, actionType, validator, null);
+    }
+
+    public CoreResolutionResult performCoreResolution(
+            RequestMode requestMode,
+            PromptCategory category,
+            ActionIntent initialIntent,
+            org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface roleType,
+            org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface actionType,
+            BiFunction<CategorySemanticProfile, ActionIntent, SemanticValidationResult> validator,
+            ExperimentContext experimentContext
     ) {
         List<String> validationErrors = requestModeValidator.validateForResolution(category, requestMode);
         if (!validationErrors.isEmpty()) {
@@ -73,7 +86,8 @@ public class CoreSemanticResolver {
                 profile,
                 roleType,
                 actionType,
-                fallbackIntentUsed
+                fallbackIntentUsed,
+                experimentContext
         );
 
         List<String> warnings = new ArrayList<>();
