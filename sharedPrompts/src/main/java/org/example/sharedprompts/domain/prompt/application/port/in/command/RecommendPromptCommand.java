@@ -10,7 +10,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCateg
 import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
 import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 
-/** 추천 전용 커맨드. 생성 없이 추천 축만 반환 */
+/** 추천 전용 커맨드. 생성 없이 추천 축만 반환. Optional userId/tenantId for experiment routing. */
 public record RecommendPromptCommand(
         RequestMode requestMode,
         PromptCategory category,
@@ -21,12 +21,16 @@ public record RecommendPromptCommand(
         StyleType style,
         LanguageType language,
         ExperienceLevel experience,
-        String rawInput
+        String rawInput,
+        String userId,
+        String tenantId
 ) {
     public RecommendPromptCommand {
         tone = tone != null ? tone : ToneType.NEUTRAL;
         style = style != null ? style : StyleType.NARRATIVE;
         language = language != null ? language : LanguageType.KOREAN;
         experience = experience != null ? experience : ExperienceLevel.INTERMEDIATE;
+        userId = userId != null && userId.isBlank() ? null : userId;
+        tenantId = tenantId != null && tenantId.isBlank() ? null : tenantId;
     }
 }

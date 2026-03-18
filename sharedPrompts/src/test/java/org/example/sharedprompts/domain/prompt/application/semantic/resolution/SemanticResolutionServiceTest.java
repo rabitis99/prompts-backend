@@ -82,7 +82,7 @@ class SemanticResolutionServiceTest {
     @Test
     void recommendationEndpoint_categoryOnlyInput_intentFallbackApplied() {
         RecommendPromptCommand command = new RecommendPromptCommand(
-                RequestMode.ADVANCED, PromptCategory.ETC, null, null, null, ToneType.NEUTRAL, StyleType.NARRATIVE, LanguageType.KOREAN, ExperienceLevel.INTERMEDIATE, "input"
+                RequestMode.ADVANCED, PromptCategory.ETC, null, null, null, ToneType.NEUTRAL, StyleType.NARRATIVE, LanguageType.KOREAN, ExperienceLevel.INTERMEDIATE, "input", null, null
         );
 
         RecommendPromptResult stubResult = new RecommendPromptResult(

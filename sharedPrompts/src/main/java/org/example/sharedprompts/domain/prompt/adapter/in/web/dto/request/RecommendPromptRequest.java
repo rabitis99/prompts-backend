@@ -11,7 +11,6 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionInten
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
-import org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTypeDeserializer;
 import org.example.sharedprompts.domain.prompt.common.enums.serializer.ActionTypeSerializer;
 import org.example.sharedprompts.domain.prompt.common.enums.serializer.RoleTypeDeserializer;
 import org.example.sharedprompts.domain.prompt.common.enums.serializer.RoleTypeSerializer;
@@ -37,7 +36,6 @@ public record RecommendPromptRequest(
 
         @JsonProperty("action_type")
         @JsonSerialize(using = ActionTypeSerializer.class)
-        @JsonDeserialize(using = ActionTypeDeserializer.class)
         ActionTypeInterface actionType,
 
         ToneType tone,

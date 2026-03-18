@@ -2,8 +2,8 @@ package org.example.sharedprompts.domain.prompt.adapter.in.web.mapper;
 
 import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.response.BadgeDto;
 import org.example.sharedprompts.domain.prompt.adapter.in.web.dto.response.UnifiedGeneratePromptResponse;
+import org.example.sharedprompts.domain.prompt.application.port.in.generate.QualityBadgeItem;
 import org.example.sharedprompts.domain.prompt.application.port.in.generate.UnifiedGeneratePromptResult;
-import org.example.sharedprompts.domain.prompt.domain.value.quality.QualityBadge;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -51,9 +51,10 @@ public class UnifiedPromptResponseMapper {
     }
 
     /**
-     * 품질 배지 → 배지 응답 DTO 변환
+     * 품질 배지(port view) → 배지 응답 DTO 변환.
+     * API layer does not depend on domain.value.quality.
      */
-    private BadgeDto toBadgeDto(QualityBadge badge) {
-        return new BadgeDto(badge.name(), badge.getDisplayName());
+    private BadgeDto toBadgeDto(QualityBadgeItem item) {
+        return new BadgeDto(item.key(), item.displayName());
     }
 }

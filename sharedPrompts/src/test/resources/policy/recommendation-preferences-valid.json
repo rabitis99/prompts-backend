@@ -1,0 +1,12 @@
+{
+  "policyVersion": "test-recommendation-v1",
+  "policyType": "RecommendationPreference",
+  "metadata": {
+    "description": "Test recommendation preferences",
+    "sourceType": "classpath-json"
+  },
+  "preferences": {
+    "WRITING+GENERATE": ["ACTION.WRITING.ARTICLE_WRITING", "ACTION.CREATIVE.CREATIVE_WRITING"],
+    "DEVELOPMENT+EXPLAIN": ["ACTION.ETC.EXPLANATION"]
+  }
+}

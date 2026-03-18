@@ -24,7 +24,9 @@ public class RecommendationRequestMapper {
                 request.style(),
                 request.language(),
                 request.experience(),
-                request.rawInput()
+                request.rawInput(),
+                null,
+                null
         );
     }
 }

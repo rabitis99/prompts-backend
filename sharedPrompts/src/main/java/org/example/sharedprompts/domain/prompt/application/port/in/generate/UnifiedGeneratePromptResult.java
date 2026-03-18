@@ -9,7 +9,6 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptObjec
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
-import org.example.sharedprompts.domain.prompt.domain.value.quality.QualityBadge;
 
 import java.util.List;
 import java.util.Map;
@@ -27,7 +26,7 @@ public record UnifiedGeneratePromptResult(
         String variant,
         RoleTypeInterface resolvedRole,
         ActionTypeInterface resolvedAction,
-        List<QualityBadge> qualityBadges,
+        List<QualityBadgeItem> qualityBadges,
         boolean verifyPassed,
         int repairCount,
         boolean finallyPassed,
