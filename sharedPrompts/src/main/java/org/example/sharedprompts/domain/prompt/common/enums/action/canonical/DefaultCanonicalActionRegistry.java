@@ -26,8 +26,9 @@ public class DefaultCanonicalActionRegistry implements CanonicalActionRegistry {
         if (actionType == null) {
             return Optional.empty();
         }
-        if (actionType.getActionGroup() != null) {
-            return Optional.of(actionType.getActionGroup());
+        ActionGroup group = actionType.getActionGroup();
+        if (group != null) {
+            return Optional.of(group);
         }
         return findByKey(actionType.key());
     }

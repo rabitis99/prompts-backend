@@ -25,22 +25,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ActionTypeMetadataProviderTest {
 
     @Test
-    @DisplayName("ClasspathActionTypeMetadataProvider loads properties from classpath")
+    @DisplayName("ClasspathActionTypeMetadataProvider loads properties from classpath with full key coverage")
     void classpathProviderLoadsProperties() {
         ActionTypeMetadataProvider provider = new ClasspathActionTypeMetadataProvider();
-        // At least one key from catalog should have metadata if properties exist
         List<Class<? extends Enum<?>>> enums = DeserializerEnumTestUtils.getActionTypeEnums();
         ActionTypeRegistry registry = new ActionTypeRegistry(enums);
-        boolean anyPresent = false;
         for (var action : registry.getAll()) {
-            if (provider.getOutputBehavior(action.key()).isPresent()) {
-                anyPresent = true;
-                break;
-            }
+            assertThat(provider.getOutputBehavior(action.key()))
+                    .as("Classpath provider must have output behavior for every ActionType: " + action.key())
+                    .isPresent();
         }
-        assertThat(anyPresent)
-                .as("Classpath provider should return at least one output behavior when properties exist")
-                .isTrue();
     }
 
     @Test
