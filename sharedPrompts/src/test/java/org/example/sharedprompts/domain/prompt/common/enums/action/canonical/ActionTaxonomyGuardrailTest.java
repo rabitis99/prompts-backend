@@ -2,10 +2,10 @@ package org.example.sharedprompts.domain.prompt.common.enums.action.canonical;
 
 import org.example.sharedprompts.domain.prompt.common.enums.DeserializerEnumTestUtils;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.common.enums.action.metadata.ActionTypeMetadataLoader;
 import org.example.sharedprompts.domain.prompt.common.enums.action.registry.ActionOutputBehaviorRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.action.registry.ActionTypeRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.action.registry.DefaultActionOutputBehaviorRegistry;
+import org.example.sharedprompts.domain.prompt.infrastructure.metadata.ClasspathActionTypeMetadataProvider;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileRegistry;
@@ -77,8 +77,9 @@ class ActionTaxonomyGuardrailTest {
     @DisplayName("every ActionType has non-null ActionGroup and required metadata (identity + registry)")
     void everyActionHasRequiredMetadata() {
         ActionTypeRegistry registry = new ActionTypeRegistry(DeserializerEnumTestUtils.getActionTypeEnums());
+        ClasspathActionTypeMetadataProvider provider = new ClasspathActionTypeMetadataProvider();
         ActionOutputBehaviorRegistry outputBehaviorRegistry = new DefaultActionOutputBehaviorRegistry(
-                ActionTypeMetadataLoader.loadKeyToOutputBehavior());
+                provider.getKeyToOutputBehaviorMap());
         for (Class<? extends Enum<?>> enumClass : DeserializerEnumTestUtils.getActionTypeEnums()) {
             if (!ActionTypeInterface.class.isAssignableFrom(enumClass)) continue;
             for (Enum<?> c : enumClass.getEnumConstants()) {
@@ -116,7 +117,8 @@ class ActionTaxonomyGuardrailTest {
     void profileCompatibilityIsGroupFirst() {
         ActionTypeRegistry actionTypeRegistry = new ActionTypeRegistry(DeserializerEnumTestUtils.getActionTypeEnums());
         DefaultCanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(actionTypeRegistry);
-        CategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(canonical, actionTypeRegistry);
+        CategorySemanticProfileRegistry profileRegistry =
+                new DefaultCategorySemanticProfileRegistry(canonical, actionTypeRegistry);
         List<PromptCategory> categoriesWithProfiles = List.of(
                 PromptCategory.DESIGN, PromptCategory.DEVELOPMENT, PromptCategory.WRITING,
                 PromptCategory.RESEARCH, PromptCategory.BUSINESS, PromptCategory.MARKETING,

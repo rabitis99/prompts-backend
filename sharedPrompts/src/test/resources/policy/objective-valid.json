@@ -1,0 +1,17 @@
+{
+  "policyVersion": "test-objective-v1",
+  "policyType": "Objective",
+  "metadata": {
+    "description": "Test objective mapping",
+    "sourceType": "classpath-json"
+  },
+  "explicitMappings": {
+    "ACTION.CODING.CODE_REVIEW": "REASONING",
+    "ACTION.ANALYSIS.DATA_ANALYSIS": "ANALYTICAL"
+  },
+  "domainDefaults": {
+    "TECHNICAL": "REASONING",
+    "ANALYTICAL": "ANALYTICAL",
+    "CREATIVE": "CREATIVE_WITH_CONSTRAINTS"
+  }
+}

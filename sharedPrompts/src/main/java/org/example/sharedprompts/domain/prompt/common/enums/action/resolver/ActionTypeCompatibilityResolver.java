@@ -2,7 +2,6 @@ package org.example.sharedprompts.domain.prompt.common.enums.action.resolver;
 
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -11,25 +10,17 @@ import java.util.stream.Collectors;
 /**
  * Legacy-only resolution: enum name and EnumName.CONSTANT format.
  * Does not resolve stable keys (those go through registry / DefaultActionTypeResolver).
- * Fallback uses Enum.valueOf per enum class, so only legacy names are accepted here.
+ * Resolution order is snapshotted from {@link OrderedActionTypeResolutionSource} at construction time; first match wins.
  */
 public final class ActionTypeCompatibilityResolver {
 
-    /** ActionTypeInterface 구현 enum만 보관. 생성 시 검증 후 방어적 복사. */
-    private final List<Class<? extends Enum<?>>> enumClasses;
+    private final List<Class<? extends Enum<?>>> cachedOrder;
 
-    public ActionTypeCompatibilityResolver(List<Class<? extends Enum<?>>> enumClasses) {
-        Objects.requireNonNull(enumClasses, "enumClasses");
-        List<Class<? extends Enum<?>>> copy = new ArrayList<>(enumClasses);
-        for (Class<? extends Enum<?>> enumClass : copy) {
-            if (!ActionTypeInterface.class.isAssignableFrom(enumClass)) {
-                throw new IllegalStateException(
-                        "ActionTypeCompatibilityResolver requires ActionTypeInterface enum classes only. Invalid: "
-                                + enumClass.getName()
-                );
-            }
-        }
-        this.enumClasses = List.copyOf(copy);
+    public ActionTypeCompatibilityResolver(OrderedActionTypeResolutionSource resolutionOrder) {
+        OrderedActionTypeResolutionSource nonNull = Objects.requireNonNull(resolutionOrder, "resolutionOrder");
+        List<Class<? extends Enum<?>>> order = nonNull.getResolutionOrder();
+        validateResolutionOrder(order);
+        this.cachedOrder = List.copyOf(order);
     }
 
     /** Resolves legacy format only: (1) EnumSimpleName.CONSTANT, (2) legacy enum {@link Enum#name()}. No stable-key lookup. */
@@ -38,16 +29,30 @@ public final class ActionTypeCompatibilityResolver {
             throw new IllegalArgumentException("value must not be null or blank");
         }
         String trimmed = value.trim();
-        ActionTypeInterface byDot = resolveByEnumDotConstant(trimmed);
+        ActionTypeInterface byDot = resolveByEnumDotConstant(trimmed, cachedOrder);
         if (byDot != null) {
             return byDot;
         }
-        return resolveByLegacyNameOnly(trimmed);
+        return resolveByLegacyNameOnly(trimmed, cachedOrder);
+    }
+
+    private static void validateResolutionOrder(List<Class<? extends Enum<?>>> order) {
+        if (order == null) {
+            throw new IllegalStateException("resolutionOrder.getResolutionOrder() must not return null");
+        }
+        if (order.isEmpty()) {
+            throw new IllegalStateException("resolutionOrder.getResolutionOrder() must not return an empty list");
+        }
+        for (Class<? extends Enum<?>> enumClass : order) {
+            if (enumClass == null) {
+                throw new IllegalStateException("resolutionOrder.getResolutionOrder() must not contain null elements");
+            }
+        }
     }
 
     /** Legacy enum name only (Enum.valueOf). Stable key는 사용하지 않아 registry-first 계약과 중복되지 않음. */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private ActionTypeInterface resolveByLegacyNameOnly(String trimmed) {
+    private ActionTypeInterface resolveByLegacyNameOnly(String trimmed, List<Class<? extends Enum<?>>> enumClasses) {
         for (Class<? extends Enum<?>> enumClass : enumClasses) {
             try {
                 Enum<?> constant = Enum.valueOf((Class) enumClass, trimmed);
@@ -65,7 +70,7 @@ public final class ActionTypeCompatibilityResolver {
     }
 
     /** EnumSimpleName.CONSTANT 형식 우선 해석. 없으면 null. (enum 순서/simple name에 의존) */
-    private ActionTypeInterface resolveByEnumDotConstant(String value) {
+    private ActionTypeInterface resolveByEnumDotConstant(String value, List<Class<? extends Enum<?>>> enumClasses) {
         for (Class<? extends Enum<?>> enumClass : enumClasses) {
             String enumSimpleName = enumClass.getSimpleName();
             String prefix = enumSimpleName + ".";

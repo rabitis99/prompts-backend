@@ -6,6 +6,8 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.registry.Acti
 import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.ActionTypeCompatibilityResolver;
 import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.ActionTypeResolver;
 import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.DefaultActionTypeResolver;
+import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.DefaultOrderedActionTypeResolutionSource;
+import org.example.sharedprompts.domain.prompt.common.enums.action.resolver.OrderedActionTypeResolutionSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -25,9 +27,11 @@ class CanonicalActionMappingTest {
 
     private static final List<Class<? extends Enum<?>>> CATALOG_ENUMS = new DefaultActionTypeCatalog().getActionTypeEnumClasses();
     private static final ActionTypeRegistry ACTION_TYPE_REGISTRY = new ActionTypeRegistry(CATALOG_ENUMS);
+    private static final OrderedActionTypeResolutionSource RESOLUTION_SOURCE =
+            new DefaultOrderedActionTypeResolutionSource(CATALOG_ENUMS);
     private static final ActionTypeResolver ACTION_TYPE_RESOLVER = new DefaultActionTypeResolver(
             ACTION_TYPE_REGISTRY,
-            new ActionTypeCompatibilityResolver(CATALOG_ENUMS));
+            new ActionTypeCompatibilityResolver(RESOLUTION_SOURCE));
     private final CanonicalActionRegistry registry = new DefaultCanonicalActionRegistry(ACTION_TYPE_REGISTRY);
 
     private static void assertActionTypeEnumClass(Class<? extends Enum<?>> enumClass) {
@@ -65,6 +69,25 @@ class CanonicalActionMappingTest {
                 var fromAction = registry.toCanonical(action);
                 var fromKey = registry.findByKey(key);
                 assertThat(fromKey).as("findByKey(" + key + ")").isEqualTo(fromAction);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("toCanonical is definition-based: returns action.getActionGroup() without registry re-query")
+    void toCanonicalIsDefinitionBased() {
+        for (Class<? extends Enum<?>> enumClass : CATALOG_ENUMS) {
+            assertActionTypeEnumClass(enumClass);
+            for (Enum<?> constant : enumClass.getEnumConstants()) {
+                ActionTypeInterface action = (ActionTypeInterface) constant;
+                var fromRegistry = registry.toCanonical(action);
+                assertThat(action.getActionGroup())
+                        .as("Definition must have action group: " + enumClass.getSimpleName() + "." + constant.name())
+                        .isNotNull();
+                assertThat(fromRegistry).isPresent();
+                assertThat(fromRegistry.get())
+                        .as("toCanonical must equal action.getActionGroup() (definition-first, no hidden registry source)")
+                        .isEqualTo(action.getActionGroup());
             }
         }
     }

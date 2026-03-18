@@ -6,6 +6,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * 범용 enum 파싱 유틸. 다중 enum 순차 시도 시 호출부가 넘긴 목록 순서가 우선순위가 됨.
+ * ActionType 해석은 {@link org.example.sharedprompts.domain.prompt.common.enums.action.resolver.ActionTypeCompatibilityResolver}
+ * 및 {@link org.example.sharedprompts.domain.prompt.common.enums.action.resolver.OrderedActionTypeResolutionSource} 사용.
+ */
 public final class EnumResolver {
 
     private EnumResolver() {
