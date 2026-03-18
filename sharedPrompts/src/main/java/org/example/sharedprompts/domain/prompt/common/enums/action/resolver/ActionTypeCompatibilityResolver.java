@@ -18,8 +18,9 @@ public final class ActionTypeCompatibilityResolver {
 
     public ActionTypeCompatibilityResolver(OrderedActionTypeResolutionSource resolutionOrder) {
         OrderedActionTypeResolutionSource nonNull = Objects.requireNonNull(resolutionOrder, "resolutionOrder");
-        this.cachedOrder = List.copyOf(nonNull.getResolutionOrder());
-        validateResolutionOrder(this.cachedOrder);
+        List<Class<? extends Enum<?>>> order = nonNull.getResolutionOrder();
+        validateResolutionOrder(order);
+        this.cachedOrder = List.copyOf(order);
     }
 
     /** Resolves legacy format only: (1) EnumSimpleName.CONSTANT, (2) legacy enum {@link Enum#name()}. No stable-key lookup. */
