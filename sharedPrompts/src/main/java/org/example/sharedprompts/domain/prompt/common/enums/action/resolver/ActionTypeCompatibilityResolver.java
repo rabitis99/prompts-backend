@@ -10,14 +10,16 @@ import java.util.stream.Collectors;
 /**
  * Legacy-only resolution: enum name and EnumName.CONSTANT format.
  * Does not resolve stable keys (those go through registry / DefaultActionTypeResolver).
- * Resolution order is taken from {@link OrderedActionTypeResolutionSource}; first match wins.
+ * Resolution order is snapshotted from {@link OrderedActionTypeResolutionSource} at construction time; first match wins.
  */
 public final class ActionTypeCompatibilityResolver {
 
-    private final OrderedActionTypeResolutionSource resolutionOrder;
+    private final List<Class<? extends Enum<?>>> cachedOrder;
 
     public ActionTypeCompatibilityResolver(OrderedActionTypeResolutionSource resolutionOrder) {
-        this.resolutionOrder = Objects.requireNonNull(resolutionOrder, "resolutionOrder");
+        OrderedActionTypeResolutionSource nonNull = Objects.requireNonNull(resolutionOrder, "resolutionOrder");
+        this.cachedOrder = List.copyOf(nonNull.getResolutionOrder());
+        validateResolutionOrder(this.cachedOrder);
     }
 
     /** Resolves legacy format only: (1) EnumSimpleName.CONSTANT, (2) legacy enum {@link Enum#name()}. No stable-key lookup. */
@@ -26,13 +28,11 @@ public final class ActionTypeCompatibilityResolver {
             throw new IllegalArgumentException("value must not be null or blank");
         }
         String trimmed = value.trim();
-        List<Class<? extends Enum<?>>> order = resolutionOrder.getResolutionOrder();
-        validateResolutionOrder(order);
-        ActionTypeInterface byDot = resolveByEnumDotConstant(trimmed, order);
+        ActionTypeInterface byDot = resolveByEnumDotConstant(trimmed, cachedOrder);
         if (byDot != null) {
             return byDot;
         }
-        return resolveByLegacyNameOnly(trimmed, order);
+        return resolveByLegacyNameOnly(trimmed, cachedOrder);
     }
 
     private static void validateResolutionOrder(List<Class<? extends Enum<?>>> order) {
