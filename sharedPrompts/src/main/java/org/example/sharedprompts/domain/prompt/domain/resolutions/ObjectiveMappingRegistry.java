@@ -1,9 +1,9 @@
 package org.example.sharedprompts.domain.prompt.domain.resolutions;
 
 import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
+import org.example.sharedprompts.domain.prompt.domain.semantic.policy.objective.ObjectivePolicySource;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
-import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.ActionGroup;
 import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 
 import java.util.LinkedHashMap;
@@ -13,16 +13,15 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 명시 매핑 + 액션 이름 휴리스틱 + TaskDomain 기본값.
- * 명시 매핑은 action group 기준으로 저장; 조회 시 action → action group → 명시 → 휴리스틱 → 도메인 기본 순.
- *
- * <p>Config에서 put()으로 명시 매핑을 등록한 뒤, 조회 시 action group 해석 후 명시 → 휴리스틱 → 도메인 기본 순으로 사용.
- * {@link ObjectiveMappingRegistryPort} 유일 구현체.
+ * Adapter: {@link ObjectiveMappingRegistryPort} implemented using {@link ObjectivePolicySource}.
+ * Explicit mapping and domain default come from the policy source; heuristic remains here for fallback.
+ * Config must not hold raw maps; wire {@link ObjectivePolicySource} (e.g. {@link org.example.sharedprompts.domain.prompt.domain.semantic.policy.objective.DefaultObjectivePolicySource}).
  */
 public class ObjectiveMappingRegistry implements ObjectiveMappingRegistryPort {
 
-    private final CanonicalActionRegistry canonicalActionRegistry;
-    private final Map<ActionGroup, PromptObjective> explicitByActionGroup = new ConcurrentHashMap<>();
+    private final ObjectivePolicySource policySource;
+    /** Optional overlay (e.g. tests); checked before policy source. */
+    private final Map<String, PromptObjective> overlayByStableKey = new ConcurrentHashMap<>();
 
     private static final Map<PromptObjective, Set<String>> KEYWORD_MAP;
 
@@ -72,50 +71,42 @@ public class ObjectiveMappingRegistry implements ObjectiveMappingRegistryPort {
         ));
     }
 
-    public ObjectiveMappingRegistry(CanonicalActionRegistry canonicalActionRegistry) {
-        this.canonicalActionRegistry = canonicalActionRegistry;
+    public ObjectiveMappingRegistry(CanonicalActionRegistry canonicalActionRegistry, ObjectivePolicySource policySource) {
+        this.policySource = policySource;
     }
 
-    /** Config/테스트 전용. 명시 매핑 등록; action group으로 저장되어 동일 capability의 다른 action도 동일 objective 사용. */
+    /** Test/config overlay: add explicit mapping by stable key without changing policy source. */
+    public void putByStableKey(String stableKey, PromptObjective objective) {
+        if (stableKey == null || stableKey.isBlank() || objective == null) return;
+        String key = stableKey.trim();
+        PromptObjective previous = overlayByStableKey.putIfAbsent(key, objective);
+        if (previous != null && !previous.equals(objective)) {
+            throw new IllegalStateException(
+                    "Conflicting overlay objective for " + stableKey + ": " + previous + " vs " + objective);
+        }
+    }
+
+    /** Test/config overlay: add by action type (uses action stable key). */
     public void put(ActionTypeInterface actionType, PromptObjective objective) {
         if (actionType != null && objective != null) {
-            ActionGroup actionGroup = canonicalActionRegistry.toCanonical(actionType)
-                    .orElseThrow(() -> new IllegalArgumentException("No action group mapping for action: " + actionType.key()));
-            PromptObjective previous = explicitByActionGroup.putIfAbsent(actionGroup, objective);
-            if (previous != null && !previous.equals(objective)) {
-                throw new IllegalStateException(
-                        "Conflicting objective mapping for action group " + actionGroup + ": "
-                                + previous + " vs " + objective);
-            }
+            putByStableKey(actionType.key(), objective);
         }
     }
 
     @Override
     public Optional<PromptObjective> findByActionType(ActionTypeInterface actionType) {
-        if (actionType == null) {
-            return Optional.empty();
-        }
-        Optional<ActionGroup> actionGroup = canonicalActionRegistry.toCanonical(actionType);
-        if (actionGroup.isPresent()) {
-            PromptObjective explicit = explicitByActionGroup.get(actionGroup.get());
-            if (explicit != null) {
-                return Optional.of(explicit);
-            }
-        }
+        if (actionType == null) return Optional.empty();
+        String key = actionType.key();
+        Optional<PromptObjective> fromOverlay = Optional.ofNullable(overlayByStableKey.get(key));
+        if (fromOverlay.isPresent()) return fromOverlay;
+        Optional<PromptObjective> fromSource = policySource.findByStableKey(key);
+        if (fromSource.isPresent()) return fromSource;
         return Optional.ofNullable(inferByActionName(actionType));
     }
 
     @Override
     public PromptObjective getDomainDefault(TaskDomain taskDomain) {
-        if (taskDomain == null) {
-            return PromptObjective.REASONING;
-        }
-        return switch (taskDomain) {
-            case TECHNICAL, EDUCATIONAL, GENERAL -> PromptObjective.REASONING;
-            case ANALYTICAL  -> PromptObjective.ANALYTICAL;
-            case CREATIVE    -> PromptObjective.CREATIVE_WITH_CONSTRAINTS;
-            case PRACTICAL   -> PromptObjective.PLANNING;
-        };
+        return policySource.getDomainDefault(taskDomain);
     }
 
     private PromptObjective inferByActionName(ActionTypeInterface actionType) {

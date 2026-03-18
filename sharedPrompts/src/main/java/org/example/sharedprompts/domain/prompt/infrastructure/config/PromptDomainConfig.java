@@ -32,7 +32,7 @@ import java.util.List;
  * {@link #objectiveRegistry()} 의 프로파일 목록에만 추가하면 된다 (OCP).
  */
 @Configuration
-@Import({ActionTypeRegistryConfig.class, ResolutionConfig.class})
+@Import({ActionTypeRegistryConfig.class, ResolutionConfig.class, PolicySchemaConfig.class, PolicyBootstrapConfig.class})
 public class PromptDomainConfig {
 
     @Bean

@@ -1,56 +1,39 @@
 package org.example.sharedprompts.domain.prompt.infrastructure.config;
 
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.analysis.AnalysisActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.creative.CreativeActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.development.CodingActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.etc.EtcActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.productivity.ProductivityActionType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.category.writing.WritingActionType;
+import org.example.sharedprompts.domain.prompt.application.semantic.policy.DefaultPolicySelectionStrategy;
+import org.example.sharedprompts.domain.prompt.application.semantic.policy.PolicySelectionStrategy;
 import org.example.sharedprompts.domain.prompt.common.enums.action.registry.ActionDomainRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.action.registry.ActionTypeRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolver;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileRegistry;
+import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileSeedSource;
 import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileRegistry;
+import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileSeedSource;
+import org.example.sharedprompts.domain.prompt.domain.semantic.policy.compatibility.CompatibilityPolicySource;
+import org.example.sharedprompts.domain.prompt.domain.semantic.policy.objective.ObjectivePolicySource;
+import org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommendation.ConcreteActionByGroupIndex;
+import org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommendation.DefaultConcreteActionByGroupIndex;
+import org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommendation.DefaultRecommendationConcreteActionExpander;
+import org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommendation.RecommendationConcreteActionExpander;
+import org.example.sharedprompts.domain.prompt.domain.semantic.policy.registry.PolicySourceRegistry;
+import org.example.sharedprompts.domain.prompt.domain.semantic.policy.version.PolicyVersion;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolverPort;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistry;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistryPort;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolver;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolverPort;
-import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
-import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.Map;
-
 /**
  * TaskDomain / PromptObjective 해석 빈 설정.
- *
- * <p>모든 빈을 <b>인터페이스 타입</b>으로만 노출하여 주입 시 접근 오류를 방지.
- * {@link PromptDomainConfig}에서 import.
+ * Policy version and registry: policy data lives in sources, not in config; version is first-class for trace/audit.
  */
 @Configuration
 public class ResolutionConfig {
 
-    // Resolution policy: action-type → objective. Prefer registry over enum getters.
-    // 나머지 ActionType은 레지스트리의 키워드 기반 추론 규칙을 통해 적절한 PromptObjective로 매핑된다.
-    private static final Map<ActionTypeInterface, PromptObjective> EXPLICIT_MAPPINGS = Map.ofEntries(
-            Map.entry(CodingActionType.CODE_REVIEW, PromptObjective.REASONING),
-            Map.entry(CodingActionType.DEBUGGING, PromptObjective.REASONING),
-            Map.entry(CodingActionType.REFACTORING, PromptObjective.REASONING),
-            Map.entry(AnalysisActionType.DATA_ANALYSIS, PromptObjective.ANALYTICAL),
-            Map.entry(AnalysisActionType.COMPARATIVE_ANALYSIS, PromptObjective.ANALYTICAL),
-            Map.entry(AnalysisActionType.ROOT_CAUSE_ANALYSIS, PromptObjective.ANALYTICAL),
-            Map.entry(CreativeActionType.CREATIVE_WRITING, PromptObjective.CREATIVE_WITH_CONSTRAINTS),
-            Map.entry(CreativeActionType.IDEA_GENERATION, PromptObjective.CREATIVE_WITH_CONSTRAINTS),
-            Map.entry(EtcActionType.PROBLEM_SOLVING, PromptObjective.REASONING),
-            Map.entry(EtcActionType.EXPLANATION, PromptObjective.REASONING),
-            Map.entry(WritingActionType.TRANSLATION, PromptObjective.FACTUAL),
-            Map.entry(WritingActionType.PROOFREADING, PromptObjective.FACTUAL),
-            Map.entry(ProductivityActionType.SCHEDULE_PLANNING, PromptObjective.PLANNING),
-            Map.entry(ProductivityActionType.TASK_AUTOMATION, PromptObjective.PLANNING)
-    );
+    private static final String DEFAULT_POLICY_VERSION_ID = "2026-03-recommendation-v1";
 
     @Bean
     public DomainResolverPort domainResolver(ActionDomainRegistry actionDomainRegistry) {
@@ -58,10 +41,27 @@ public class ResolutionConfig {
     }
 
     @Bean
-    public ObjectiveMappingRegistryPort objectiveMappingRegistry(CanonicalActionRegistry canonicalActionRegistry) {
-        ObjectiveMappingRegistry registry = new ObjectiveMappingRegistry(canonicalActionRegistry);
-        EXPLICIT_MAPPINGS.forEach(registry::put);
-        return registry;
+    public PolicyVersion defaultPolicyVersion() {
+        return PolicyVersion.of(DEFAULT_POLICY_VERSION_ID, "Default in-memory", "in-memory");
+    }
+
+    @Bean
+    public PolicySelectionStrategy policySelectionStrategy(PolicyVersion defaultPolicyVersion) {
+        return new DefaultPolicySelectionStrategy(defaultPolicyVersion);
+    }
+
+    @Bean
+    public ObjectivePolicySource objectivePolicySource(
+            PolicySourceRegistry policySourceRegistry,
+            PolicyVersion defaultPolicyVersion) {
+        return policySourceRegistry.getObjectivePolicySource(defaultPolicyVersion);
+    }
+
+    @Bean
+    public ObjectiveMappingRegistryPort objectiveMappingRegistry(
+            CanonicalActionRegistry canonicalActionRegistry,
+            ObjectivePolicySource objectivePolicySource) {
+        return new ObjectiveMappingRegistry(canonicalActionRegistry, objectivePolicySource);
     }
 
     @Bean
@@ -69,14 +69,32 @@ public class ResolutionConfig {
         return new ObjectiveResolver(mappingRegistry);
     }
 
-    /**
-     * Profile registry with group-first derivation: compatible actions are derived from
-     * compatible ActionGroups via {@link ActionTypeRegistry}. Requires both registries.
-     */
+    @Bean
+    public CategorySemanticProfileSeedSource categorySemanticProfileSeedSource() {
+        return new DefaultCategorySemanticProfileSeedSource();
+    }
+
+    /** Profile registry: assembles from seed source; optional CompatibilityPolicySource from registry. */
     @Bean
     public CategorySemanticProfileRegistry categorySemanticProfileRegistry(
             CanonicalActionRegistry canonicalActionRegistry,
-            ActionTypeRegistry actionTypeRegistry) {
-        return new DefaultCategorySemanticProfileRegistry(canonicalActionRegistry, actionTypeRegistry);
+            PolicySourceRegistry policySourceRegistry,
+            PolicyVersion defaultPolicyVersion,
+            CategorySemanticProfileSeedSource categorySemanticProfileSeedSource) {
+        CompatibilityPolicySource compat = policySourceRegistry.getCompatibilityPolicySource(defaultPolicyVersion);
+        return new DefaultCategorySemanticProfileRegistry(canonicalActionRegistry, compat, categorySemanticProfileSeedSource);
+    }
+
+    // --- Recommendation: concrete expansion; ordering comes from registry per request version ---
+
+    @Bean
+    public ConcreteActionByGroupIndex concreteActionByGroupIndex(ActionTypeRegistry actionTypeRegistry) {
+        return new DefaultConcreteActionByGroupIndex(actionTypeRegistry.getAll());
+    }
+
+    @Bean
+    public RecommendationConcreteActionExpander recommendationConcreteActionExpander(
+            ConcreteActionByGroupIndex concreteActionByGroupIndex) {
+        return new DefaultRecommendationConcreteActionExpander(concreteActionByGroupIndex);
     }
 }
