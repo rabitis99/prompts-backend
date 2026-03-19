@@ -7,11 +7,11 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInt
 import java.util.Optional;
 
 /**
- * Objective 해석 fallback: 액션 휴리스틱 + TaskDomain 기본값 (도메인 내부 전략).
+ * Objective 해석 fallback: action 휴리스틱 + TaskDomain 기본값.
  *
  * <p>명시 매핑 이후 fallback으로만 사용.
  *
- * <p><b>내부 전략.</b> 구현: {@link ObjectiveMappingRegistry}.
+ * <p><b>내부 전략.</b> 구현: {@link ObjectiveMappingRegistry} (휴리스틱은 {@link ObjectiveHeuristicInferencePolicy}로 위임).
  */
 public interface ObjectiveMappingRegistryPort {
 
