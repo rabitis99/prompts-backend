@@ -118,7 +118,11 @@ class ActionTaxonomyGuardrailTest {
         ActionTypeRegistry actionTypeRegistry = new ActionTypeRegistry(DeserializerEnumTestUtils.getActionTypeEnums());
         DefaultCanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(actionTypeRegistry);
         CategorySemanticProfileRegistry profileRegistry =
-                new DefaultCategorySemanticProfileRegistry(canonical, new DefaultCategorySemanticProfileSeedSource());
+                new DefaultCategorySemanticProfileRegistry(
+                        canonical,
+                        null,
+                        new DefaultCategorySemanticProfileSeedSource()
+                );
         List<PromptCategory> categoriesWithProfiles = List.of(
                 PromptCategory.DESIGN, PromptCategory.DEVELOPMENT, PromptCategory.WRITING,
                 PromptCategory.RESEARCH, PromptCategory.BUSINESS, PromptCategory.MARKETING,
