@@ -10,11 +10,14 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionInten
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistry;
 import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileRegistry;
+import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileSeedSource;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.objective.DefaultObjectivePolicySource;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.objective.ObjectivePolicySource;
 import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import org.example.sharedprompts.domain.prompt.domain.resolutions.DefaultObjectiveHeuristicInferencePolicy;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,9 +42,11 @@ class SemanticStructurePhase3Test {
         Collections.reverse(reversed);
         ActionTypeRegistry registryReversed = new ActionTypeRegistry(reversed);
 
-        DefaultCategorySemanticProfileRegistry profileOrderA = new DefaultCategorySemanticProfileRegistry(canonical);
+        DefaultCategorySemanticProfileRegistry profileOrderA = new DefaultCategorySemanticProfileRegistry(
+                canonical, new DefaultCategorySemanticProfileSeedSource());
         DefaultCategorySemanticProfileRegistry profileOrderB = new DefaultCategorySemanticProfileRegistry(
-                new DefaultCanonicalActionRegistry(registryReversed));
+                new DefaultCanonicalActionRegistry(registryReversed),
+                new DefaultCategorySemanticProfileSeedSource());
 
         for (PromptCategory category : List.of(PromptCategory.WRITING, PromptCategory.DEVELOPMENT, PromptCategory.RESEARCH)) {
             var profA = profileOrderA.getProfile(category);
@@ -61,9 +66,9 @@ class SemanticStructurePhase3Test {
     @DisplayName("Objective mapping works by stable key without concrete enum reference")
     void objectiveMappingByStableKey() {
         ActionTypeRegistry actionTypeRegistry = new ActionTypeRegistry(CATALOG);
-        CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(actionTypeRegistry);
         ObjectivePolicySource source = new DefaultObjectivePolicySource(Map.of());
-        ObjectiveMappingRegistry mapping = new ObjectiveMappingRegistry(canonical, source);
+        ObjectiveMappingRegistry mapping =
+                new ObjectiveMappingRegistry(source, new DefaultObjectiveHeuristicInferencePolicy());
 
         mapping.putByStableKey("ACTION.CODING.CODE_REVIEW", PromptObjective.REASONING);
         mapping.putByStableKey("ACTION.WRITING.TRANSLATION", PromptObjective.FACTUAL);
@@ -80,9 +85,9 @@ class SemanticStructurePhase3Test {
     @DisplayName("New action key can be added to policy without changing config class")
     void extensibilityByStableKeyOnly() {
         ActionTypeRegistry actionTypeRegistry = new ActionTypeRegistry(CATALOG);
-        CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(actionTypeRegistry);
         ObjectivePolicySource source = new DefaultObjectivePolicySource(Map.of());
-        ObjectiveMappingRegistry mapping = new ObjectiveMappingRegistry(canonical, source);
+        ObjectiveMappingRegistry mapping =
+                new ObjectiveMappingRegistry(source, new DefaultObjectiveHeuristicInferencePolicy());
 
         String someExistingKey = "ACTION.CODING.DEBUGGING";
         mapping.putByStableKey(someExistingKey, PromptObjective.REASONING);

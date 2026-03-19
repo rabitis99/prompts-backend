@@ -9,6 +9,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.Def
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileRegistry;
+import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileSeedSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -27,7 +28,7 @@ class ProfileCanonicalFirstTest {
     private final CanonicalActionRegistry registry = new DefaultCanonicalActionRegistry(
             new ActionTypeRegistry(DeserializerEnumTestUtils.getActionTypeEnums()));
     private final DefaultCategorySemanticProfileRegistry profileRegistry =
-            new DefaultCategorySemanticProfileRegistry(registry);
+            new DefaultCategorySemanticProfileRegistry(registry, new DefaultCategorySemanticProfileSeedSource());
 
     @Test
     @DisplayName("profile returns non-empty action groups for intent when category has actions")
