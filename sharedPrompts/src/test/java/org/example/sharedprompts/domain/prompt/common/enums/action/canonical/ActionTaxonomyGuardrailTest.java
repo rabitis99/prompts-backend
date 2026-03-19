@@ -10,6 +10,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionInten
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileRegistry;
 import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileRegistry;
+import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileSeedSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -76,7 +77,6 @@ class ActionTaxonomyGuardrailTest {
     @Test
     @DisplayName("every ActionType has non-null ActionGroup and required metadata (identity + registry)")
     void everyActionHasRequiredMetadata() {
-        ActionTypeRegistry registry = new ActionTypeRegistry(DeserializerEnumTestUtils.getActionTypeEnums());
         ClasspathActionTypeMetadataProvider provider = new ClasspathActionTypeMetadataProvider();
         ActionOutputBehaviorRegistry outputBehaviorRegistry = new DefaultActionOutputBehaviorRegistry(
                 provider.getKeyToOutputBehaviorMap());
@@ -118,7 +118,7 @@ class ActionTaxonomyGuardrailTest {
         ActionTypeRegistry actionTypeRegistry = new ActionTypeRegistry(DeserializerEnumTestUtils.getActionTypeEnums());
         DefaultCanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(actionTypeRegistry);
         CategorySemanticProfileRegistry profileRegistry =
-                new DefaultCategorySemanticProfileRegistry(canonical, actionTypeRegistry);
+                new DefaultCategorySemanticProfileRegistry(canonical, new DefaultCategorySemanticProfileSeedSource());
         List<PromptCategory> categoriesWithProfiles = List.of(
                 PromptCategory.DESIGN, PromptCategory.DEVELOPMENT, PromptCategory.WRITING,
                 PromptCategory.RESEARCH, PromptCategory.BUSINESS, PromptCategory.MARKETING,
