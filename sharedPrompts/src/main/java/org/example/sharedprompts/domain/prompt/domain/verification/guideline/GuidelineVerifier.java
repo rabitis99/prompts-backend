@@ -4,13 +4,14 @@ import org.example.sharedprompts.domain.prompt.common.guideline.rule.GuidelineRu
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public final class GuidelineVerifier {
 
     private final GuidelineRuleChecker ruleChecker;
 
     public GuidelineVerifier(GuidelineRuleChecker ruleChecker) {
-        this.ruleChecker = ruleChecker != null ? ruleChecker : new DefaultGuidelineRuleChecker();
+        this.ruleChecker = Objects.requireNonNull(ruleChecker, "ruleChecker");
     }
 
     /**

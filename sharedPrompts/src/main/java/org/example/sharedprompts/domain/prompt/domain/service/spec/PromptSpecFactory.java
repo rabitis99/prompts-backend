@@ -1,6 +1,6 @@
 package org.example.sharedprompts.domain.prompt.domain.service.spec;
 
-import org.example.sharedprompts.domain.prompt.application.semantic.resolution.SemanticResolutionService;
+import lombok.Getter;
 import org.example.sharedprompts.domain.prompt.domain.model.spec.Constraints;
 import org.example.sharedprompts.domain.prompt.domain.model.spec.ContentSandbox;
 import org.example.sharedprompts.domain.prompt.domain.model.contract.OutputContract;
@@ -14,10 +14,7 @@ import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObje
 import org.example.sharedprompts.domain.prompt.domain.value.strategy.PromptStrategyBundle;
 import org.example.sharedprompts.domain.prompt.common.enums.experience.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.common.enums.engine.LanguageType;
-import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
-import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
-import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.ActionGroup;
 import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.role.RoleTypeInterface;
@@ -46,36 +43,11 @@ public class PromptSpecFactory {
 
     private final ObjectiveRegistry objectiveRegistry;
     private final StrategyBundlePolicy strategyBundlePolicy;
+    @Getter
     private final ObjectiveResolverPort objectiveResolver;
     private final GuidelineBundleBuilder guidelineBundleBuilder;
     private final RoleDescriptorPort roleDescriptorPort;
     private final CanonicalActionRegistry canonicalActionRegistry;
-
-    /**
-     * 레거시/테스트 호환용 생성자.
-     * 런타임 DI에서는 GuidelineBundleBuilder를 명시 주입하는 4-arg 생성자를 사용하세요.
-     */
-    @Deprecated(forRemoval = true)
-    public PromptSpecFactory(ObjectiveRegistry objectiveRegistry,
-                             StrategyBundlePolicy strategyBundlePolicy,
-                             ObjectiveResolverPort objectiveResolver) {
-        this(objectiveRegistry, strategyBundlePolicy, objectiveResolver, new GuidelineBundleBuilder(), null, null);
-    }
-
-    public PromptSpecFactory(ObjectiveRegistry objectiveRegistry,
-                             StrategyBundlePolicy strategyBundlePolicy,
-                             ObjectiveResolverPort objectiveResolver,
-                             GuidelineBundleBuilder guidelineBundleBuilder) {
-        this(objectiveRegistry, strategyBundlePolicy, objectiveResolver, guidelineBundleBuilder, null, null);
-    }
-
-    public PromptSpecFactory(ObjectiveRegistry objectiveRegistry,
-                             StrategyBundlePolicy strategyBundlePolicy,
-                             ObjectiveResolverPort objectiveResolver,
-                             GuidelineBundleBuilder guidelineBundleBuilder,
-                             RoleDescriptorPort roleDescriptorPort) {
-        this(objectiveRegistry, strategyBundlePolicy, objectiveResolver, guidelineBundleBuilder, roleDescriptorPort, null);
-    }
 
     public PromptSpecFactory(ObjectiveRegistry objectiveRegistry,
                              StrategyBundlePolicy strategyBundlePolicy,
@@ -86,30 +58,10 @@ public class PromptSpecFactory {
         this.objectiveRegistry = Objects.requireNonNull(objectiveRegistry, "objectiveRegistry must not be null");
         this.strategyBundlePolicy = Objects.requireNonNull(strategyBundlePolicy, "strategyBundlePolicy must not be null");
         this.objectiveResolver = Objects.requireNonNull(objectiveResolver, "objectiveResolver must not be null");
-        this.guidelineBundleBuilder = guidelineBundleBuilder != null ? guidelineBundleBuilder : new GuidelineBundleBuilder();
+        // GuidelineBundleBuilder 선택(구체 구현/조합 책임)은 조합 계층에서 수행해야 한다.
+        this.guidelineBundleBuilder = Objects.requireNonNull(guidelineBundleBuilder, "guidelineBundleBuilder must not be null");
         this.roleDescriptorPort = roleDescriptorPort;
         this.canonicalActionRegistry = canonicalActionRegistry;
-    }
-
-    /**
-     * V3 path blocked: production must use {@link #createFromConfirmedAxes(ConfirmedSemanticAxes, String, String)}.
-     * This overload builds spec from taskDomain/objective/tone/style without category→intent mediation.
-     *
-     * @throws UnsupportedOperationException always
-     */
-    public PromptSpec createForV3(
-            String rawInput,
-            TaskDomain taskDomain,
-            PromptObjective objective,
-            ToneType tone,
-            StyleType style,
-            LanguageType locale,
-            ExperienceLevel experienceLevel,
-            String jsonSchema
-    ) {
-        throw new UnsupportedOperationException(
-                "PromptSpecFactory.createForV3(...) without ConfirmedSemanticAxes is not supported. "
-                        + "Use createFromConfirmedAxes(ConfirmedSemanticAxes, rawInput, jsonSchema).");
     }
 
     /**
@@ -118,7 +70,7 @@ public class PromptSpecFactory {
      *
      * <p>This is the <b>canonical</b> path: all semantic meaning comes from {@code axes}; no inference from
      * category, task domain, or output contract. Use this when the caller has already resolved
-     * PromptCategory → ActionIntent → RoleType/ActionType via {@link SemanticResolutionService}.
+     * PromptCategory → ActionIntent → RoleType/ActionType via the semantic resolution pipeline (application layer).
      */
     public PromptSpec createFromConfirmedAxes(
             ConfirmedSemanticAxes axes,
@@ -177,125 +129,6 @@ public class PromptSpecFactory {
                 .rawInput(rawInput)
                 .actionType(axes.actionType().orElse(null))
                 .build();
-    }
-
-    /**
-     * Blocked: production must use {@link #createFromConfirmedAxes(ConfirmedSemanticAxes, String, String)}.
-     * This overload derives objective from taskDomain+actionType only (no category→intent mediation).
-     *
-     * @throws UnsupportedOperationException always
-     */
-    @Deprecated(since = "semantic-pipeline", forRemoval = true)
-    public PromptSpec create(
-            String rawInput,
-            TaskDomain taskDomain,
-            ActionTypeInterface actionType,
-            RoleTypeInterface role,
-            ToneType tone,
-            StyleType style,
-            LanguageType locale,
-            boolean experimentalEnabled
-    ) {
-        throw new UnsupportedOperationException(
-                "PromptSpecFactory.create(...) without ConfirmedSemanticAxes is not supported. "
-                        + "Use createFromConfirmedAxes(ConfirmedSemanticAxes, rawInput, jsonSchema).");
-    }
-
-    /**
-     * Blocked: production must use {@link #createFromConfirmedAxes(ConfirmedSemanticAxes, String, String)}.
-     *
-     * @throws UnsupportedOperationException always
-     */
-    @Deprecated(since = "semantic-pipeline", forRemoval = true)
-    public PromptSpec create(
-            String rawInput,
-            TaskDomain taskDomain,
-            ActionTypeInterface actionType,
-            RoleTypeInterface role,
-            ToneType tone,
-            StyleType style,
-            LanguageType locale,
-            boolean experimentalEnabled,
-            ExperienceLevel experienceLevel
-    ) {
-        throw new UnsupportedOperationException(
-                "PromptSpecFactory.create(...) without ConfirmedSemanticAxes is not supported. "
-                        + "Use createFromConfirmedAxes(ConfirmedSemanticAxes, rawInput, jsonSchema).");
-    }
-
-    /**
-     * Blocked: production must use {@link #createFromConfirmedAxes(ConfirmedSemanticAxes, String, String)}.
-     * Legacy: objective from taskDomain+actionType only (no category→intent mediation).
-     *
-     * @param jsonSchema EXTRACTION 시 사용할 JSON Schema (null이면 기본 스키마 사용)
-     * @throws UnsupportedOperationException always
-     */
-    @Deprecated(since = "semantic-pipeline", forRemoval = true)
-    public PromptSpec create(
-            String rawInput,
-            TaskDomain taskDomain,
-            ActionTypeInterface actionType,
-            RoleTypeInterface role,
-            ToneType tone,
-            StyleType style,
-            LanguageType locale,
-            boolean experimentalEnabled,
-            ExperienceLevel experienceLevel,
-            String jsonSchema
-    ) {
-        throw new UnsupportedOperationException(
-                "PromptSpecFactory.create(...) without ConfirmedSemanticAxes is not supported. "
-                        + "Use createFromConfirmedAxes(ConfirmedSemanticAxes, rawInput, jsonSchema).");
-    }
-
-    /**
-     * Blocked: production must use {@link #createFromConfirmedAxes(ConfirmedSemanticAxes, String, String)}.
-     * Legacy: objective from {@link ObjectiveResolverPort#resolve(TaskDomain, ActionTypeInterface)}; no category→intent.
-     *
-     * @param jsonSchema        EXTRACTION 시 사용할 JSON Schema (null이면 기본 스키마 사용)
-     * @param requiredKeywords  생성 결과에 반드시 포함되어야 할 키워드 목록 (null/empty 허용)
-     * @param prohibitedKeywords 생성 결과에 포함되면 안 되는 키워드 목록 (null/empty 허용)
-     * @throws UnsupportedOperationException always
-     */
-    @Deprecated(since = "semantic-pipeline", forRemoval = true)
-    public PromptSpec create(
-            String rawInput,
-            TaskDomain taskDomain,
-            ActionTypeInterface actionType,
-            RoleTypeInterface role,
-            ToneType tone,
-            StyleType style,
-            LanguageType locale,
-            boolean experimentalEnabled,
-            ExperienceLevel experienceLevel,
-            String jsonSchema,
-            List<String> requiredKeywords,
-            List<String> prohibitedKeywords
-    ) {
-        throw new UnsupportedOperationException(
-                "PromptSpecFactory.create(...) without ConfirmedSemanticAxes is not supported. "
-                        + "Use createFromConfirmedAxes(ConfirmedSemanticAxes, rawInput, jsonSchema).");
-    }
-
-    private Constraints enrichConstraintsWithKeywords(Constraints base,
-                                                      List<String> requiredKeywords,
-                                                      List<String> prohibitedKeywords) {
-        boolean hasRequired = requiredKeywords != null && !requiredKeywords.isEmpty();
-        boolean hasProhibited = prohibitedKeywords != null && !prohibitedKeywords.isEmpty();
-        if (!hasRequired && !hasProhibited) {
-            return base;
-        }
-
-        Constraints.Builder builder = Constraints.builder()
-                .minLength(base.getMinLength())
-                .maxLength(base.getMaxLength())
-                .requireStepByStep(base.isRequireStepByStep())
-                .requireCitations(base.isRequireCitations());
-
-        builder.requiredKeywords(hasRequired ? requiredKeywords : base.getRequiredKeywords());
-        builder.prohibitedKeywords(hasProhibited ? prohibitedKeywords : base.getProhibitedKeywords());
-
-        return builder.build();
     }
 
     // ── 섹션 빌드 ─────────────────────────────────────────────────────────
