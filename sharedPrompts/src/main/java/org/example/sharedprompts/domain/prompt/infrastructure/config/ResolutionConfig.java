@@ -19,8 +19,10 @@ import org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommenda
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.registry.PolicySourceRegistry;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.version.PolicyVersion;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolverPort;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.DefaultObjectiveHeuristicInferencePolicy;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistry;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistryPort;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveHeuristicInferencePolicy;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolver;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolverPort;
 import org.springframework.context.annotation.Bean;
@@ -58,10 +60,15 @@ public class ResolutionConfig {
     }
 
     @Bean
+    public ObjectiveHeuristicInferencePolicy objectiveHeuristicInferencePolicy() {
+        return new DefaultObjectiveHeuristicInferencePolicy();
+    }
+
+    @Bean
     public ObjectiveMappingRegistryPort objectiveMappingRegistry(
-            CanonicalActionRegistry canonicalActionRegistry,
-            ObjectivePolicySource objectivePolicySource) {
-        return new ObjectiveMappingRegistry(canonicalActionRegistry, objectivePolicySource);
+            ObjectivePolicySource objectivePolicySource,
+            ObjectiveHeuristicInferencePolicy heuristicInferencePolicy) {
+        return new ObjectiveMappingRegistry(objectivePolicySource, heuristicInferencePolicy);
     }
 
     @Bean
