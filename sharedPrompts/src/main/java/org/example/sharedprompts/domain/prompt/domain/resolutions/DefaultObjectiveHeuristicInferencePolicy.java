@@ -66,7 +66,8 @@ public class DefaultObjectiveHeuristicInferencePolicy implements ObjectiveHeuris
     @Override
     public Optional<PromptObjective> inferByActionName(ActionTypeInterface actionType) {
         if (actionType == null) return Optional.empty();
-        String name = String.valueOf(actionType).trim().toUpperCase();
+        if (!(actionType instanceof Enum<?> e)) return Optional.empty();
+        String name = e.name().trim().toUpperCase();
         if (name.isEmpty()) return Optional.empty();
 
         // 1) exact match first (e.g. CODE_REVIEW)
