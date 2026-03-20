@@ -43,7 +43,7 @@ class SemanticRecommendationServiceTraceTest {
         PolicySelectionStrategy strategy = PolicyTestFixtures.singleVersionStrategy();
         SemanticRecommendationService service = new SemanticRecommendationService(canonical, expander, policyRegistry, strategy);
         DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(
-                canonical, new DefaultCategorySemanticProfileSeedSource());
+                canonical, null, new DefaultCategorySemanticProfileSeedSource());
         CategorySemanticProfile profile = profileRegistry.getProfile(PromptCategory.WRITING).orElseThrow();
 
         RecommendationResult result = service.recommend(PromptCategory.WRITING, ActionIntent.GENERATE, profile, null, null, false);
@@ -71,7 +71,7 @@ class SemanticRecommendationServiceTraceTest {
         PolicySelectionStrategy strategy = PolicyTestFixtures.singleVersionStrategy();
         SemanticRecommendationService service = new SemanticRecommendationService(canonical, expander, policyRegistry, strategy);
         DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(
-                canonical, new DefaultCategorySemanticProfileSeedSource());
+                canonical, null, new DefaultCategorySemanticProfileSeedSource());
         CategorySemanticProfile profile = profileRegistry.getProfile(PromptCategory.WRITING).orElseThrow();
 
         RecommendationResult result = service.recommend(PromptCategory.WRITING, ActionIntent.GENERATE, profile, null, null, false);
@@ -89,7 +89,7 @@ class SemanticRecommendationServiceTraceTest {
         ConcreteActionByGroupIndex index = new DefaultConcreteActionByGroupIndex(registry.getAll());
         RecommendationConcreteActionExpander expander = new DefaultRecommendationConcreteActionExpander(index);
         DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(
-                canonical, new DefaultCategorySemanticProfileSeedSource());
+                canonical, null, new DefaultCategorySemanticProfileSeedSource());
         CategorySemanticProfile profile = profileRegistry.getProfile(PromptCategory.WRITING).orElseThrow();
 
         PolicySourceRegistry registryEmpty = PolicyTestFixtures.registryWithSingleVersion(new DefaultActionRecommendationPreferenceSource(Map.of()));
@@ -135,7 +135,7 @@ class SemanticRecommendationServiceTraceTest {
         PolicySelectionStrategy strategy = PolicyTestFixtures.singleVersionStrategy();
         SemanticRecommendationService service = new SemanticRecommendationService(canonical, expander, policySourceRegistry, strategy);
         DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(
-                canonical, new DefaultCategorySemanticProfileSeedSource());
+                canonical, null, new DefaultCategorySemanticProfileSeedSource());
         CategorySemanticProfile profile = profileRegistry.getProfile(PromptCategory.WRITING).orElseThrow();
 
         RecommendationResult result = service.recommend(PromptCategory.WRITING, ActionIntent.GENERATE, profile, null, null, false);
