@@ -2,15 +2,14 @@
 
 ## 1. Overall judgment
 
-**The 4-branch plan is valid against the current diff.**
+**The 4-branch plan is still valid against the current diff.**
 
-- The diff cleanly separates into: (1) enum/action resolution and serialization, (2) policy load/bootstrap and resolution wiring including trace, (3) audit/observability contracts and the RecommendPromptResult port, (4) recommendation API (controller, facade, DTOs, use case, resolvers, explanation).
-- **RecommendPromptResult** depends on **RecommendationTrace** (domain/semantic/trace). Trace is introduced in branch 2, so branch 3 can safely add the port that references it. No reordering needed.
-- **ResolutionConfig** and **PolicyBootstrapConfig** are both policy-runtime; the diff rewrites ResolutionConfig to use PolicySourceRegistry, PolicyVersion, CategorySemanticProfileSeedSource, and policy types. Keeping them together in branch 2 is correct.
+- The diff cleanly separates into: (1) enum/action resolution and serialization/metadata compatibility, (2) policy-runtime resolution wiring including trace and semantic data sources (category seed/profile, heuristic objective inference, and intent definition/default providers), (3) audit/observability contracts and the RecommendPromptResult port, (4) recommendation/prompt generation API pieces (controller/facade/DTOs plus downstream prompt spec + verification).
+- **RecommendPromptResult** still depends on **RecommendationTrace** (domain/semantic/trace). Trace is introduced in branch 2, so branch 3 can safely add the port that references it. No reordering needed.
+- **ResolutionConfig** stays policy-runtime: the diff rewrites ResolutionConfig to wire policy sources/versions and also beans for `ObjectiveHeuristicInferencePolicy` + `ObjectiveMappingRegistry` and for `CategorySemanticProfileSeedSource`-driven profile assembly. Keeping them together in branch 2 is correct.
 - **PromptDomainConfig** has a single-line change (four new @Import classes). Partial staging is required: branch 2 adds PolicySchemaConfig and PolicyBootstrapConfig; branch 3 adds ObservabilityConfig and AuditConfig. The split is feasible by editing the file when staging each branch.
-- No single file forces a fifth branch or makes the approved structure unsafe. Docs and build.gradle are assignable without breaking compile order.
 
-**No minimal adjustment required.**
+**Minimal adjustment required: Branch 2 must explicitly include the new semantic intent definition/default provider structure and heuristic inference policy files.**
 
 ---
 
@@ -40,7 +39,9 @@
 ### Branch 2 — refactor/policy-runtime-resolution
 
 - **Files:**
-  - **Modified:** `ResolutionConfig.java`, `ObjectiveMappingRegistry.java`, `DefaultCategorySemanticProfileRegistry.java`
+  - **Modified:** `ResolutionConfig.java`, `ObjectiveMappingRegistry.java`, `ObjectiveMappingRegistryPort.java`, `DefaultCategorySemanticProfileRegistry.java`, `DefaultCategorySemanticProfileSeedSource.java`, `IntentDictionary.java`
+  - **New (domain, heuristic objective inference):** `domain/resolutions/ObjectiveHeuristicInferencePolicy.java`, `domain/resolutions/DefaultObjectiveHeuristicInferencePolicy.java`
+  - **New (domain, semantic intent definitions/defaults data source):** `domain/semantic/IntentDefinitionDataSource.java`, `IntentDefinitionEntriesProvider.java`, `IntentResolutionDefaults.java`, `IntentResolutionDefaultsEntriesProvider.java`, and all `Intent*IntentDefinitionsProvider.java` + `Intent*IntentResolutionDefaultsProvider.java` implementations.
   - **New (domain):** `domain/semantic/CategorySemanticProfileSeed.java`, `CategorySemanticProfileSeedSource.java`, `impl/DefaultCategorySemanticProfileSeedSource.java`, entire `domain/semantic/policy/*` (registry, schema, recommendation, compatibility, objective, role, version, validation, diff, migration), entire `domain/semantic/trace/*`
   - **New (application):** entire `application/semantic/policy/*` (loader, parser, validator, binder, selection strategy, repository, etc.), entire `application/semantic/experiment/*` (ExperimentContext, ExperimentPolicySelector)
   - **New (infrastructure):** `PolicyBootstrapConfig.java`, `PolicyRuntimeBootstrap.java`, `PolicySchemaConfig.java`, entire `infrastructure/policy/*`. (Do not add `infrastructure/metadata/` in branch 2 — ClasspathActionTypeMetadataProvider is branch 1 only.)
@@ -50,9 +51,9 @@
   - **Tests (new, architecture):** `architecture/PromptEngineModuleBoundaryTest.java`
   - **PromptDomainConfig:** Partial staging — see Shared-adjustment.
 
-- **Reasoning:** Policy document pipeline, bootstrap, repository, registry, and ResolutionConfig wiring; category semantic profile seed and profile registry; trace types used by recommendation ordering and later by audit. ResolutionConfig and PolicyBootstrapConfig stay together; trace stays with policy-runtime per constraint.
+- **Reasoning:** Policy document pipeline, bootstrap, repository, registry, and ResolutionConfig wiring; category semantic profile seed and profile registry; heuristic objective inference (`ObjectiveMappingRegistry` + `ObjectiveHeuristicInferencePolicy`); semantic intent definition/default data sources (`IntentDefinitionDataSource` with intent-group providers, powering `IntentDictionary`); and trace types used by recommendation ordering and later by audit. ResolutionConfig and PolicyBootstrapConfig stay together; trace stays with policy-runtime per constraint.
 
-- **Must move together:** ResolutionConfig, PolicyBootstrapConfig, PolicyRuntimeBootstrap, PolicySchemaConfig; ResolutionConfig with PolicySourceRegistry and policy beans; DefaultCategorySemanticProfileRegistry with CategorySemanticProfileSeedSource and CompatibilityPolicySource; domain/semantic/trace with policy/recommendation ordering.
+- **Must move together:** ResolutionConfig, PolicyBootstrapConfig, PolicyRuntimeBootstrap, PolicySchemaConfig; ResolutionConfig with PolicySourceRegistry and policy beans (including objective heuristic inference beans); DefaultCategorySemanticProfileRegistry with CategorySemanticProfileSeedSource and CompatibilityPolicySource; and `IntentDictionary` together with `IntentDefinitionDataSource` + all intent-group provider implementations (because `IntentDictionary` fail-fast validates completeness at class initialization). Also move domain/semantic/trace with policy/recommendation ordering.
 
 - **Directly coupled tests:** All policy, resolution, trace, and profile seed tests listed; PromptEngineModuleBoundaryTest and archunit in build.gradle.
 
@@ -130,7 +131,7 @@
 
 ### Keep-out-of-scope
 
-- **Files:** `sharedPrompts/docs/recommended-branch-split-plan.md`, `sharedPrompts/docs/refactoring-phase-1-6-audit-report.md`, `sharedPrompts/docs/refactoring-phase-7-13-execution-report.md`
+- **Files:** `sharedPrompts/docs/recommended-branch-split-plan.md`, `sharedPrompts/docs/refactoring-phase-1-6-audit-report.md`, `sharedPrompts/docs/refactoring-phase-7-13-execution-report.md`, `sharedPrompts/docs/structure-reaudit-prompt-domain-1-5-plus5.md`
 
 - **Why excluded:** Planning and audit documentation only; not production or test code. Do not commit them as part of the refactor branches unless you want them on a docs-only branch. Exclude from the four-branch split so the split stays code-focused.
 
@@ -142,6 +143,12 @@
 
 - **ResolutionConfig:** Fully rewritten to depend on PolicySourceRegistry, PolicyVersion, ObjectivePolicySource, CompatibilityPolicySource, CategorySemanticProfileSeedSource, and policy types. Must stay with PolicyBootstrapConfig and policy runtime in branch 2. Do not split ResolutionConfig.
 
+- **Objective heuristic inference wiring:** `ObjectiveMappingRegistry` must stay with `ObjectiveHeuristicInferencePolicy` (and its default keyword inference implementation) because `ObjectiveMappingRegistry` delegates fallback inference to it.
+
+- **Semantic intent definitions/defaults data source:** `IntentDictionary` depends on `IntentDefinitionDataSource` (static aggregation) and therefore depends on *every* intent-group provider implementation it references. If any provider file lands outside branch 2, `IntentDictionary` class initialization fails-fast (completeness check) and tests that touch `IntentDictionary` break.
+
+- **Provider registration static list:** `IntentDefinitionDataSource` uses private static provider lists. This is a hidden coupling point: adding a new `ActionIntent` or changing provider responsibilities requires updating the aggregator registration lists in the same branch.
+
 - **RecommendPromptResult:** Depends on `RecommendationTrace` (domain/semantic/trace). Branch 2 must introduce trace before branch 3 introduces RecommendPromptResult. Merge order 2 → 3 is required.
 
 - **Spring @Import / @Bean:** PromptDomainConfig imports ResolutionConfig, ActionTypeRegistryConfig (branch 1), then in branch 2 adds PolicyBootstrapConfig and PolicySchemaConfig, in branch 3 adds AuditConfig and ObservabilityConfig. Each branch must leave the config compilable (branch 2 and 3 use edited four-import versions).
@@ -151,6 +158,8 @@
 - **Response DTO / facade / service:** RecommendPromptResult is the port (branch 3). RecommendationResponseAssembler and PromptRecommendationResponse are adapter (branch 4). Do not put the port in branch 4 or the assembler in branch 3.
 
 - **Tests that cannot be separated cleanly:** SemanticResolutionServiceTest (branch 4) uses RecommendPromptResult (branch 3). So branch 4 tests assume branch 3 is merged. When running branch 4 in isolation from a branch that has branch 3 merged (e.g. dev after 3 is merged), tests will compile. ProfileCanonicalFirstTest (branch 2) tests DefaultCategorySemanticProfileRegistry; keep with branch 2. TestActionTypeMetadataConfig is used by SharedPromptsApplicationTests and PaymentControllerIntegrationTest (branch 1) and possibly by PolicyRuntimeBootstrapIntegrationTest (branch 2); the config belongs to branch 1; branch 2 tests that need it rely on branch 1 being present when testing the full stack.
+
+- **Tests precondition (updated):** Any test that triggers `IntentDictionary` class loading now implicitly requires the full set of `Intent*DefinitionsProvider` and `Intent*ResolutionDefaultsProvider` files (owned by branch 2), because `IntentDictionary` performs a fail-fast completeness check across all `ActionIntent` values.
 
 - **infrastructure/metadata:** ClasspathActionTypeMetadataProvider is branch 1 (enum/action metadata). If there are other files under infrastructure/metadata, they are policy-related and branch 2. Do not mix them.
 
@@ -162,7 +171,7 @@
    Base; no dependency on other refactor branches. Removes legacy loader/holder and adds provider/ordered resolution and RoleTypeResolver. Merge first.
 
 2. **Branch 2 — refactor/policy-runtime-resolution**  
-   Depends on branch 1 (ActionTypeRegistryConfig and enum types). Introduces policy pipeline, bootstrap, ResolutionConfig wiring, trace, and profile seed. Must be before branch 3 so that RecommendationTrace exists.
+   Depends on branch 1 (ActionTypeRegistryConfig and enum types). Introduces policy pipeline, bootstrap, ResolutionConfig wiring, trace, category profile seed, heuristic objective inference, and semantic intent definitions/default providers (so `IntentDictionary` can be initialized). Must be before branch 3 so that RecommendationTrace exists.
 
 3. **Branch 3 — refactor/audit-observability**  
    Depends on branch 2 (RecommendPromptResult has Optional&lt;RecommendationTrace&gt;). Adds audit/observability contracts and RecommendPromptResult port. No dependency on branch 4.
@@ -248,12 +257,40 @@ git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/infr
 git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/infrastructure/config/PolicyRuntimeBootstrap.java
 git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/infrastructure/config/PolicySchemaConfig.java
 
+# Objective mapping + heuristic inference policy
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/resolutions/ObjectiveMappingRegistryPort.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/resolutions/ObjectiveHeuristicInferencePolicy.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/resolutions/DefaultObjectiveHeuristicInferencePolicy.java
+
 # Domain: seed, profile, policy, trace
 git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/CategorySemanticProfileSeed.java
 git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/CategorySemanticProfileSeedSource.java
 git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/impl/DefaultCategorySemanticProfileSeedSource.java
 git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/impl/DefaultCategorySemanticProfileRegistry.java
 git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/resolutions/ObjectiveMappingRegistry.java
+
+# Semantic intent definitions/defaults data source + providers (powering IntentDictionary)
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentDictionary.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentDefinitionDataSource.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentDefinitionEntriesProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentResolutionDefaults.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentResolutionDefaultsEntriesProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentCreationIntentDefinitionsProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentCreationIntentResolutionDefaultsProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentModificationIntentDefinitionsProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentModificationIntentResolutionDefaultsProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentAnalysisIntentDefinitionsProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentAnalysisIntentResolutionDefaultsProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentExplanationIntentDefinitionsProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentExplanationIntentResolutionDefaultsProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentPlanningIntentDefinitionsProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentPlanningIntentResolutionDefaultsProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentDecisionIntentDefinitionsProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentDecisionIntentResolutionDefaultsProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentResearchIntentDefinitionsProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentResearchIntentResolutionDefaultsProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentExtractionIntentDefinitionsProvider.java
+git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/IntentExtractionIntentResolutionDefaultsProvider.java
 git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/policy/
 git add sharedPrompts/src/main/java/org/example/sharedprompts/domain/prompt/domain/semantic/trace/
 
@@ -418,13 +455,13 @@ Enum/action resolution and JSON deserialization use the new provider and ordered
 `feat(prompt): policy document pipeline, bootstrap, and resolution wiring`
 
 **What changed:**  
-Added policy load/validate/bind pipeline, VersionedPolicyRepository, PolicySourceRegistry, PolicyBootstrapConfig, PolicyRuntimeBootstrap, PolicySchemaConfig. Rewrote ResolutionConfig to use policy sources, PolicyVersion, CategorySemanticProfileSeedSource, and CompatibilityPolicySource. Added domain/semantic/policy and domain/semantic/trace, application/semantic/policy, infrastructure/policy and resources. Extended PromptDomainConfig with PolicySchemaConfig and PolicyBootstrapConfig only. Added build.gradle archunit and PromptEngineModuleBoundaryTest. Added policy/resolution/trace/seed tests.
+Added policy load/validate/bind pipeline, VersionedPolicyRepository, PolicySourceRegistry, PolicyBootstrapConfig, PolicyRuntimeBootstrap, PolicySchemaConfig. Rewrote ResolutionConfig to use policy sources, PolicyVersion, CategorySemanticProfileSeedSource, and CompatibilityPolicySource. Added heuristic objective inference (`ObjectiveHeuristicInferencePolicy` + `DefaultObjectiveHeuristicInferencePolicy`) and updated ObjectiveMappingRegistry/ObjectiveMappingRegistryPort to delegate fallback inference to the heuristic policy. Added semantic intent definitions/default data source (`IntentDefinitionDataSource` + intent-group providers) and updated IntentDictionary to index/validate completeness via that data source. Added domain/semantic/policy and domain/semantic/trace, application/semantic/policy, infrastructure/policy and resources. Extended PromptDomainConfig with PolicySchemaConfig and PolicyBootstrapConfig only. Added build.gradle archunit and PromptEngineModuleBoundaryTest. Added policy/resolution/trace/seed tests.
 
 **Why:**  
 Introduce policy document lifecycle and runtime bootstrap so resolution and recommendation ordering use versioned policy and trace without pulling in the recommendation HTTP API.
 
 **Impact:**  
-ResolutionConfig and profile registry depend on policy registry and version. Trace types are available for audit/observability and recommendation. PromptDomainConfig imports only the two policy configs in this branch.
+ResolutionConfig and profile registry depend on policy registry and version. Trace types are available for audit/observability and recommendation. `IntentDictionary` can be safely initialized because all intent definition/default providers are owned in this branch. Objective resolution has both policy mappings and heuristic fallback inference. PromptDomainConfig imports only the two policy configs in this branch.
 
 ---
 
@@ -450,7 +487,7 @@ Audit and observability beans are registered; RecommendPromptResult is the share
 `feat(prompt): recommendation API (controller, facade, use case, resolvers)`
 
 **What changed:**  
-Added RecommendationController, PromptRecommendationFacade, recommendation request/response DTOs, assemblers, and RecommendPromptResponseMapper. Implemented RecommendPromptCommand, RecommendPromptAxesUseCase, SemanticRecommendationService, CoreSemanticResolver, RecommendationSemanticResolver, SemanticResolutionService, RecommendationResolutionResult, and explanation assembly. Updated UnifiedGeneratePromptResultBuilder, UnifiedGeneratePromptResult, QualityBadgeItem, BadgeResolver, RecommendationResult. Added recommendation and resolution tests.
+Added RecommendationController, PromptRecommendationFacade, recommendation request/response DTOs, assemblers, and RecommendPromptResponseMapper. Implemented RecommendPromptCommand, RecommendPromptAxesUseCase, SemanticRecommendationService, CoreSemanticResolver, RecommendationSemanticResolver, SemanticResolutionService, RecommendationResolutionResult, and explanation assembly. Updated UnifiedGeneratePromptResultBuilder, UnifiedGeneratePromptResult, QualityBadgeItem, BadgeResolver, RecommendationResult. Added recommendation and resolution tests. Also included downstream prompt spec domain boundary cleanup (`PromptSpecFactory`) and guideline verifier contract tightening (`GuidelineVerifier`).
 
 **Why:**  
 Expose recommendation via HTTP and orchestrate the semantic recommendation flow, explanation, and response assembly using the RecommendPromptResult and audit/observability contracts from branch 3.
