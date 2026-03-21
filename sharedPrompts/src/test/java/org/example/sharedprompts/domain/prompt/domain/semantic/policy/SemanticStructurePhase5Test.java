@@ -12,6 +12,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveMappingRegistry;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolver;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolverPort;
+import org.example.sharedprompts.domain.prompt.domain.resolutions.DefaultObjectiveHeuristicInferencePolicy;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileSeedSource;
 import org.example.sharedprompts.domain.prompt.domain.semantic.RecommendationResult;
@@ -21,16 +22,13 @@ import org.example.sharedprompts.domain.prompt.domain.semantic.policy.compatibil
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.compatibility.DefaultCompatibilityPolicySource;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.objective.DefaultObjectivePolicySource;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.objective.ObjectivePolicySource;
-import org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommendation.ActionRecommendationOrderPolicy;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommendation.ActionRecommendationPreferenceSource;
-import org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommendation.DefaultActionRecommendationOrderPolicy;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommendation.DefaultActionRecommendationPreferenceSource;
 import org.example.sharedprompts.domain.prompt.domain.value.objective.PromptObjective;
 import org.example.sharedprompts.domain.prompt.application.semantic.policy.PolicySelectionStrategy;
 import org.example.sharedprompts.domain.prompt.application.semantic.recommendation.PolicyTestFixtures;
 import org.example.sharedprompts.domain.prompt.application.semantic.recommendation.SemanticRecommendationService;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.registry.PolicySourceRegistry;
-import org.example.sharedprompts.domain.prompt.domain.semantic.policy.version.PolicyVersion;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -58,7 +56,8 @@ class SemanticStructurePhase5Test {
         org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommendation.RecommendationConcreteActionExpander expander =
                 new org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommendation.DefaultRecommendationConcreteActionExpander(index);
 
-        DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(canonical);
+        DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(
+                canonical, new DefaultCategorySemanticProfileSeedSource());
         CategorySemanticProfile profile = profileRegistry.getProfile(PromptCategory.WRITING).orElseThrow();
 
         PolicySourceRegistry registryA = PolicyTestFixtures.registryWithSingleVersion(new DefaultActionRecommendationPreferenceSource());
@@ -85,10 +84,10 @@ class SemanticStructurePhase5Test {
     @DisplayName("Objective resolution uses policy source; swapping source changes mapping")
     void objectiveResolutionUsesPolicySource() {
         ActionTypeRegistry registry = new ActionTypeRegistry(CATALOG);
-        CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(registry);
 
         ObjectivePolicySource sourceDefault = new DefaultObjectivePolicySource();
-        ObjectiveMappingRegistry registryDefault = new ObjectiveMappingRegistry(canonical, sourceDefault);
+        ObjectiveMappingRegistry registryDefault =
+                new ObjectiveMappingRegistry(sourceDefault, new DefaultObjectiveHeuristicInferencePolicy());
         ObjectiveResolverPort resolverDefault = new ObjectiveResolver(registryDefault);
 
         Map<String, PromptObjective> customMap = Map.of(
@@ -96,7 +95,8 @@ class SemanticStructurePhase5Test {
                 "ACTION.WRITING.TRANSLATION", PromptObjective.CREATIVE_WITH_CONSTRAINTS
         );
         ObjectivePolicySource sourceCustom = new DefaultObjectivePolicySource(customMap);
-        ObjectiveMappingRegistry registryCustom = new ObjectiveMappingRegistry(canonical, sourceCustom);
+        ObjectiveMappingRegistry registryCustom =
+                new ObjectiveMappingRegistry(sourceCustom, new DefaultObjectiveHeuristicInferencePolicy());
         ObjectiveResolverPort resolverCustom = new ObjectiveResolver(registryCustom);
 
         ActionTypeInterface codeReview = registry.getByStableKey("ACTION.CODING.CODE_REVIEW");
@@ -149,9 +149,9 @@ class SemanticStructurePhase5Test {
                 Map.of("WRITING+GENERATE", List.of("LONG_FORM_WRITING", "CREATIVE_WRITING", "SHORT_COPY"))
         );
         DefaultCategorySemanticProfileRegistry profileRegistryWithSource =
-                new DefaultCategorySemanticProfileRegistry(canonical, compatibilitySource);
+                new DefaultCategorySemanticProfileRegistry(canonical, compatibilitySource, new DefaultCategorySemanticProfileSeedSource());
         DefaultCategorySemanticProfileRegistry profileRegistryNoSource =
-                new DefaultCategorySemanticProfileRegistry(canonical);
+                new DefaultCategorySemanticProfileRegistry(canonical, new DefaultCategorySemanticProfileSeedSource());
 
         CategorySemanticProfile profileWith = profileRegistryWithSource.getProfile(PromptCategory.WRITING).orElseThrow();
         CategorySemanticProfile profileWithout = profileRegistryNoSource.getProfile(PromptCategory.WRITING).orElseThrow();

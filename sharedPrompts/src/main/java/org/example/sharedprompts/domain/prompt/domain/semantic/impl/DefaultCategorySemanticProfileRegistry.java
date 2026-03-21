@@ -40,15 +40,10 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
     private final CanonicalActionRegistry canonicalActionRegistry;
     private final CompatibilityPolicySource compatibilityPolicySource;
 
-    /** Uses default in-memory seed source. */
-    public DefaultCategorySemanticProfileRegistry(CanonicalActionRegistry canonicalActionRegistry) {
-        this(canonicalActionRegistry, null);
-    }
-
-    /** With optional compatibility policy source; uses default seed source. */
+    /** Convenience overload with no compatibility source. */
     public DefaultCategorySemanticProfileRegistry(CanonicalActionRegistry canonicalActionRegistry,
-                                                   CompatibilityPolicySource compatibilityPolicySource) {
-        this(canonicalActionRegistry, compatibilityPolicySource, new DefaultCategorySemanticProfileSeedSource());
+                                                 CategorySemanticProfileSeedSource seedSource) {
+        this(canonicalActionRegistry, null, seedSource);
     }
 
     /** Full constructor: assembles profiles from seed source; compatibility source overrides group keys when non-empty. */

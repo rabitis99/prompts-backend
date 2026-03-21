@@ -1,7 +1,6 @@
 package org.example.sharedprompts.domain.prompt.domain.semantic;
 
 import org.example.sharedprompts.domain.prompt.common.enums.DeserializerEnumTestUtils;
-import org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface;
 import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.ActionGroup;
 import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.CanonicalActionRegistry;
 import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.DefaultCanonicalActionRegistry;
@@ -21,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -119,11 +117,12 @@ class CategorySemanticProfileSeedSourceAssemblerTest {
     }
 
     @Test
-    @DisplayName("Two-arg registry constructor uses default seed source and preserves behavior")
-    void twoArgConstructorUsesDefaultSource() {
+    @DisplayName("Registry requires external seed source (no internal default new)")
+    void registryRequiresExternalSeedSource() {
         ActionTypeRegistry actionRegistry = new ActionTypeRegistry(CATALOG);
         CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(actionRegistry);
-        DefaultCategorySemanticProfileRegistry registry = new DefaultCategorySemanticProfileRegistry(canonical);
+        DefaultCategorySemanticProfileSeedSource defaultSource = new DefaultCategorySemanticProfileSeedSource();
+        DefaultCategorySemanticProfileRegistry registry = new DefaultCategorySemanticProfileRegistry(canonical, defaultSource);
 
         CategorySemanticProfile profile = registry.getProfile(PromptCategory.WRITING).orElseThrow();
         assertThat(profile.getCategory()).isEqualTo(PromptCategory.WRITING);

@@ -9,6 +9,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCateg
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile;
 import org.example.sharedprompts.domain.prompt.domain.semantic.RecommendationResult;
 import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileRegistry;
+import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileSeedSource;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommendation.ConcreteActionByGroupIndex;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommendation.DefaultConcreteActionByGroupIndex;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommendation.DefaultRecommendationConcreteActionExpander;
@@ -47,7 +48,8 @@ class SemanticStructurePhase6Test {
         CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(registry);
         ConcreteActionByGroupIndex index = new DefaultConcreteActionByGroupIndex(registry.getAll());
         RecommendationConcreteActionExpander expander = new DefaultRecommendationConcreteActionExpander(index);
-        DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(canonical);
+        DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(
+                canonical, new DefaultCategorySemanticProfileSeedSource());
         CategorySemanticProfile profile = profileRegistry.getProfile(PromptCategory.WRITING).orElseThrow();
 
         RolePreferenceSource emptyRolePref = new DefaultRolePreferenceSource();
@@ -93,7 +95,8 @@ class SemanticStructurePhase6Test {
         CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(registry);
         ConcreteActionByGroupIndex index = new DefaultConcreteActionByGroupIndex(registry.getAll());
         RecommendationConcreteActionExpander expander = new DefaultRecommendationConcreteActionExpander(index);
-        DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(canonical);
+        DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(
+                canonical, new DefaultCategorySemanticProfileSeedSource());
         CategorySemanticProfile profile = profileRegistry.getProfile(PromptCategory.WRITING).orElseThrow();
 
         Map<String, List<String>> roleOrder = Map.of(
@@ -124,7 +127,8 @@ class SemanticStructurePhase6Test {
         CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(registry);
         ConcreteActionByGroupIndex index = new DefaultConcreteActionByGroupIndex(registry.getAll());
         RecommendationConcreteActionExpander expander = new DefaultRecommendationConcreteActionExpander(index);
-        DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(canonical);
+        DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(
+                canonical, new DefaultCategorySemanticProfileSeedSource());
         CategorySemanticProfile profile = profileRegistry.getProfile(PromptCategory.WRITING).orElseThrow();
 
         Map<String, List<String>> rolePref = Map.of("WRITING+GENERATE", List.of("ROLE.WRITING.COPYWRITER"));
@@ -154,7 +158,8 @@ class SemanticStructurePhase6Test {
         CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(registry);
         ConcreteActionByGroupIndex index = new DefaultConcreteActionByGroupIndex(registry.getAll());
         RecommendationConcreteActionExpander expander = new DefaultRecommendationConcreteActionExpander(index);
-        DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(canonical);
+        DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(
+                canonical, new DefaultCategorySemanticProfileSeedSource());
         CategorySemanticProfile profile = profileRegistry.getProfile(PromptCategory.WRITING).orElseThrow();
 
         PolicySourceRegistry policyRegistry = PolicyTestFixtures.registryWithSingleVersion(
@@ -206,7 +211,8 @@ class SemanticStructurePhase6Test {
         CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(registry);
         ConcreteActionByGroupIndex index = new DefaultConcreteActionByGroupIndex(registry.getAll());
         RecommendationConcreteActionExpander expander = new DefaultRecommendationConcreteActionExpander(index);
-        DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(canonical);
+        DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(
+                canonical, new DefaultCategorySemanticProfileSeedSource());
         CategorySemanticProfile profile = profileRegistry.getProfile(PromptCategory.WRITING).orElseThrow();
         PolicySourceRegistry policyRegistry = PolicyTestFixtures.registryWithSingleVersion(
                 new DefaultActionRecommendationPreferenceSource(Map.of("WRITING+GENERATE", List.of("ACTION.WRITING.ARTICLE_WRITING", "ACTION.WRITING.COPYWRITING"))),

@@ -40,40 +40,40 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * Default in-memory profile seed source. Owns category/intent action and role seed data;
  * registry assembles profiles from this, not from inline register* methods.
  */
 public class DefaultCategorySemanticProfileSeedSource implements CategorySemanticProfileSeedSource {
-
-    private static final Set<PromptCategory> PROFILE_CATEGORIES = Set.of(
-            PromptCategory.DESIGN, PromptCategory.DEVELOPMENT, PromptCategory.WRITING, PromptCategory.RESEARCH,
-            PromptCategory.BUSINESS, PromptCategory.PRODUCTIVITY, PromptCategory.DATA_ANALYSIS, PromptCategory.MARKETING,
-            PromptCategory.CUSTOMER_SUPPORT, PromptCategory.CREATIVE, PromptCategory.LEGAL, PromptCategory.EDUCATION, PromptCategory.ETC
+    private static final Map<PromptCategory, Supplier<CategorySemanticProfileSeed>> SEED_SUPPLIERS = Map.ofEntries(
+            Map.entry(PromptCategory.DESIGN, DefaultCategorySemanticProfileSeedSource::buildDesign),
+            Map.entry(PromptCategory.DEVELOPMENT, DefaultCategorySemanticProfileSeedSource::buildDevelopment),
+            Map.entry(PromptCategory.WRITING, DefaultCategorySemanticProfileSeedSource::buildWriting),
+            Map.entry(PromptCategory.RESEARCH, DefaultCategorySemanticProfileSeedSource::buildResearch),
+            Map.entry(PromptCategory.BUSINESS, DefaultCategorySemanticProfileSeedSource::buildBusiness),
+            Map.entry(PromptCategory.PRODUCTIVITY, DefaultCategorySemanticProfileSeedSource::buildProductivity),
+            Map.entry(PromptCategory.MARKETING, DefaultCategorySemanticProfileSeedSource::buildMarketing),
+            Map.entry(PromptCategory.CUSTOMER_SUPPORT, DefaultCategorySemanticProfileSeedSource::buildCustomerSupport),
+            Map.entry(PromptCategory.DATA_ANALYSIS, DefaultCategorySemanticProfileSeedSource::buildDataAnalysis),
+            Map.entry(PromptCategory.LEGAL, DefaultCategorySemanticProfileSeedSource::buildLegal),
+            Map.entry(PromptCategory.CREATIVE, DefaultCategorySemanticProfileSeedSource::buildCreative),
+            Map.entry(PromptCategory.EDUCATION, DefaultCategorySemanticProfileSeedSource::buildEducation),
+            Map.entry(PromptCategory.ETC, DefaultCategorySemanticProfileSeedSource::buildEtc)
     );
 
     @Override
     public Optional<CategorySemanticProfileSeed> getSeed(PromptCategory category) {
-        if (category == null || !PROFILE_CATEGORIES.contains(category)) {
+        if (category == null) {
             return Optional.empty();
         }
-        return switch (category) {
-            case DESIGN -> Optional.of(buildDesign());
-            case DEVELOPMENT -> Optional.of(buildDevelopment());
-            case WRITING -> Optional.of(buildWriting());
-            case RESEARCH -> Optional.of(buildResearch());
-            case BUSINESS -> Optional.of(buildBusiness());
-            case PRODUCTIVITY -> Optional.of(buildProductivity());
-            case MARKETING -> Optional.of(buildMarketing());
-            case CUSTOMER_SUPPORT -> Optional.of(buildCustomerSupport());
-            case DATA_ANALYSIS -> Optional.of(buildDataAnalysis());
-            case LEGAL -> Optional.of(buildLegal());
-            case CREATIVE -> Optional.of(buildCreative());
-            case EDUCATION -> Optional.of(buildEducation());
-            case ETC -> Optional.of(buildEtc());
-            default -> Optional.empty();
-        };
+        PromptCategory canonical = category.canonical();
+        Supplier<CategorySemanticProfileSeed> supplier = SEED_SUPPLIERS.get(canonical);
+        if (supplier == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(supplier.get());
     }
 
     private static CategorySemanticProfileSeed buildDesign() {

@@ -11,6 +11,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCateg
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile;
 import org.example.sharedprompts.domain.prompt.domain.semantic.RecommendationResult;
 import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileRegistry;
+import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileSeedSource;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommendation.ActionRecommendationOrderPolicy;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommendation.ActionRecommendationPreferenceSource;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.recommendation.ConcreteActionByGroupIndex;
@@ -52,7 +53,8 @@ class SemanticStructurePhase4Test {
         RecommendationConcreteActionExpander expander = new DefaultRecommendationConcreteActionExpander(index);
 
         DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(
-                new DefaultCanonicalActionRegistry(registry));
+                new DefaultCanonicalActionRegistry(registry),
+                new DefaultCategorySemanticProfileSeedSource());
         CategorySemanticProfile profile = profileRegistry.getProfile(PromptCategory.WRITING).orElseThrow();
         Set<ActionGroup> groups = Set.copyOf(profile.getCompatibleActionGroupsForIntent(ActionIntent.GENERATE));
         List<ActionTypeInterface> seeds = profile.getCompatibleActionsForIntent(ActionIntent.GENERATE);
@@ -85,7 +87,8 @@ class SemanticStructurePhase4Test {
         ActionRecommendationOrderPolicy orderPolicy = new DefaultActionRecommendationOrderPolicy(pref);
 
         DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(
-                new DefaultCanonicalActionRegistry(registry));
+                new DefaultCanonicalActionRegistry(registry),
+                new DefaultCategorySemanticProfileSeedSource());
         CategorySemanticProfile profile = profileRegistry.getProfile(PromptCategory.WRITING).orElseThrow();
         List<ActionTypeInterface> expanded = expander.expand(
                 PromptCategory.WRITING,
@@ -119,7 +122,8 @@ class SemanticStructurePhase4Test {
         RecommendationConcreteActionExpander expander = new DefaultRecommendationConcreteActionExpander(index);
 
         DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(
-                new DefaultCanonicalActionRegistry(registry));
+                new DefaultCanonicalActionRegistry(registry),
+                new DefaultCategorySemanticProfileSeedSource());
         CategorySemanticProfile profile = profileRegistry.getProfile(PromptCategory.DEVELOPMENT).orElseThrow();
         Set<ActionGroup> groups = Set.copyOf(profile.getCompatibleActionGroupsForIntent(ActionIntent.GENERATE));
 
@@ -144,7 +148,8 @@ class SemanticStructurePhase4Test {
         ConcreteActionByGroupIndex index = new DefaultConcreteActionByGroupIndex(registry.getAll());
         RecommendationConcreteActionExpander expander = new DefaultRecommendationConcreteActionExpander(index);
 
-        DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(canonical);
+        DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(
+                canonical, new DefaultCategorySemanticProfileSeedSource());
         SemanticRecommendationService serviceWriting = serviceWithPreference(Map.of(
                 "WRITING+GENERATE", List.of("ACTION.WRITING.ARTICLE_WRITING", "ACTION.WRITING.CREATIVE_WRITING_GEN")
         ), index, expander);
@@ -174,7 +179,8 @@ class SemanticStructurePhase4Test {
         ActionRecommendationOrderPolicy policyNoPref = new DefaultActionRecommendationOrderPolicy(noPref);
 
         DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(
-                new DefaultCanonicalActionRegistry(registry));
+                new DefaultCanonicalActionRegistry(registry),
+                new DefaultCategorySemanticProfileSeedSource());
         CategorySemanticProfile profile = profileRegistry.getProfile(PromptCategory.WRITING).orElseThrow();
         List<ActionTypeInterface> expanded = expander.expand(
                 PromptCategory.WRITING,
@@ -205,7 +211,8 @@ class SemanticStructurePhase4Test {
 
         CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(registry);
         SemanticRecommendationService service = new SemanticRecommendationService(canonical, expander, policySourceRegistry, strategy);
-        DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(canonical);
+        DefaultCategorySemanticProfileRegistry profileRegistry = new DefaultCategorySemanticProfileRegistry(
+                canonical, new DefaultCategorySemanticProfileSeedSource());
         CategorySemanticProfile profile = profileRegistry.getProfile(PromptCategory.WRITING).orElseThrow();
 
         RecommendationResult result = service.recommend(PromptCategory.WRITING, ActionIntent.GENERATE, profile, null, null, false);
