@@ -66,8 +66,13 @@ class ActionTaxonomyGuardrailTest {
         Set<ActionGroup> documentedSingleLeafGroups = Set.of(
                 ActionGroup.DEBUGGING,
                 ActionGroup.TRANSLATION,
-                ActionGroup.INTERVIEW_PREPARATION
-                // add every other intentional single-leaf group here
+                ActionGroup.INTERVIEW_PREPARATION,
+                ActionGroup.CLOUD_NETWORKING,
+                ActionGroup.CLOUD_SECURITY,
+                ActionGroup.CLOUD_COST_OPTIMIZATION,
+                ActionGroup.PERFORMANCE_OPTIMIZATION,
+                ActionGroup.FINANCIAL_ANALYSIS,
+                ActionGroup.COMPLAINT_RESPONSE
         );
         assertThat(new HashSet<>(singleLeaf))
                 .as("Single-leaf groups must exactly match the documented intentional set")

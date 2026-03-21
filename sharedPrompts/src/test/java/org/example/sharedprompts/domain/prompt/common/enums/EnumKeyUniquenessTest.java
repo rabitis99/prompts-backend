@@ -18,6 +18,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.category.deve
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.development.DevelopmentActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.development.ProgrammingActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.education.EducationActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.legal.LegalActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.etc.EtcActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.etc.HealthFitnessActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.etc.LifestyleActionType;
@@ -30,6 +31,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.category.rese
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.writing.WritingActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.experience.ExperienceLevel;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.business.BusinessRoleType;
+import org.example.sharedprompts.domain.prompt.common.enums.role.category.legal.LegalRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.business.CustomerSupportRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.content_creation.ContentCreationRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.creative.CreativeRoleType;
@@ -73,6 +75,7 @@ class EnumKeyUniquenessTest {
             CreativeRoleType.class,
             CustomerSupportRoleType.class,
             BusinessRoleType.class,
+            LegalRoleType.class,
             SocialRoleType.class,
             ProductivityRoleType.class,
             WritingActionType.class,
@@ -84,6 +87,7 @@ class EnumKeyUniquenessTest {
             MarketingActionType.class,
             PersonalDevelopmentActionType.class,
             EducationActionType.class,
+            LegalActionType.class,
             EtcActionType.class,
             CloudServicesActionType.class,
             BusinessActionType.class,

@@ -17,6 +17,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.category.deve
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.development.DevelopmentActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.development.ProgrammingActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.education.EducationActionType;
+import org.example.sharedprompts.domain.prompt.common.enums.action.category.legal.LegalActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.etc.EtcActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.etc.HealthFitnessActionType;
 import org.example.sharedprompts.domain.prompt.common.enums.action.category.etc.LifestyleActionType;
@@ -48,6 +49,7 @@ public final class DefaultActionTypeCatalog implements ActionTypeCatalog {
             ContentCreationActionType.class,
             CreativeActionType.class,
             EducationActionType.class,
+            LegalActionType.class,
             ResearchActionType.class,
             BusinessActionType.class,
             CustomerSupportActionType.class,

@@ -9,7 +9,6 @@ import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticP
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileSeedDefinition;
 import org.example.sharedprompts.domain.prompt.domain.semantic.FallbackCandidate;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,8 +27,8 @@ public final class EtcSemanticProfileSeed {
                 ActionIntent.EDIT, ActionIntent.REFINE, ActionIntent.IMPROVE, ActionIntent.COMPARE, ActionIntent.CRITIQUE, ActionIntent.TEACH, ActionIntent.SIMPLIFY,
                 ActionIntent.OUTLINE, ActionIntent.STRATEGIZE, ActionIntent.PROPOSE, ActionIntent.ORGANIZE, ActionIntent.RECOMMEND, ActionIntent.OPTIMIZE,
                 ActionIntent.INVESTIGATE, ActionIntent.SYNTHESIZE, ActionIntent.EXPLORE, ActionIntent.BRAINSTORM);
-        Map<ActionIntent, List<RoleTypeInterface>> roles = new HashMap<>();
-        Map<ActionIntent, List<ActionTypeInterface>> actions = new HashMap<>();
+        Map<ActionIntent, List<RoleTypeInterface>> roles = Map.of();
+        Map<ActionIntent, List<ActionTypeInterface>> actions = Map.of();
         return new CategorySemanticProfileSeed(
                 PromptCategory.ETC, TaskDomain.GENERAL, allowed, Map.of(), roles, actions,
                 null, null, ActionIntent.GENERATE,

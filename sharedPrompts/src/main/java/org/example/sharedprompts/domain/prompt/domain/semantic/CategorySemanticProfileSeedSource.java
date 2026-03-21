@@ -28,7 +28,7 @@ public interface CategorySemanticProfileSeedSource {
     default CategorySemanticProfileSeed requireSeed(PromptCategory category) {
         Objects.requireNonNull(category, "category");
         PromptCategory canonical = category.canonical();
-        return getSeed(category).orElseThrow(() -> new IllegalStateException(
+        return getSeed(canonical).orElseThrow(() -> new IllegalStateException(
                 "Missing CategorySemanticProfileSeed for category: " + canonical.name()));
     }
 

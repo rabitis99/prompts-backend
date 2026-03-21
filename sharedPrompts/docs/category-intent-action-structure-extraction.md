@@ -250,7 +250,7 @@ Source: CreativeSemanticProfileSeed
 
 ## ETC
 Source: EtcSemanticProfileSeed
-- All 32 intents allowed (GENERATE, EXPLAIN, PLAN, ANALYZE, REWRITE, SUMMARIZE, EVALUATE, EXTRACT, CLASSIFY, DECIDE, DIAGNOSE, CREATE, EDIT, REFINE, IMPROVE, COMPARE, CRITIQUE, TEACH, SIMPLIFY, OUTLINE, STRATEGIZE, PROPOSE, ORGANIZE, RECOMMEND, OPTIMIZE, INVESTIGATE, SYNTHESIZE, EXPLORE, BRAINSTORM)
+- All 29 intents allowed (GENERATE, EXPLAIN, PLAN, ANALYZE, REWRITE, SUMMARIZE, EVALUATE, EXTRACT, CLASSIFY, DECIDE, DIAGNOSE, CREATE, EDIT, REFINE, IMPROVE, COMPARE, CRITIQUE, TEACH, SIMPLIFY, OUTLINE, STRATEGIZE, PROPOSE, ORGANIZE, RECOMMEND, OPTIMIZE, INVESTIGATE, SYNTHESIZE, EXPLORE, BRAINSTORM)
 
 ## EXTRACTION
 - **unclear** — EXTRACTION does NOT have a CategorySemanticProfileSeed. Explicitly excluded in DefaultCategorySemanticProfileSeedSource. No profile in registry.
@@ -629,18 +629,19 @@ Source: DesignSemanticProfileSeed
 Source: LegalSemanticProfileSeed
 
 ### EVALUATE
-- BusinessActionType.CONTRACT_REVIEW
-- BusinessActionType.RISK_ASSESSMENT
+- LegalActionType.CONTRACT_REVIEW
+- LegalActionType.RISK_ASSESSMENT
 
 ### GENERATE
-- BusinessActionType.CONTRACT_REVIEW
-- BusinessActionType.PROPOSAL_WRITING
+- LegalActionType.CONTRACT_REVIEW
+- LegalActionType.LEGAL_PROPOSAL_DRAFTING
 
 ### EXPLAIN
-- BusinessActionType.CONTRACT_REVIEW
+- LegalActionType.CONTRACT_REVIEW
 
 ### SUMMARIZE
-- (allowed only)
+- LegalActionType.CONTRACT_REVIEW
+- LegalActionType.LEGAL_REPORT_OR_MEMO
 
 ## CREATIVE
 Source: CreativeSemanticProfileSeed
@@ -680,13 +681,13 @@ When non-empty, overrides action-derived groups for (category, intent) in Defaul
 - `CategorySemanticProfileSeedDefinitions.java` — defaultDefinitions(), canonicalProfileCategories()
 
 ## Intent source
-- `ActionIntent.java` — enum (32 intents)
+- `ActionIntent.java` — enum (29 intents)
 - `IntentDefinition.java` — record with representativeCategories, representativeActionHints (hints only)
 - `IntentDictionary.java` — definitions + resolution defaults aggregation
 - `IntentDefinitionDataSource.java` — aggregates IntentDefinitionEntriesProvider, IntentResolutionDefaultsEntriesProvider
 
 ## Action source
-- ActionType enums (26 classes in DefaultActionTypeCatalog): ProductivityActionType, DevelopmentActionType, CloudServicesActionType, DevOpsActionType, CybersecurityActionType, CodingActionType, ProgrammingActionType, AiMlActionType, AnalysisActionType, MarketingActionType, ContentCreationActionType, CreativeActionType, EducationActionType, ResearchActionType, BusinessActionType, CustomerSupportActionType, EmailActionType, DesignActionType, WritingActionType, EtcActionType, HealthFitnessActionType, SocialActionType, CareerActionType, LifestyleActionType, PersonalDevelopmentActionType, RecommendationActionType, ShoppingActionType
+- ActionType enums (28 classes in DefaultActionTypeCatalog): ProductivityActionType, DevelopmentActionType, CloudServicesActionType, DevOpsActionType, CybersecurityActionType, CodingActionType, ProgrammingActionType, AiMlActionType, AnalysisActionType, MarketingActionType, ContentCreationActionType, CreativeActionType, EducationActionType, LegalActionType, ResearchActionType, BusinessActionType, CustomerSupportActionType, EmailActionType, DesignActionType, WritingActionType, EtcActionType, HealthFitnessActionType, SocialActionType, CareerActionType, LifestyleActionType, PersonalDevelopmentActionType, RecommendationActionType, ShoppingActionType
 - `ActionGroup.java` — enum (capability groups)
 - `ActionTypeInterface.java` — key(), getActionGroup()
 - `DefaultActionTypeCatalog.java` — enum class list
