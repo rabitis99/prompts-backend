@@ -7,6 +7,10 @@ import org.example.sharedprompts.domain.prompt.common.i18n.I18nKey;
 import org.example.sharedprompts.domain.prompt.common.i18n.I18nRegistry;
 import org.example.sharedprompts.domain.prompt.common.i18n.I18nText;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 /**
  * 프롬프트 엔진용 시맨틱 카테고리 식별자.
  * <p>UI 카테고리 선택, 역할 추천 게이팅, 시맨틱 해석 힌트에 사용된다.
@@ -159,6 +163,27 @@ public enum PromptCategory implements StableKeyedEnum {
             I18nKey.of("prompt_category.creative.guideline"),
             TaskDomain.CREATIVE
     );
+
+    /**
+     * Canonical categories that must have a category semantic profile seed ({@link #canonical()} targets except {@link #EXTRACTION}).
+     */
+    private static final Set<PromptCategory> CANONICAL_SEMANTIC_PROFILE_CATEGORIES =
+            computeCanonicalSemanticProfileCategories();
+
+    private static Set<PromptCategory> computeCanonicalSemanticProfileCategories() {
+        LinkedHashSet<PromptCategory> set = new LinkedHashSet<>();
+        for (PromptCategory c : values()) {
+            PromptCategory canon = c.canonical();
+            if (canon != EXTRACTION) {
+                set.add(canon);
+            }
+        }
+        return Collections.unmodifiableSet(set);
+    }
+
+    public static Set<PromptCategory> canonicalSemanticProfileCategories() {
+        return CANONICAL_SEMANTIC_PROFILE_CATEGORIES;
+    }
 
     private final String key;
     private final I18nKey displayNameKey;

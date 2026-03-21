@@ -12,6 +12,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCateg
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileRegistry;
 import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileSeedSource;
+import org.example.sharedprompts.domain.prompt.domain.semantic.seed.CategorySemanticProfileSeedDefinitions;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.compatibility.CompatibilityPolicySource;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.compatibility.DefaultCompatibilityPolicySource;
 import org.junit.jupiter.api.DisplayName;
@@ -20,8 +21,10 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Phase 5 completion: profile seed source extraction.
@@ -107,13 +110,54 @@ class CategorySemanticProfileSeedSourceAssemblerTest {
     }
 
     @Test
-    @DisplayName("Default seed source returns seed for all profile categories, not EXTRACTION")
+    @DisplayName("Default seed source covers all canonical profile categories; EXTRACTION has no seed")
     void defaultSourceReturnsSeedsForProfileCategoriesOnly() {
         CategorySemanticProfileSeedSource source = new DefaultCategorySemanticProfileSeedSource();
         assertThat(source.getSeed(PromptCategory.EXTRACTION)).isEmpty();
-        assertThat(source.getSeed(PromptCategory.WRITING)).isPresent();
-        assertThat(source.getSeed(PromptCategory.DESIGN)).isPresent();
-        assertThat(source.getSeed(PromptCategory.ETC)).isPresent();
+        assertThatThrownBy(() -> source.requireSeed(PromptCategory.EXTRACTION))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("EXTRACTION")
+                .hasMessageContaining("Missing CategorySemanticProfileSeed");
+        assertThat(source.requireSeed(PromptCategory.WRITING).category()).isEqualTo(PromptCategory.WRITING);
+        assertThat(source.requireSeed(PromptCategory.DESIGN).category()).isEqualTo(PromptCategory.DESIGN);
+        assertThat(source.requireSeed(PromptCategory.ETC).category()).isEqualTo(PromptCategory.ETC);
+    }
+
+    @Test
+    @DisplayName("Custom source narrows profileCategoriesForRegistry when only a subset of profiles is wired")
+    void customSourceSubsetProfileCategoriesBuildsPartialRegistry() {
+        ActionTypeRegistry actionRegistry = new ActionTypeRegistry(CATALOG);
+        CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(actionRegistry);
+        DefaultCategorySemanticProfileSeedSource fullSource = new DefaultCategorySemanticProfileSeedSource();
+        CategorySemanticProfileSeedSource writingOnly = new CategorySemanticProfileSeedSource() {
+            @Override
+            public Set<PromptCategory> profileCategoriesForRegistry() {
+                return Set.of(PromptCategory.WRITING);
+            }
+
+            @Override
+            public Optional<CategorySemanticProfileSeed> getSeed(PromptCategory category) {
+                return fullSource.getSeed(category);
+            }
+        };
+        DefaultCategorySemanticProfileRegistry registry =
+                new DefaultCategorySemanticProfileRegistry(canonical, null, writingOnly);
+
+        assertThat(registry.getProfile(PromptCategory.WRITING)).isPresent();
+        assertThat(registry.getProfile(PromptCategory.DESIGN)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("DefaultCategorySemanticProfileSeedSource rejects an incomplete definition catalog at construction")
+    void seedSourceConstructorFailsFastWhenDefinitionMissingForEnumCategory() {
+        List<CategorySemanticProfileSeedDefinition> incomplete =
+                CategorySemanticProfileSeedDefinitions.defaultDefinitions().stream()
+                        .filter(d -> d.category() != PromptCategory.DESIGN)
+                        .toList();
+        assertThatThrownBy(() -> new DefaultCategorySemanticProfileSeedSource(incomplete))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("DESIGN")
+                .hasMessageContaining("missing");
     }
 
     @Test

@@ -10,6 +10,8 @@ import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticP
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileSeed;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileSeedSource;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.compatibility.CompatibilityPolicySource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,11 +32,7 @@ import java.util.Set;
  */
 public class DefaultCategorySemanticProfileRegistry implements CategorySemanticProfileRegistry {
 
-    private static final Set<PromptCategory> PROFILE_CATEGORIES = Set.of(
-            PromptCategory.DESIGN, PromptCategory.DEVELOPMENT, PromptCategory.WRITING, PromptCategory.RESEARCH,
-            PromptCategory.BUSINESS, PromptCategory.PRODUCTIVITY, PromptCategory.DATA_ANALYSIS, PromptCategory.MARKETING,
-            PromptCategory.CUSTOMER_SUPPORT, PromptCategory.CREATIVE, PromptCategory.LEGAL, PromptCategory.EDUCATION, PromptCategory.ETC
-    );
+    private static final Logger log = LoggerFactory.getLogger(DefaultCategorySemanticProfileRegistry.class);
 
     private final Map<PromptCategory, CategorySemanticProfile> profiles;
     private final CanonicalActionRegistry canonicalActionRegistry;
@@ -54,8 +52,9 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
         this.compatibilityPolicySource = compatibilityPolicySource;
         Objects.requireNonNull(seedSource, "seedSource");
         Map<PromptCategory, CategorySemanticProfile> map = new HashMap<>();
-        for (PromptCategory category : PROFILE_CATEGORIES) {
-            seedSource.getSeed(category).ifPresent(seed -> map.put(category, buildProfile(seed)));
+        for (PromptCategory category : seedSource.profileCategoriesForRegistry()) {
+            CategorySemanticProfileSeed seed = seedSource.requireSeed(category);
+            map.put(category, buildProfile(seed));
         }
         this.profiles = Collections.unmodifiableMap(map);
     }
@@ -138,9 +137,14 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
 
     private Optional<ActionGroup> parseActionGroup(String key) {
         if (key == null || key.isBlank()) return Optional.empty();
+        String trimmed = key.trim();
         try {
-            return Optional.of(ActionGroup.valueOf(key.trim()));
+            return Optional.of(ActionGroup.valueOf(trimmed));
         } catch (IllegalArgumentException e) {
+            log.warn(
+                    "Ignoring invalid compatibility policy ActionGroup key '{}': {}",
+                    trimmed,
+                    e.toString());
             return Optional.empty();
         }
     }
