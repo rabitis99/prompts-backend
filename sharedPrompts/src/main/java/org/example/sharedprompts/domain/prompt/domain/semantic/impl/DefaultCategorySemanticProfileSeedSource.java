@@ -68,7 +68,8 @@ public class DefaultCategorySemanticProfileSeedSource implements CategorySemanti
         if (category == null) {
             return Optional.empty();
         }
-        Supplier<CategorySemanticProfileSeed> supplier = SEED_SUPPLIERS.get(category);
+        PromptCategory canonical = category.canonical();
+        Supplier<CategorySemanticProfileSeed> supplier = SEED_SUPPLIERS.get(canonical);
         if (supplier == null) {
             return Optional.empty();
         }

@@ -45,6 +45,11 @@ final class IntentDefinitionDataSource {
         Map<ActionIntent, IntentDefinition> defs = new HashMap<>();
         for (IntentDefinitionEntriesProvider provider : DEFINITIONS_PROVIDERS) {
             for (IntentDefinitionEntry e : provider.entries()) {
+                if (defs.containsKey(e.intent())) {
+                    throw new IllegalStateException(
+                            "Duplicate IntentDefinition for " + e.intent()
+                                    + " from provider " + provider.getClass().getSimpleName());
+                }
                 defs.put(e.intent(), e.definition());
             }
         }
@@ -57,6 +62,11 @@ final class IntentDefinitionDataSource {
         Map<ActionIntent, IntentResolutionDefaults> res = new HashMap<>();
         for (IntentResolutionDefaultsEntriesProvider provider : RESOLUTION_DEFAULTS_PROVIDERS) {
             for (IntentResolutionDefaultEntry e : provider.entries()) {
+                if (res.containsKey(e.intent())) {
+                    throw new IllegalStateException(
+                            "Duplicate IntentResolutionDefaults for " + e.intent()
+                                    + " from provider " + provider.getClass().getSimpleName());
+                }
                 res.put(e.intent(), e.defaults());
             }
         }
