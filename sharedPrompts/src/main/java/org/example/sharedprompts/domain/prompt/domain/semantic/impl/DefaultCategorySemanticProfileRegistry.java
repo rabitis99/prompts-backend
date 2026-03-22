@@ -10,8 +10,6 @@ import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticP
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileSeed;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileSeedSource;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.compatibility.CompatibilityPolicySource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,8 +29,6 @@ import java.util.Set;
  * for (category, intent), those override action-derived groups.</p>
  */
 public class DefaultCategorySemanticProfileRegistry implements CategorySemanticProfileRegistry {
-
-    private static final Logger log = LoggerFactory.getLogger(DefaultCategorySemanticProfileRegistry.class);
 
     private final Map<PromptCategory, CategorySemanticProfile> profiles;
     private final CanonicalActionRegistry canonicalActionRegistry;
@@ -83,19 +79,65 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
                 prepared.groupMap());
     }
 
-    private Map<ActionIntent, List<ActionGroup>> toActionGroupMap(Map<ActionIntent, List<ActionTypeInterface>> actions) {
+    /**
+     * Strict: every action listed under an intent in a category seed must resolve to an {@link ActionGroup};
+     * silent drops are not allowed (misconfiguration must fail fast at registry construction).
+     */
+    private Map<ActionIntent, List<ActionGroup>> toActionGroupMap(
+            PromptCategory category, Map<ActionIntent, List<ActionTypeInterface>> actions) {
         if (actions == null || actions.isEmpty()) return Map.of();
         Map<ActionIntent, List<ActionGroup>> out = new HashMap<>();
         for (Map.Entry<ActionIntent, List<ActionTypeInterface>> e : actions.entrySet()) {
-            List<ActionGroup> groups = e.getValue().stream()
-                    .map(canonicalActionRegistry::toCanonical)
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
+            ActionIntent intent = e.getKey();
+            List<ActionTypeInterface> actionList = e.getValue();
+            if (actionList == null || actionList.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Category semantic profile seed contains empty action list for category="
+                                + category.name()
+                                + ", intent="
+                                + intent.name());
+            }
+            List<ActionGroup> groups = actionList.stream()
+                    .map(a -> requireActionGroupForCategorySeed(category, intent, a))
                     .distinct()
                     .toList();
-            if (!groups.isEmpty()) out.put(e.getKey(), groups);
+            assertIntentHasResolvedActionGroups(category, intent, groups);
+            out.put(intent, groups);
         }
         return out;
+    }
+
+    /**
+     * Package-private for tests: same invariant as {@link #toActionGroupMap(PromptCategory, Map)} after mapping.
+     */
+    static void assertIntentHasResolvedActionGroups(
+            PromptCategory category, ActionIntent intent, List<ActionGroup> groups) {
+        Objects.requireNonNull(category, "category");
+        Objects.requireNonNull(intent, "intent");
+        Objects.requireNonNull(groups, "groups");
+        if (groups.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "No ActionGroup resolved for category="
+                            + category.name()
+                            + ", intent="
+                            + intent.name());
+        }
+    }
+
+    private ActionGroup requireActionGroupForCategorySeed(
+            PromptCategory category, ActionIntent intent, ActionTypeInterface actionType) {
+        try {
+            return canonicalActionRegistry.requireActionGroup(actionType);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(
+                    "Category semantic profile seed assembly: cannot resolve ActionGroup for category="
+                            + category.name()
+                            + ", intent="
+                            + intent.name()
+                            + ", actionStableKey="
+                            + actionType.key(),
+                    ex);
+        }
     }
 
     /**
@@ -103,7 +145,7 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
      * otherwise action-derived groups from the seed are used.
      */
     private GroupMapAndActions prepare(PromptCategory category, Map<ActionIntent, List<ActionTypeInterface>> actions) {
-        Map<ActionIntent, List<ActionGroup>> fromActions = toActionGroupMap(actions);
+        Map<ActionIntent, List<ActionGroup>> fromActions = toActionGroupMap(category, actions);
         if (compatibilityPolicySource == null) {
             return new GroupMapAndActions(fromActions, actions != null ? actions : Map.of());
         }
@@ -112,11 +154,9 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
         for (ActionIntent intent : intents) {
             List<String> keys = compatibilityPolicySource.getCompatibleGroupKeys(category, intent);
             if (!keys.isEmpty()) {
-                List<ActionGroup> fromSource = resolveGroupKeys(keys);
-                if (!fromSource.isEmpty()) {
-                    groupMap.put(intent, fromSource);
-                    continue;
-                }
+                List<ActionGroup> fromSource = requireResolvedCompatibilityActionGroups(category, intent, keys);
+                groupMap.put(intent, fromSource);
+                continue;
             }
             if (fromActions.containsKey(intent)) {
                 groupMap.put(intent, fromActions.get(intent));
@@ -125,27 +165,45 @@ public class DefaultCategorySemanticProfileRegistry implements CategorySemanticP
         return new GroupMapAndActions(groupMap, actions != null ? actions : Map.of());
     }
 
-    private List<ActionGroup> resolveGroupKeys(List<String> keys) {
-        if (keys == null || keys.isEmpty()) return List.of();
+    /**
+     * Resolves every compatibility key strictly; invalid or blank entries are configuration errors, not absences.
+     */
+    private static List<ActionGroup> requireResolvedCompatibilityActionGroups(
+            PromptCategory category,
+            ActionIntent intent,
+            List<String> keys) {
+        Objects.requireNonNull(category, "category");
+        Objects.requireNonNull(intent, "intent");
+        Objects.requireNonNull(keys, "keys");
         return keys.stream()
-                .map(this::parseActionGroup)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+                .map(k -> requireActionGroupForCompatibility(category, intent, k))
                 .distinct()
                 .toList();
     }
 
-    private Optional<ActionGroup> parseActionGroup(String key) {
-        if (key == null || key.isBlank()) return Optional.empty();
-        String trimmed = key.trim();
+    private static ActionGroup requireActionGroupForCompatibility(
+            PromptCategory category,
+            ActionIntent intent,
+            String rawKey) {
+        if (rawKey == null || rawKey.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Blank or null ActionGroup key in compatibility policy for category "
+                            + category.name()
+                            + ", intent "
+                            + intent.name());
+        }
+        String trimmed = rawKey.trim();
         try {
-            return Optional.of(ActionGroup.valueOf(trimmed));
+            return ActionGroup.valueOf(trimmed);
         } catch (IllegalArgumentException e) {
-            log.warn(
-                    "Ignoring invalid compatibility policy ActionGroup key '{}': {}",
-                    trimmed,
-                    e.toString());
-            return Optional.empty();
+            throw new IllegalArgumentException(
+                    "Invalid ActionGroup key '"
+                            + trimmed
+                            + "' for category "
+                            + category.name()
+                            + ", intent "
+                            + intent.name(),
+                    e);
         }
     }
 

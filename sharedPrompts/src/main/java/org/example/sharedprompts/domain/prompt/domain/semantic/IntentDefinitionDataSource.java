@@ -8,42 +8,17 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Aggregates intent definitions/defaults provided by smaller providers.
+ * Aggregates intent definitions/defaults from injected providers (merge, duplicate detection).
  * <p>
- * IntentDictionary keeps responsibility for fail-fast completeness validation and indexing.
- * Inject custom provider lists via the constructor for tests or alternate wiring; production
- * static aggregation uses {@link #definitionsEntries()} / {@link #resolutionDefaultEntries()}.
+ * Does not own provider registration; use {@link IntentDefinitionProviderAssembly} for the
+ * production catalog or pass custom lists for tests/alternate wiring.
+ * {@link IntentDictionary} performs completeness validation and indexing on top of collected entries.
  */
 public final class IntentDefinitionDataSource {
 
     record IntentDefinitionEntry(ActionIntent intent, IntentDefinition definition) {}
 
     record IntentResolutionDefaultEntry(ActionIntent intent, IntentResolutionDefaults defaults) {}
-
-    private static final List<IntentDefinitionEntriesProvider> DEFAULT_DEFINITIONS_PROVIDERS = List.of(
-            new IntentCreationIntentDefinitionsProvider(),
-            new IntentModificationIntentDefinitionsProvider(),
-            new IntentAnalysisIntentDefinitionsProvider(),
-            new IntentExplanationIntentDefinitionsProvider(),
-            new IntentPlanningIntentDefinitionsProvider(),
-            new IntentDecisionIntentDefinitionsProvider(),
-            new IntentResearchIntentDefinitionsProvider(),
-            new IntentExtractionIntentDefinitionsProvider()
-    );
-
-    private static final List<IntentResolutionDefaultsEntriesProvider> DEFAULT_RESOLUTION_DEFAULTS_PROVIDERS = List.of(
-            new IntentCreationIntentResolutionDefaultsProvider(),
-            new IntentModificationIntentResolutionDefaultsProvider(),
-            new IntentAnalysisIntentResolutionDefaultsProvider(),
-            new IntentExplanationIntentResolutionDefaultsProvider(),
-            new IntentPlanningIntentResolutionDefaultsProvider(),
-            new IntentDecisionIntentResolutionDefaultsProvider(),
-            new IntentResearchIntentResolutionDefaultsProvider(),
-            new IntentExtractionIntentResolutionDefaultsProvider()
-    );
-
-    private static final IntentDefinitionDataSource DEFAULT = new IntentDefinitionDataSource(
-            DEFAULT_DEFINITIONS_PROVIDERS, DEFAULT_RESOLUTION_DEFAULTS_PROVIDERS);
 
     private final List<IntentDefinitionEntriesProvider> definitionsProviders;
     private final List<IntentResolutionDefaultsEntriesProvider> resolutionDefaultsProviders;
@@ -53,14 +28,6 @@ public final class IntentDefinitionDataSource {
             List<IntentResolutionDefaultsEntriesProvider> resolutionDefaultsProviders) {
         this.definitionsProviders = List.copyOf(Objects.requireNonNull(definitionsProviders));
         this.resolutionDefaultsProviders = List.copyOf(Objects.requireNonNull(resolutionDefaultsProviders));
-    }
-
-    static List<IntentDefinitionEntry> definitionsEntries() {
-        return DEFAULT.collectDefinitionsEntries();
-    }
-
-    static List<IntentResolutionDefaultEntry> resolutionDefaultEntries() {
-        return DEFAULT.collectResolutionDefaultEntries();
     }
 
     public List<IntentDefinitionEntry> collectDefinitionsEntries() {
@@ -97,4 +64,3 @@ public final class IntentDefinitionDataSource {
                 .toList();
     }
 }
-

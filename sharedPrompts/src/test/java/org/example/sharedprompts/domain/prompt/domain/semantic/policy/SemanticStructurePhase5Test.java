@@ -14,8 +14,12 @@ import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResol
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ObjectiveResolverPort;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.DefaultObjectiveHeuristicInferencePolicy;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfile;
+import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileSeed;
+import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileSeedDefinition;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileSeedSource;
 import org.example.sharedprompts.domain.prompt.domain.semantic.RecommendationResult;
+import org.example.sharedprompts.domain.prompt.domain.semantic.seed.CategorySemanticProfileSeedDefinitions;
+import org.example.sharedprompts.domain.prompt.domain.semantic.seed.WritingSemanticProfileSeed;
 import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileRegistry;
 import org.example.sharedprompts.domain.prompt.domain.semantic.impl.DefaultCategorySemanticProfileSeedSource;
 import org.example.sharedprompts.domain.prompt.domain.semantic.policy.compatibility.CompatibilityPolicySource;
@@ -32,6 +36,8 @@ import org.example.sharedprompts.domain.prompt.domain.semantic.policy.registry.P
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -177,14 +183,117 @@ class SemanticStructurePhase5Test {
     }
 
     @Test
+    @DisplayName("Profile registry fail-fast when compatibility policy lists an invalid ActionGroup key")
+    void profileRegistryFailFastWhenCompatibilityActionGroupKeyInvalid() {
+        ActionTypeRegistry registry = new ActionTypeRegistry(CATALOG);
+        CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(registry);
+        CompatibilityPolicySource bad = new DefaultCompatibilityPolicySource(
+                Map.of("WRITING+GENERATE", List.of("NOT_A_REAL_ACTION_GROUP_ENUM")));
+        assertThatThrownBy(
+                () -> new DefaultCategorySemanticProfileRegistry(
+                        canonical, bad, new DefaultCategorySemanticProfileSeedSource()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("NOT_A_REAL_ACTION_GROUP_ENUM")
+                .hasMessageContaining("WRITING")
+                .hasMessageContaining("GENERATE")
+                .hasCauseInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("Profile registry fail-fast when seed lists an action that does not resolve to ActionGroup")
+    void profileRegistryFailFastWhenSeedActionDoesNotResolveToActionGroup() {
+        ActionTypeRegistry actionRegistry = new ActionTypeRegistry(CATALOG);
+        CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(actionRegistry);
+        ActionTypeInterface unresolvable =
+                new ActionTypeInterface() {
+                    @Override
+                    public String key() {
+                        return "FAKE.SEED.ACTION.UNRESOLVABLE";
+                    }
+
+                    @Override
+                    public String getDisplayNameKo() {
+                        return "";
+                    }
+
+                    @Override
+                    public String getDisplayNameEn() {
+                        return "";
+                    }
+
+                    @Override
+                    public String getDisplayNameJa() {
+                        return "";
+                    }
+
+                    @Override
+                    public ActionGroup getActionGroup() {
+                        return null;
+                    }
+                };
+        CategorySemanticProfileSeed writing = WritingSemanticProfileSeed.DEFINITION.seedSupplier().get();
+        Map<ActionIntent, List<ActionTypeInterface>> actions = new HashMap<>(writing.actionsByIntent());
+        actions.put(ActionIntent.GENERATE, List.of(unresolvable));
+        CategorySemanticProfileSeed poisoned =
+                new CategorySemanticProfileSeed(
+                        writing.category(),
+                        writing.taskDomain(),
+                        writing.allowedIntents(),
+                        writing.intentFitLevels(),
+                        writing.rolesByIntent(),
+                        actions,
+                        writing.discouragedTonesByIntent(),
+                        writing.discouragedStylesByIntent(),
+                        writing.fallbackIntent(),
+                        writing.fallbackCandidates());
+        List<CategorySemanticProfileSeedDefinition> defs =
+                new ArrayList<>(CategorySemanticProfileSeedDefinitions.defaultDefinitions());
+        for (int i = 0; i < defs.size(); i++) {
+            if (defs.get(i).category() == PromptCategory.WRITING) {
+                defs.set(
+                        i,
+                        new CategorySemanticProfileSeedDefinition(PromptCategory.WRITING, () -> poisoned));
+                break;
+            }
+        }
+        CategorySemanticProfileSeedSource badSource = new DefaultCategorySemanticProfileSeedSource(defs);
+        assertThatThrownBy(() -> new DefaultCategorySemanticProfileRegistry(canonical, null, badSource))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Category semantic profile seed assembly")
+                .hasMessageContaining("WRITING")
+                .hasMessageContaining("GENERATE")
+                .hasMessageContaining("FAKE.SEED.ACTION.UNRESOLVABLE");
+    }
+
+    @Test
+    @DisplayName("Profile registry fail-fast when compatibility policy lists a blank ActionGroup key")
+    void profileRegistryFailFastWhenCompatibilityActionGroupKeyBlank() {
+        ActionTypeRegistry registry = new ActionTypeRegistry(CATALOG);
+        CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(registry);
+        CompatibilityPolicySource bad = new DefaultCompatibilityPolicySource(
+                Map.of("WRITING+GENERATE", List.of("LONG_FORM_WRITING", "   ")));
+        assertThatThrownBy(
+                () -> new DefaultCategorySemanticProfileRegistry(
+                        canonical, bad, new DefaultCategorySemanticProfileSeedSource()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Blank or null ActionGroup key")
+                .hasMessageContaining("WRITING")
+                .hasMessageContaining("GENERATE");
+    }
+
+    @Test
     @DisplayName("Profile registry fail-fast when seed source omits a profile category")
     void profileRegistryFailFastWhenSeedIncomplete() {
         ActionTypeRegistry registry = new ActionTypeRegistry(CATALOG);
         CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(registry);
         DefaultCategorySemanticProfileSeedSource fullSource = new DefaultCategorySemanticProfileSeedSource();
         CategorySemanticProfileSeedSource partialSource = category -> {
-            if (category == PromptCategory.WRITING) return java.util.Optional.empty();
-            return fullSource.getSeed(category);
+            if (category.canonical() == PromptCategory.WRITING) {
+                throw new IllegalStateException(
+                        "Missing CategorySemanticProfileSeed for category: " + category.canonical().name()
+                                + "; no seed supplier registered");
+            }
+            return fullSource.requireSeed(category);
         };
         DefaultCategorySemanticProfileRegistry registryFull =
                 new DefaultCategorySemanticProfileRegistry(canonical, null, fullSource);
@@ -193,7 +302,8 @@ class SemanticStructurePhase5Test {
         assertThatThrownBy(() -> new DefaultCategorySemanticProfileRegistry(canonical, null, partialSource))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("WRITING")
-                .hasMessageContaining("Missing CategorySemanticProfileSeed");
+                .hasMessageContaining("Missing CategorySemanticProfileSeed")
+                .hasMessageContaining("no seed supplier registered");
     }
 
     @Test

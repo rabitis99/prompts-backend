@@ -10,13 +10,16 @@ import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.example.sharedprompts.domain.prompt.common.enums.output.OutputNeeds;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptObjective;
 import org.example.sharedprompts.domain.prompt.common.enums.output.ResponseShape;
+import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDefinitionProviderAssembly;
+import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDictionary;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class IntentDefaultsResolverTest {
 
-    private final IntentDefaultsResolver resolver = new IntentDefaultsResolver();
+    private final IntentDictionary intentDictionary = IntentDefinitionProviderAssembly.productionIntentDictionary();
+    private final IntentDefaultsResolver resolver = new IntentDefaultsResolver(intentDictionary);
 
     private UnifiedGeneratePromptCommand command(ActionIntent intent, PromptCategory category, String input) {
         return UnifiedGeneratePromptCommand.of(

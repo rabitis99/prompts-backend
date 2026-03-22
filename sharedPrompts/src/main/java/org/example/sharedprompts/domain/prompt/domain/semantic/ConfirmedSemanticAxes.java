@@ -56,8 +56,14 @@ public record ConfirmedSemanticAxes(
         recommendationHints = recommendationHints != null ? List.copyOf(recommendationHints) : List.of();
     }
 
-    /** Resolve action group for prompt assembly / resolution. Use registry when building prompts. */
-    public Optional<ActionGroup> actionGroup(CanonicalActionRegistry registry) {
+    /**
+     * Permissive lookup: optional axes may omit {@link #actionType}; then no capability group exists for rendering.
+     * Uses {@link CanonicalActionRegistry#toCanonical(ActionTypeInterface)} — empty when type is absent or lookup fails.
+     *
+     * <p>{@link org.example.sharedprompts.domain.prompt.domain.service.spec.PromptSpecFactory} applies a stricter rule:
+     * when {@link #actionType} is present, the registry must resolve a group (no direct enum read there).
+     */
+    public Optional<ActionGroup> findActionGroup(CanonicalActionRegistry registry) {
         Objects.requireNonNull(registry, "registry");
         return actionType.flatMap(registry::toCanonical);
     }

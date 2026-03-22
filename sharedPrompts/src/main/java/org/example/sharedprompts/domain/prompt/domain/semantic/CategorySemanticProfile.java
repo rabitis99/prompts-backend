@@ -65,13 +65,28 @@ public interface CategorySemanticProfile {
      * so profiles without action group data remain valid.
      */
     default List<ActionGroup> getCompatibleActionGroupsForIntent(ActionIntent intent) {
+        if (intent == null) {
+            return Collections.emptyList();
+        }
         List<ActionTypeInterface> actions = getCompatibleActionsForIntent(intent);
         if (actions == null || actions.isEmpty()) {
             return Collections.emptyList();
         }
         return actions.stream()
-                .map(ActionTypeInterface::getActionGroup)
-                .filter(g -> g != null)
+                .map(
+                        a -> {
+                            ActionGroup g = a.getActionGroup();
+                            if (g == null) {
+                                throw new IllegalStateException(
+                                        "Compatible action without ActionGroup for category "
+                                                + getCategory().name()
+                                                + ", intent "
+                                                + intent.name()
+                                                + ", actionStableKey="
+                                                + a.key());
+                            }
+                            return g;
+                        })
                 .distinct()
                 .collect(Collectors.toList());
     }

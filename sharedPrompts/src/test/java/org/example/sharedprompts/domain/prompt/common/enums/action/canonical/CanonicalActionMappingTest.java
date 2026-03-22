@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Ensures every ActionType maps to an action group; deserialization and key stability unchanged.
@@ -101,6 +102,42 @@ class CanonicalActionMappingTest {
         assertThat(registry.sameCanonicalCapability(a, b)).isTrue();
         assertThat(registry.toCanonical(a)).contains(ActionGroup.TEXT_REVISION);
         assertThat(registry.toCanonical(b)).contains(ActionGroup.TEXT_REVISION);
+    }
+
+    @Test
+    @DisplayName("requireActionGroup fails fast when definition and registry cannot resolve a group")
+    void requireActionGroupFailsFastWhenUnresolvable() {
+        ActionTypeInterface bad =
+                new ActionTypeInterface() {
+                    @Override
+                    public String key() {
+                        return "FAKE.ACTION.NOT_IN_REGISTRY";
+                    }
+
+                    @Override
+                    public String getDisplayNameKo() {
+                        return "";
+                    }
+
+                    @Override
+                    public String getDisplayNameEn() {
+                        return "";
+                    }
+
+                    @Override
+                    public String getDisplayNameJa() {
+                        return "";
+                    }
+
+                    @Override
+                    public ActionGroup getActionGroup() {
+                        return null;
+                    }
+                };
+        assertThat(registry.toCanonical(bad)).isEmpty();
+        assertThatThrownBy(() -> registry.requireActionGroup(bad))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("FAKE.ACTION.NOT_IN_REGISTRY");
     }
 
     @Test

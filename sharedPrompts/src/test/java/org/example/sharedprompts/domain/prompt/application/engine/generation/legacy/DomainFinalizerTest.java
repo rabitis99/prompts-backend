@@ -11,6 +11,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.DomainResolverPort;
 import org.example.sharedprompts.domain.prompt.domain.resolutions.ResolvedDomain;
+import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDefinitionProviderAssembly;
 import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDictionary;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +20,8 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DomainFinalizerTest {
+
+    private final IntentDictionary intentDictionary = IntentDefinitionProviderAssembly.productionIntentDictionary();
 
     private DomainResolutionService domainResolutionService() {
         return new DomainResolutionService(new DomainResolverPort() {
@@ -61,7 +64,7 @@ class DomainFinalizerTest {
     void should_use_intent_affinity_and_resolver_result() {
         DomainFinalizer finalizer = new DomainFinalizer(domainResolutionService());
 
-        var resolutionDefaults = IntentDictionary.getResolutionDefaults(ActionIntent.GENERATE);
+        var resolutionDefaults = intentDictionary.getResolutionDefaults(ActionIntent.GENERATE);
         IntentDefaults defaults = new IntentDefaults(
                 ActionIntent.GENERATE,
                 resolutionDefaults.defaultObjective(),

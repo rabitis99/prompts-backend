@@ -11,7 +11,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -81,7 +80,8 @@ public class DefaultCategorySemanticProfileSeedSource implements CategorySemanti
         PromptCategory canonical = category.canonical();
         Supplier<CategorySemanticProfileSeed> supplier = seedSuppliers.get(canonical);
         if (supplier == null) {
-            throw new IllegalStateException("Missing CategorySemanticProfileSeed for category: " + canonical.name());
+            throw new IllegalStateException(
+                    "Missing CategorySemanticProfileSeed for category: " + canonical.name() + "; no seed supplier registered");
         }
         CategorySemanticProfileSeed seed = supplier.get();
         if (seed == null) {
@@ -89,16 +89,5 @@ public class DefaultCategorySemanticProfileSeedSource implements CategorySemanti
                     "CategorySemanticProfileSeed supplier returned null for category: " + canonical.name());
         }
         return seed;
-    }
-
-    @Override
-    public Optional<CategorySemanticProfileSeed> getSeed(PromptCategory category) {
-        Objects.requireNonNull(category, "category");
-        PromptCategory canonical = category.canonical();
-        Supplier<CategorySemanticProfileSeed> supplier = seedSuppliers.get(canonical);
-        if (supplier == null) {
-            return Optional.empty();
-        }
-        return Optional.ofNullable(supplier.get());
     }
 }
