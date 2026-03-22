@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,6 +33,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class CategorySemanticProfileSeedSourceAssemblerTest {
 
     private static final List<Class<? extends Enum<?>>> CATALOG = DeserializerEnumTestUtils.getActionTypeEnums();
+
+    @Test
+    @DisplayName("Every profileCategoriesForRegistry entry gets a built profile when seeds are complete")
+    void registryHasProfileForEachProfileCategoryWhenSeedsComplete() {
+        ActionTypeRegistry actionRegistry = new ActionTypeRegistry(CATALOG);
+        CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(actionRegistry);
+        CategorySemanticProfileSeedSource source = new DefaultCategorySemanticProfileSeedSource();
+        DefaultCategorySemanticProfileRegistry registry =
+                new DefaultCategorySemanticProfileRegistry(canonical, null, source);
+        for (PromptCategory c : source.profileCategoriesForRegistry()) {
+            assertThat(registry.getProfile(c)).as("profile for %s", c).isPresent();
+        }
+    }
 
     @Test
     @DisplayName("Registry assembles profiles from seed source, not inline data")
@@ -68,17 +80,17 @@ class CategorySemanticProfileSeedSourceAssemblerTest {
         // Custom source: same structure but different role order for WRITING+GENERATE (or different fallback)
         CategorySemanticProfileSeedSource customSource = new CategorySemanticProfileSeedSource() {
             @Override
-            public Optional<CategorySemanticProfileSeed> getSeed(PromptCategory category) {
-                if (category != PromptCategory.WRITING) {
-                    return defaultSource.getSeed(category);
+            public CategorySemanticProfileSeed requireSeed(PromptCategory category) {
+                if (category.canonical() != PromptCategory.WRITING) {
+                    return defaultSource.requireSeed(category);
                 }
-                CategorySemanticProfileSeed original = defaultSource.getSeed(category).orElseThrow();
+                CategorySemanticProfileSeed original = defaultSource.requireSeed(category);
                 Map<ActionIntent, List<RoleTypeInterface>> roles = new java.util.HashMap<>(original.rolesByIntent());
                 roles.put(ActionIntent.GENERATE, List.of(WritingRoleType.TECHNICAL_WRITER, WritingRoleType.EDITOR));
-                return Optional.of(new CategorySemanticProfileSeed(
+                return new CategorySemanticProfileSeed(
                         original.category(), original.taskDomain(), original.allowedIntents(), original.intentFitLevels(),
                         roles, original.actionsByIntent(), original.discouragedTonesByIntent(), original.discouragedStylesByIntent(),
-                        ActionIntent.REWRITE, original.fallbackCandidates()));
+                        ActionIntent.REWRITE, original.fallbackCandidates());
             }
         };
         DefaultCategorySemanticProfileRegistry registryCustom =
@@ -113,11 +125,11 @@ class CategorySemanticProfileSeedSourceAssemblerTest {
     @DisplayName("Default seed source covers all canonical profile categories; EXTRACTION has no seed")
     void defaultSourceReturnsSeedsForProfileCategoriesOnly() {
         CategorySemanticProfileSeedSource source = new DefaultCategorySemanticProfileSeedSource();
-        assertThat(source.getSeed(PromptCategory.EXTRACTION)).isEmpty();
         assertThatThrownBy(() -> source.requireSeed(PromptCategory.EXTRACTION))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("EXTRACTION")
-                .hasMessageContaining("Missing CategorySemanticProfileSeed");
+                .hasMessageContaining("Missing CategorySemanticProfileSeed")
+                .hasMessageContaining("no seed supplier registered");
         assertThat(source.requireSeed(PromptCategory.WRITING).category()).isEqualTo(PromptCategory.WRITING);
         assertThat(source.requireSeed(PromptCategory.DESIGN).category()).isEqualTo(PromptCategory.DESIGN);
         assertThat(source.requireSeed(PromptCategory.ETC).category()).isEqualTo(PromptCategory.ETC);
@@ -136,8 +148,8 @@ class CategorySemanticProfileSeedSourceAssemblerTest {
             }
 
             @Override
-            public Optional<CategorySemanticProfileSeed> getSeed(PromptCategory category) {
-                return fullSource.getSeed(category);
+            public CategorySemanticProfileSeed requireSeed(PromptCategory category) {
+                return fullSource.requireSeed(category);
             }
         };
         DefaultCategorySemanticProfileRegistry registry =

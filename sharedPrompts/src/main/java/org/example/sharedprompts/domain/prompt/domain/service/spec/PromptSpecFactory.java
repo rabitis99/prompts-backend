@@ -38,6 +38,12 @@ import java.util.Optional;
  * <p>Objective별 분기(priority, rubric, constraints, sections 등)는
  * {@link ObjectiveRegistry}를 통해 조회한 {@link ObjectiveProfile}에 위임한다.
  * switch/case 없음, 새 Objective 추가 시 이 클래스 수정 불필요(OCP).
+ *
+ * <p><b>ActionGroup for {@link RuleContext}:</b> resolved only via {@link CanonicalActionRegistry}
+ * ({@link ConfirmedSemanticAxes#findActionGroup(CanonicalActionRegistry)}). There is no parallel read of
+ * {@link org.example.sharedprompts.domain.prompt.common.enums.action.ActionTypeInterface#getActionGroup()} here;
+ * when an action type is present on confirmed axes, the registry must resolve a capability or construction fails
+ * (strict, definition-first).
  */
 public class PromptSpecFactory {
 
@@ -61,7 +67,7 @@ public class PromptSpecFactory {
         // GuidelineBundleBuilder 선택(구체 구현/조합 책임)은 조합 계층에서 수행해야 한다.
         this.guidelineBundleBuilder = Objects.requireNonNull(guidelineBundleBuilder, "guidelineBundleBuilder must not be null");
         this.roleDescriptorPort = roleDescriptorPort;
-        this.canonicalActionRegistry = canonicalActionRegistry;
+        this.canonicalActionRegistry = Objects.requireNonNull(canonicalActionRegistry, "canonicalActionRegistry");
     }
 
     /**
@@ -89,10 +95,7 @@ public class PromptSpecFactory {
         ExperienceLevel level = axes.experienceLevel() != null ? axes.experienceLevel() : ExperienceLevel.INTERMEDIATE;
         Constraints constraints = profile.constraints(level);
         OutputContract outputContract = profile.outputContract(jsonSchema, constraints.getMaxLength());
-        Optional<ActionGroup> actionGroup = canonicalActionRegistry != null
-                ? axes.actionGroup(canonicalActionRegistry)
-                        .or(() -> axes.actionType().flatMap(at -> Optional.ofNullable(at.getActionGroup())))
-                : axes.actionType().flatMap(at -> Optional.ofNullable(at.getActionGroup()));
+        Optional<ActionGroup> actionGroup = resolveActionGroupForRuleContext(axes);
         RuleContext ruleContext = RuleContext.of(
                 effectiveTaskDomain,
                 profile.objective().name(),
@@ -129,6 +132,21 @@ public class PromptSpecFactory {
                 .rawInput(rawInput)
                 .actionType(axes.actionType().orElse(null))
                 .build();
+    }
+
+    /**
+     * Single resolution path: {@link ConfirmedSemanticAxes#findActionGroup(CanonicalActionRegistry)} only.
+     * If {@code axes} carries an action type, the registry must resolve an {@link ActionGroup} (no enum-field fallback).
+     */
+    private Optional<ActionGroup> resolveActionGroupForRuleContext(ConfirmedSemanticAxes axes) {
+        Optional<ActionGroup> actionGroup = axes.findActionGroup(canonicalActionRegistry);
+        if (axes.actionType().isPresent() && actionGroup.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "CanonicalActionRegistry did not resolve ActionGroup for confirmed axes (stableKey="
+                            + axes.actionType().get().key()
+                            + "). Use registry-only resolution; ensure the action is registered and resolvable.");
+        }
+        return actionGroup;
     }
 
     // ── 섹션 빌드 ─────────────────────────────────────────────────────────

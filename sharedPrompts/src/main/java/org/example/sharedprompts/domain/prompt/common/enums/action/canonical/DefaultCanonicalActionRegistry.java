@@ -19,7 +19,8 @@ public class DefaultCanonicalActionRegistry implements CanonicalActionRegistry {
 
     /**
      * Definition-first: canonical meaning comes from the ActionType's own {@link ActionTypeInterface#getActionGroup()}.
-     * No registry re-query — registry is used only for {@link #findByKey(String)} when resolving by stable key.
+     * Registry is used only for {@link #findByKey(String)} when the definition has no group. Empty result is allowed
+     * for open-ended lookups; curated seeds/policies should use {@link CanonicalActionRegistry#requireActionGroup(ActionTypeInterface)}.
      */
     @Override
     public Optional<ActionGroup> toCanonical(ActionTypeInterface actionType) {

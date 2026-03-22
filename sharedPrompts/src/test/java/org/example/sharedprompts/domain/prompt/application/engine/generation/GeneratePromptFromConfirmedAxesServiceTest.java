@@ -21,6 +21,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCateg
 import org.example.sharedprompts.domain.prompt.common.enums.style.StyleType;
 import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
 import org.example.sharedprompts.domain.prompt.domain.semantic.CategorySemanticProfileRegistry;
+import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDefinitionProviderAssembly;
 import org.example.sharedprompts.domain.prompt.application.exception.SemanticResolutionException;
 import org.example.sharedprompts.domain.prompt.domain.semantic.ConfirmedSemanticAxes;
 import org.example.sharedprompts.domain.prompt.domain.semantic.SemanticValidationResult;
@@ -54,7 +55,8 @@ class GeneratePromptFromConfirmedAxesServiceTest {
         confirmedAxesMapper = new ConfirmedAxesMapper();
         profileRegistry = mock(CategorySemanticProfileRegistry.class);
         validationService = mock(SemanticValidationService.class);
-        axisDefaultsResolver = new IntentBasedAxisDefaultsResolver();
+        axisDefaultsResolver = new IntentBasedAxisDefaultsResolver(
+                IntentDefinitionProviderAssembly.productionIntentDictionary());
         generatePromptUseCase = mock(GeneratePromptUseCase.class);
         axisSourcePolicy = mock(AxisSourcePolicy.class);
         resultBuilder = mock(UnifiedGeneratePromptResultBuilder.class);

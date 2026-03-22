@@ -19,6 +19,8 @@ import org.example.sharedprompts.domain.prompt.common.enums.action.canonical.Can
 import org.example.sharedprompts.domain.prompt.common.guideline.bundle.GuidelineBundleBuilder;
 import org.example.sharedprompts.domain.prompt.domain.verification.guideline.DefaultGuidelineRuleChecker;
 import org.example.sharedprompts.domain.prompt.domain.verification.guideline.GuidelineVerifier;
+import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDefinitionProviderAssembly;
+import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDictionary;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -34,6 +36,11 @@ import java.util.List;
 @Configuration
 @Import({ActionTypeRegistryConfig.class, ResolutionConfig.class, ObservabilityConfig.class, AuditConfig.class})
 public class PromptDomainConfig {
+
+    @Bean
+    public IntentDictionary intentDictionary() {
+        return IntentDefinitionProviderAssembly.productionIntentDictionary();
+    }
 
     @Bean
     public ObjectiveRegistry objectiveRegistry() {

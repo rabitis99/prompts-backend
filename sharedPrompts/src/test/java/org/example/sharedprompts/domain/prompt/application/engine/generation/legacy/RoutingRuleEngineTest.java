@@ -6,13 +6,12 @@ import org.example.sharedprompts.domain.prompt.common.enums.engine.EngineProfile
 import org.example.sharedprompts.domain.prompt.common.enums.output.OutputNeeds;
 import org.example.sharedprompts.domain.prompt.common.enums.output.ResponseShape;
 import org.example.sharedprompts.domain.prompt.common.enums.request.RequestMode;
-import org.example.sharedprompts.domain.prompt.common.enums.role.core.CoreRoleType;
-import org.example.sharedprompts.domain.prompt.common.enums.role.metadata.DomainRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.ActionIntent;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptCategory;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.PromptObjective;
 import org.example.sharedprompts.domain.prompt.common.enums.semantic.TaskDomain;
 import org.example.sharedprompts.domain.prompt.common.enums.style.ToneType;
+import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDefinitionProviderAssembly;
 import org.example.sharedprompts.domain.prompt.domain.semantic.IntentDictionary;
 import org.junit.jupiter.api.Test;
 
@@ -22,11 +21,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class RoutingRuleEngineTest {
 
+    private final IntentDictionary intentDictionary = IntentDefinitionProviderAssembly.productionIntentDictionary();
+
     private UnifiedGeneratePromptCommand baseCommand(ActionIntent intent, String jsonSchema) {
+        return baseCommand(intent, jsonSchema, PromptCategory.ETC);
+    }
+
+    private UnifiedGeneratePromptCommand baseCommand(ActionIntent intent, String jsonSchema, PromptCategory category) {
         return UnifiedGeneratePromptCommand.of(
                 1L,
                 RequestMode.SIMPLE,
-                PromptCategory.ETC,
+                category,
                 intent,
                 null,
                 "input",
@@ -46,7 +51,7 @@ class RoutingRuleEngineTest {
     }
 
     private IntentDefaults baseDefaults(ActionIntent intent, TaskDomain affinity) {
-        var resolutionDefaults = IntentDictionary.getResolutionDefaults(intent);
+        var resolutionDefaults = intentDictionary.getResolutionDefaults(intent);
         return new IntentDefaults(
                 intent,
                 resolutionDefaults.defaultObjective(),
@@ -95,7 +100,7 @@ class RoutingRuleEngineTest {
         RoutingOverrides overrides = engine.apply(command, defaults);
 
         assertThat(overrides.objectiveOverride()).isEqualTo(PromptObjective.REASONING);
-        assertThat(overrides.appliedRuleIds()).containsExactly("low", "high");
+        assertThat(overrides.appliedRuleIds()).containsExactly("high", "low");
     }
 
     @Test
@@ -130,13 +135,14 @@ class RoutingRuleEngineTest {
         engine.registerRule(generic);
         engine.registerRule(specific);
 
-        UnifiedGeneratePromptCommand command = baseCommand(ActionIntent.EXTRACT, "{}");
+        UnifiedGeneratePromptCommand command =
+                baseCommand(ActionIntent.EXTRACT, "{}", PromptCategory.ANALYSIS);
         IntentDefaults defaults = baseDefaults(ActionIntent.EXTRACT, TaskDomain.ANALYTICAL);
 
         RoutingOverrides overrides = engine.apply(command, defaults);
 
         assertThat(overrides.outputNeedsOverride()).isEqualTo(OutputNeeds.JSON_SCHEMA_REQUIRED);
-        assertThat(overrides.appliedRuleIds()).containsExactly("generic", "specific");
+        assertThat(overrides.appliedRuleIds()).containsExactly("specific", "generic");
     }
 
     @Test

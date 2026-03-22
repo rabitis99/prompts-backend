@@ -5,7 +5,8 @@ import java.util.List;
 /**
  * Provides intent definition entries.
  * <p>
- * Data ownership lives in providers; {@link IntentDefinitionDataSource} only aggregates.
+ * Data ownership lives in providers; {@link IntentDefinitionDataSource} merges entries.
+ * Production registration: {@link IntentDefinitionProviderAssembly}.
  */
 public interface IntentDefinitionEntriesProvider {
 

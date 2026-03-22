@@ -12,6 +12,12 @@ import java.util.Optional;
 /** legacy 라우팅용 Intent 기본값 */
 public class IntentDefaultsResolver {
 
+    private final IntentDictionary intentDictionary;
+
+    public IntentDefaultsResolver(IntentDictionary intentDictionary) {
+        this.intentDictionary = Objects.requireNonNull(intentDictionary, "intentDictionary");
+    }
+
     public IntentDefaults resolve(UnifiedGeneratePromptCommand command) {
         Objects.requireNonNull(command, "command must not be null");
         ActionIntent intent = command.intent();
@@ -19,7 +25,7 @@ public class IntentDefaultsResolver {
             intent = ActionIntent.GENERATE;
         }
 
-        var defaults = IntentDictionary.getResolutionDefaults(intent);
+        var defaults = intentDictionary.getResolutionDefaults(intent);
         Optional<TaskDomain> domainAffinity = Optional.empty();
 
         EngineProfile recommendedProfile = EngineProfile.QUALITY_PIPELINE;
