@@ -7,7 +7,7 @@ import java.util.List;
  * <p>
  * Data ownership lives in providers; {@link IntentDefinitionDataSource} only aggregates.
  */
-interface IntentResolutionDefaultsEntriesProvider {
+public interface IntentResolutionDefaultsEntriesProvider {
 
     List<IntentDefinitionDataSource.IntentResolutionDefaultEntry> entries();
 }

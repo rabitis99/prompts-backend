@@ -9,6 +9,7 @@ import org.example.sharedprompts.domain.prompt.common.enums.role.category.develo
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.development.CybersecurityRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.development.DevelopmentRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.education.EducationRoleType;
+import org.example.sharedprompts.domain.prompt.common.enums.role.category.legal.LegalRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.etc.EtcRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.etc.HealthFitnessRoleType;
 import org.example.sharedprompts.domain.prompt.common.enums.role.category.etc.SocialRoleType;
@@ -41,6 +42,7 @@ public final class RoleTypeResolver {
             ContentCreationRoleType.class,
             CreativeRoleType.class,
             EducationRoleType.class,
+            LegalRoleType.class,
             ResearchRoleType.class,
             BusinessRoleType.class,
             CustomerSupportRoleType.class,

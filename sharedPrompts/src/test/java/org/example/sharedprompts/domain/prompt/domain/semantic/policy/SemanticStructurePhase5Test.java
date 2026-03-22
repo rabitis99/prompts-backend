@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * 5차 구조 리팩터링 검증: data-driven policy source, UX key alignment,
@@ -176,24 +177,23 @@ class SemanticStructurePhase5Test {
     }
 
     @Test
-    @DisplayName("Profile registry assembles from seed source; no profile when source returns empty for category")
-    void profileRegistryAssemblesFromSeedSourceOnly() {
+    @DisplayName("Profile registry fail-fast when seed source omits a profile category")
+    void profileRegistryFailFastWhenSeedIncomplete() {
         ActionTypeRegistry registry = new ActionTypeRegistry(CATALOG);
         CanonicalActionRegistry canonical = new DefaultCanonicalActionRegistry(registry);
         DefaultCategorySemanticProfileSeedSource fullSource = new DefaultCategorySemanticProfileSeedSource();
-        // Source that omits WRITING: only DESIGN
         CategorySemanticProfileSeedSource partialSource = category -> {
             if (category == PromptCategory.WRITING) return java.util.Optional.empty();
             return fullSource.getSeed(category);
         };
         DefaultCategorySemanticProfileRegistry registryFull =
                 new DefaultCategorySemanticProfileRegistry(canonical, null, fullSource);
-        DefaultCategorySemanticProfileRegistry registryPartial =
-                new DefaultCategorySemanticProfileRegistry(canonical, null, partialSource);
 
         assertThat(registryFull.getProfile(PromptCategory.WRITING)).isPresent();
-        assertThat(registryPartial.getProfile(PromptCategory.WRITING)).isEmpty();
-        assertThat(registryPartial.getProfile(PromptCategory.DESIGN)).isPresent();
+        assertThatThrownBy(() -> new DefaultCategorySemanticProfileRegistry(canonical, null, partialSource))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("WRITING")
+                .hasMessageContaining("Missing CategorySemanticProfileSeed");
     }
 
     @Test
